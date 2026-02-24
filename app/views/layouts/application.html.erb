@@ -23,15 +23,13 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-neutral-50">
+  <body class="bg-brand-yellow-600">
     <!-- Header -->
-    <header class="bg-white border-b border-neutral-200 sticky top-0 z-50 shadow-sm">
-      <nav class="container-wide flex items-center justify-between h-16">
+    <header class="bg-brand-red-600 border-b border-neutral-200 sticky top-0 z-50 shadow-sm">
+      <nav class="container-wide flex items-center justify-between h-20">
         <div class="flex items-center gap-2">
-          <div class="w-10 h-10 bg-gradient-to-br from-brand-blue-600 to-brand-red-600 rounded-lg flex items-center justify-center">
-            <span class="text-white font-bold text-lg">E</span>
-          </div>
-          <%= link_to "EGC27", root_path, class: "text-xl font-bold text-brand-blue-600 hover:text-brand-blue-700 transition-colors" %>
+          <%= link_to image_tag("EGC2027logo.png", alt: "EGC27 Logo", class: "h-20 w-auto"), root_path %>
+          <%= link_to "European Go Congress 2027", root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-colors" %>
         </div>
 
         <div class="flex items-center gap-4">
@@ -57,7 +55,7 @@
     <% end %>
 
     <!-- Main Content -->
-    <main class="min-h-[calc(100vh-4rem)]">
+    <main class="min-h-[calc(100vh-4rem)] ">
       <%= yield %>
     </main>
 
