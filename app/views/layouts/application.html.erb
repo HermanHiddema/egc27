@@ -24,21 +24,31 @@
   </head>
 
   <body>
-    <% flash.each do |type, message| %>
-      <p><%= "#{type.to_s.humanize}: #{message}" %></p>
-    <% end %>
+    <div class="row">
+      <div class="small-12 columns">
+        <% flash.each do |type, message| %>
+          <div class="callout <%= type == :alert ? 'alert' : 'success' %>">
+            <%= "#{type.to_s.humanize}: #{message}" %>
+          </div>
+        <% end %>
 
-    <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
-      <% if current_user.present? %>
-        <p>
-          Signed in as <%= current_user.email %> |
-          <%= button_to "Sign out", destroy_user_session_path, method: :delete %>
-        </p>
-      <% else %>
-        <p><%= link_to "Sign in", new_user_session_path %></p>
-      <% end %>
-    <% end %>
+        <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
+          <div class="row">
+            <div class="small-12 columns">
+              <% if current_user.present? %>
+                <p>
+                  Signed in as <strong><%= current_user.email %></strong> |
+                  <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "button small alert" %>
+                </p>
+              <% else %>
+                <p><%= link_to "Sign in", new_user_session_path, class: "button small primary" %></p>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
 
-    <%= yield %>
+        <%= yield %>
+      </div>
+    </div>
   </body>
 </html>

@@ -10,6 +10,8 @@ gem "sqlite3", ">= 2.1"
 gem "puma", ">= 5.0"
 # Use JavaScript with ESM import maps [https://github.com/rails/importmap-rails]
 gem "importmap-rails"
+# SCSS processor for Foundation styles
+gem "sassc-rails"
 # Hotwire's SPA-like page accelerator [https://turbo.hotwired.dev]
 gem "turbo-rails"
 # Hotwire's modest JavaScript framework [https://stimulus.hotwired.dev]
@@ -19,6 +21,9 @@ gem "jbuilder"
 
 # Authentication framework
 gem "devise"
+
+# Zurb Foundation CSS framework
+gem "foundation-rails", "~> 6.8"
 
 # Use Active Model has_secure_password [https://guides.rubyonrails.org/active_model_basics.html#securepassword]
 # gem "bcrypt", "~> 3.1.7"
