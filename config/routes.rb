@@ -1,5 +1,5 @@
 Rails.application.routes.draw do
-  devise_for :users
+  devise_for :users, controllers: { sessions: "users/sessions" }
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
@@ -11,6 +11,16 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  get "style-guide" => "home#style_guide", as: :style_guide
+  get "debug" => "home#debug", as: :debug
+
+  # Static pages for menu
+  get "about" => "pages#about", as: :about
+  get "schedule" => "pages#schedule", as: :schedule
+  get "registration" => "pages#registration", as: :registration
+  get "venue" => "pages#venue", as: :venue
+  get "contact" => "pages#contact", as: :contact
+
   devise_scope :user do
     authenticated :user do
       root "home#index", as: :authenticated_root
@@ -20,4 +30,6 @@ Rails.application.routes.draw do
       root "devise/sessions#new", as: :unauthenticated_root
     end
   end
+
+  root "home#index"
 end

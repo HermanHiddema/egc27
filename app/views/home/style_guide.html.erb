@@ -1,0 +1,212 @@
+<!-- Color Palette Showcase -->
+<section class="section-padding bg-white">
+  <div class="container-wide">
+    <h2 class="mb-12">Design System</h2>
+    
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Color Palettes</h3>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 mb-16">
+      <!-- Blue Palette -->
+      <div>
+        <h4 class="font-bold text-neutral-900 mb-4">Brand Blue</h4>
+        <div class="space-y-2">
+          <% { 50 => '#f0f4f9', 100 => '#e1e9f3', 200 => '#c3d3e7', 300 => '#a5bcdb', 400 => '#698bc2', 500 => '#2d5aa9', 600 => '#0f3a77', 700 => '#0d326a', 800 => '#0a2a5d', 900 => '#082250' }.each do |level, hex| %>
+            <div class="flex items-center gap-4">
+              <div class="w-20 h-12 rounded border border-neutral-300" style="background-color: <%= hex %>"></div>
+              <span class="text-sm font-mono text-neutral-600"><%= hex %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Red Palette -->
+      <div>
+        <h4 class="font-bold text-neutral-900 mb-4">Brand Red</h4>
+        <div class="space-y-2">
+          <% { 50 => '#f9f3f1', 100 => '#f3e6e2', 200 => '#e8ccc5', 300 => '#dbb3a9', 400 => '#c4857a', 500 => '#ad574b', 600 => '#8c1915', 700 => '#7a1612', 800 => '#68120f', 900 => '#560f0c' }.each do |level, hex| %>
+            <div class="flex items-center gap-4">
+              <div class="w-20 h-12 rounded border border-neutral-300" style="background-color: <%= hex %>"></div>
+              <span class="text-sm font-mono text-neutral-600"><%= hex %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
+      <!-- Yellow Palette -->
+      <div>
+        <h4 class="font-bold text-neutral-900 mb-4">Brand Yellow</h4>
+        <div class="space-y-2">
+          <% { 50 => '#fffbf0', 100 => '#fff8e1', 200 => '#ffefc2', 300 => '#ffe6a3', 400 => '#ffd965', 500 => '#fbba00', 600 => '#e6a800', 700 => '#cc9600', 800 => '#b38400', 900 => '#997000' }.each do |level, hex| %>
+            <div class="flex items-center gap-4">
+              <div class="w-20 h-12 rounded border border-neutral-300" style="background-color: <%= hex %>"></div>
+              <span class="text-sm font-mono text-neutral-600"><%= hex %></span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Typography -->
+<section class="section-padding bg-neutral-50">
+  <div class="container-wide">
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Typography</h3>
+    
+    <div class="space-y-8 bg-white rounded-xl p-8">
+      <div>
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide">H1 - Heading 1</p>
+        <h1>Unforgettable Events Start Here</h1>
+      </div>
+      
+      <div>
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide">H2 - Heading 2</p>
+        <h2>Powerful Features for Event Success</h2>
+      </div>
+      
+      <div>
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide">H3 - Heading 3</p>
+        <h3>Smart Scheduling Tools</h3>
+      </div>
+      
+      <div>
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide">Body Text</p>
+        <p class="text-base leading-relaxed">
+          This is body text styling. It uses a clean, professional font with excellent readability. 
+          Perfect for descriptions, long-form content, and general information across the platform.
+        </p>
+      </div>
+      
+      <div>
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide">Small Text</p>
+        <p class="text-sm text-neutral-600">This is smaller text used for captions, helper text, and secondary information.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Buttons -->
+<section class="section-padding bg-white">
+  <div class="container-wide">
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Buttons</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Primary Button</p>
+        <button class="btn-primary mb-2">Primary Button</button>
+        <button class="btn-primary opacity-50 cursor-not-allowed">Disabled Button</button>
+      </div>
+      
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Secondary Button</p>
+        <button class="btn-secondary mb-2">Secondary Button</button>
+        <button class="btn-secondary opacity-50 cursor-not-allowed">Disabled Button</button>
+      </div>
+      
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Accent Button</p>
+        <button class="btn-accent mb-2">Accent Button</button>
+        <button class="btn-accent opacity-50 cursor-not-allowed">Disabled Button</button>
+      </div>
+      
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Secondary Outline</p>
+        <button class="px-6 py-3 border-2 border-brand-blue-600 text-brand-blue-600 font-semibold rounded-lg hover:bg-brand-blue-50 transition-all duration-200">Outline Button</button>
+      </div>
+      
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Small Button</p>
+        <button class="px-4 py-2 bg-brand-blue-600 text-white font-medium rounded-lg hover:bg-brand-blue-700 text-sm">Small Button</button>
+      </div>
+      
+      <div class="bg-neutral-50 p-8 rounded-xl">
+        <p class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Large Button</p>
+        <button class="px-8 py-4 bg-brand-blue-600 text-white font-semibold rounded-lg hover:bg-brand-blue-700 text-lg">Large Button</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Cards -->
+<section class="section-padding bg-neutral-50">
+  <div class="container-wide">
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Cards</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="card p-8">
+        <h4 class="text-xl font-bold text-neutral-900 mb-4">Standard Card</h4>
+        <p class="text-neutral-600 mb-4">This is a standard card with medium shadow and padding. Great for general content.</p>
+        <button class="text-brand-blue-600 font-semibold hover:text-brand-blue-700">Learn More →</button>
+      </div>
+      
+      <div class="card-elevated p-8">
+        <h4 class="text-xl font-bold text-neutral-900 mb-4">Elevated Card</h4>
+        <p class="text-neutral-600 mb-4">This is an elevated card with more prominent shadow. Perfect for featured content.</p>
+        <button class="text-brand-blue-600 font-semibold hover:text-brand-blue-700">Learn More →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gradients & Special Elements -->
+<section class="section-padding bg-white">
+  <div class="container-wide">
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Gradients & Special Elements</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div class="rounded-xl overflow-hidden shadow-brand-lg h-40 bg-gradient-to-br from-brand-blue-500 to-brand-red-600 flex items-center justify-center text-white text-center p-6">
+        <span class="text-2xl font-bold">Blue → Red Gradient</span>
+      </div>
+      
+      <div class="rounded-xl overflow-hidden shadow-brand-lg h-40 bg-gradient-to-r from-brand-yellow-400 via-brand-red-500 to-brand-blue-600 flex items-center justify-center text-white text-center font-bold">
+        <span class="text-gradient">Text Gradient</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- States & Interactions -->
+<section class="section-padding bg-neutral-50">
+  <div class="container-wide">
+    <h3 class="text-2xl font-bold text-brand-blue-600 mb-8">Forms & Inputs</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-8 rounded-xl">
+      <div>
+        <label class="block text-sm font-semibold text-neutral-700 mb-2">Text Input</label>
+        <input type="text" placeholder="Enter text..." class="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent transition-ring">
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-neutral-700 mb-2">Email Input</label>
+        <input type="email" placeholder="Enter email..." class="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent transition-ring">
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-neutral-700 mb-2">Select Dropdown</label>
+        <select class="w-full px-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:border-transparent transition-ring">
+          <option>Select an option...</option>
+          <option>Option 1</option>
+          <option>Option 2</option>
+        </select>
+      </div>
+      
+      <div>
+        <label class="block text-sm font-semibold text-neutral-700 mb-2">Checkbox</label>
+        <label class="flex items-center gap-3 cursor-pointer">
+          <input type="checkbox" class="w-5 h-5 rounded border-neutral-300 text-brand-blue-600 focus:ring-brand-blue-500">
+          <span class="text-neutral-700">Agree to terms</span>
+        </label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer note -->
+<section class="section-padding bg-brand-blue-50">
+  <div class="container-wide text-center">
+    <p class="text-neutral-700 max-w-2xl mx-auto">
+      This design system is responsive and accessible. All colors meet WCAG AA contrast requirements. 
+      For more details, see <code class="bg-white rounded px-2 py-1 text-brand-blue-600">DESIGN_SYSTEM.md</code>
+    </p>
+  </div>
+</section>

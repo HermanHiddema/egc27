@@ -1,0 +1,74 @@
+<div class="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-2xl w-full space-y-8">
+    <div>
+      <h2 class="mt-6 text-center text-3xl font-bold text-brand-blue-600">Debug Info</h2>
+    </div>
+
+    <div class="space-y-4 bg-white p-6 rounded-lg">
+      <div>
+        <h3 class="font-bold text-neutral-900 mb-2">User Count</h3>
+        <p class="text-neutral-600"><%= @user_count %> users in database</p>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-neutral-900 mb-2">Test User Details</h3>
+        <% if @test_user %>
+          <p class="text-green-600">✓ User exists: <%= @test_user.email %></p>
+          <p class="text-neutral-600 text-sm">Created: <%= @test_user.created_at %></p>
+          <p class="text-neutral-600 text-sm">Password hash: <%= @test_user.encrypted_password.first(20) %>...</p>
+          <% if @test_user.valid_password?("password123") %>
+            <p class="text-green-600 text-sm">✓ Password verification WORKS</p>
+          <% else %>
+            <p class="text-red-600 text-sm">✗ Password verification FAILED</p>
+          <% end %>
+          <p class="text-neutral-600 text-sm">Sign in count: <%= @test_user.sign_in_count %></p>
+          <p class="text-neutral-600 text-sm">Last sign in: <%= @test_user.last_sign_in_at || "Never" %></p>
+        <% else %>
+          <p class="text-red-600">✗ No user found with email test@example.com</p>
+        <% end %>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-neutral-900 mb-2">Session & Cookie Info</h3>
+        <p class="text-neutral-600 text-sm">Session ID: <%= request.session_options[:id] %></p>
+        <p class="text-neutral-600 text-sm">Cookies: <%= request.cookies.keys.join(', ') || "None" %></p>
+        <% if request.cookies['_egc27_session'].present? %>
+          <p class="text-green-600 text-sm">✓ Session cookie exists</p>
+        <% else %>
+          <p class="text-red-600 text-sm">✗ Session cookie NOT found</p>
+        <% end %>
+      </div>
+
+      <div>
+        <h3 class="font-bold text-neutral-900 mb-2">Authentication Status</h3>
+        <% if @user_signed_in %>
+          <p class="text-green-600">✓ Signed in as: <%= @current_user.email %></p>
+        <% else %>
+          <p class="text-red-600">✗ Not signed in</p>
+          <p class="text-neutral-600 text-sm">current_user: <%= current_user.inspect %></p>
+          <p class="text-neutral-600 text-sm">user_signed_in?: <%= user_signed_in? %></p>
+        <% end %>
+      </div>
+
+      <div class="mt-6 pt-6 border-t border-neutral-200">
+        <h3 class="font-bold text-neutral-900 mb-4">Test Login Form</h3>
+        <form method="post" action="<%= user_session_path %>" class="space-y-4">
+          <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
+          <div>
+            <input type="email" name="user[email]" value="test@example.com" placeholder="Email" class="w-full px-3 py-2 border border-neutral-300 rounded-md">
+          </div>
+          <div>
+            <input type="password" name="user[password]" value="password123" placeholder="Password" class="w-full px-3 py-2 border border-neutral-300 rounded-md">
+          </div>
+          <button type="submit" class="w-full bg-brand-blue-600 text-white py-2 rounded-md">Test Login</button>
+        </form>
+      </div>
+
+      <div class="mt-6 space-y-2">
+        <%= link_to "Back to Login", new_user_session_path, class: "block text-center text-brand-blue-600 hover:text-brand-blue-700 font-medium" %>
+        <%= link_to "View Rails Log", "#", class: "block text-center text-neutral-600 hover:text-neutral-700 font-medium text-sm" %>
+      </div>
+    </div>
+  </div>
+</div>
+
