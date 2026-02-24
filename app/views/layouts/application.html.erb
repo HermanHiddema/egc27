@@ -24,6 +24,19 @@
   </head>
 
   <body>
+    <% flash.each do |type, message| %>
+      <p><%= "#{type.to_s.humanize}: #{message}" %></p>
+    <% end %>
+
+    <% if user_signed_in? %>
+      <p>
+        Signed in as <%= current_user.email %> |
+        <%= button_to "Sign out", destroy_user_session_path, method: :delete %>
+      </p>
+    <% else %>
+      <p><%= link_to "Sign in", new_user_session_path %></p>
+    <% end %>
+
     <%= yield %>
   </body>
 </html>
