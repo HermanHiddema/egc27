@@ -1,6 +1,50 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-brand-blue-50: #f0f4f9;
+  --color-brand-blue-100: #e1e9f3;
+  --color-brand-blue-200: #c3d3e7;
+  --color-brand-blue-300: #a5bcdb;
+  --color-brand-blue-400: #698bc2;
+  --color-brand-blue-500: #2d5aa9;
+  --color-brand-blue-600: #0f3a77;
+  --color-brand-blue-700: #0d326a;
+  --color-brand-blue-800: #0a2a5d;
+  --color-brand-blue-900: #082250;
+
+  --color-brand-red-50: #f9f3f1;
+  --color-brand-red-100: #f3e6e2;
+  --color-brand-red-200: #e8ccc5;
+  --color-brand-red-300: #dbb3a9;
+  --color-brand-red-400: #c4857a;
+  --color-brand-red-500: #ad574b;
+  --color-brand-red-600: #8c1915;
+  --color-brand-red-700: #7a1612;
+  --color-brand-red-800: #68120f;
+  --color-brand-red-900: #560f0c;
+
+  --color-brand-yellow-50: #fffbf0;
+  --color-brand-yellow-100: #fff8e1;
+  --color-brand-yellow-200: #ffefc2;
+  --color-brand-yellow-300: #ffe6a3;
+  --color-brand-yellow-400: #ffd965;
+  --color-brand-yellow-500: #fbba00;
+  --color-brand-yellow-600: #e6a800;
+  --color-brand-yellow-700: #cc9600;
+  --color-brand-yellow-800: #b38400;
+  --color-brand-yellow-900: #997000;
+
+  --color-neutral-50: #f9fafb;
+  --color-neutral-100: #f3f4f6;
+  --color-neutral-200: #e5e7eb;
+  --color-neutral-300: #d1d5db;
+  --color-neutral-400: #9ca3af;
+  --color-neutral-500: #6b7280;
+  --color-neutral-600: #4b5563;
+  --color-neutral-700: #374151;
+  --color-neutral-800: #1f2937;
+  --color-neutral-900: #111827;
+}
 
 @layer base {
   body {
