@@ -14,6 +14,13 @@ Rails.application.routes.draw do
   get "style-guide" => "home#style_guide", as: :style_guide
   get "debug" => "home#debug", as: :debug
 
+  # Static pages for menu
+  get "about" => "pages#about", as: :about
+  get "schedule" => "pages#schedule", as: :schedule
+  get "registration" => "pages#registration", as: :registration
+  get "venue" => "pages#venue", as: :venue
+  get "contact" => "pages#contact", as: :contact
+
   devise_scope :user do
     authenticated :user do
       root "home#index", as: :authenticated_root

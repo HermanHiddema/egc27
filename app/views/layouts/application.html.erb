@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title><%= content_for(:title) || "Egc27" %></title>
+    <title><%= content_for(:title) || "EGC 2027" %></title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="Egc27">
@@ -28,22 +28,34 @@
     <header class="bg-brand-red-600 border-b border-neutral-200 sticky top-0 z-50 shadow-sm">
       <nav class="container-wide flex items-center justify-between h-20">
         <div class="flex items-center gap-2">
-          <%= link_to image_tag("EGC2027logo.png", alt: "EGC27 Logo", class: "h-20 w-auto"), root_path %>
+          <%= link_to image_tag("EGC2027-logo-red.png", alt: "EGC27 Logo", class: "h-20 w-auto"), root_path %>
           <%= link_to "European Go Congress 2027", root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-colors" %>
         </div>
 
         <div class="flex items-center gap-4">
           <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
             <% if current_user.present? %>
-              <span class="text-sm text-neutral-600"><%= current_user.email %></span>
-              <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm btn-primary px-4 py-2" %>
+              <span class="text-sm text-brand-yellow-300"><%= current_user.email %></span>
+              <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm text-brand-yellow-300 btn-primary px-4 py-2" %>
             <% else %>
-              <%= link_to "Sign in", new_user_session_path, class: "btn-primary px-4 py-2" %>
+              <%= link_to "Sign in", new_user_session_path, class: "btn-primary text-brand-yellow-300 px-4 py-2" %>
             <% end %>
           <% end %>
         </div>
       </nav>
     </header>
+
+    <!-- Menu Bar -->
+    <nav class="bg-brand-blue-900 sticky top-20 z-40 border-b border-brand-blue-800">
+      <div class="container-wide flex items-center gap-8 px-4 h-12">
+        <%= link_to "Home", root_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "About", about_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Schedule", schedule_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Registration", registration_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Venue", venue_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Contact", contact_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+      </div>
+    </nav>
 
     <!-- Flash Messages -->
     <% flash.each do |type, message| %>
@@ -90,7 +102,7 @@
           </div>
         </div>
         <div class="border-t border-brand-blue-800 pt-8 flex justify-between items-center">
-          <p class="text-neutral-400">&copy; 2026 EGC27. All rights reserved.</p>
+          <p class="text-neutral-400">&copy; 2026 EGC 2027. All rights reserved.</p>
           <div class="flex gap-4">
             <a href="#" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors">Twitter</a>
             <a href="#" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors">LinkedIn</a>
