@@ -13,4 +13,3 @@ user = User.create!(
 
 puts "✓ Test user created: test@example.com / password123"
 puts "✓ Password is encrypted: #{user.encrypted_password.present?}"
-

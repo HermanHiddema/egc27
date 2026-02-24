@@ -6,7 +6,7 @@ module Users
       Rails.logger.info("=== LOGIN ATTEMPT ===")
       Rails.logger.info("Email: #{user_params[:email]}")
       Rails.logger.info("Password present: #{user_params[:password].present?}")
-      
+
       user = User.find_by(email: user_params[:email])
       if user
         Rails.logger.info("User found: #{user.email}")
@@ -14,7 +14,7 @@ module Users
       else
         Rails.logger.info("User not found")
       end
-      
+
       super
     end
 
