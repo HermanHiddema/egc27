@@ -23,22 +23,82 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body>
+  <body class="bg-neutral-50">
+    <!-- Header -->
+    <header class="bg-white border-b border-neutral-200 sticky top-0 z-50 shadow-sm">
+      <nav class="container-wide flex items-center justify-between h-16">
+        <div class="flex items-center gap-2">
+          <div class="w-10 h-10 bg-gradient-to-br from-brand-blue-600 to-brand-red-600 rounded-lg flex items-center justify-center">
+            <span class="text-white font-bold text-lg">E</span>
+          </div>
+          <%= link_to "EGC27", root_path, class: "text-xl font-bold text-brand-blue-600 hover:text-brand-blue-700 transition-colors" %>
+        </div>
+
+        <div class="flex items-center gap-4">
+          <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
+            <% if current_user.present? %>
+              <span class="text-sm text-neutral-600"><%= current_user.email %></span>
+              <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm btn-primary px-4 py-2" %>
+            <% else %>
+              <%= link_to "Sign in", new_user_session_path, class: "btn-primary px-4 py-2" %>
+            <% end %>
+          <% end %>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Flash Messages -->
     <% flash.each do |type, message| %>
-      <p><%= "#{type.to_s.humanize}: #{message}" %></p>
+      <div class="container-wide mt-4">
+        <div class="p-4 rounded-lg <%= type.to_s == 'notice' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200' %>">
+          <%= message %>
+        </div>
+      </div>
     <% end %>
 
-    <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
-      <% if current_user.present? %>
-        <p>
-          Signed in as <%= current_user.email %> |
-          <%= button_to "Sign out", destroy_user_session_path, method: :delete %>
-        </p>
-      <% else %>
-        <p><%= link_to "Sign in", new_user_session_path %></p>
-      <% end %>
-    <% end %>
+    <!-- Main Content -->
+    <main class="min-h-[calc(100vh-4rem)]">
+      <%= yield %>
+    </main>
 
-    <%= yield %>
+    <!-- Footer -->
+    <footer class="bg-brand-blue-900 text-white mt-24">
+      <div class="container-wide py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-brand-yellow-400">About</h3>
+            <p class="text-neutral-300">Event management made simple and elegant.</p>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-brand-yellow-400">Quick Links</h3>
+            <ul class="space-y-2 text-neutral-300">
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Home</a></li>
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Events</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-brand-yellow-400">Support</h3>
+            <ul class="space-y-2 text-neutral-300">
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Help Center</a></li>
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Contact</a></li>
+            </ul>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold mb-4 text-brand-yellow-400">Legal</h3>
+            <ul class="space-y-2 text-neutral-300">
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Privacy</a></li>
+              <li><a href="#" class="hover:text-brand-yellow-400 transition-colors">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="border-t border-brand-blue-800 pt-8 flex justify-between items-center">
+          <p class="text-neutral-400">&copy; 2026 EGC27. All rights reserved.</p>
+          <div class="flex gap-4">
+            <a href="#" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors">Twitter</a>
+            <a href="#" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors">LinkedIn</a>
+          </div>
+        </div>
+      </div>
+    </footer>
   </body>
 </html>

@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-body text-neutral-900;
+  }
+
+  h1 {
+    @apply text-4xl md:text-5xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl font-bold tracking-tight;
+  }
+
+  h3 {
+    @apply text-2xl font-semibold tracking-tight;
+  }
+
+  button {
+    @apply font-medium transition-colors duration-200;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 bg-brand-blue-600 text-white font-semibold rounded-lg hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply px-6 py-3 bg-brand-yellow-500 text-neutral-900 font-semibold rounded-lg hover:bg-brand-yellow-600 focus:outline-none focus:ring-2 focus:ring-brand-yellow-400 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  .btn-accent {
+    @apply px-6 py-3 bg-brand-red-600 text-white font-semibold rounded-lg hover:bg-brand-red-700 focus:outline-none focus:ring-2 focus:ring-brand-red-500 focus:ring-offset-2 transition-all duration-200;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-md hover:shadow-brand transition-shadow duration-300 overflow-hidden;
+  }
+
+  .card-elevated {
+    @apply bg-white rounded-xl shadow-brand hover:shadow-brand-lg transition-all duration-300 overflow-hidden;
+  }
+
+  .container-wide {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .section-padding {
+    @apply py-16 md:py-24 lg:py-32;
+  }
+
+  .gradient-hero {
+    @apply bg-gradient-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
+  }
+}
