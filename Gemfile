@@ -16,6 +16,8 @@ gem "turbo-rails"
 gem "stimulus-rails"
 # Build JSON APIs with ease [https://github.com/rails/jbuilder]
 gem "jbuilder"
+# Tailwind CSS framework
+gem "tailwindcss-rails"
 
 # Authentication framework
 gem "devise"
@@ -60,6 +62,8 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+  # Speed up development by automatically reloading the browser when files change
+  gem "hotwire-livereload"
 end
 
 group :test do
