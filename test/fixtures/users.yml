@@ -1,0 +1,11 @@
+one:
+  email: test@example.com
+  encrypted_password: <%= BCrypt::Password.create('password123') %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+two:
+  email: user@example.com
+  encrypted_password: <%= BCrypt::Password.create('password123') %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
