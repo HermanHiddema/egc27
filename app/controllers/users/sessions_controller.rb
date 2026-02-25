@@ -21,7 +21,7 @@ module Users
     def after_sign_in_path_for(resource)
       Rails.logger.info("=== SIGN IN SUCCESSFUL ===")
       Rails.logger.info("User: #{resource.email}")
-      authenticated_root_path
+      root_path
     end
 
     def after_sign_out_path_for(resource_or_scope)

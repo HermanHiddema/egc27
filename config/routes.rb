@@ -17,7 +17,7 @@ Rails.application.routes.draw do
   resources :articles
 
   # Static pages for menu
-  get "about" => "static_content#about", as: :about
+  get "sponsors" => "static_content#sponsors", as: :sponsors
   get "schedule" => "static_content#schedule", as: :schedule
   get "venue" => "static_content#venue", as: :venue
   get "contact" => "static_content#contact", as: :contact

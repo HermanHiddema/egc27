@@ -2,7 +2,7 @@ class StaticContentController < ApplicationController
   skip_before_action :authenticate_user!
 
   # Static pages
-  def about; end
+  def sponsors; end
   def schedule; end
   def venue; end
   def contact; end

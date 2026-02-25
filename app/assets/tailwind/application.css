@@ -1,1 +1,99 @@
 @import "tailwindcss";
+
+@theme {
+    --color-brand-blue-50: #f0f4f9;
+    --color-brand-blue-100: #e1e9f3;
+    --color-brand-blue-200: #c3d3e7;
+    --color-brand-blue-300: #a5bcdb;
+    --color-brand-blue-400: #698bc2;
+    --color-brand-blue-500: #2d5aa9;
+    --color-brand-blue-600: #0f3a77;
+    --color-brand-blue-700: #0d326a;
+    --color-brand-blue-800: #0a2a5d;
+    --color-brand-blue-900: #082250;
+
+    --color-brand-red-50: #f9f3f1;
+    --color-brand-red-100: #f3e6e2;
+    --color-brand-red-200: #e8ccc5;
+    --color-brand-red-300: #dbb3a9;
+    --color-brand-red-400: #c4857a;
+    --color-brand-red-500: #ad574b;
+    --color-brand-red-600: #8c1915;
+    --color-brand-red-700: #7a1612;
+    --color-brand-red-800: #68120f;
+    --color-brand-red-900: #560f0c;
+
+    --color-brand-yellow-50: #fffbf0;
+    --color-brand-yellow-100: #fff8e1;
+    --color-brand-yellow-200: #ffefc2;
+    --color-brand-yellow-300: #ffe6a3;
+    --color-brand-yellow-400: #ffd965;
+    --color-brand-yellow-500: #fbba00;
+    --color-brand-yellow-600: #e6a800;
+    --color-brand-yellow-700: #cc9600;
+    --color-brand-yellow-800: #b38400;
+    --color-brand-yellow-900: #997000;
+
+    --shadow-brand: 0 10px 25px rgb(15 58 119 / 0.1);
+    --shadow-brand-lg: 0 20px 40px rgb(15 58 119 / 0.15);
+}
+
+@layer base {
+    body {
+        @apply font-sans text-neutral-900;
+    }
+
+    h1 {
+        @apply text-4xl md:text-5xl font-bold tracking-tight;
+    }
+
+    h2 {
+        @apply text-3xl md:text-4xl font-bold tracking-tight;
+    }
+
+    h3 {
+        @apply text-2xl font-semibold tracking-tight;
+    }
+
+    button {
+        @apply font-medium transition-colors duration-200;
+    }
+}
+
+@layer components {
+    .btn-primary {
+        @apply px-6 py-3 bg-brand-blue-600 text-white font-semibold rounded-lg hover:bg-brand-blue-700 focus:outline-none focus:ring-2 focus:ring-brand-blue-500 focus:ring-offset-2 transition-all duration-200;
+    }
+
+    .btn-secondary {
+        @apply px-6 py-3 bg-brand-yellow-500 text-neutral-900 font-semibold rounded-lg hover:bg-brand-yellow-600 focus:outline-none focus:ring-2 focus:ring-brand-yellow-400 focus:ring-offset-2 transition-all duration-200;
+    }
+
+    .btn-accent {
+        @apply px-6 py-3 bg-brand-red-600 text-white font-semibold rounded-lg hover:bg-brand-red-700 focus:outline-none focus:ring-2 focus:ring-brand-red-500 focus:ring-offset-2 transition-all duration-200;
+    }
+
+    .card {
+        @apply bg-white rounded-xl shadow-md hover:shadow-brand transition-shadow duration-300 overflow-hidden;
+    }
+
+    .card-elevated {
+        @apply bg-white rounded-xl shadow-brand hover:shadow-brand-lg transition-all duration-300 overflow-hidden;
+    }
+
+    .container-wide {
+        @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+    }
+
+    .section-padding {
+        @apply py-16 md:py-24 lg:py-32;
+    }
+
+    .gradient-hero {
+        @apply bg-gradient-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
+    }
+
+    .text-gradient {
+        @apply bg-gradient-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
+    }
+}
