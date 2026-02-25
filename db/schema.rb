@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_24_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_25_160000) do
+  create_table "articles", force: :cascade do |t|
+    t.text "content"
+    t.datetime "created_at", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["user_id"], name: "index_articles_on_user_id"
+  end
+
   create_table "users", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.datetime "current_sign_in_at"
@@ -27,4 +36,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_24_000001) do
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
+
+  add_foreign_key "articles", "users"
 end

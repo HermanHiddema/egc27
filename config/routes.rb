@@ -14,6 +14,8 @@ Rails.application.routes.draw do
   get "style-guide" => "home#style_guide", as: :style_guide
   get "debug" => "home#debug", as: :debug
 
+  resources :articles
+
   # Static pages for menu
   get "about" => "pages#about", as: :about
   get "schedule" => "pages#schedule", as: :schedule
