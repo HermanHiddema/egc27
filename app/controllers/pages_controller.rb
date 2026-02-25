@@ -6,7 +6,11 @@ class PagesController < ApplicationController
   def schedule; end
   def venue; end
   def contact; end
+<<<<<<< news
   
+=======
+
+>>>>>>> main
   # Go Tournaments
   def egc_rules; end
   def european_championship; end
@@ -27,7 +31,11 @@ class PagesController < ApplicationController
   def beer_and_go; end
   def torus_go; end
   def hexgo; end
+<<<<<<< news
   
+=======
+
+>>>>>>> main
   # Other Activities
   def opening_ceremony; end
   def group_photo; end
@@ -45,7 +53,11 @@ class PagesController < ApplicationController
   def excursions_organised_out_of_town; end
   def excursions_diy_local; end
   def excursions_diy_out_of_town; end
+<<<<<<< news
   
+=======
+
+>>>>>>> main
   # Eat and Drink
   def go_coins; end
   def vip_dinner; end
@@ -53,12 +65,20 @@ class PagesController < ApplicationController
   def onsite_meals; end
   def local_restaurants; end
   def local_bars; end
+<<<<<<< news
   
+=======
+
+>>>>>>> main
   # Sleep
   def hotels; end
   def camping; end
   def budget_accommodation; end
+<<<<<<< news
   
+=======
+
+>>>>>>> main
   # Who is here
   def participants; end
   def teachers; end
