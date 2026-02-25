@@ -8,7 +8,7 @@
       <h1 class="text-4xl font-bold mb-4"><%= @article.title %></h1>
       <div class="flex items-center justify-between text-sm text-gray-600 border-b border-gray-200 pb-4">
         <div>
-          Posted by <%= @article.user.email %> on <%= @article.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+          Posted by <%= @article.user.display_name %> on <%= @article.created_at.strftime("%B %d, %Y at %I:%M %p") %>
         </div>
         <% if user_signed_in? %>
           <div class="flex gap-4">

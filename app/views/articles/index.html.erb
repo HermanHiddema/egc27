@@ -14,7 +14,7 @@
             <%= link_to article.title, article, class: "hover:text-brand-red-600 transition" %>
           </h2>
           <div class="text-sm text-gray-600">
-            Posted by <%= article.user.email %> on <%= article.created_at.strftime("%B %d, %Y at %I:%M %p") %>
+            Posted by <%= article.user.display_name %> on <%= article.created_at.strftime("%B %d, %Y at %I:%M %p") %>
           </div>
         </div>
 
