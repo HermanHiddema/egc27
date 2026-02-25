@@ -241,15 +241,20 @@
     </footer>
 
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
+      // Setup submenu handlers - runs on initial load and after Turbo navigations
+      function setupSubmenus() {
         const excursionsBtn = document.getElementById('excursions-btn');
         const excursionsMenu = document.getElementById('excursions-menu');
         
         if (excursionsBtn && excursionsMenu) {
           let excursionsTimeout;
           
+          // Remove existing listeners to prevent duplicates
+          const newExcursionsBtn = excursionsBtn.cloneNode(true);
+          excursionsBtn.parentNode.replaceChild(newExcursionsBtn, excursionsBtn);
+          
           // Show submenu on hover
-          excursionsBtn.addEventListener('mouseenter', function(e) {
+          newExcursionsBtn.addEventListener('mouseenter', function(e) {
             clearTimeout(excursionsTimeout);
             
             // Show the menu
@@ -257,14 +262,14 @@
             excursionsMenu.classList.remove('hidden');
             
             // Position it to the right of the button
-            const rect = excursionsBtn.getBoundingClientRect();
+            const rect = newExcursionsBtn.getBoundingClientRect();
             excursionsMenu.style.position = 'fixed';
             excursionsMenu.style.left = (rect.right + 5) + 'px';
             excursionsMenu.style.top = rect.top + 'px';
           });
           
           // Hide when leaving button (unless going to menu)
-          excursionsBtn.addEventListener('mouseleave', function(e) {
+          newExcursionsBtn.addEventListener('mouseleave', function(e) {
             excursionsTimeout = setTimeout(function() {
               excursionsMenu.style.display = 'none';
               excursionsMenu.classList.add('hidden');
@@ -290,8 +295,12 @@
         if (mealsBtn && mealsMenu) {
           let mealsTimeout;
           
+          // Remove existing listeners to prevent duplicates
+          const newMealsBtn = mealsBtn.cloneNode(true);
+          mealsBtn.parentNode.replaceChild(newMealsBtn, mealsBtn);
+          
           // Show submenu on hover
-          mealsBtn.addEventListener('mouseenter', function(e) {
+          newMealsBtn.addEventListener('mouseenter', function(e) {
             clearTimeout(mealsTimeout);
             
             // Show the menu
@@ -299,14 +308,14 @@
             mealsMenu.classList.remove('hidden');
             
             // Position it to the right of the button
-            const rect = mealsBtn.getBoundingClientRect();
+            const rect = newMealsBtn.getBoundingClientRect();
             mealsMenu.style.position = 'fixed';
             mealsMenu.style.left = (rect.right + 5) + 'px';
             mealsMenu.style.top = rect.top + 'px';
           });
           
           // Hide when leaving button (unless going to menu)
-          mealsBtn.addEventListener('mouseleave', function(e) {
+          newMealsBtn.addEventListener('mouseleave', function(e) {
             mealsTimeout = setTimeout(function() {
               mealsMenu.style.display = 'none';
               mealsMenu.classList.add('hidden');
@@ -324,7 +333,13 @@
             mealsMenu.classList.add('hidden');
           });
         }
-      });
+      }
+      
+      // Run on initial page load
+      document.addEventListener('DOMContentLoaded', setupSubmenus);
+      
+      // Run after Turbo navigations
+      document.addEventListener('turbo:load', setupSubmenus);
     </script>
   </body>
 </html>
