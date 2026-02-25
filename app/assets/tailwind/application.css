@@ -90,10 +90,10 @@
     }
 
     .gradient-hero {
-        @apply bg-gradient-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
+        @apply bg-linear-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
     }
 
     .text-gradient {
-        @apply bg-gradient-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
+        @apply bg-linear-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
     }
 }
