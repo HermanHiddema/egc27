@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   get "schedule" => "pages#schedule", as: :schedule
   get "venue" => "pages#venue", as: :venue
   get "contact" => "pages#contact", as: :contact
-  
+
   # Go Tournaments
   get "go-tournaments/egc-rules" => "pages#egc_rules", as: :egc_rules
   get "go-tournaments/european-championship" => "pages#european_championship", as: :european_championship
@@ -40,7 +40,7 @@ Rails.application.routes.draw do
   get "go-tournaments/beer-and-go" => "pages#beer_and_go", as: :beer_and_go
   get "go-tournaments/torus-go" => "pages#torus_go", as: :torus_go
   get "go-tournaments/hexgo" => "pages#hexgo", as: :hexgo
-  
+
   # Other Activities
   get "activities/opening-ceremony" => "pages#opening_ceremony", as: :opening_ceremony
   get "activities/group-photo" => "pages#group_photo", as: :group_photo
@@ -58,7 +58,7 @@ Rails.application.routes.draw do
   get "activities/excursions/organised-out-of-town" => "pages#excursions_organised_out_of_town", as: :excursions_organised_out_of_town
   get "activities/excursions/diy-local" => "pages#excursions_diy_local", as: :excursions_diy_local
   get "activities/excursions/diy-out-of-town" => "pages#excursions_diy_out_of_town", as: :excursions_diy_out_of_town
-  
+
   # Eat and Drink
   get "eat-and-drink/go-coins" => "pages#go_coins", as: :go_coins
   get "eat-and-drink/meals/vip-dinner" => "pages#vip_dinner", as: :vip_dinner
@@ -66,12 +66,12 @@ Rails.application.routes.draw do
   get "eat-and-drink/meals/onsite-meals" => "pages#onsite_meals", as: :onsite_meals
   get "eat-and-drink/meals/local-restaurants" => "pages#local_restaurants", as: :local_restaurants
   get "eat-and-drink/meals/local-bars" => "pages#local_bars", as: :local_bars
-  
+
   # Sleep
   get "sleep/hotels" => "pages#hotels", as: :hotels
   get "sleep/camping" => "pages#camping", as: :camping
   get "sleep/budget" => "pages#budget_accommodation", as: :budget_accommodation
-  
+
   # Who is here
   get "who-is-here/participants" => "pages#participants", as: :participants
   get "who-is-here/teachers" => "pages#teachers", as: :teachers
