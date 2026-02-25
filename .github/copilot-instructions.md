@@ -17,7 +17,7 @@
 - **Routing**: Only authenticated users see the home page (see `config/routes.rb` - uses `authenticated :user` block)
 - **Controllers**: All controllers inherit from `ApplicationController`, which enforces `authenticate_user!` before action for non-Devise routes
 - **JavaScript**: Minimal - use Stimulus controllers in `app/javascript/controllers/` for interactivity; Turbo handles SPA-like navigation
-- **Styling**: CSS via Propshaft in `app/assets/stylesheets/` (no Tailwind/Bootstrap currently)
+- **Styling**: Tailwind CSS via `tailwindcss-rails` gem + custom CSS variables in `app/assets/stylesheets/`; see `DESIGN_SYSTEM.md` for brand colors, typography, and component classes
 
 ## Code Style & Conventions
 
@@ -32,7 +32,7 @@ app/controllers/     → HTTP request handlers, enforce auth pattern
 app/models/          → ActiveRecord models, Devise models here
 app/views/           → ERB templates, organized by controller
 app/javascript/      → Stimulus controllers and shared JS
-app/assets/styles/   → CSS stylesheets
+app/assets/stylesheets/ → CSS stylesheets (custom vars) + app/assets/builds/tailwind.css (generated)
 config/routes.rb     → Single auth gateway - critical file
 ```
 
@@ -81,12 +81,13 @@ All must pass before deploy.
 - **New controller**: Use `bin/rails generate controller YourController` - authentication is automatic
 - **New view**: ERB templates in `app/views/controller_name/action_name.html.erb`
 - **JavaScript interactivity**: Add Stimulus controller in `app/javascript/controllers/your_controller.js`
-- **Styling**: Add CSS to `app/assets/stylesheets/` (scoped to components)
+- **Styling**: Add CSS to `app/assets/stylesheets/` (custom CSS variables) or use Tailwind utility classes; run `bin/rails tailwindcss:build` after changing Tailwind config
 - **Tests**: Add to `test/models/`, `test/controllers/`, `test/system/` with naming convention `test_*.rb`
 
 ## Special Files to Know
 - `config/routes.rb` - Guards all routes with auth (study carefully when routing)
 - `config/ci.rb` - Defines CI pipeline; update here if adding checks
+- `DESIGN_SYSTEM.md` - Brand colors, typography, component classes (Tailwind + CSS vars)
 - `Gemfile` - All dependencies; commit `Gemfile.lock` only after changes
 - `.ruby-version` - Currently Ruby 3.4.5; change if updating Ruby
 - `Dockerfile` - Production image build; no dev-only gems in bundle
@@ -94,5 +95,5 @@ All must pass before deploy.
 ## Quick Diagnostics
 - **Server won't start**: Check `bin/rails db:prepare` hasn't crashed
 - **Tests fail mysteriously**: Run `bin/ci` locally to match CI environment exactly
-- **CSS not updating**: Clear `tmp/` and browser cache; Propshaft may need restart
+- **CSS not updating**: Clear `tmp/` and browser cache; run `bin/rails tailwindcss:build` to regenerate Tailwind CSS
 - **Gem conflicts**: Run `bundle update` carefully; always check Gemfile.lock diffs
