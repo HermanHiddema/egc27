@@ -1,6 +1,6 @@
 <div class="container-wide py-12">
   <div class="flex justify-between items-center mb-8">
-    <h1 class="text-4xl font-bold text-brand-blue-600">News</h1>
+    <h1 class="text-4xl font-bold">News</h1>
     <% if user_signed_in? %>
       <%= link_to "New Article", new_article_path, class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
     <% end %>
@@ -10,7 +10,7 @@
     <% @articles.each do |article| %>
       <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
         <div class="mb-4">
-          <h2 class="text-2xl font-bold text-brand-blue-600 mb-2">
+          <h2 class="text-2xl font-bold mb-2">
             <%= link_to article.title, article, class: "hover:text-brand-red-600 transition" %>
           </h2>
           <div class="text-sm text-gray-600">
