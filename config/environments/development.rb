@@ -77,7 +77,7 @@ Rails.application.configure do
   # config.generators.apply_rubocop_autocorrect_after_generate!
 
   # Trust proxy headers for Codespaces deployment
-  config.action_dispatch.trusted_proxies = [ IPAddr.new("0.0.0.0/0") ]
+  config.action_dispatch.trusted_proxies = [IPAddr.new("0.0.0.0/0")]
 
   # Configure allowed hosts for Codespaces and local development
   config.hosts << /.*\.app\.github\.dev$/

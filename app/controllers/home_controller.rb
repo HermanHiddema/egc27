@@ -1,5 +1,5 @@
 class HomeController < ApplicationController
-  skip_before_action :authenticate_user!, only: [ :style_guide, :index, :debug ]
+  skip_before_action :authenticate_user!, only: [:style_guide, :index, :debug]
 
   def index; end
 
