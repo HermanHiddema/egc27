@@ -1,0 +1,30 @@
+<%= form_with model: article do |form| %>
+  <% if article.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+      <ul class="text-red-700 list-disc list-inside">
+        <% article.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="space-y-6">
+    <div>
+      <%= form.label :title, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :title, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-egc-blue focus:border-egc-blue" %>
+    </div>
+
+    <div>
+      <%= form.label :content, class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_area :content, rows: 12, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-egc-blue focus:border-egc-blue" %>
+      <p class="text-sm text-gray-500 mt-2">You may use basic HTML formatting.</p>
+    </div>
+
+    <div class="flex gap-4">
+      <%= form.submit class: "btn-primary" %>
+      <%= link_to "Cancel", articles_path, class: "text-egc-blue hover:text-egc-red transition px-4 py-2" %>
+    </div>
+  </div>
+<% end %>
