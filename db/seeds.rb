@@ -8,7 +8,8 @@ User.where(email: "test@example.com").destroy_all
 user = User.create!(
   email: "test@example.com",
   password: "password123",
-  password_confirmation: "password123"
+  password_confirmation: "password123",
+  full_name: "Test User"
 )
 
 puts "✓ Test user created: test@example.com / password123"

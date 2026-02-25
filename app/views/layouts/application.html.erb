@@ -35,7 +35,7 @@
         <div class="flex items-center gap-4">
           <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
             <% if current_user.present? %>
-              <span class="text-sm text-brand-yellow-300"><%= current_user.email %></span>
+              <span class="text-sm text-brand-yellow-300"><%= current_user.display_name %></span>
               <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm text-brand-yellow-300 btn-primary px-4 py-2" %>
             <% else %>
               <%= link_to "Sign in", new_user_session_path, class: "btn-primary text-brand-yellow-300 px-4 py-2" %>
