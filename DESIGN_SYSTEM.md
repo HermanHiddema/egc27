@@ -72,9 +72,9 @@ Each brand color has a full tonal palette (50-900) for flexibility in design:
 - **Display & Body**: Inter (sans-serif)
 
 ### Font Sizes & Weights
-- **H1**: 48px-60px, weight 800 (Extra Bold), text-brand-blue-600
-- **H2**: 36px-48px, weight 700 (Bold), text-brand-blue-600
-- **H3**: 24px, weight 600 (Semibold), text-brand-blue-500
+- **H1**: 48px-60px, weight 800 (Extra Bold), text-brand-blue-900
+- **H2**: 36px-48px, weight 700 (Bold), text-brand-blue-900
+- **H3**: 24px, weight 600 (Semibold), text-brand-blue-900
 - **Body**: 16px, weight 400 (Regular), text-neutral-900
 - **Small**: 14px, weight 500 (Medium)
 

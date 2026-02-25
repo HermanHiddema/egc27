@@ -44,15 +44,15 @@
     }
 
     h1 {
-        @apply text-4xl md:text-5xl font-bold tracking-tight;
+        @apply text-4xl md:text-5xl font-bold tracking-tight text-brand-blue-900;
     }
 
     h2 {
-        @apply text-3xl md:text-4xl font-bold tracking-tight;
+        @apply text-3xl md:text-4xl font-bold tracking-tight text-brand-blue-900;
     }
 
     h3 {
-        @apply text-2xl font-semibold tracking-tight;
+        @apply text-2xl font-semibold tracking-tight text-brand-blue-900;
     }
 
     button {
@@ -90,10 +90,10 @@
     }
 
     .gradient-hero {
-        @apply bg-gradient-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
+        @apply bg-linear-to-br from-brand-blue-600 via-brand-blue-700 to-brand-blue-800;
     }
 
     .text-gradient {
-        @apply bg-gradient-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
+        @apply bg-linear-to-r from-brand-blue-600 to-brand-red-600 bg-clip-text text-transparent;
     }
 }
