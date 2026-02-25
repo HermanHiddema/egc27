@@ -1,4 +1,4 @@
-class PagesController < ApplicationController
+class StaticContentController < ApplicationController
   skip_before_action :authenticate_user!
 
   # Static pages
