@@ -2,7 +2,7 @@ class HomeController < ApplicationController
   skip_before_action :authenticate_user!, only: [:style_guide, :index, :debug]
 
   def index
-    @recent_articles = Article.order(created_at: :desc).limit(5).includes(:user)
+    @recent_articles = Article.order(created_at: :desc).limit(3).includes(:user)
   end
 
   def style_guide; end
