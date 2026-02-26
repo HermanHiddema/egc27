@@ -1,0 +1,41 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Pages</h1>
+    <% if user_signed_in? %>
+      <%= link_to "New Page", new_page_path, class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
+    <% end %>
+  </div>
+
+  <div class="space-y-6">
+    <% @pages.each do |page| %>
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold mb-2">
+              <%= link_to page.title, page_path(page), class: "hover:text-brand-red-600 transition" %>
+            </h2>
+            <p class="text-sm text-gray-600">/<%= page.slug %></p>
+          </div>
+
+          <% if user_signed_in? %>
+            <div class="flex gap-4 shrink-0">
+              <%= link_to "Edit", edit_page_path(page), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              <%= button_to "Delete", page_path(page), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @pages.empty? %>
+      <div class="text-center text-gray-500 py-12">
+        <p class="text-xl">No pages yet.</p>
+        <% if user_signed_in? %>
+          <p class="mt-4">
+            <%= link_to "Create the first page", new_page_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+          </p>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+</div>

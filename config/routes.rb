@@ -15,6 +15,7 @@ Rails.application.routes.draw do
   get "debug" => "home#debug", as: :debug
 
   resources :articles
+  resources :pages, param: :slug
 
   # Static pages for menu
   get "sponsors" => "static_content#sponsors", as: :sponsors

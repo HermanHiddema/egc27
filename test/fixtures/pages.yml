@@ -1,0 +1,9 @@
+one:
+  title: About EGC
+  content: Information about the congress.
+  slug: about-egc
+
+two:
+  title: Travel
+  content: Travel information.
+  slug: travel
