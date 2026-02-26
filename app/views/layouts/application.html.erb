@@ -23,7 +23,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-brand-yellow-600 min-h-screen flex flex-col">
+  <body class="min-h-screen flex flex-col bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm">
       <nav class="container-wide flex items-center justify-between h-20">
@@ -187,30 +187,32 @@
       </div>
     </nav>
 
-    <!-- Flash Messages -->
-    <% flash.each do |type, message| %>
-      <div class="container-wide mt-4">
-        <div class="p-4 rounded-lg <%= type.to_s == 'notice' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200' %>">
-          <%= message %>
+    <div class="flex-1" style="background-color: color-mix(in srgb, var(--brand-yellow-600) 78%, transparent);">
+      <!-- Flash Messages -->
+      <% flash.each do |type, message| %>
+        <div class="container-wide mt-4">
+          <div class="p-4 rounded-lg <%= type.to_s == 'notice' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200' %>">
+            <%= message %>
+          </div>
         </div>
-      </div>
-    <% end %>
-
-    <!-- Main Content -->
-    <main class="pt-8 flex-1">
-      <% if controller_path == "static_content" %>
-        <div class="container-wide">
-          <section class="bg-white rounded-xl shadow-sm min-h-[65vh]">
-            <%= yield %>
-          </section>
-        </div>
-      <% else %>
-        <%= yield %>
       <% end %>
-    </main>
+
+      <!-- Main Content -->
+      <main class="pt-8 pb-24">
+        <% if controller_path == "static_content" %>
+          <div class="container-wide">
+            <section class="bg-white rounded-xl shadow-sm min-h-[65vh]">
+              <%= yield %>
+            </section>
+          </div>
+        <% else %>
+          <%= yield %>
+        <% end %>
+      </main>
+    </div>
 
     <!-- Footer -->
-    <footer class="bg-brand-blue-900 text-white mt-24">
+    <footer class="bg-brand-blue-900 text-white">
       <div class="container-wide py-12">
         <div class="border-t border-brand-blue-800 pt-8 flex justify-between items-center">
           <div class="flex gap-4">
