@@ -23,7 +23,7 @@
     <%= javascript_importmap_tags %>
   </head>
 
-  <body class="bg-brand-yellow-600">
+  <body class="bg-brand-yellow-600 min-h-screen flex flex-col">
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm">
       <nav class="container-wide flex items-center justify-between h-20">
@@ -197,8 +197,16 @@
     <% end %>
 
     <!-- Main Content -->
-    <main class="min-h-[calc(80vh-4rem)] pt-8">
-      <%= yield %>
+    <main class="pt-8 flex-1">
+      <% if controller_path == "static_content" %>
+        <div class="container-wide">
+          <section class="bg-white rounded-xl shadow-sm min-h-[65vh]">
+            <%= yield %>
+          </section>
+        </div>
+      <% else %>
+        <%= yield %>
+      <% end %>
     </main>
 
     <!-- Footer -->
@@ -236,10 +244,24 @@
       function setupSubmenus() {
         const excursionsBtn = document.getElementById('excursions-btn');
         const excursionsMenu = document.getElementById('excursions-menu');
+        const mealsBtn = document.getElementById('meals-btn');
+        const mealsMenu = document.getElementById('meals-menu');
+        let excursionsTimeout;
+        let mealsTimeout;
+
+        function hideExcursions() {
+          if (!excursionsMenu) return;
+          excursionsMenu.style.display = 'none';
+          excursionsMenu.classList.add('hidden');
+        }
+
+        function hideMeals() {
+          if (!mealsMenu) return;
+          mealsMenu.style.display = 'none';
+          mealsMenu.classList.add('hidden');
+        }
         
         if (excursionsBtn && excursionsMenu) {
-          let excursionsTimeout;
-          
           // Remove existing listeners to prevent duplicates
           const newExcursionsBtn = excursionsBtn.cloneNode(true);
           excursionsBtn.parentNode.replaceChild(newExcursionsBtn, excursionsBtn);
@@ -247,6 +269,8 @@
           // Show submenu on hover
           newExcursionsBtn.addEventListener('mouseenter', function(e) {
             clearTimeout(excursionsTimeout);
+            clearTimeout(mealsTimeout);
+            hideMeals();
             
             // Show the menu
             excursionsMenu.style.display = 'block';
@@ -262,8 +286,7 @@
           // Hide when leaving button (unless going to menu)
           newExcursionsBtn.addEventListener('mouseleave', function(e) {
             excursionsTimeout = setTimeout(function() {
-              excursionsMenu.style.display = 'none';
-              excursionsMenu.classList.add('hidden');
+              hideExcursions();
             }, 200);
           });
           
@@ -274,18 +297,11 @@
           
           // Hide when leaving menu
           excursionsMenu.addEventListener('mouseleave', function(e) {
-            excursionsMenu.style.display = 'none';
-            excursionsMenu.classList.add('hidden');
+            hideExcursions();
           });
         }
         
-        // Handle Meals submenu
-        const mealsBtn = document.getElementById('meals-btn');
-        const mealsMenu = document.getElementById('meals-menu');
-        
         if (mealsBtn && mealsMenu) {
-          let mealsTimeout;
-          
           // Remove existing listeners to prevent duplicates
           const newMealsBtn = mealsBtn.cloneNode(true);
           mealsBtn.parentNode.replaceChild(newMealsBtn, mealsBtn);
@@ -293,6 +309,8 @@
           // Show submenu on hover
           newMealsBtn.addEventListener('mouseenter', function(e) {
             clearTimeout(mealsTimeout);
+            clearTimeout(excursionsTimeout);
+            hideExcursions();
             
             // Show the menu
             mealsMenu.style.display = 'block';
@@ -308,8 +326,7 @@
           // Hide when leaving button (unless going to menu)
           newMealsBtn.addEventListener('mouseleave', function(e) {
             mealsTimeout = setTimeout(function() {
-              mealsMenu.style.display = 'none';
-              mealsMenu.classList.add('hidden');
+              hideMeals();
             }, 200);
           });
           
@@ -320,8 +337,7 @@
           
           // Hide when leaving menu
           mealsMenu.addEventListener('mouseleave', function(e) {
-            mealsMenu.style.display = 'none';
-            mealsMenu.classList.add('hidden');
+            hideMeals();
           });
         }
       }
