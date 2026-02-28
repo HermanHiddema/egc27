@@ -1,4 +1,6 @@
 class Page < ApplicationRecord
+  has_many :menu_items, dependent: :nullify, inverse_of: :page
+
   validates :title, presence: true
   validates :content, presence: true
   validates :slug, presence: true, uniqueness: true

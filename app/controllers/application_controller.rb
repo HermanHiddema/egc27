@@ -7,11 +7,24 @@ class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :configure_permitted_parameters, if: :devise_controller?
+  before_action :set_header_menu
 
   protected
 
   def configure_permitted_parameters
     devise_parameter_sanitizer.permit(:sign_up, keys: [:full_name])
     devise_parameter_sanitizer.permit(:account_update, keys: [:full_name])
+  end
+
+  def set_header_menu
+    @header_menu = Menu.active.find_by(location: "header")
+    return if @header_menu.blank?
+
+    @header_menu_root_items = @header_menu.menu_items
+      .visible
+      .roots
+      .ordered
+      .includes(:page, children: [:page, { children: :page }])
+      .to_a
   end
 end

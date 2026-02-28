@@ -1,0 +1,24 @@
+schedule:
+  menu: primary
+  label: Schedule
+  page: one
+  position: 1
+  visible: true
+  open_in_new_tab: false
+
+external_egf:
+  menu: primary
+  label: EGF
+  url: https://www.eurogofed.org/
+  position: 2
+  visible: true
+  open_in_new_tab: true
+
+schedule_child:
+  menu: primary
+  parent: schedule
+  label: Travel
+  page: two
+  position: 1
+  visible: true
+  open_in_new_tab: false

@@ -1,0 +1,64 @@
+<nav class="bg-brand-blue-600 sticky top-20 z-40 border-b border-brand-blue-800">
+  <div class="container-wide flex items-center gap-8 px-4 h-12">
+    <% if menu.present? %>
+      <% root_items.each do |root_item| %>
+      <% children = root_item.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+
+      <% if children.any? %>
+        <% dropdown_classes = ["relative"] %>
+        <% dropdown_classes << "z-40" if ["Other Activities", "Eat and Drink"].include?(root_item.label) %>
+        <% menu_classes = ["absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden"] %>
+        <% menu_classes << "max-h-96 overflow-y-auto" if ["Go Tournaments", "Other Activities"].include?(root_item.label) %>
+
+        <div class="<%= dropdown_classes.join(" ") %>" data-controller="dropdown">
+          <button class="text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors flex items-center gap-1">
+            <%= root_item.label %>
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+            </svg>
+          </button>
+
+          <div data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
+            <% children.each_with_index do |child, child_index| %>
+              <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+              <% first_class = (child_index.zero? ? " first:rounded-t-md" : "") %>
+              <% last_class = (child_index == children.length - 1 ? " last:rounded-b-md" : "") %>
+
+              <% if grandchildren.any? %>
+                <% submenu_key = child.label.parameterize %>
+                <button id="<%= "#{submenu_key}-btn" %>" data-submenu-trigger="<%= submenu_key %>" class="w-full text-left px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors flex items-center justify-between<%= last_class %>" type="button">
+                  <%= child.label %>
+                  <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                  </svg>
+                </button>
+              <% else %>
+                <% link_classes = "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors#{first_class}#{last_class}" %>
+                <%= link_to child.label, menu_item_destination(child), menu_item_link_options(child, link_classes) %>
+              <% end %>
+            <% end %>
+          </div>
+
+          <% children.each do |child| %>
+            <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+            <% next if grandchildren.empty? %>
+
+            <% submenu_key = child.label.parameterize %>
+            <div id="<%= "#{submenu_key}-menu" %>" data-submenu-target="<%= submenu_key %>" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden z-50" style="display: none;">
+              <% grandchildren.each_with_index do |grandchild, grandchild_index| %>
+                <% first_class = (grandchild_index.zero? ? " first:rounded-t-md" : "") %>
+                <% last_class = (grandchild_index == grandchildren.length - 1 ? " last:rounded-b-md" : "") %>
+                <% link_classes = "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors#{first_class}#{last_class}" %>
+                <%= link_to grandchild.label, menu_item_destination(grandchild), menu_item_link_options(grandchild, link_classes) %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      <% else %>
+        <% link_classes = "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to root_item.label, menu_item_destination(root_item), menu_item_link_options(root_item, link_classes) %>
+      <% end %>
+      <% end %>
+    <% end %>
+  </div>
+</nav>

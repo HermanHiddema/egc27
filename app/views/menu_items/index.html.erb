@@ -1,0 +1,41 @@
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Menu", menu_path(@menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold"><%= @menu.name %> Items</h1>
+    <%= link_to "New Menu Item", new_menu_menu_item_path(@menu), class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
+  </div>
+
+  <div class="space-y-6">
+    <% @menu_items.each do |item| %>
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold mb-2">
+              <%= link_to item.label, menu_menu_item_path(@menu, item), class: "hover:text-brand-red-600 transition" %>
+            </h2>
+            <p class="text-sm text-gray-600">Parent: <%= item.parent&.label || "Root" %></p>
+            <p class="text-sm text-gray-600">Destination: <%= item.page.present? ? "Page: #{item.page.title}" : item.url %></p>
+            <p class="text-sm text-gray-600">Position: <%= item.position %> • <%= item.visible? ? "Visible" : "Hidden" %></p>
+          </div>
+
+          <div class="flex gap-4 shrink-0">
+            <%= link_to "Edit", edit_menu_menu_item_path(@menu, item), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+            <%= button_to "Delete", menu_menu_item_path(@menu, item), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @menu_items.empty? %>
+      <div class="text-center text-gray-500 py-12">
+        <p class="text-xl">No menu items yet.</p>
+        <p class="mt-4">
+          <%= link_to "Create the first menu item", new_menu_menu_item_path(@menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </p>
+      </div>
+    <% end %>
+  </div>
+</div>
