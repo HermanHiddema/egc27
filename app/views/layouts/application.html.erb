@@ -50,7 +50,7 @@
       <div class="container-wide flex items-center gap-8 px-4 h-12">
         <%= link_to "Home", root_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
         <%= link_to "News", articles_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
-        <%= link_to "Schedule", schedule_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Schedule", page_path("schedule"), class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
         
         <!-- Tournaments Dropdown -->
         <div class="relative" data-controller="dropdown">
@@ -61,25 +61,25 @@
             </svg>
           </button>
           <div data-dropdown-target="menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden max-h-96 overflow-y-auto">
-            <%= link_to "EGC Rules", egc_rules_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "European Championship", european_championship_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Main Open", main_open_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Weekend", weekend_tournament_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Pandanet", pandanet_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Rapid", rapid_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Senior", senior_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Youth", youth_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Pair Go", pair_go_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Marathon 9x9", marathon_9x9_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Marathon 13x13", marathon_13x13_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Blitz", blitz_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Women", women_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Teams", teams_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Tsume Go", tsume_go_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Chess and Go", chess_and_go_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Beer and Go", beer_and_go_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Torus Go", torus_go_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Hexgo", hexgo_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
+            <%= link_to "EGC Rules", page_path("egc-rules"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "European Championship", page_path("european-championship"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Main Open", page_path("main-open"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Weekend", page_path("weekend-tournament"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Pandanet", page_path("pandanet"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Rapid", page_path("rapid"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Senior", page_path("senior"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Youth", page_path("youth"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Pair Go", page_path("pair-go"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Marathon 9x9", page_path("marathon-9x9"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Marathon 13x13", page_path("marathon-13x13"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Blitz", page_path("blitz"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Women", page_path("women"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Teams", page_path("teams"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Tsume Go", page_path("tsume-go"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Chess and Go", page_path("chess-and-go"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Beer and Go", page_path("beer-and-go"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Torus Go", page_path("torus-go"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Hexgo", page_path("hexgo"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
           </div>
         </div>
         
@@ -92,18 +92,18 @@
             </svg>
           </button>
           <div data-dropdown-target="menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden max-h-96 overflow-y-auto">
-            <%= link_to "Opening Ceremony", opening_ceremony_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "Group photo", group_photo_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "EGF Meeting", egf_meeting_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Conference", conference_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Prizegivings", prizegivings_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Game reviews", game_reviews_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Simultaneous games", simultaneous_games_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Lectures", lectures_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Tsume Go", tsume_go_activity_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Poker", poker_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Other games", other_games_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Sport", sport_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Opening Ceremony", page_path("opening-ceremony"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "Group photo", page_path("group-photo"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "EGF Meeting", page_path("egf-meeting"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Conference", page_path("conference"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Prizegivings", page_path("prizegivings"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Game reviews", page_path("game-reviews"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Simultaneous games", page_path("simultaneous-games"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Lectures", page_path("lectures"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Tsume Go", page_path("tsume-go-activity"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Poker", page_path("poker"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Other games", page_path("other-games"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Sport", page_path("sport"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
             <button id="excursions-btn" class="w-full text-left px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors flex items-center justify-between last:rounded-b-md" type="button">
               Excursions
               <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -113,10 +113,10 @@
           </div>
           <!-- Excursions submenu (positioned outside overflow) -->
           <div id="excursions-menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden z-50" style="display: none;">
-            <%= link_to "Organised-local", excursions_organised_local_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "Organised-Out of Town", excursions_organised_out_of_town_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "DIY-Local", excursions_diy_local_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "DIY-Out of Town", excursions_diy_out_of_town_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
+            <%= link_to "Organised-local", page_path("excursions-organised-local"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "Organised-Out of Town", page_path("excursions-organised-out-of-town"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "DIY-Local", page_path("excursions-diy-local"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "DIY-Out of Town", page_path("excursions-diy-out-of-town"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
           </div>
         </div>
         
@@ -129,7 +129,7 @@
             </svg>
           </button>
           <div data-dropdown-target="menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden">
-            <%= link_to "Go Coins", go_coins_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "Go Coins", page_path("go-coins"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
             <button id="meals-btn" class="w-full text-left px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors flex items-center justify-between last:rounded-b-md" type="button">
               Meals
               <svg class="w-3 h-3 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,11 +139,11 @@
           </div>
           <!-- Meals submenu (positioned outside overflow) -->
           <div id="meals-menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden z-50" style="display: none;">
-            <%= link_to "Vip dinner", vip_dinner_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "BBQ Saturday", bbq_saturday_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Onsite meals", onsite_meals_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Local Restaurants", local_restaurants_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Local Bars", local_bars_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
+            <%= link_to "Vip dinner", page_path("vip-dinner"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "BBQ Saturday", page_path("bbq-saturday"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Onsite meals", page_path("onsite-meals"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Local Restaurants", page_path("local-restaurants"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Local Bars", page_path("local-bars"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
           </div>
         </div>
         
@@ -156,15 +156,15 @@
             </svg>
           </button>
           <div data-dropdown-target="menu" class="absolute left-0 mt-0 w-48 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden">
-            <%= link_to "Participants", participants_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "Teachers", teachers_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Shops", shops_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Exhibitors", exhibitors_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
+            <%= link_to "Participants", page_path("participants"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "Teachers", page_path("teachers"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Shops", page_path("shops"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Exhibitors", page_path("exhibitors"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
           </div>
         </div>
         
-        <%= link_to "Sponsors", sponsors_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
-        <%= link_to "Venue", venue_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Sponsors", page_path("sponsors"), class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Venue", page_path("venue"), class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
         
         <!-- Sleep Dropdown -->
         <div class="relative" data-controller="dropdown">
@@ -175,13 +175,13 @@
             </svg>
           </button>
           <div data-dropdown-target="menu" class="absolute left-0 mt-0 w-40 bg-brand-blue-800 border border-brand-blue-700 rounded-md shadow-lg hidden">
-            <%= link_to "Hotels", hotels_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
-            <%= link_to "Camping", camping_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
-            <%= link_to "Budget", budget_accommodation_path, class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
+            <%= link_to "Hotels", page_path("hotels"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors first:rounded-t-md" %>
+            <%= link_to "Camping", page_path("camping"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors" %>
+            <%= link_to "Budget", page_path("budget-accommodation"), class: "block px-4 py-2 text-white hover:bg-brand-blue-700 hover:text-brand-yellow-300 text-sm transition-colors last:rounded-b-md" %>
           </div>
         </div>
         
-        <%= link_to "Contact", contact_path, class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
+        <%= link_to "Contact", page_path("contact"), class: "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors" %>
           </div>
         </div>
       </div>
@@ -199,15 +199,7 @@
 
       <!-- Main Content -->
       <main class="pt-8 pb-24">
-        <% if controller_path == "static_content" %>
-          <div class="container-wide">
-            <section class="bg-white rounded-xl shadow-sm min-h-[65vh]">
-              <%= yield %>
-            </section>
-          </div>
-        <% else %>
-          <%= yield %>
-        <% end %>
+        <%= yield %>
       </main>
     </div>
 
