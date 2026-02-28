@@ -1,0 +1,9 @@
+primary:
+  name: Primary Navigation
+  location: header
+  active: true
+
+footer:
+  name: Footer Navigation
+  location: footer
+  active: true

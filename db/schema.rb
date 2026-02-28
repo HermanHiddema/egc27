@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_26_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_02_28_120100) do
   create_table "articles", force: :cascade do |t|
     t.text "content"
     t.datetime "created_at", null: false
@@ -18,6 +18,32 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_120000) do
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_articles_on_user_id"
+  end
+
+  create_table "menu_items", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "label", null: false
+    t.integer "menu_id", null: false
+    t.boolean "open_in_new_tab", default: false, null: false
+    t.integer "page_id"
+    t.integer "parent_id"
+    t.integer "position", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.boolean "visible", default: true, null: false
+    t.index ["menu_id", "parent_id", "position"], name: "index_menu_items_on_menu_id_and_parent_id_and_position"
+    t.index ["menu_id"], name: "index_menu_items_on_menu_id"
+    t.index ["page_id"], name: "index_menu_items_on_page_id"
+    t.index ["parent_id"], name: "index_menu_items_on_parent_id"
+  end
+
+  create_table "menus", force: :cascade do |t|
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.string "location", null: false
+    t.string "name", null: false
+    t.datetime "updated_at", null: false
+    t.index ["location"], name: "index_menus_on_location", unique: true
   end
 
   create_table "pages", force: :cascade do |t|
@@ -48,4 +74,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_26_120000) do
   end
 
   add_foreign_key "articles", "users"
+  add_foreign_key "menu_items", "menu_items", column: "parent_id"
+  add_foreign_key "menu_items", "menus"
+  add_foreign_key "menu_items", "pages"
 end

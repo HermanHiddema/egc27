@@ -12,4 +12,21 @@ module ApplicationHelper
   rescue Devise::MissingWarden, ActionController::RoutingError
     nil
   end
+
+  def menu_item_destination(menu_item)
+    return page_path(menu_item.page) if menu_item.page.present?
+
+    menu_item.url.presence || "#"
+  end
+
+  def menu_item_link_options(menu_item, class_name)
+    options = { class: class_name }
+
+    if menu_item.open_in_new_tab?
+      options[:target] = "_blank"
+      options[:rel] = "noopener noreferrer"
+    end
+
+    options
+  end
 end

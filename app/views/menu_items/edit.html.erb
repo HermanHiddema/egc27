@@ -1,0 +1,10 @@
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Menu Item", menu_menu_item_path(@menu, @menu_item), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+    <h1 class="text-3xl font-bold mb-6">Edit Menu Item</h1>
+    <%= render "form", menu: @menu, menu_item: @menu_item %>
+  </div>
+</div>
