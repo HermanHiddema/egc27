@@ -1,0 +1,11 @@
+<% if menu.present? %>
+  <nav aria-label="Footer menu">
+    <ul class="flex items-center gap-6 text-sm">
+      <% root_items.each do |item| %>
+        <li>
+          <%= link_to item.label, menu_item_destination(item), menu_item_link_options(item, "text-neutral-300 hover:text-brand-yellow-400 transition-colors") %>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
+<% end %>

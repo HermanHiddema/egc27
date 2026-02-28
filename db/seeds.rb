@@ -42,6 +42,22 @@ end
 
 puts "✓ Seeded #{seeded_pages} static content pages"
 
+legal_pages = [
+  { slug: "privacy", title: "Privacy", content: "This is a placeholder Privacy page. Content coming soon." },
+  { slug: "copyright", title: "Copyright", content: "This is a placeholder Copyright page. Content coming soon." },
+  { slug: "faq", title: "FAQ", content: "This is a placeholder FAQ page. Content coming soon." }
+]
+
+legal_pages.each do |legal_page|
+  page = Page.find_or_initialize_by(slug: legal_page[:slug])
+  next if page.persisted?
+
+  page.title = legal_page[:title]
+  page.content = legal_page[:content]
+  page.save!
+  puts "✓ Page created: #{legal_page[:slug]}"
+end
+
 header_menu = Menu.find_or_initialize_by(location: "header")
 header_menu.name = "Header Navigation"
 header_menu.active = true
@@ -195,3 +211,26 @@ end
 create_menu_item.call(menu: header_menu, label: "Contact", position: 11, page_slug: "contact")
 
 puts "✓ Seeded header menu with #{header_menu.menu_items.count} menu items"
+
+footer_menu = Menu.find_or_initialize_by(location: "footer")
+footer_menu.name = "Footer Menu"
+footer_menu.active = true
+footer_menu.save!
+
+footer_menu.menu_items.destroy_all
+
+[
+  ["Privacy", "privacy"],
+  ["Copyright", "copyright"],
+  ["FAQ", "faq"],
+  ["Contact", "contact"]
+].each_with_index do |(label, slug), index|
+  create_menu_item.call(
+    menu: footer_menu,
+    label: label,
+    position: index + 1,
+    page_slug: slug
+  )
+end
+
+puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"

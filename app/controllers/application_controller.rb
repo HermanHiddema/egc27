@@ -7,7 +7,7 @@ class ApplicationController < ActionController::Base
 
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :configure_permitted_parameters, if: :devise_controller?
-  before_action :set_header_menu
+  before_action :set_navigation_menus
 
   protected
 
@@ -16,15 +16,27 @@ class ApplicationController < ActionController::Base
     devise_parameter_sanitizer.permit(:account_update, keys: [:full_name])
   end
 
-  def set_header_menu
+  def set_navigation_menus
     @header_menu = Menu.active.find_by(location: "header")
-    return if @header_menu.blank?
 
-    @header_menu_root_items = @header_menu.menu_items
-      .visible
-      .roots
-      .ordered
-      .includes(:page, children: [:page, { children: :page }])
-      .to_a
+    if @header_menu.present?
+      @header_menu_root_items = @header_menu.menu_items
+        .visible
+        .roots
+        .ordered
+        .includes(:page, children: [:page, { children: :page }])
+        .to_a
+    end
+
+    @footer_menu = Menu.active.find_by(location: "footer")
+
+    if @footer_menu.present?
+      @footer_menu_root_items = @footer_menu.menu_items
+        .visible
+        .roots
+        .ordered
+        .includes(:page)
+        .to_a
+    end
   end
 end
