@@ -63,6 +63,41 @@
   min-height: 7.5rem;
 }
 
+.rich-content ol {
+  list-style: decimal;
+  margin-left: 1.5rem;
+  margin-block: 1rem;
+}
+
+.rich-content ul {
+  list-style: disc;
+  margin-left: 1.5rem;
+  margin-block: 1rem;
+}
+
+.rich-content li {
+  margin-block: 0.25rem;
+}
+
+.rich-content blockquote {
+  border-left: 4px solid var(--brand-blue-300);
+  margin-block: 1rem;
+  padding-left: 1rem;
+  font-style: italic;
+  color: var(--neutral-700);
+}
+
+.rich-content p,
+.rich-content pre,
+.rich-content h1,
+.rich-content h2,
+.rich-content h3,
+.rich-content h4,
+.rich-content h5,
+.rich-content h6 {
+  margin-block: 0.75rem;
+}
+
 @media (min-width: 1024px) {
   .wysiwyg-editor .ql-editor {
     min-height: 12rem;
