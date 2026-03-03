@@ -58,3 +58,13 @@
   --neutral-800: #1f2937;
   --neutral-900: #111827;
 }
+
+.wysiwyg-editor .ql-editor {
+  min-height: 7.5rem;
+}
+
+@media (min-width: 1024px) {
+  .wysiwyg-editor .ql-editor {
+    min-height: 12rem;
+  }
+}

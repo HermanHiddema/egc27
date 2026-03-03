@@ -29,4 +29,12 @@ module ApplicationHelper
 
     options
   end
+
+  def render_rich_html(content)
+    sanitize(
+      content,
+      tags: RichHtmlSanitizer::ALLOWED_TAGS,
+      attributes: RichHtmlSanitizer::ALLOWED_ATTRIBUTES
+    )
+  end
 end

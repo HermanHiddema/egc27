@@ -5,6 +5,7 @@ class Page < ApplicationRecord
   validates :content, presence: true
   validates :slug, presence: true, uniqueness: true
 
+  before_save :sanitize_content
   before_validation :assign_slug
 
   def to_param
@@ -12,6 +13,10 @@ class Page < ApplicationRecord
   end
 
   private
+
+  def sanitize_content
+    self.content = RichHtmlSanitizer.sanitize_html(content)
+  end
 
   def assign_slug
     base_slug = if slug.present?
