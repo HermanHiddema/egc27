@@ -1,10 +1,10 @@
 <div class="container-wide py-12">
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-    <h1 class="text-4xl font-bold">Calendar — Two Weeks</h1>
+    <h1 class="text-4xl font-bold">Calendar — Three Weeks</h1>
     <div class="flex items-center gap-3">
-      <%= link_to "← Previous", two_weeks_events_path(date: (@period_start - 14.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Current", two_weeks_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Next →", two_weeks_events_path(date: (@period_start + 14.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "← Previous", three_weeks_events_path(date: (@period_start - 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Current", three_weeks_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Next →", three_weeks_events_path(date: (@period_start + 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <% if user_signed_in? %>
         <%= link_to "New Event", new_event_path, class: "btn-primary" %>
       <% end %>

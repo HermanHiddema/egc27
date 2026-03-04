@@ -18,6 +18,7 @@ Rails.application.routes.draw do
       get :day
       get :week
       get :two_weeks
+      get :three_weeks
       get :list
     end
   end

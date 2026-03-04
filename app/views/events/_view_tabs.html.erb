@@ -21,6 +21,7 @@
     end
 
   two_weeks_target = week_target
+  three_weeks_target = week_target
 
   list_from, list_to =
     case @current_view
@@ -28,7 +29,7 @@
       [@period_start.to_date, @period_end.to_date]
     when :month
       [month_target.beginning_of_month, month_target.end_of_month]
-    when :week, :two_weeks
+    when :week, :two_weeks, :three_weeks
       [@period_start.to_date, @period_end.to_date]
     when :day
       [day_target, day_target]
@@ -44,5 +45,6 @@
   <%= link_to "Day", day_events_path(date: day_target), class: "#{@current_view == :day ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
   <%= link_to "Week", week_events_path(date: week_target, show_early_hours: week_show_early_hours), class: "#{@current_view == :week ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
   <%= link_to "2 Weeks", two_weeks_events_path(date: two_weeks_target), class: "#{@current_view == :two_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "3 Weeks", three_weeks_events_path(date: three_weeks_target), class: "#{@current_view == :three_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
   <%= link_to "List", list_events_path(from: list_from, to: list_to), class: "#{@current_view == :list ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
 </div>

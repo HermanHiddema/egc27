@@ -1,5 +1,5 @@
 class EventsController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :list, :show]
+  skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
   before_action :set_event, only: [:show, :edit, :update, :destroy]
 
   def index
@@ -63,6 +63,18 @@ class EventsController < ApplicationController
     @current_view = :two_weeks
     start_date = parse_date(params[:date]).beginning_of_week(:monday)
     end_date = start_date + 13.days
+
+    @period_start = start_date
+    @period_end = end_date
+    @days = (@period_start..@period_end).to_a
+    @events_by_day = events_in_range(@period_start.beginning_of_day..@period_end.end_of_day)
+      .group_by { |event| event.starts_at.to_date }
+  end
+
+  def three_weeks
+    @current_view = :three_weeks
+    start_date = parse_date(params[:date]).beginning_of_week(:monday)
+    end_date = start_date + 20.days
 
     @period_start = start_date
     @period_end = end_date
