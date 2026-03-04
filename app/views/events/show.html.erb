@@ -9,11 +9,11 @@
       <div class="text-sm text-gray-600 border-b border-gray-200 pb-4 space-y-1">
         <div>
           <span class="font-semibold">Starts:</span>
-          <%= @event.starts_at.strftime("%B %d, %Y at %H:%M") %>
+          <%= eu_datetime(@event.starts_at) %>
         </div>
         <div>
           <span class="font-semibold">Ends:</span>
-          <%= @event.ends_at.strftime("%B %d, %Y at %H:%M") %>
+          <%= eu_datetime(@event.ends_at) %>
         </div>
         <% if @event.location.present? %>
           <div>

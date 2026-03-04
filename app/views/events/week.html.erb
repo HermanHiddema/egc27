@@ -15,7 +15,7 @@
 
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-2xl font-semibold"><%= @period_start.strftime("%b %d") %> - <%= @period_end.strftime("%b %d, %Y") %></h2>
+      <h2 class="text-2xl font-semibold"><%= eu_date_range(@period_start, @period_end) %></h2>
     </div>
 
     <div class="grid" style="grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr));">
@@ -36,7 +36,7 @@
       </div>
       <% @days.each do |day| %>
         <div class="px-3 py-2 border-r border-b border-gray-200 bg-gray-50 text-sm font-semibold <%= day == Date.current ? 'text-brand-red-600' : 'text-gray-700' %>">
-          <%= link_to day.strftime("%a %d %b"), day_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
+          <%= link_to eu_date(day, include_year: false, month: :short, weekday: :short), day_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
         </div>
       <% end %>
 
@@ -85,7 +85,7 @@
             <%= link_to event_path(event),
                 class: "absolute left-1 right-1 rounded px-2 py-1 text-xs bg-brand-blue-100 hover:bg-brand-blue-200 text-brand-blue-900 transition overflow-hidden",
                 style: "top: #{top_percent}%; height: #{height_percent}%;" do %>
-              <div class="font-semibold leading-tight"><%= event.starts_at.strftime("%H:%M") %> - <%= event.ends_at.strftime("%H:%M") %></div>
+              <div class="font-semibold leading-tight"><%= eu_time(event.starts_at) %> - <%= eu_time(event.ends_at) %></div>
               <div class="leading-tight"><%= event.title %></div>
             <% end %>
           <% end %>

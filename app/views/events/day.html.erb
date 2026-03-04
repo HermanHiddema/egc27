@@ -15,7 +15,7 @@
 
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
     <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-2xl font-semibold"><%= @date.strftime("%A, %B %d, %Y") %></h2>
+      <h2 class="text-2xl font-semibold"><%= eu_date(@date, weekday: :long) %></h2>
     </div>
 
     <div class="p-6 space-y-3">
@@ -26,7 +26,7 @@
               <div>
                 <h3 class="text-lg font-semibold text-brand-blue-900"><%= event.title %></h3>
                 <p class="text-sm text-gray-600">
-                  <%= event.starts_at.strftime("%H:%M") %> - <%= event.ends_at.strftime("%H:%M") %>
+                  <%= eu_time(event.starts_at) %> - <%= eu_time(event.ends_at) %>
                   <% if event.location.present? %>
                     • <%= event.location %>
                   <% end %>
