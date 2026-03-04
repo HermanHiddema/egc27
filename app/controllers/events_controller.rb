@@ -53,7 +53,7 @@ class EventsController < ApplicationController
         {
           event: event,
           top_percent: (start_minutes / 1440.0) * 100,
-          height_percent: [ (duration_minutes / 1440.0) * 100, (20.0 / 1440.0) * 100 ].max
+          height_percent: [(duration_minutes / 1440.0) * 100, (20.0 / 1440.0) * 100].max
         }
       end
     end
