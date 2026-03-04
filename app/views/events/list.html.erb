@@ -1,0 +1,44 @@
+<div class="container-wide py-12">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <h1 class="text-4xl font-bold">Calendar — List</h1>
+    <div class="flex items-center gap-3">
+      <%= link_to "← Previous", list_events_path(from: (@period_start - 30.days), to: (@period_end - 30.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Current", list_events_path(from: Date.current.beginning_of_month, to: Date.current.end_of_month), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Next →", list_events_path(from: (@period_start + 30.days), to: (@period_end + 30.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <% if user_signed_in? %>
+        <%= link_to "New Event", new_event_path, class: "btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+
+  <%= render "view_tabs" %>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+      <h2 class="text-2xl font-semibold"><%= @period_start.strftime("%b %d, %Y") %> - <%= @period_end.strftime("%b %d, %Y") %></h2>
+    </div>
+
+    <div class="divide-y divide-gray-200">
+      <% if @events.any? %>
+        <% @events.each do |event| %>
+          <%= link_to event_path(event), class: "block p-4 hover:bg-brand-blue-50 transition" do %>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+              <div>
+                <h3 class="text-lg font-semibold text-brand-blue-900"><%= event.title %></h3>
+                <p class="text-sm text-gray-600">
+                  <%= event.starts_at.strftime("%a %d %b %Y %H:%M") %> - <%= event.ends_at.strftime("%H:%M") %>
+                  <% if event.location.present? %>
+                    • <%= event.location %>
+                  <% end %>
+                </p>
+              </div>
+              <span class="text-sm text-gray-500"><%= event.user.display_name %></span>
+            </div>
+          <% end %>
+        <% end %>
+      <% else %>
+        <p class="p-6 text-gray-500">No events in this range.</p>
+      <% end %>
+    </div>
+  </div>
+</div>

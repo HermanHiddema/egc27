@@ -4,6 +4,7 @@ class User < ApplicationRecord
          :trackable
 
   has_many :articles, dependent: :destroy
+  has_many :events, dependent: :destroy
 
   def display_name
     full_name.presence || email

@@ -82,8 +82,9 @@ end
 create_menu_item.call(menu: header_menu, label: "Home", position: 1, url: "/")
 create_menu_item.call(menu: header_menu, label: "News", position: 2, url: "/articles")
 create_menu_item.call(menu: header_menu, label: "Schedule", position: 3, page_slug: "schedule")
+create_menu_item.call(menu: header_menu, label: "Calendar", position: 4, url: "/calendar")
 
-go_tournaments = create_menu_item.call(menu: header_menu, label: "Go Tournaments", position: 4, url: "#")
+go_tournaments = create_menu_item.call(menu: header_menu, label: "Go Tournaments", position: 5, url: "#")
 %w[
   egc-rules
   european-championship
@@ -114,7 +115,7 @@ go_tournaments = create_menu_item.call(menu: header_menu, label: "Go Tournaments
   )
 end
 
-other_activities = create_menu_item.call(menu: header_menu, label: "Other Activities", position: 5, url: "#")
+other_activities = create_menu_item.call(menu: header_menu, label: "Other Activities", position: 6, url: "#")
 %w[
   opening-ceremony
   group-photo
@@ -154,7 +155,7 @@ excursions = create_menu_item.call(menu: header_menu, label: "Excursions", posit
   )
 end
 
-eat_and_drink = create_menu_item.call(menu: header_menu, label: "Eat and Drink", position: 6, url: "#")
+eat_and_drink = create_menu_item.call(menu: header_menu, label: "Eat and Drink", position: 7, url: "#")
 create_menu_item.call(menu: header_menu, label: "Go Coins", position: 1, parent: eat_and_drink, page_slug: "go-coins")
 
 meals = create_menu_item.call(menu: header_menu, label: "Meals", position: 2, parent: eat_and_drink, url: "#")
@@ -174,7 +175,7 @@ meals = create_menu_item.call(menu: header_menu, label: "Meals", position: 2, pa
   )
 end
 
-who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", position: 7, url: "#")
+who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", position: 8, url: "#")
 %w[
   participants
   teachers
@@ -190,10 +191,10 @@ who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", pos
   )
 end
 
-create_menu_item.call(menu: header_menu, label: "Sponsors", position: 8, page_slug: "sponsors")
-create_menu_item.call(menu: header_menu, label: "Venue", position: 9, page_slug: "venue")
+create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, page_slug: "sponsors")
+create_menu_item.call(menu: header_menu, label: "Venue", position: 10, page_slug: "venue")
 
-sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 10, url: "#")
+sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 11, url: "#")
 %w[
   hotels
   camping
@@ -208,7 +209,7 @@ sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 10, u
   )
 end
 
-create_menu_item.call(menu: header_menu, label: "Contact", position: 11, page_slug: "contact")
+create_menu_item.call(menu: header_menu, label: "Contact", position: 12, page_slug: "contact")
 
 puts "✓ Seeded header menu with #{header_menu.menu_items.count} menu items"
 
@@ -234,3 +235,63 @@ footer_menu.menu_items.destroy_all
 end
 
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
+
+event_seeds = [
+  {
+    title: "Opening Ceremony",
+    description: "Welcome speech and opening announcements for all participants.",
+    starts_at: Time.zone.parse("2027-07-24 10:00"),
+    ends_at: Time.zone.parse("2027-07-24 11:00"),
+    location: "Main Hall"
+  },
+  {
+    title: "Main Tournament Round 1",
+    description: "First round of the main open tournament.",
+    starts_at: Time.zone.parse("2027-07-25 09:30"),
+    ends_at: Time.zone.parse("2027-07-25 13:00"),
+    location: "Tournament Area"
+  },
+  {
+    title: "Lecture: Endgame Fundamentals",
+    description: "A practical lecture focused on common yose decisions.",
+    starts_at: Time.zone.parse("2027-07-26 16:00"),
+    ends_at: Time.zone.parse("2027-07-26 17:30"),
+    location: "Lecture Room B"
+  },
+  {
+    title: "Blitz Evening",
+    description: "Fast-paced blitz matches open to all skill levels.",
+    starts_at: Time.zone.parse("2027-07-27 20:00"),
+    ends_at: Time.zone.parse("2027-07-27 22:00"),
+    location: "Side Event Zone"
+  },
+  {
+    title: "Prize Giving",
+    description: "Closing ceremony and prize distribution.",
+    starts_at: Time.zone.parse("2027-07-30 18:00"),
+    ends_at: Time.zone.parse("2027-07-30 19:00"),
+    location: "Main Hall"
+  }
+]
+
+seeded_events = 0
+event_seeds.each do |event_data|
+  event = Event.find_or_initialize_by(
+    title: event_data[:title],
+    starts_at: event_data[:starts_at]
+  )
+
+  event.description = event_data[:description]
+  event.ends_at = event_data[:ends_at]
+  event.location = event_data[:location]
+  event.user = user
+
+  if event.new_record?
+    event.save!
+    seeded_events += 1
+  elsif event.changed?
+    event.save!
+  end
+end
+
+puts "✓ Seeded #{seeded_events} calendar events"
