@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_02_28_120100) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_04_090000) do
   create_table "articles", force: :cascade do |t|
     t.text "content"
     t.datetime "created_at", null: false
@@ -18,6 +18,20 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_120100) do
     t.datetime "updated_at", null: false
     t.integer "user_id", null: false
     t.index ["user_id"], name: "index_articles_on_user_id"
+  end
+
+  create_table "events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "ends_at", null: false
+    t.string "location"
+    t.datetime "starts_at", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.integer "user_id", null: false
+    t.index ["ends_at"], name: "index_events_on_ends_at"
+    t.index ["starts_at"], name: "index_events_on_starts_at"
+    t.index ["user_id"], name: "index_events_on_user_id"
   end
 
   create_table "menu_items", force: :cascade do |t|
@@ -74,6 +88,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_02_28_120100) do
   end
 
   add_foreign_key "articles", "users"
+  add_foreign_key "events", "users"
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
