@@ -38,7 +38,13 @@ class Participant < ApplicationRecord
   end
 
   def normalize_playing_strength
-    self.playing_strength = EgdGradeMapping.grade_n_for(playing_strength)
+    source_value = if respond_to?(:playing_strength_before_type_cast)
+      playing_strength_before_type_cast
+    else
+      playing_strength
+    end
+
+    self.playing_strength = EgdGradeMapping.grade_n_for(source_value)
   end
 
   def normalize_date_of_birth
