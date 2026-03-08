@@ -1,0 +1,40 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Participants</h1>
+    <%= link_to "Register As Participant", new_participant_path, class: "btn-primary" %>
+  </div>
+
+  <% if @participants.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">City</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Playing strength</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rating</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @participants.each do |participant| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.country %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.city %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.playing_strength_grade %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <p class="text-neutral-700 mb-4">No participants have registered yet.</p>
+      <%= link_to "Be the first to register", new_participant_path, class: "btn-primary" %>
+    </div>
+  <% end %>
+</div>

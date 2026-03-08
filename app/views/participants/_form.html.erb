@@ -1,0 +1,105 @@
+<%= form_with model: participant, data: { controller: "egd-autocomplete", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL } do |form| %>
+  <% if participant.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+      <ul class="text-red-700 list-disc list-inside">
+        <% participant.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="space-y-6">
+    <div class="relative" data-action="focusout->egd-autocomplete#hide">
+      <label for="egd-search" class="block text-sm font-medium text-gray-700 mb-2">Find In EGD By Last Name (optional)</label>
+      <input
+        id="egd-search"
+        type="text"
+        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
+        placeholder="Type at least 2 letters of LAST name (e.g. Smith)"
+        data-egd-autocomplete-target="query"
+        data-action="input->egd-autocomplete#search"
+        autocomplete="off"
+      >
+      <div
+        class="hidden absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+        data-egd-autocomplete-target="results"
+      ></div>
+      <p class="text-sm text-neutral-600 mt-2">Search uses last name by default (starts-with matching). You can type first name and last name, but matching is driven by the last-name part.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <%= form.label :first_name, "First name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "firstName" } %>
+      </div>
+
+      <div>
+        <%= form.label :last_name, "Last name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.text_field :last_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "lastName" } %>
+      </div>
+
+      <div>
+        <%= form.label :email, "Email *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.email_field :email, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", autocomplete: "email" %>
+      </div>
+
+      <div>
+        <%= form.label :participant_type, "Participant type *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.select :participant_type, options_for_select([["Player", "player"], ["Visitor", "visitor"]], participant.participant_type.presence || "player"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      </div>
+
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <%= form.label :country, "Country *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.hidden_field :country, data: { egd_autocomplete_target: "countryCode" } %>
+        <input
+          type="text"
+          list="iso-country-options"
+          class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
+          placeholder="Start typing country name or code"
+          data-egd-autocomplete-target="countryInput"
+          data-action="input->egd-autocomplete#countryInputChanged blur->egd-autocomplete#countryInputBlur"
+          autocomplete="off"
+        >
+        <datalist id="iso-country-options" data-egd-autocomplete-target="countryDatalist"></datalist>
+      </div>
+
+      <div>
+        <%= form.label :city, "City", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.text_field :city, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "city" } %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <%= form.label :playing_strength, "Playing strength (Go) *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.select :playing_strength, options_for_select(EgdGradeMapping.options_for_select, participant.playing_strength), { prompt: "Select playing strength" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "playingStrength" } %>
+      </div>
+
+      <div>
+        <%= form.label :rating, "Rating (EGD/GOR)", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.number_field :rating, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rating" } %>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div>
+        <%= form.label :date_of_birth, "Birth date *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.date_field :date_of_birth, value: participant.date_of_birth&.strftime("%Y-%m-%d"), lang: "en-GB", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "dateOfBirth" }, autocomplete: "bday" %>
+      </div>
+
+      <div>
+        <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
+        <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" } %>
+      </div>
+    </div>
+
+    <div class="flex gap-4">
+      <%= form.submit "Register", class: "btn-primary" %>
+    </div>
+  </div>
+<% end %>

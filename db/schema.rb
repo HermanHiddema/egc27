@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_04_090000) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_08_150000) do
   create_table "articles", force: :cascade do |t|
     t.text "content"
     t.datetime "created_at", null: false
@@ -67,6 +67,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_04_090000) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_pages_on_slug", unique: true
+  end
+
+  create_table "participants", force: :cascade do |t|
+    t.string "city", null: false
+    t.string "country", null: false
+    t.datetime "created_at", null: false
+    t.date "date_of_birth", null: false
+    t.string "egd_pin"
+    t.string "email"
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.string "participant_type", default: "player", null: false
+    t.integer "playing_strength", null: false
+    t.integer "rating"
+    t.datetime "updated_at", null: false
+    t.index ["egd_pin"], name: "index_participants_on_egd_pin"
+    t.index ["email"], name: "index_participants_on_email"
+    t.index ["participant_type"], name: "index_participants_on_participant_type"
+    t.index ["rating"], name: "index_participants_on_rating"
   end
 
   create_table "users", force: :cascade do |t|

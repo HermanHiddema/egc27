@@ -1,7 +1,10 @@
 <div class="container-wide py-12">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Recent News</h1>
-    <%= link_to "View All News", articles_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition font-medium" %>
+    <div class="flex items-center gap-4">
+      <%= link_to "Register As Participant", new_participant_path, class: "btn-primary" %>
+      <%= link_to "View All News", articles_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition font-medium" %>
+    </div>
   </div>
 
   <% if @recent_articles.any? %>
