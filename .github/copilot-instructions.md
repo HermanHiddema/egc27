@@ -1,5 +1,9 @@
 # AI Coding Agent Instructions for egc27
 
+## Additional Agent Instructions
+- See `AGENTS.md` at the repository root for user-specific preferences and workflow rules.
+- When preferences in chat change, `AGENTS.md` is the canonical file to update in the same session.
+
 ## Project Overview
 **egc27** is a Rails 8.1 full-stack web application using modern Rails conventions. It features Hotwire (Turbo + Stimulus), Devise authentication, SQLite database, and Docker deployment via Kamal.
 
