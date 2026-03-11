@@ -44,6 +44,7 @@ puts "✓ Seeded #{seeded_pages} static content pages"
 
 legal_pages = [
   { slug: "privacy", title: "Privacy", content: "This is a placeholder Privacy page. Content coming soon." },
+  { slug: "terms-and-conditions", title: "Terms and conditions", content: "This is a placeholder Terms and conditions page. Content coming soon." },
   { slug: "copyright", title: "Copyright", content: "This is a placeholder Copyright page. Content coming soon." },
   { slug: "faq", title: "FAQ", content: "This is a placeholder FAQ page. Content coming soon." }
 ]
@@ -222,6 +223,7 @@ footer_menu.menu_items.destroy_all
 
 [
   ["Privacy", "privacy"],
+  ["Terms and conditions", "terms-and-conditions"],
   ["Copyright", "copyright"],
   ["FAQ", "faq"],
   ["Contact", "contact"]

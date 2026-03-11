@@ -23,9 +23,13 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           participant_type: "player",
           date_of_birth: "11-02-1995",
           country: "NL",
-          city: "Utrecht",
-          playing_strength: 27,
+          club: "Utrecht",
+          rank: 27,
+          phone: "+31612345678",
           rating: 1742,
+          accepted_terms_and_conditions: true,
+          accepted_privacy_policy: true,
+          image_use_consent: true,
           egd_pin: "12345678"
         }
       }

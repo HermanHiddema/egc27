@@ -10,7 +10,6 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:email], "can't be blank"
     assert_includes participant.errors[:date_of_birth], "can't be blank"
     assert_includes participant.errors[:country], "can't be blank"
-    assert_includes participant.errors[:playing_strength], "can't be blank"
   end
 
   test "converts grade string to EGD grade_n integer" do
@@ -20,15 +19,17 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "jane@example.org",
       date_of_birth: Date.new(1990, 1, 1),
       country: "NL",
-      city: "Utrecht",
-      playing_strength: "3k",
+      club: "Utrecht",
+      rank: "3k",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
       rating: "1789"
     )
 
     assert participant.valid?
-    assert_equal(27, participant.playing_strength)
+    assert_equal(27, participant.rank)
     assert_equal(1789, participant.rating)
-    assert_equal("3 kyu", participant.playing_strength_grade)
+    assert_equal("3 kyu", participant.rank_grade)
   end
 
   test "supports professional grades" do
@@ -38,13 +39,15 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "ilja@example.org",
       date_of_birth: Date.new(1990, 1, 1),
       country: "RU",
-      city: "Kazan",
-      playing_strength: "4p"
+      club: "Kazan",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "4p"
     )
 
     assert participant.valid?
-    assert_equal(42, participant.playing_strength)
-    assert_equal("4 dan pro", participant.playing_strength_grade)
+    assert_equal(42, participant.rank)
+    assert_equal("4 dan pro", participant.rank_grade)
   end
 
   test "parses european date format" do
@@ -54,8 +57,10 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "eva@example.org",
       date_of_birth: "31-12-1999",
       country: "NL",
-      city: "Eindhoven",
-      playing_strength: "1 dan"
+      club: "Eindhoven",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "1 dan"
     )
 
     assert participant.valid?
@@ -69,8 +74,10 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "ana@example.org",
       date_of_birth: "01-01-2000",
       country: "pt",
-      city: "Porto",
-      playing_strength: "10 kyu"
+      club: "Porto",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "10 kyu"
     )
 
     assert participant.valid?
@@ -84,8 +91,10 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "lee@example.org",
       date_of_birth: "01-01-2001",
       country: "KR",
-      city: "Seoul",
-      playing_strength: "2 dan"
+      club: "Seoul",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "2 dan"
     )
 
     assert participant.valid?
@@ -100,8 +109,10 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "visitor",
       date_of_birth: "05-06-1998",
       country: "SE",
-      city: "Stockholm",
-      playing_strength: "5 kyu"
+      club: "Stockholm",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "5 kyu"
     )
 
     assert participant.valid?
@@ -109,7 +120,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
-  test "city is optional" do
+  test "club is optional" do
     participant = Participant.new(
       first_name: "Mia",
       last_name: "Rossi",
@@ -117,11 +128,75 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "player",
       date_of_birth: "10-10-1997",
       country: "IT",
-      city: "",
-      playing_strength: "8 kyu"
+      club: "",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      rank: "8 kyu"
     )
 
     assert participant.valid?
-    assert_equal("", participant.city)
+    assert_equal("", participant.club)
+  end
+
+  test "normalizes phone to international digits format" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      rank: "8 kyu",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      phone: "(+39) 06 1234 5678"
+    )
+
+    assert participant.valid?
+    assert_equal("+390612345678", participant.phone)
+  end
+
+  test "rejects clearly invalid phone" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      rank: "8 kyu",
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      phone: "+12"
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:phone], "must be a valid international phone number"
+  end
+
+  test "requires acceptance of terms and privacy policy" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      rank: "8 kyu",
+      accepted_terms_and_conditions: false,
+      accepted_privacy_policy: false
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:accepted_terms_and_conditions], "must be accepted"
+    assert_includes participant.errors[:accepted_privacy_policy], "must be accepted"
+  end
+
+  test "attendance periods default to selected" do
+    participant = Participant.new
+
+    assert_equal true, participant.first_week
+    assert_equal true, participant.weekend
+    assert_equal true, participant.second_week
   end
 end

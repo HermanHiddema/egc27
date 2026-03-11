@@ -123,7 +123,7 @@ class EgdLookupService
         last_name: last_name,
         date_of_birth: normalize_date(value_for(row, %w[date_of_birth birth_date dob birthday])),
         country: value_for(row, %w[country country_code countrycode]).presence,
-        city: value_for(row, %w[city town club club_city]).presence,
+        club: value_for(row, %w[city town club club_city]).presence,
         playing_strength: grade_n_value,
         playing_strength_label: extract_grade_label(row, grade_n_value),
         rating: extract_rating(row),

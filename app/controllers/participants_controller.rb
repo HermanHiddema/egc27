@@ -27,6 +27,6 @@ class ParticipantsController < ApplicationController
   private
 
   def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :date_of_birth, :country, :city, :playing_strength, :rating, :egd_pin)
+    params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :date_of_birth, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :accepted_terms_and_conditions, :accepted_privacy_policy, :image_use_consent, :first_week, :weekend, :second_week)
   end
 end

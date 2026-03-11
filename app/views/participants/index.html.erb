@@ -12,8 +12,8 @@
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">City</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Playing strength</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Club</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rank</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rating</th>
             </tr>
           </thead>
@@ -22,8 +22,8 @@
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.country %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.city %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.playing_strength_grade %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.club %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>
               </tr>
             <% end %>

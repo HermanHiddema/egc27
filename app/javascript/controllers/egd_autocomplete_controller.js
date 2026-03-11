@@ -33,8 +33,8 @@ export default class extends Controller {
         "countryInput",
         "countryCode",
         "countryDatalist",
-        "city",
-        "playingStrength",
+        "club",
+        "rank",
         "rating",
         "egdPin"
     ]
@@ -77,8 +77,8 @@ export default class extends Controller {
         this.lastNameTarget.value = match.last_name || ""
         this.dateOfBirthTarget.value = this.formatDateForPicker(match.date_of_birth)
         this.applyCountryCode(match.country)
-        this.cityTarget.value = match.city || ""
-        this.playingStrengthTarget.value = match.playing_strength === null || match.playing_strength === undefined ? "" : String(match.playing_strength)
+        this.clubTarget.value = match.club || ""
+        this.rankTarget.value = match.playing_strength === null || match.playing_strength === undefined ? "" : String(match.playing_strength)
         this.ratingTarget.value = match.rating === null || match.rating === undefined ? "" : String(match.rating)
         this.egdPinTarget.value = match.egd_pin || ""
 
@@ -262,15 +262,15 @@ export default class extends Controller {
     mapEgdPlayer(player) {
         const playingStrength = this.toInteger(player.Grade_n)
         return {
-            first_name: player.Name || player.Real_Name || "",
-            last_name: player.Last_Name || player.Real_Last_Name || "",
+            first_name: this.normalizeSpaces(player.Name || player.Real_Name || ""),
+            last_name: this.normalizeSpaces(player.Last_Name || player.Real_Last_Name || ""),
             date_of_birth: "",
-            country: player.Country_Code || "",
-            city: player.Club || "",
+            country: this.normalizeSpaces(player.Country_Code || ""),
+            club: this.normalizeSpaces(player.Club || ""),
             playing_strength: playingStrength,
-            playing_strength_label: player.Grade || this.gradeLabel(playingStrength),
+            playing_strength_label: this.normalizeSpaces(player.Grade || this.gradeLabel(playingStrength)),
             rating: this.toInteger(player.Gor),
-            egd_pin: player.Pin_Player || ""
+            egd_pin: this.normalizeSpaces(player.Pin_Player || "")
         }
     }
 
@@ -330,6 +330,10 @@ export default class extends Controller {
         if (parsed <= 29) return `${30 - parsed} kyu`
         if (parsed <= 38) return `${parsed - 29} dan`
         return `${parsed - 38} dan pro`
+    }
+
+    normalizeSpaces(value) {
+        return String(value || "").replaceAll("_", " ")
     }
 
     escapeHtml(value) {
