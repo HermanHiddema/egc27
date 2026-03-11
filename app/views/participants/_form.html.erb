@@ -1,4 +1,4 @@
-<%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>
+<%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>
   <% if participant.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
@@ -12,12 +12,12 @@
 
   <div class="space-y-6">
     <div class="relative" data-action="focusout->egd-autocomplete#hide">
-      <label for="egd-search" class="block text-sm font-medium text-gray-700 mb-2">Find In EGD By Last Name (optional)</label>
+      <label for="egd-search" class="block text-sm font-medium text-gray-700 mb-2">Find In EGD By Last Name or PIN (optional)</label>
       <input
         id="egd-search"
         type="text"
         class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
-        placeholder="Type at least 2 letters of LAST name (e.g. Smith)"
+        placeholder="Type at least 2 letters of last name (e.g. Smith) or an 8-digit EGD PIN"
         data-egd-autocomplete-target="query"
         data-action="input->egd-autocomplete#search"
         autocomplete="off"
@@ -26,7 +26,7 @@
         class="hidden absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
         data-egd-autocomplete-target="results"
       ></div>
-      <p class="text-sm text-neutral-600 mt-2">Search uses last name by default (starts-with matching). You can type first name and last name, but matching is driven by the last-name part.</p>
+      <p class="text-sm text-neutral-600 mt-2">Search uses last name by default (starts-with matching). You can type first name and last name, but matching is driven by the last-name part. Entering an 8-digit EGD PIN runs a PIN lookup.</p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -90,7 +90,15 @@
 
           <div>
             <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" } %>
+            <%= form.hidden_field :egd_pin, data: { egd_autocomplete_target: "egdPin" } %>
+            <input
+              type="text"
+              class="w-full border border-gray-200 bg-gray-100 rounded-lg px-4 py-2 text-gray-700 cursor-not-allowed"
+              value="<%= participant.egd_pin %>"
+              disabled
+              readonly
+              data-egd-autocomplete-target="egdPinDisplay"
+            >
           </div>
         </div>
       </div>

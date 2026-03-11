@@ -36,11 +36,13 @@ export default class extends Controller {
         "club",
         "rank",
         "rating",
-        "egdPin"
+        "egdPin",
+        "egdPinDisplay"
     ]
 
     static values = {
-        url: String
+        url: String,
+        pinUrl: String
     }
 
     connect() {
@@ -73,6 +75,12 @@ export default class extends Controller {
         const match = this.matches[index]
         if (!match) return
 
+        this.applyMatch(match)
+    }
+
+    applyMatch(match) {
+        if (!match) return
+
         this.firstNameTarget.value = match.first_name || ""
         this.lastNameTarget.value = match.last_name || ""
         this.dateOfBirthTarget.value = this.formatDateForPicker(match.date_of_birth)
@@ -81,6 +89,9 @@ export default class extends Controller {
         this.rankTarget.value = match.playing_strength === null || match.playing_strength === undefined ? "" : String(match.playing_strength)
         this.ratingTarget.value = match.rating === null || match.rating === undefined ? "" : String(match.rating)
         this.egdPinTarget.value = match.egd_pin || ""
+        if (this.hasEgdPinDisplayTarget) {
+            this.egdPinDisplayTarget.value = match.egd_pin || ""
+        }
 
         this.queryTarget.value = [match.first_name, match.last_name].filter(Boolean).join(" ")
         this.hideResults()
@@ -113,6 +124,13 @@ export default class extends Controller {
 
             const payload = await response.json()
             this.matches = this.normalizePayload(payload)
+
+            // A PIN is expected to map to a single player; auto-fill immediately.
+            if (this.isPinQuery(query) && this.matches.length === 1) {
+                this.applyMatch(this.matches[0])
+                return
+            }
+
             this.renderResults()
         } catch (_error) {
             this.hideResults()
@@ -120,8 +138,13 @@ export default class extends Controller {
     }
 
     buildUrl(query) {
-        const url = new URL(this.urlValue)
         const normalized = query.trim()
+
+        if (this.isPinQuery(normalized)) {
+            return this.buildPinUrl(normalized)
+        }
+
+        const url = new URL(this.urlValue)
         const parts = normalized.split(/\s+/).filter(Boolean)
 
         if (parts.length <= 1) {
@@ -134,6 +157,17 @@ export default class extends Controller {
         url.searchParams.set("lastname", this.withStartsWithPrefix(lastname))
         url.searchParams.set("name", firstname)
         return url.toString()
+    }
+
+    buildPinUrl(pin) {
+        const baseUrl = this.hasPinUrlValue ? this.pinUrlValue : this.urlValue
+        const url = new URL(baseUrl)
+        url.searchParams.set("pin", pin)
+        return url.toString()
+    }
+
+    isPinQuery(value) {
+        return /^\d{8}$/.test(String(value || "").trim())
     }
 
     withStartsWithPrefix(value) {
@@ -151,8 +185,7 @@ export default class extends Controller {
         }
 
         if (payload && typeof payload === "object") {
-            // EGD returns hashes like { retcode: "..." } when there are no hits.
-            if (Object.prototype.hasOwnProperty.call(payload, "retcode")) {
+            if (this.payloadIsNoHit(payload)) {
                 return []
             }
 
@@ -160,6 +193,21 @@ export default class extends Controller {
         }
 
         return []
+    }
+
+    payloadIsNoHit(payload) {
+        if (!payload || typeof payload !== "object") return true
+
+        const retcode = String(payload.retcode || payload.Retcode || "").trim().toLowerCase()
+        const hasPlayerFields = ["Name", "Last_Name", "Real_Name", "Real_Last_Name", "Pin_Player", "Country_Code", "Club", "Grade_n", "Gor"]
+            .some((key) => Object.prototype.hasOwnProperty.call(payload, key))
+
+        // Some successful EGD payloads include retcode alongside player data.
+        if (hasPlayerFields) return false
+
+        if (!retcode) return false
+
+        return ["notfound", "not_found", "noresult", "no_result", "error", "failed", "ko"].includes(retcode)
     }
 
     initializeCountryAutocomplete() {

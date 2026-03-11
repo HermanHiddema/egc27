@@ -8,6 +8,12 @@ class EgdLookupService
   MAX_RESULTS = 10
 
   def search(query:)
+    raw = query.to_s.strip
+    if pin_query?(raw)
+      row = fetch_by_pin(pin: raw)
+      return normalize([row].compact)
+    end
+
     filters = parse_query(query)
     return [] if filters[:lastname].blank?
     return [] if filters[:lastname].delete_prefix("@").length < 2
@@ -20,6 +26,10 @@ class EgdLookupService
   end
 
   private
+
+  def pin_query?(value)
+    value.to_s.match?(/\A\d{8}\z/)
+  end
 
   def parse_query(query)
     raw = query.to_s.strip
