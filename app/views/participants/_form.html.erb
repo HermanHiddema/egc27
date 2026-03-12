@@ -1,0 +1,172 @@
+<%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>
+  <% if participant.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+      <ul class="text-red-700 list-disc list-inside">
+        <% participant.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="space-y-6">
+    <div class="relative" data-action="focusout->egd-autocomplete#hide">
+      <label for="egd-search" class="block text-sm font-medium text-gray-700 mb-2">Find In EGD By Last Name or PIN (optional)</label>
+      <input
+        id="egd-search"
+        type="text"
+        class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
+        placeholder="Type at least 2 letters of last name (e.g. Smith) or an 8-digit EGD PIN"
+        data-egd-autocomplete-target="query"
+        data-action="input->egd-autocomplete#search"
+        autocomplete="off"
+      >
+      <div
+        class="hidden absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden"
+        data-egd-autocomplete-target="results"
+      ></div>
+      <p class="text-sm text-neutral-600 mt-2">Search uses last name by default. You can type first name and last name, but matching is driven by the last-name part. Entering an 8-digit EGD PIN runs a PIN lookup.</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Personal Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <%= form.label :first_name, "First name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "firstName" } %>
+          </div>
+
+          <div>
+            <%= form.label :last_name, "Last name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :last_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "lastName" } %>
+          </div>
+
+          <div>
+            <%= form.label :gender, "Gender", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], participant.gender), { prompt: "Select gender (optional)" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          </div>
+
+          <div>
+            <%= form.label :date_of_birth, "Birth date *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.date_field :date_of_birth, value: participant.date_of_birth&.strftime("%Y-%m-%d"), lang: "en-GB", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "dateOfBirth" }, autocomplete: "bday" %>
+          </div>
+
+          <div>
+            <%= form.label :country, "Country *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.hidden_field :country, data: { egd_autocomplete_target: "countryCode" } %>
+            <input
+              type="text"
+              list="iso-country-options"
+              class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
+              placeholder="Start typing country name or code"
+              data-egd-autocomplete-target="countryInput"
+              data-action="input->egd-autocomplete#countryInputChanged blur->egd-autocomplete#countryInputBlur"
+              autocomplete="off"
+            >
+            <datalist id="iso-country-options" data-egd-autocomplete-target="countryDatalist"></datalist>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Player Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <%= form.label :rank, "Rank", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.select :rank, options_for_select([["None", ""]] + EgdGradeMapping.options_for_select, participant.rank), { prompt: "Select rank" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rank" } %>
+          </div>
+
+          <div>
+            <%= form.label :rating, "Rating (EGD/GOR)", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.number_field :rating, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rating" } %>
+          </div>
+
+          <div>
+            <%= form.label :club, "Club", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :club, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "club" } %>
+          </div>
+
+          <div>
+            <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" }, inputmode: "numeric", autocomplete: "off" %>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Contact Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <%= form.label :email, "Email *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.email_field :email, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", autocomplete: "email" %>
+          </div>
+
+          <div>
+            <%= form.label :phone, "Phone", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.telephone_field :phone, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", placeholder: "+31 6 12345678", autocomplete: "tel", data: { phone_input_target: "input", action: "input->phone-input#format blur->phone-input#normalize countrychange->phone-input#countryChanged" } %>
+          </div>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+        <h2 class="text-lg font-semibold text-neutral-900">Participation Information</h2>
+        <div>
+          <%= form.label :participant_type, "Participant type *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.select :participant_type, options_for_select([["Player", "player"], ["Visitor", "visitor"]], participant.participant_type.presence || "player"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+          <p class="text-sm font-medium text-gray-900">Attendance period</p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="flex items-center gap-3 text-sm text-gray-800">
+              <%= form.check_box :first_week, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+              <span>First week</span>
+            </label>
+
+            <label class="flex items-center gap-3 text-sm text-gray-800">
+              <%= form.check_box :weekend, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+              <span>Weekend</span>
+            </label>
+
+            <label class="flex items-center gap-3 text-sm text-gray-800">
+              <%= form.check_box :second_week, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+              <span>Second week</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+      <label class="flex items-start gap-3 text-sm text-gray-800">
+        <%= form.check_box :accepted_terms_and_conditions, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+        <span>
+          I have read and agree with the
+          <%= link_to "Terms and Conditions", page_path("terms-and-conditions"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>
+        </span>
+      </label>
+
+      <label class="flex items-start gap-3 text-sm text-gray-800">
+        <%= form.check_box :accepted_privacy_policy, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+        <span>
+          I have read and agree with the
+          <%= link_to "Privacy Policy", page_path("privacy"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>
+        </span>
+      </label>
+
+      <label class="flex items-start gap-3 text-sm text-gray-800">
+        <%= form.check_box :image_use_consent, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+        <span>
+          I grant the use of my image on videos and photos taken during the event to the NGoB, for the sole purpose of promotion and communication around the EGC
+        </span>
+      </label>
+    </div>
+
+    <div class="flex gap-4">
+      <%= form.submit "Register", class: "btn-primary" %>
+    </div>
+  </div>
+<% end %>

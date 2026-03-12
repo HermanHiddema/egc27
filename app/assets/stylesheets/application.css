@@ -9,7 +9,14 @@
  * Consider organizing styles into separate files for maintainability.
  */
 
+@import url("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/css/intlTelInput.css");
+
 :root {
+  --iti-path-flags-1x: url("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/img/flags.webp");
+  --iti-path-flags-2x: url("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/img/flags@2x.webp");
+  --iti-path-globe-1x: url("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/img/globe.webp");
+  --iti-path-globe-2x: url("https://cdn.jsdelivr.net/npm/intl-tel-input@25.12.2/build/img/globe@2x.webp");
+
   /* Brand Colors - Blue Palette */
   --brand-blue-50: #f0f4f9;
   --brand-blue-100: #e1e9f3;
@@ -57,6 +64,14 @@
   --neutral-700: #374151;
   --neutral-800: #1f2937;
   --neutral-900: #111827;
+}
+
+.iti {
+  width: 100%;
+}
+
+.iti__tel-input {
+  width: 100%;
 }
 
 .wysiwyg-editor .ql-editor {

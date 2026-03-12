@@ -14,6 +14,10 @@ module ApplicationHelper
   end
 
   def menu_item_destination(menu_item)
+    if menu_item.page&.slug == "participants"
+      return participants_path
+    end
+
     return page_path(menu_item.page) if menu_item.page.present?
 
     menu_item.url.presence || "#"
