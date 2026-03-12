@@ -82,7 +82,7 @@ end
 
 create_menu_item.call(menu: header_menu, label: "Home", position: 1, url: "/")
 create_menu_item.call(menu: header_menu, label: "News", position: 2, url: "/articles")
-create_menu_item.call(menu: header_menu, label: "Schedule", position: 3, page_slug: "schedule")
+create_menu_item.call(menu: header_menu, label: "Schedule", position: 3, url: "/events/three_weeks?date=2027-07-19")
 create_menu_item.call(menu: header_menu, label: "Calendar", position: 4, url: "/calendar")
 
 go_tournaments = create_menu_item.call(menu: header_menu, label: "Go Tournaments", position: 5, url: "#")

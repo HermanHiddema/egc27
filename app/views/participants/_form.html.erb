@@ -90,15 +90,7 @@
 
           <div>
             <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.hidden_field :egd_pin, data: { egd_autocomplete_target: "egdPin" } %>
-            <input
-              type="text"
-              class="w-full border border-gray-200 bg-gray-100 rounded-lg px-4 py-2 text-gray-700 cursor-not-allowed"
-              value="<%= participant.egd_pin %>"
-              disabled
-              readonly
-              data-egd-autocomplete-target="egdPinDisplay"
-            >
+            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" }, inputmode: "numeric", autocomplete: "off" %>
           </div>
         </div>
       </div>

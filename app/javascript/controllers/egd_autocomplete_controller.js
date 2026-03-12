@@ -36,8 +36,7 @@ export default class extends Controller {
         "club",
         "rank",
         "rating",
-        "egdPin",
-        "egdPinDisplay"
+        "egdPin"
     ]
 
     static values = {
@@ -89,9 +88,6 @@ export default class extends Controller {
         this.rankTarget.value = match.playing_strength === null || match.playing_strength === undefined ? "" : String(match.playing_strength)
         this.ratingTarget.value = match.rating === null || match.rating === undefined ? "" : String(match.rating)
         this.egdPinTarget.value = match.egd_pin || ""
-        if (this.hasEgdPinDisplayTarget) {
-            this.egdPinDisplayTarget.value = match.egd_pin || ""
-        }
 
         this.queryTarget.value = [match.first_name, match.last_name].filter(Boolean).join(" ")
         this.hideResults()

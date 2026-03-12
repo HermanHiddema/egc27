@@ -11,6 +11,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get new_participant_path
 
     assert_response :success
+    assert_select "input[name='participant[egd_pin]']:not([type='hidden']):not([disabled])"
   end
 
   test "creates participant without authentication" do
