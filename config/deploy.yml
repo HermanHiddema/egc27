@@ -48,9 +48,8 @@ env:
     # Set number of cores available to the application on each server (default: 1).
     # WEB_CONCURRENCY: 2
 
-    # Match this to any external database server to configure Active Record correctly
-    # Use egc27-db for a db accessory server on same machine via local kamal docker network.
-    # DB_HOST: 192.168.0.2
+    # Configure PostgreSQL connection details. Prefer DATABASE_URL for production.
+    # DATABASE_URL: postgres://app:password@192.168.0.2:5432/egc27_production
 
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
@@ -63,7 +62,7 @@ aliases:
   logs: app logs -f
   dbc: app exec --interactive --reuse "bin/rails dbconsole --include-password"
 
-# Use a persistent storage volume for sqlite database files and local Active Storage files.
+# Use a persistent storage volume for local Active Storage files.
 # Recommended to change this to a mounted volume path that is backed up off server.
 volumes:
   - "egc27_storage:/rails/storage"

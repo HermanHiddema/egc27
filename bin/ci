@@ -1,4 +1,18 @@
 #!/usr/bin/env ruby
+
+# Ensure local CI uses environment-specific entries from config/database.yml.
+# A global DATABASE_URL can make test point to the development database,
+# which raises ActiveRecord::EnvironmentMismatchError.
+%w[DATABASE_URL CACHE_DATABASE_URL QUEUE_DATABASE_URL CABLE_DATABASE_URL].each do |key|
+  ENV.delete(key)
+end
+
+# Devcontainer defaults for local CI when explicit POSTGRES_* vars are absent.
+ENV["POSTGRES_HOST"] ||= "db"
+ENV["POSTGRES_PORT"] ||= "5432"
+ENV["POSTGRES_USER"] ||= "postgres"
+ENV["POSTGRES_PASSWORD"] ||= "postgres"
+
 require_relative "../config/boot"
 require "active_support/continuous_integration"
 
