@@ -13,8 +13,8 @@ services:
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 
-    # Database connection string for Rails applications
-    # Provides a standard way to connect to the PostgreSQL database
+    # Database configuration for Rails applications
+    # These POSTGRES_* variables should match the settings used in config/database.yml
     environment:
       POSTGRES_HOST: ${POSTGRES_HOST:-db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
