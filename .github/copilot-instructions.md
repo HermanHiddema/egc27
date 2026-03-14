@@ -5,13 +5,13 @@
 - When preferences in chat change, `AGENTS.md` is the canonical file to update in the same session.
 
 ## Project Overview
-**egc27** is a Rails 8.1 full-stack web application using modern Rails conventions. It features Hotwire (Turbo + Stimulus), Devise authentication, SQLite database, and Docker deployment via Kamal.
+**egc27** is a Rails 8.1 full-stack web application using modern Rails conventions. It features Hotwire (Turbo + Stimulus), Devise authentication, PostgreSQL, and Docker deployment via Kamal.
 
 ## Architecture
 
 ### Tech Stack
 - **Framework**: Rails 8.1 with `propshaft` asset pipeline
-- **Database**: SQLite with `solid_queue`, `solid_cache`, `solid_cable` for modern Rails defaults
+- **Database**: PostgreSQL with `solid_queue`, `solid_cache`, `solid_cable`
 - **Frontend**: Hotwire (Turbo + Stimulus via importmap-rails), no Node build step
 - **Authentication**: Devise with database-backed user model
 - **Deployment**: Docker + Kamal orchestration
@@ -75,7 +75,7 @@ All must pass before deploy.
 - Don't worry about IE11 compatibility
 
 ### Database
-- SQLite in development/test; consider adapting for production PostgreSQL if needed
+- PostgreSQL across environments
 - All DB state lives in `db/schema.rb` and migrations in `db/migrate/`
 - Jobs/cache use solid_* adapters (database-backed, no Redis dependency)
 

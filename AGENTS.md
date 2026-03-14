@@ -10,7 +10,7 @@ This file defines project-specific guidance for AI coding agents working in this
 
 ## Stack and Architecture
 - Rails 8.1 app with Hotwire (Turbo + Stimulus), importmap, and Tailwind.
-- SQLite in development/test.
+- PostgreSQL database across environments.
 - Authentication via Devise.
 - Controllers inherit from `ApplicationController`.
 
