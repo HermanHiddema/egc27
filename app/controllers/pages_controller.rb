@@ -42,7 +42,7 @@ class PagesController < ApplicationController
   private
 
   def set_page
-    @page = Page.find_by!(slug: params[:slug])
+    @page = Page.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
   end
 
   def page_params

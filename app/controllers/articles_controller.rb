@@ -3,7 +3,7 @@ class ArticlesController < ApplicationController
   before_action :set_article, only: [:show, :edit, :update, :destroy]
 
   def index
-    @articles = Article.order(created_at: :desc).includes(:user)
+    @articles = Article.with_rich_text_content_and_embeds.order(created_at: :desc).includes(:user)
   end
 
   def show
@@ -42,7 +42,7 @@ class ArticlesController < ApplicationController
   private
 
   def set_article
-    @article = Article.find(params[:id])
+    @article = Article.with_rich_text_content_and_embeds.find(params[:id])
   end
 
   def article_params
