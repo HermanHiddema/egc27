@@ -74,7 +74,7 @@
   width: 100%;
 }
 
-.wysiwyg-editor .ql-editor {
+trix-editor {
   min-height: 7.5rem;
 }
 
@@ -114,7 +114,7 @@
 }
 
 @media (min-width: 1024px) {
-  .wysiwyg-editor .ql-editor {
+  trix-editor {
     min-height: 12rem;
   }
 }

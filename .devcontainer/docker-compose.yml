@@ -13,14 +13,12 @@ services:
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 
-    # Database connection settings for Rails applications
-    # Use discrete Postgres env vars so config/database.yml can pick DB per RAILS_ENV
+    # Database connection string for Rails applications
+    # Provides a standard way to connect to the PostgreSQL database
     environment:
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    # Use proper Docker networking (not network_mode) to avoid namespace issues and ensure reliable container startup across environments
+      DATABASE_URL: "postgresql://postgres:postgres@db:5432/postgres"
+
+   # Use proper Docker networking (not network_mode) to avoid namespace issues and ensure reliable container startup across environments
     depends_on:
       db:
         condition: service_healthy # Wait for PostgreSQL to be ready before starting the app
@@ -30,7 +28,7 @@ services:
     # (Adding the "ports" property to this file will not forward from a Codespace.)
 
   db:
-    image: postgres:18
+    image: postgres:latest
     restart: unless-stopped
     networks:
       - app-network # Connect to the same network as the app container
@@ -44,7 +42,7 @@ services:
       retries: 5 # Retry 5 times before marking as unhealthy
       start_period: 30s # Give PostgreSQL 30 seconds to start before health checks begin
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
       - ./create-db-user.sql:/docker-entrypoint-initdb.d/create-db-user.sql
     environment:
       POSTGRES_USER: postgres

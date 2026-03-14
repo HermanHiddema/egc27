@@ -1,0 +1,19 @@
+article_one_content:
+  record: one (Article)
+  name: content
+  body: <p>MyText</p>
+
+article_two_content:
+  record: two (Article)
+  name: content
+  body: <p>MyText</p>
+
+page_one_content:
+  record: one (Page)
+  name: content
+  body: <p>Information about the congress.</p>
+
+page_two_content:
+  record: two (Page)
+  name: content
+  body: <p>Travel information.</p>
