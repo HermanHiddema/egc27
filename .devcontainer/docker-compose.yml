@@ -20,7 +20,7 @@ services:
       POSTGRES_PORT: 5432
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-   # Use proper Docker networking (not network_mode) to avoid namespace issues and ensure reliable container startup across environments
+    # Use proper Docker networking (not network_mode) to avoid namespace issues and ensure reliable container startup across environments
     depends_on:
       db:
         condition: service_healthy # Wait for PostgreSQL to be ready before starting the app
