@@ -1,6 +1,6 @@
 class CalendarEventsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
-  before_action :set_event, only: [:show, :edit, :update, :destroy]
+  before_action :set_calendar_event, only: [:show, :edit, :update, :destroy]
 
   def index
     @current_view = :month
@@ -130,7 +130,7 @@ class CalendarEventsController < ApplicationController
 
   private
 
-  def set_event
+  def set_calendar_event
     @event = CalendarEvent.includes(:user).find(params[:id])
   end
 
