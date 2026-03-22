@@ -113,6 +113,57 @@ trix-editor {
   margin-block: 0.75rem;
 }
 
+.responsive-menu-summary::-webkit-details-marker,
+.responsive-menu-summary-sub::-webkit-details-marker {
+  display: none;
+}
+
+.menu-chevron,
+.menu-chevron-sub {
+  transition: transform 0.2s ease;
+}
+
+.responsive-menu-details[open] > .responsive-menu-summary {
+  color: var(--brand-yellow-300);
+  background: color-mix(in srgb, var(--brand-blue-800) 55%, transparent);
+}
+
+.responsive-menu-details[open] > .responsive-menu-summary .menu-chevron,
+.responsive-menu-details-sub[open] > .responsive-menu-summary-sub .menu-chevron-sub {
+  transform: rotate(180deg);
+}
+
+.responsive-menu-details-sub[open] > .responsive-menu-summary-sub {
+  color: var(--brand-yellow-300);
+}
+
+@keyframes menuAccordionReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.responsive-menu-details[open] > .responsive-menu-content,
+.responsive-menu-details-sub[open] > .responsive-menu-content-sub {
+  animation: menuAccordionReveal 0.2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-chevron,
+  .menu-chevron-sub,
+  .responsive-menu-details[open] > .responsive-menu-content,
+  .responsive-menu-details-sub[open] > .responsive-menu-content-sub {
+    animation: none;
+    transition: none;
+  }
+}
+
 @media (min-width: 1024px) {
   trix-editor {
     min-height: 12rem;
