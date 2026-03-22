@@ -1,9 +1,9 @@
 class ArticlesController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :show]
-  before_action :set_article, only: [:show, :edit, :update, :destroy]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update]
   before_action :require_admin!, only: [:destroy]
+  before_action :set_article, only: [:show, :edit, :update, :destroy]
 
   def index
     @articles = Article.with_rich_text_content_and_embeds.order(created_at: :desc).includes(:user)
