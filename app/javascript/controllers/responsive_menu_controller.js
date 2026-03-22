@@ -1,28 +1,28 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["panel", "toggle"]
+    static targets = ["panel", "toggle"]
 
-  connect() {
-    this.close()
-  }
-
-  togglePanel() {
-    if (this.panelTarget.classList.contains("hidden")) {
-      this.open()
-      return
+    connect() {
+        this.close()
     }
 
-    this.close()
-  }
+    togglePanel() {
+        if (this.panelTarget.classList.contains("hidden")) {
+            this.open()
+            return
+        }
 
-  open() {
-    this.panelTarget.classList.remove("hidden")
-    this.toggleTarget.setAttribute("aria-expanded", "true")
-  }
+        this.close()
+    }
 
-  close() {
-    this.panelTarget.classList.add("hidden")
-    this.toggleTarget.setAttribute("aria-expanded", "false")
-  }
+    open() {
+        this.panelTarget.classList.remove("hidden")
+        this.toggleTarget.setAttribute("aria-expanded", "true")
+    }
+
+    close() {
+        this.panelTarget.classList.add("hidden")
+        this.toggleTarget.setAttribute("aria-expanded", "false")
+    }
 }
