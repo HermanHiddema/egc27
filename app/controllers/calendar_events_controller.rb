@@ -1,4 +1,4 @@
-class EventsController < ApplicationController
+class CalendarEventsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
   before_action :set_event, only: [:show, :edit, :update, :destroy]
 
@@ -13,7 +13,7 @@ class EventsController < ApplicationController
     @display_end = month_end.end_of_week(:monday)
 
     @calendar_days = (@display_start..@display_end).to_a
-    @events_by_day = Event
+    @events_by_day = CalendarEvent
       .where(starts_at: @display_start.beginning_of_day..@display_end.end_of_day)
       .includes(:user)
       .chronological
@@ -94,14 +94,14 @@ class EventsController < ApplicationController
   end
 
   def new
-    @event = Event.new(
+    @event = CalendarEvent.new(
       starts_at: Time.current.change(min: 0),
       ends_at: 1.hour.from_now.change(min: 0)
     )
   end
 
   def create
-    @event = current_user.events.build(event_params)
+    @event = current_user.calendar_events.build(event_params)
 
     if @event.save
       redirect_to @event, notice: "Event was successfully created."
@@ -131,15 +131,15 @@ class EventsController < ApplicationController
   private
 
   def set_event
-    @event = Event.includes(:user).find(params[:id])
+    @event = CalendarEvent.includes(:user).find(params[:id])
   end
 
   def event_params
-    params.require(:event).permit(:title, :description, :starts_at, :ends_at, :location)
+    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location)
   end
 
   def events_in_range(range)
-    Event
+    CalendarEvent
       .where("starts_at <= ? AND ends_at >= ?", range.end, range.begin)
       .includes(:user)
       .chronological

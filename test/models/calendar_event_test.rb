@@ -1,8 +1,8 @@
 require "test_helper"
 
-class EventTest < ActiveSupport::TestCase
+class CalendarEventTest < ActiveSupport::TestCase
   test "is invalid when end time is before start time" do
-    event = Event.new(
+    event = CalendarEvent.new(
       title: "Invalid Event",
       starts_at: Time.zone.parse("2026-07-20 14:00"),
       ends_at: Time.zone.parse("2026-07-20 13:00"),

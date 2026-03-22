@@ -2,11 +2,11 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <h1 class="text-4xl font-bold">Calendar — Day</h1>
     <div class="flex items-center gap-3">
-      <%= link_to "← Previous", day_events_path(date: (@date - 1.day)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Today", day_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Next →", day_events_path(date: (@date + 1.day)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "← Previous", day_calendar_events_path(date: (@date - 1.day)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Today", day_calendar_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Next →", day_calendar_events_path(date: (@date + 1.day)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <% if user_signed_in? %>
-        <%= link_to "New Event", new_event_path, class: "btn-primary" %>
+        <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>
   </div>
@@ -21,7 +21,7 @@
     <div class="p-6 space-y-3">
       <% if @events.any? %>
         <% @events.each do |event| %>
-          <%= link_to event_path(event), class: "block rounded-lg border border-gray-200 p-4 hover:bg-brand-blue-50 transition" do %>
+          <%= link_to calendar_event_path(event), class: "block rounded-lg border border-gray-200 p-4 hover:bg-brand-blue-50 transition" do %>
             <div class="flex items-center justify-between gap-4">
               <div>
                 <h3 class="text-lg font-semibold text-brand-blue-900"><%= event.title %></h3>
