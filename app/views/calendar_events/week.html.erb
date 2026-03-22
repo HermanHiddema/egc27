@@ -2,11 +2,11 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <h1 class="text-4xl font-bold">Calendar — Week</h1>
     <div class="flex items-center gap-3">
-      <%= link_to "← Previous", week_events_path(date: (@period_start - 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Current Week", week_events_path(date: Date.current, show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Next →", week_events_path(date: (@period_start + 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "← Previous", week_calendar_events_path(date: (@period_start - 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Current Week", week_calendar_events_path(date: Date.current, show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Next →", week_calendar_events_path(date: (@period_start + 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <% if user_signed_in? %>
-        <%= link_to "New Event", new_event_path, class: "btn-primary" %>
+        <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>
   </div>
@@ -21,13 +21,13 @@
     <div class="grid" style="grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr));">
       <div class="border-r border-b border-gray-200 bg-gray-50 flex items-center justify-center">
         <% if @show_early_hours %>
-          <%= link_to week_events_path(date: @period_start, show_early_hours: false), class: "text-brand-blue-700 hover:text-brand-red-600 transition", title: "Collapse 00:00–08:00", aria: { label: "Collapse 00:00 to 08:00" } do %>
+          <%= link_to week_calendar_events_path(date: @period_start, show_early_hours: false), class: "text-brand-blue-700 hover:text-brand-red-600 transition", title: "Collapse 00:00–08:00", aria: { label: "Collapse 00:00 to 08:00" } do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
             </svg>
           <% end %>
         <% else %>
-          <%= link_to week_events_path(date: @period_start, show_early_hours: true), class: "text-brand-blue-700 hover:text-brand-red-600 transition", title: "Expand to show 00:00–08:00", aria: { label: "Expand to show 00:00 to 08:00" } do %>
+          <%= link_to week_calendar_events_path(date: @period_start, show_early_hours: true), class: "text-brand-blue-700 hover:text-brand-red-600 transition", title: "Expand to show 00:00–08:00", aria: { label: "Expand to show 00:00 to 08:00" } do %>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
             </svg>
@@ -36,7 +36,7 @@
       </div>
       <% @days.each do |day| %>
         <div class="px-3 py-2 border-r border-b border-gray-200 bg-gray-50 text-sm font-semibold <%= day == Date.current ? 'text-brand-red-600' : 'text-gray-700' %>">
-          <%= link_to eu_date(day, include_year: false, month: :short, weekday: :short), day_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
+          <%= link_to eu_date(day, include_year: false, month: :short, weekday: :short), day_calendar_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
         </div>
       <% end %>
 
@@ -72,9 +72,9 @@
             <div class="absolute left-0 right-0 border-t border-gray-200" style="top: <%= ((hour - visible_start_hour) / (visible_end_hour - visible_start_hour).to_f) * 100 %>%"></div>
           <% end %>
 
-          <% (@events_by_day[day] || []).each do |event| %>
-            <% visible_start = [event.starts_at, day_visible_start].max %>
-            <% visible_end = [event.ends_at, day_visible_end].min %>
+          <% (@calendar_events_by_day[day] || []).each do |calendar_event| %>
+            <% visible_start = [calendar_event.starts_at, day_visible_start].max %>
+            <% visible_end = [calendar_event.ends_at, day_visible_end].min %>
             <% next if visible_end <= visible_start %>
 
             <% start_minutes = (visible_start - day_visible_start) / 60.0 %>
@@ -82,11 +82,11 @@
             <% top_percent = (start_minutes / total_visible_minutes) * 100 %>
             <% height_percent = [ (duration_minutes / total_visible_minutes) * 100, (20.0 / total_visible_minutes) * 100 ].max %>
 
-            <%= link_to event_path(event),
+            <%= link_to calendar_event_path(calendar_event),
                 class: "absolute left-1 right-1 rounded px-2 py-1 text-xs bg-brand-blue-100 hover:bg-brand-blue-200 text-brand-blue-900 transition overflow-hidden",
                 style: "top: #{top_percent}%; height: #{height_percent}%;" do %>
-              <div class="font-semibold leading-tight"><%= eu_time(event.starts_at) %> - <%= eu_time(event.ends_at) %></div>
-              <div class="leading-tight"><%= event.title %></div>
+              <div class="font-semibold leading-tight"><%= eu_time(calendar_event.starts_at) %> - <%= eu_time(calendar_event.ends_at) %></div>
+              <div class="leading-tight"><%= calendar_event.title %></div>
             <% end %>
           <% end %>
         </div>

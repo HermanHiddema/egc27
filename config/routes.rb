@@ -12,8 +12,8 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   resources :articles
-  get "calendar" => "events#index", as: :calendar
-  resources :events do
+  get "calendar" => "calendar_events#index", as: :calendar
+  resources :calendar_events do
     collection do
       get :day
       get :week

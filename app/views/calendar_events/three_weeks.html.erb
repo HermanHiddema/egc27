@@ -2,11 +2,11 @@
   <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
     <h1 class="text-4xl font-bold">Calendar — Three Weeks</h1>
     <div class="flex items-center gap-3">
-      <%= link_to "← Previous", three_weeks_events_path(date: (@period_start - 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Current", three_weeks_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <%= link_to "Next →", three_weeks_events_path(date: (@period_start + 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "← Previous", three_weeks_calendar_events_path(date: (@period_start - 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Current", three_weeks_calendar_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <%= link_to "Next →", three_weeks_calendar_events_path(date: (@period_start + 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <% if user_signed_in? %>
-        <%= link_to "New Event", new_event_path, class: "btn-primary" %>
+        <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>
   </div>
@@ -28,18 +28,18 @@
       <% @days.each_slice(7) do |week_days| %>
         <div class="grid grid-cols-7">
           <% week_days.each do |day| %>
-            <% day_events = @events_by_day[day] || [] %>
+            <% day_events = @calendar_events_by_day[day] || [] %>
             <div class="min-h-44 p-3 border-r border-gray-200 last:border-r-0">
               <h3 class="text-sm font-semibold mb-2 <%= day == Date.current ? 'text-brand-red-600' : 'text-brand-blue-900' %>">
-                <%= link_to eu_date(day, include_year: false, month: :short, weekday: :short), day_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
+                <%= link_to eu_date(day, include_year: false, month: :short, weekday: :short), day_calendar_events_path(date: day), class: "hover:text-brand-red-600 transition" %>
               </h3>
               <% if day_events.any? %>
                 <ul class="space-y-1">
-                  <% day_events.each do |event| %>
+                  <% day_events.each do |calendar_event| %>
                     <li>
-                      <%= link_to event_path(event), class: "block rounded px-2 py-1 text-xs bg-brand-blue-50 hover:bg-brand-blue-100 text-brand-blue-800 transition" do %>
-                        <span class="font-semibold"><%= eu_time(event.starts_at) %></span>
-                        <span><%= event.title %></span>
+                      <%= link_to calendar_event_path(calendar_event), class: "block rounded px-2 py-1 text-xs bg-brand-blue-50 hover:bg-brand-blue-100 text-brand-blue-800 transition" do %>
+                        <span class="font-semibold"><%= eu_time(calendar_event.starts_at) %></span>
+                        <span><%= calendar_event.title %></span>
                       <% end %>
                     </li>
                   <% end %>

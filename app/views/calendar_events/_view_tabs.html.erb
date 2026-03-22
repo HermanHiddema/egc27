@@ -42,9 +42,9 @@
 
 <div class="flex flex-wrap items-center gap-3 mb-6">
   <%= link_to "Month", calendar_path(month: month_target.strftime("%Y-%m")), class: "#{@current_view == :month ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
-  <%= link_to "Day", day_events_path(date: day_target), class: "#{@current_view == :day ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
-  <%= link_to "Week", week_events_path(date: week_target, show_early_hours: week_show_early_hours), class: "#{@current_view == :week ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
-  <%= link_to "2 Weeks", two_weeks_events_path(date: two_weeks_target), class: "#{@current_view == :two_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
-  <%= link_to "3 Weeks", three_weeks_events_path(date: three_weeks_target), class: "#{@current_view == :three_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
-  <%= link_to "List", list_events_path(from: list_from, to: list_to), class: "#{@current_view == :list ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "Day", day_calendar_events_path(date: day_target), class: "#{@current_view == :day ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "Week", week_calendar_events_path(date: week_target, show_early_hours: week_show_early_hours), class: "#{@current_view == :week ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "2 Weeks", two_weeks_calendar_events_path(date: two_weeks_target), class: "#{@current_view == :two_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "3 Weeks", three_weeks_calendar_events_path(date: three_weeks_target), class: "#{@current_view == :three_weeks ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
+  <%= link_to "List", list_calendar_events_path(from: list_from, to: list_to), class: "#{@current_view == :list ? 'btn-primary' : 'text-brand-blue-600 hover:text-brand-red-600 transition'}" %>
 </div>

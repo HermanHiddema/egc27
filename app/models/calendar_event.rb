@@ -1,4 +1,4 @@
-class Event < ApplicationRecord
+class CalendarEvent < ApplicationRecord
   belongs_to :user
 
   validates :title, :starts_at, :ends_at, presence: true
