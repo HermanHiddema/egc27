@@ -1,5 +1,7 @@
 class MenusController < ApplicationController
   before_action :set_menu, only: [:show, :edit, :update, :destroy]
+  before_action :require_editor!, only: [:new, :create, :edit, :update]
+  before_action :require_admin!, only: [:destroy]
 
   def index
     @menus = Menu.order(:location, :name)

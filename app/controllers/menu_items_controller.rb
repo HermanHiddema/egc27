@@ -2,6 +2,8 @@ class MenuItemsController < ApplicationController
   before_action :set_menu
   before_action :set_menu_item, only: [:show, :edit, :update, :destroy]
   before_action :load_form_collections, only: [:new, :create, :edit, :update]
+  before_action :require_editor!, only: [:new, :create, :edit, :update]
+  before_action :require_admin!, only: [:destroy]
 
   def index
     @menu_items = @menu.menu_items.includes(:page, :parent).ordered

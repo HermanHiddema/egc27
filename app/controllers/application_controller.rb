@@ -11,6 +11,14 @@ class ApplicationController < ActionController::Base
 
   protected
 
+  def require_editor!
+    redirect_to root_path, alert: "You are not authorized to perform this action." unless current_user&.can_create?
+  end
+
+  def require_admin!
+    redirect_to root_path, alert: "You are not authorized to perform this action." unless current_user&.can_delete?
+  end
+
   def configure_permitted_parameters
     devise_parameter_sanitizer.permit(:sign_up, keys: [:full_name])
     devise_parameter_sanitizer.permit(:account_update, keys: [:full_name])

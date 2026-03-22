@@ -1,6 +1,8 @@
 class PagesController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :show]
   before_action :set_page, only: [:show, :edit, :update, :destroy]
+  before_action :require_editor!, only: [:new, :create, :edit, :update]
+  before_action :require_admin!, only: [:destroy]
 
   def index
     @pages = Page.order(:title)
