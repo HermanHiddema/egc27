@@ -77,11 +77,4 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     refute Page.exists?(pages(:one).id)
   end
 
-  private
-
-  def sign_in(user)
-    post user_session_path, params: {
-      user: { email: user.email, password: "password123" }
-    }
-  end
 end
