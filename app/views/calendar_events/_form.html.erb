@@ -1,9 +1,9 @@
-<%= form_with model: event do |form| %>
-  <% if event.errors.any? %>
+<%= form_with model: calendar_event do |form| %>
+  <% if calendar_event.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
       <ul class="text-red-700 list-disc list-inside">
-        <% event.errors.full_messages.each do |message| %>
+        <% calendar_event.errors.full_messages.each do |message| %>
           <li><%= message %></li>
         <% end %>
       </ul>
@@ -24,12 +24,12 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <div>
         <%= form.label :starts_at, "Start", class: "block text-sm font-medium text-gray-700 mb-2" %>
-        <%= form.datetime_local_field :starts_at, value: event.starts_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        <%= form.datetime_local_field :starts_at, value: calendar_event.starts_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
       </div>
 
       <div>
         <%= form.label :ends_at, "End", class: "block text-sm font-medium text-gray-700 mb-2" %>
-        <%= form.datetime_local_field :ends_at, value: event.ends_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        <%= form.datetime_local_field :ends_at, value: calendar_event.ends_at&.strftime("%Y-%m-%dT%H:%M"), class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
       </div>
     </div>
 
@@ -40,7 +40,7 @@
 
     <div class="flex gap-4">
       <%= form.submit class: "btn-primary" %>
-      <%= link_to "Cancel", calendar_path(month: (event.starts_at || Time.current).strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      <%= link_to "Cancel", calendar_path(month: (calendar_event.starts_at || Time.current).strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
     </div>
   </div>
 <% end %>

@@ -72,9 +72,9 @@
             <div class="absolute left-0 right-0 border-t border-gray-200" style="top: <%= ((hour - visible_start_hour) / (visible_end_hour - visible_start_hour).to_f) * 100 %>%"></div>
           <% end %>
 
-          <% (@events_by_day[day] || []).each do |event| %>
-            <% visible_start = [event.starts_at, day_visible_start].max %>
-            <% visible_end = [event.ends_at, day_visible_end].min %>
+          <% (@calendar_events_by_day[day] || []).each do |calendar_event| %>
+            <% visible_start = [calendar_event.starts_at, day_visible_start].max %>
+            <% visible_end = [calendar_event.ends_at, day_visible_end].min %>
             <% next if visible_end <= visible_start %>
 
             <% start_minutes = (visible_start - day_visible_start) / 60.0 %>
@@ -82,11 +82,11 @@
             <% top_percent = (start_minutes / total_visible_minutes) * 100 %>
             <% height_percent = [ (duration_minutes / total_visible_minutes) * 100, (20.0 / total_visible_minutes) * 100 ].max %>
 
-            <%= link_to calendar_event_path(event),
+            <%= link_to calendar_event_path(calendar_event),
                 class: "absolute left-1 right-1 rounded px-2 py-1 text-xs bg-brand-blue-100 hover:bg-brand-blue-200 text-brand-blue-900 transition overflow-hidden",
                 style: "top: #{top_percent}%; height: #{height_percent}%;" do %>
-              <div class="font-semibold leading-tight"><%= eu_time(event.starts_at) %> - <%= eu_time(event.ends_at) %></div>
-              <div class="leading-tight"><%= event.title %></div>
+              <div class="font-semibold leading-tight"><%= eu_time(calendar_event.starts_at) %> - <%= eu_time(calendar_event.ends_at) %></div>
+              <div class="leading-tight"><%= calendar_event.title %></div>
             <% end %>
           <% end %>
         </div>

@@ -19,20 +19,20 @@
     </div>
 
     <div class="divide-y divide-gray-200">
-      <% if @events.any? %>
-        <% @events.each do |event| %>
-          <%= link_to calendar_event_path(event), class: "block p-4 hover:bg-brand-blue-50 transition" do %>
+      <% if @calendar_events.any? %>
+        <% @calendar_events.each do |calendar_event| %>
+          <%= link_to calendar_event_path(calendar_event), class: "block p-4 hover:bg-brand-blue-50 transition" do %>
             <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
               <div>
-                <h3 class="text-lg font-semibold text-brand-blue-900"><%= event.title %></h3>
+                <h3 class="text-lg font-semibold text-brand-blue-900"><%= calendar_event.title %></h3>
                 <p class="text-sm text-gray-600">
-                  <%= eu_datetime(event.starts_at, month: :short, weekday: :short, connector: nil) %> - <%= eu_time(event.ends_at) %>
-                  <% if event.location.present? %>
-                    • <%= event.location %>
+                  <%= eu_datetime(calendar_event.starts_at, month: :short, weekday: :short, connector: nil) %> - <%= eu_time(calendar_event.ends_at) %>
+                  <% if calendar_event.location.present? %>
+                    • <%= calendar_event.location %>
                   <% end %>
                 </p>
               </div>
-              <span class="text-sm text-gray-500"><%= event.user.display_name %></span>
+              <span class="text-sm text-gray-500"><%= calendar_event.user.display_name %></span>
             </div>
           <% end %>
         <% end %>
