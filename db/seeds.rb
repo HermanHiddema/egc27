@@ -238,7 +238,7 @@ end
 
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
 
-event_seeds = [
+calendar_event_seeds = [
   {
     title: "Opening Ceremony",
     description: "Welcome speech and opening announcements for all participants.",
@@ -276,24 +276,24 @@ event_seeds = [
   }
 ]
 
-seeded_events = 0
-event_seeds.each do |event_data|
-  event = CalendarEvent.find_or_initialize_by(
-    title: event_data[:title],
-    starts_at: event_data[:starts_at]
+seeded_calendar_events = 0
+calendar_event_seeds.each do |calendar_event_data|
+  calendar_event = CalendarEvent.find_or_initialize_by(
+    title: calendar_event_data[:title],
+    starts_at: calendar_event_data[:starts_at]
   )
 
-  event.description = event_data[:description]
-  event.ends_at = event_data[:ends_at]
-  event.location = event_data[:location]
-  event.user = user
+  calendar_event.description = calendar_event_data[:description]
+  calendar_event.ends_at = calendar_event_data[:ends_at]
+  calendar_event.location = calendar_event_data[:location]
+  calendar_event.user = user
 
-  if event.new_record?
-    event.save!
-    seeded_events += 1
-  elsif event.changed?
-    event.save!
+  if calendar_event.new_record?
+    calendar_event.save!
+    seeded_calendar_events += 1
+  elsif calendar_event.changed?
+    calendar_event.save!
   end
 end
 
-puts "✓ Seeded #{seeded_events} calendar events"
+puts "✓ Seeded #{seeded_calendar_events} calendar events"
