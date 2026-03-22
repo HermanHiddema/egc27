@@ -9,7 +9,9 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "regular user cannot create article" do
     sign_in users(:one)
-    post articles_path, params: { article: { title: "Test", content: "Content" } }
+    assert_no_difference "Article.count" do
+      post articles_path, params: { article: { title: "Test", content: "Content" } }
+    end
     assert_redirected_to root_path
   end
 
@@ -28,14 +30,18 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "editor cannot destroy article" do
     sign_in users(:editor)
-    delete article_path(articles(:one))
+    assert_no_difference "Article.count" do
+      delete article_path(articles(:one))
+    end
     assert_redirected_to root_path
     assert Article.exists?(articles(:one).id)
   end
 
   test "admin can destroy article" do
     sign_in users(:admin)
-    delete article_path(articles(:one))
+    assert_difference "Article.count", -1 do
+      delete article_path(articles(:one))
+    end
     assert_redirected_to articles_path
     refute Article.exists?(articles(:one).id)
   end

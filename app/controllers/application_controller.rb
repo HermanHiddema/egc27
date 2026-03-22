@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
   protected
 
   def require_editor!
-    redirect_to root_path, alert: "You are not authorized to perform this action." unless current_user&.can_create?
+    redirect_to root_path, alert: "You are not authorized to perform this action." unless current_user&.can_edit?
   end
 
   def require_admin!
