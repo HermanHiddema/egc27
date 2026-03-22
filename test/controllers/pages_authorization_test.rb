@@ -21,6 +21,13 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "regular user cannot update page" do
+    sign_in users(:one)
+    patch page_path(pages(:one)), params: { page: { title: "Changed" } }
+    assert_redirected_to root_path
+    assert_equal pages(:one).title, pages(:one).reload.title
+  end
+
   test "editor can access new page" do
     sign_in users(:editor)
     get new_page_path
@@ -34,6 +41,12 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "editor can edit page" do
+    sign_in users(:editor)
+    get edit_page_path(pages(:one))
+    assert_response :success
+  end
+
   test "editor cannot destroy page" do
     sign_in users(:editor)
     assert_no_difference "Page.count" do
@@ -41,6 +54,18 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to root_path
     assert Page.exists?(pages(:one).id)
+  end
+
+  test "admin can access new page" do
+    sign_in users(:admin)
+    get new_page_path
+    assert_response :success
+  end
+
+  test "admin can edit page" do
+    sign_in users(:admin)
+    get edit_page_path(pages(:one))
+    assert_response :success
   end
 
   test "admin can destroy page" do
