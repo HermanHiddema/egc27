@@ -113,6 +113,9 @@ GEM
       railties (>= 7.0)
       responders
       warden (~> 1.2.3)
+    devise-passwordless (1.1.0)
+      devise
+      globalid
     dotenv (3.2.0)
     drb (2.2.3)
     ed25519 (1.4.0)
@@ -427,6 +430,7 @@ DEPENDENCIES
   capybara
   debug
   devise
+  devise-passwordless
   hotwire-livereload
   image_processing (~> 1.2)
   importmap-rails

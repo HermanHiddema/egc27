@@ -1,5 +1,15 @@
 Rails.application.routes.draw do
-  devise_for :users, controllers: { sessions: "users/sessions" }
+  devise_for :users,
+    controllers: {
+      sessions: "users/sessions",
+      magic_links: "devise/magic_links"
+    }
+
+  # Magic-link (passwordless) sign-in: request a link by email
+  devise_scope :user do
+    get  "users/magic_link/new",  to: "users/magic_links#new",    as: :new_user_magic_link_session
+    post "users/magic_link/new",  to: "users/magic_links#create",  as: :user_magic_link_session
+  end
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
