@@ -77,9 +77,9 @@ class MenuItemsAuthorizationTest < ActionDispatch::IntegrationTest
   test "admin can destroy menu item" do
     sign_in users(:admin)
     assert_difference "MenuItem.count", -1 do
-      delete menu_menu_item_path(menus(:primary), menu_items(:schedule))
+      delete menu_menu_item_path(menus(:primary), menu_items(:external_egf))
     end
     assert_redirected_to menu_menu_items_path(menus(:primary))
-    refute MenuItem.exists?(menu_items(:schedule).id)
+    refute MenuItem.exists?(menu_items(:external_egf).id)
   end
 end

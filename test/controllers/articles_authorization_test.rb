@@ -76,5 +76,4 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to articles_path
     refute Article.exists?(articles(:one).id)
   end
-
 end

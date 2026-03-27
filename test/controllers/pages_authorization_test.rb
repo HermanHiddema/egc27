@@ -76,5 +76,4 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to pages_path
     refute Page.exists?(pages(:one).id)
   end
-
 end
