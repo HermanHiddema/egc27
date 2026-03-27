@@ -1,5 +1,8 @@
 class CalendarEventsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
+  before_action :require_creator!, only: [:new, :create]
+  before_action :require_editor!, only: [:edit, :update]
+  before_action :require_admin!, only: [:destroy]
   before_action :set_calendar_event, only: [:show, :edit, :update, :destroy]
 
   def index

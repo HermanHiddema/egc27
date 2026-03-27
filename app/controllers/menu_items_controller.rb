@@ -1,5 +1,8 @@
 class MenuItemsController < ApplicationController
   before_action :set_menu
+  before_action :require_creator!, only: [:new, :create]
+  before_action :require_editor!, only: [:edit, :update]
+  before_action :require_admin!, only: [:destroy]
   before_action :set_menu_item, only: [:show, :edit, :update, :destroy]
   before_action :load_form_collections, only: [:new, :create, :edit, :update]
 

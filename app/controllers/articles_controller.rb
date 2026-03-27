@@ -1,5 +1,8 @@
 class ArticlesController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :show]
+  before_action :require_creator!, only: [:new, :create]
+  before_action :require_editor!, only: [:edit, :update]
+  before_action :require_admin!, only: [:destroy]
   before_action :set_article, only: [:show, :edit, :update, :destroy]
 
   def index
