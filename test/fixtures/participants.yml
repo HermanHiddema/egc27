@@ -1,0 +1,27 @@
+one:
+  first_name: Alice
+  last_name: Smith
+  email: alice@example.org
+  date_of_birth: 1990-01-15
+  country: NL
+  club: Amsterdam Go Club
+  rank: 27
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: player
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+two:
+  first_name: Bob
+  last_name: Jones
+  email: bob@example.org
+  date_of_birth: 1985-06-20
+  country: DE
+  club: Berlin Go Club
+  rank: 30
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: player
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

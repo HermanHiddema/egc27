@@ -1,0 +1,96 @@
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Events", events_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <article class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm mb-8">
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold mb-4"><%= @event.title %></h1>
+      <div class="text-sm text-gray-600 border-b border-gray-200 pb-4 space-y-1">
+        <div>
+          <span class="font-semibold">Starts:</span>
+          <%= eu_datetime(@event.starts_at) %>
+        </div>
+        <div>
+          <span class="font-semibold">Ends:</span>
+          <%= eu_datetime(@event.ends_at) %>
+        </div>
+        <% if @event.location.present? %>
+          <div>
+            <span class="font-semibold">Location:</span>
+            <%= @event.location %>
+          </div>
+        <% end %>
+        <div>
+          <span class="font-semibold">Created by:</span>
+          <%= @event.user.display_name %>
+        </div>
+      </div>
+    </header>
+
+    <% if @event.description.present? %>
+      <div class="prose max-w-none text-gray-700 whitespace-pre-wrap mb-8"><%= @event.description %></div>
+    <% end %>
+
+    <% if current_user&.can_edit? %>
+      <div class="flex gap-4">
+        <%= link_to "Edit", edit_event_path(@event), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        <% if current_user&.can_delete? %>
+          <%= button_to "Delete", @event, method: :delete, data: { turbo_confirm: "Are you sure you want to delete this event?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+        <% end %>
+      </div>
+    <% end %>
+  </article>
+
+  <section class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm mb-8">
+    <h2 class="text-2xl font-bold mb-6">Register for this Event</h2>
+    <%= render "event_registrations/form", event: @event, event_registration: @event_registration %>
+  </section>
+
+  <section class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div class="px-8 py-6 border-b border-gray-200">
+      <h2 class="text-2xl font-bold">
+        Registered Participants
+        <span class="text-lg font-normal text-gray-500">(<%= @participants.size %>)</span>
+      </h2>
+    </div>
+
+    <% if @participants.any? %>
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Club</th>
+              <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rank</th>
+              <% if current_user&.can_delete? %>
+                <th class="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @participants.each do |participant| %>
+              <% registration = @event.event_registrations.find { |r| r.participant_id == participant.id } %>
+              <tr>
+                <td class="px-6 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
+                <td class="px-6 py-3 text-sm text-neutral-700"><%= participant.country %></td>
+                <td class="px-6 py-3 text-sm text-neutral-700"><%= participant.club %></td>
+                <td class="px-6 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
+                <% if current_user&.can_delete? %>
+                  <td class="px-6 py-3 text-sm">
+                    <%= button_to "Remove", event_event_registration_path(@event, registration), method: :delete, data: { turbo_confirm: "Remove this participant from the event?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition text-sm" %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% else %>
+      <div class="px-8 py-6 text-gray-500">
+        No participants registered yet.
+      </div>
+    <% end %>
+  </section>
+</div>
