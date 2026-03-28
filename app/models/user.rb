@@ -5,6 +5,7 @@ class User < ApplicationRecord
 
   has_many :articles, dependent: :destroy
   has_many :calendar_events, dependent: :destroy
+  has_many :events, dependent: :destroy
 
   ROLES = %w[regular editor admin].freeze
 

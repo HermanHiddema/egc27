@@ -1,0 +1,5 @@
+one:
+  event: one
+  participant: one
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
