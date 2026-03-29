@@ -27,10 +27,14 @@ class User < ApplicationRecord
     admin?
   end
 
-  # Allow users to be created without a password (e.g. auto-created on
-  # participant registration). They can sign in via magic link and
-  # optionally set a password later via the forgot-password flow.
+  # Allow users to be created without a password when explicitly created via
+  # the passwordless flow (e.g. auto-created on participant registration).
+  # Regular Devise registrations still require a password.
+  attr_accessor :skip_password_validation
+
   def password_required?
-    password.present? || password_confirmation.present?
+    return false if skip_password_validation
+
+    super
   end
 end

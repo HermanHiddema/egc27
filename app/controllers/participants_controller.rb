@@ -45,7 +45,8 @@ class ParticipantsController < ApplicationController
   def create_user_for(email, participant)
     User.create!(
       email: email,
-      full_name: "#{participant.first_name} #{participant.last_name}".strip
+      full_name: "#{participant.first_name} #{participant.last_name}".strip,
+      skip_password_validation: true
     )
   end
 

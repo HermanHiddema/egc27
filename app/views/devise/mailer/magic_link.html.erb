@@ -4,4 +4,9 @@
 
 <p><%= link_to "Log in to my account", magic_link_url(@resource, @scope_name => {email: @resource.email, token: @token, remember_me: @remember_me}) %></p>
 
-<p>Note that the link will expire in <%= distance_of_time_in_words(Devise.passwordless_login_within) %>.</p>
+<% duration = Devise.passwordless_login_within %>
+<% if duration.present? %>
+  <p>Note that the link will expire in <%= distance_of_time_in_words(Time.current, Time.current + duration) %>.</p>
+<% else %>
+  <p>Note that the link will expire soon.</p>
+<% end %>
