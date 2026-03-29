@@ -1,10 +1,11 @@
 class User < ApplicationRecord
-  devise :database_authenticatable, :registerable,
-         :recoverable, :rememberable, :validatable,
-         :trackable
+  devise :database_authenticatable, :magic_link_authenticatable,
+         :registerable, :recoverable, :rememberable, :validatable,
+         :trackable, :confirmable
 
   has_many :articles, dependent: :destroy
   has_many :calendar_events, dependent: :destroy
+  has_many :participants, dependent: :nullify
 
   ROLES = %w[regular editor admin].freeze
 
@@ -24,5 +25,16 @@ class User < ApplicationRecord
 
   def can_delete?
     admin?
+  end
+
+  # Allow users to be created without a password when explicitly created via
+  # the passwordless flow (e.g. auto-created on participant registration).
+  # Regular Devise registrations still require a password.
+  attr_accessor :skip_password_validation
+
+  def password_required?
+    return false if skip_password_validation
+
+    super
   end
 end
