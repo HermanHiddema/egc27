@@ -13,9 +13,10 @@ class ParticipantsController < ApplicationController
     @participant = Participant.new(participant_params)
 
     ActiveRecord::Base.transaction do
-      user = find_or_create_user_for(@participant)
-      @participant.user = user
       @participant.save!
+      user = find_or_create_user_for(@participant)
+      # update_column intentionally skips callbacks/validations since the record is already saved
+      @participant.update_column(:user_id, user.id) if user
     end
 
     redirect_to new_participant_path, notice: "Registration received. Thank you!"
@@ -34,7 +35,11 @@ class ParticipantsController < ApplicationController
     email = participant.email.to_s.strip.downcase
     return nil if email.blank?
 
-    User.find_by(email: email) || create_user_for(email, participant)
+    User.find_by(email: email) || begin
+      User.transaction(requires_new: true) { create_user_for(email, participant) }
+    rescue ActiveRecord::RecordNotUnique
+      User.find_by(email: email)
+    end
   end
 
   def create_user_for(email, participant)
