@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_22_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_27_222143) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -128,6 +128,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_22_000001) do
     t.integer "rating"
     t.boolean "second_week", default: true, null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id"
     t.boolean "weekend", default: true, null: false
     t.index ["egd_pin"], name: "index_participants_on_egd_pin"
     t.index ["email"], name: "index_participants_on_email"
@@ -135,9 +136,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_22_000001) do
     t.index ["participant_type"], name: "index_participants_on_participant_type"
     t.index ["phone"], name: "index_participants_on_phone"
     t.index ["rating"], name: "index_participants_on_rating"
+    t.index ["user_id"], name: "index_participants_on_user_id"
   end
 
   create_table "users", force: :cascade do |t|
+    t.datetime "confirmation_sent_at"
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
     t.datetime "created_at", null: false
     t.datetime "current_sign_in_at"
     t.string "current_sign_in_ip"
@@ -149,9 +154,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_22_000001) do
     t.datetime "remember_created_at"
     t.datetime "reset_password_sent_at"
     t.string "reset_password_token"
-    t.integer "sign_in_count", default: 0, null: false
-    t.datetime "updated_at", null: false
     t.string "role", default: "regular", null: false
+    t.integer "sign_in_count", default: 0, null: false
+    t.string "unconfirmed_email"
+    t.datetime "updated_at", null: false
+    t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
   end
@@ -163,4 +170,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_22_000001) do
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
+  add_foreign_key "participants", "users"
 end

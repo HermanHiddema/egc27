@@ -74,4 +74,9 @@ class UserTest < ActiveSupport::TestCase
     assert user.admin?
     assert user.can_delete?
   end
+
+  test "can be created without a password for passwordless sign-in" do
+    user = User.new(email: "passwordless@example.com", skip_password_validation: true)
+    assert user.valid?, "User without password should be valid: #{user.errors.full_messages}"
+  end
 end

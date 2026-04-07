@@ -1,0 +1,12 @@
+<p>Hello <%= @resource.email %>!</p>
+
+<p>You can login using the link below:</p>
+
+<p><%= link_to "Log in to my account", magic_link_url(@resource, @scope_name => {email: @resource.email, token: @token, remember_me: @remember_me}) %></p>
+
+<% duration = Devise.passwordless_login_within %>
+<% if duration.present? %>
+  <p>Note that the link will expire in <%= distance_of_time_in_words(Time.current, Time.current + duration) %>.</p>
+<% else %>
+  <p>Note that the link will expire soon.</p>
+<% end %>

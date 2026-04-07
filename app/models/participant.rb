@@ -2,6 +2,8 @@ class Participant < ApplicationRecord
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
 
+  belongs_to :user, optional: true
+
   validates :first_name, :last_name, :email, :date_of_birth, :country, presence: true
   validates :participant_type, inclusion: { in: PARTICIPANT_TYPES }
   validates :gender, inclusion: { in: GENDERS }, allow_nil: true

@@ -2,6 +2,7 @@ admin:
   email: admin@example.com
   encrypted_password: <%= BCrypt::Password.create('password123') %>
   role: admin
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -9,6 +10,7 @@ editor:
   email: editor@example.com
   encrypted_password: <%= BCrypt::Password.create('password123') %>
   role: editor
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -16,6 +18,7 @@ one:
   email: test@example.com
   encrypted_password: <%= BCrypt::Password.create('password123') %>
   role: regular
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -23,5 +26,6 @@ two:
   email: user@example.com
   encrypted_password: <%= BCrypt::Password.create('password123') %>
   role: regular
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
