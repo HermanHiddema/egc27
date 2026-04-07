@@ -5,11 +5,8 @@ class User < ApplicationRecord
 
   has_many :articles, dependent: :destroy
   has_many :calendar_events, dependent: :destroy
-<<<<<<< copilot/add-events-and-registrations
   has_many :events, dependent: :destroy
-=======
   has_many :participants, dependent: :nullify
->>>>>>> main
 
   ROLES = %w[regular editor admin].freeze
 
