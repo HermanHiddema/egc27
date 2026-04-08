@@ -15,7 +15,7 @@ class EventRegistrationTest < ActiveSupport::TestCase
       participant: participants(:one)
     )
     assert_not registration.valid?
-    assert registration.errors[:event_id].present?
+    assert registration.errors[:participant_id].present?
   end
 
   test "allows same participant to register for different events" do
