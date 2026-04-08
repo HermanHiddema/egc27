@@ -1,5 +1,8 @@
 class ParticipantsController < ApplicationController
+  include TurnstileVerifiable
+
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search]
+  before_action :verify_turnstile, only: [:create]
 
   def index
     @participants = Participant.order(:last_name, :first_name, :id)

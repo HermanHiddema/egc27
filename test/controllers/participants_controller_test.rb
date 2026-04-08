@@ -14,6 +14,36 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='participant[egd_pin]']:not([type='hidden']):not([disabled])"
   end
 
+  test "registration form includes turnstile widget when site key is configured" do
+    ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
+    get new_participant_path
+    assert_select "div.cf-turnstile"
+  ensure
+    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+  end
+
+  test "rejects registration when turnstile verification fails" do
+    fake_service = Object.new
+    def fake_service.verify(**) = false
+
+    CloudflareTurnstileService.stub(:new, fake_service) do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "jane@example.org",
+          participant_type: "player",
+          date_of_birth: "11-02-1995",
+          country: "NL",
+          accepted_terms_and_conditions: true,
+          accepted_privacy_policy: true
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+  end
+
   test "creates participant without authentication" do
     assert_difference("Participant.count", 1) do
       post participants_path, params: {

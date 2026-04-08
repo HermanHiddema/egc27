@@ -27,4 +27,15 @@ class Users::MagicLinksControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
     assert_match "you will receive a magic link", flash[:notice]
   end
+
+  test "rejects magic link request when turnstile verification fails" do
+    fake_service = Object.new
+    def fake_service.verify(**) = false
+
+    CloudflareTurnstileService.stub(:new, fake_service) do
+      post user_magic_link_session_path, params: { user: { email: users(:one).email } }
+    end
+
+    assert_response :unprocessable_entity
+  end
 end
