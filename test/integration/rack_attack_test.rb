@@ -26,14 +26,16 @@ class RackAttackTest < ActionDispatch::IntegrationTest
 
       post user_magic_link_session_path, params: { user: { email: "user10@example.com" } }, headers: { "REMOTE_ADDR" => "1.2.3.4" }
       assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
     end
   end
 
   test "allows magic link requests under the IP limit" do
     freeze_time do
-      5.times { post user_magic_link_session_path, params: { user: { email: "user@example.com" } }, headers: { "REMOTE_ADDR" => "1.2.3.5" } }
-
-      assert_response :redirect
+      5.times do
+        post user_magic_link_session_path, params: { user: { email: "user@example.com" } }, headers: { "REMOTE_ADDR" => "1.2.3.5" }
+        assert_response :redirect
+      end
     end
   end
 
@@ -50,6 +52,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
         params: { user: { email: "throttled@example.com" } },
         headers: { "REMOTE_ADDR" => "10.0.0.99" }
       assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
     end
   end
 
@@ -71,6 +74,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
 
       post participants_path, params: params, headers: { "REMOTE_ADDR" => "2.3.4.5" }
       assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
     end
   end
 
@@ -85,6 +89,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
 
       post user_registration_path, params: params, headers: { "REMOTE_ADDR" => "3.4.5.6" }
       assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
     end
   end
 end
