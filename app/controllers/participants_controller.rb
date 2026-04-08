@@ -2,6 +2,7 @@ class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search]
+  before_action :build_participant, only: [:create]
   before_action :verify_turnstile, only: [:create]
 
   def index
@@ -13,7 +14,7 @@ class ParticipantsController < ApplicationController
   end
 
   def create
-    @participant = Participant.new(participant_params)
+    @participant.assign_attributes(participant_params)
 
     ActiveRecord::Base.transaction do
       @participant.save!
@@ -55,5 +56,9 @@ class ParticipantsController < ApplicationController
 
   def participant_params
     params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :date_of_birth, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :accepted_terms_and_conditions, :accepted_privacy_policy, :image_use_consent, :first_week, :weekend, :second_week)
+  end
+
+  def build_participant
+    @participant = Participant.new
   end
 end
