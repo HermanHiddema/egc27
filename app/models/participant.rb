@@ -2,6 +2,8 @@ class Participant < ApplicationRecord
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
 
+  has_many :event_registrations, dependent: :destroy
+  has_many :events, through: :event_registrations
   belongs_to :user, optional: true
 
   validates :first_name, :last_name, :email, :date_of_birth, :country, presence: true

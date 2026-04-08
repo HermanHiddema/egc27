@@ -36,6 +36,7 @@
 
 /app/assets/builds/*
 !/app/assets/builds/.keep
+vendor/
 
 # Bundled gems (local dev install, not for deployment)
 vendor/bundle/

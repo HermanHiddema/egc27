@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_03_27_222143) do
+ActiveRecord::Schema[8.1].define(version: 2026_03_28_222715) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -72,6 +72,30 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_222143) do
     t.index ["ends_at"], name: "index_calendar_events_on_ends_at"
     t.index ["starts_at"], name: "index_calendar_events_on_starts_at"
     t.index ["user_id"], name: "index_calendar_events_on_user_id"
+  end
+
+  create_table "event_registrations", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "event_id", null: false
+    t.bigint "participant_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["event_id", "participant_id"], name: "index_event_registrations_on_event_id_and_participant_id", unique: true
+    t.index ["event_id"], name: "index_event_registrations_on_event_id"
+    t.index ["participant_id"], name: "index_event_registrations_on_participant_id"
+  end
+
+  create_table "events", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.datetime "ends_at", null: false
+    t.string "location"
+    t.datetime "starts_at", null: false
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["ends_at"], name: "index_events_on_ends_at"
+    t.index ["starts_at"], name: "index_events_on_starts_at"
+    t.index ["user_id"], name: "index_events_on_user_id"
   end
 
   create_table "menu_items", force: :cascade do |t|
@@ -167,6 +191,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_03_27_222143) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "articles", "users"
   add_foreign_key "calendar_events", "users"
+  add_foreign_key "event_registrations", "events"
+  add_foreign_key "event_registrations", "participants"
+  add_foreign_key "events", "users"
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
