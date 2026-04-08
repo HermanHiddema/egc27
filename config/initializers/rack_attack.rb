@@ -1,9 +1,8 @@
 require "openssl"
 
-# Use a dedicated in-process MemoryStore for throttle counters rather than
-# Rails.cache (solid_cache_store / DB-backed) to avoid amplifying DB load
-# during abusive traffic bursts.
-Rack::Attack.cache.store = ActiveSupport::Cache::MemoryStore.new(size: 64.megabytes)
+# Use the shared Rails cache for throttle counters so limits apply consistently
+# across all Puma workers and app replicas.
+Rack::Attack.cache.store = Rails.cache
 
 class Rack::Attack
   ### Throttle public endpoints that trigger emails ###
