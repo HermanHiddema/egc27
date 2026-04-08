@@ -1,3 +1,5 @@
+require "digest"
+
 Rack::Attack.cache.store = Rails.cache
 
 class Rack::Attack
@@ -9,10 +11,11 @@ class Rack::Attack
   end
 
   # Magic link requests: limit by email address (5 per 5 minutes)
+  # Email is hashed before use as a cache key to avoid persisting PII.
   throttle("magic_link/email", limit: 5, period: 5.minutes) do |req|
     if req.path == "/users/magic_link" && req.post?
       email = req.params.dig("user", "email").to_s.strip.downcase
-      email unless email.empty?
+      Digest::SHA256.hexdigest(email) unless email.empty?
     end
   end
 
@@ -32,10 +35,11 @@ class Rack::Attack
   end
 
   # Password reset: limit by email address (3 per 5 minutes)
+  # Email is hashed before use as a cache key to avoid persisting PII.
   throttle("password_reset/email", limit: 3, period: 5.minutes) do |req|
     if req.path == "/users/password" && req.post?
       email = req.params.dig("user", "email").to_s.strip.downcase
-      email unless email.empty?
+      Digest::SHA256.hexdigest(email) unless email.empty?
     end
   end
 
