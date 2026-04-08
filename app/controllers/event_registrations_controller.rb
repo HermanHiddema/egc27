@@ -40,7 +40,11 @@ class EventRegistrationsController < ApplicationController
   end
 
   def set_registrable_participants
-    @registrable_participants = current_user.participants
+    @registrable_participants = registrable_participants_for_current_user
+  end
+
+  def registrable_participants_for_current_user
+    current_user.participants
       .where.not(id: @event.event_registrations.select(:participant_id))
       .order(:last_name, :first_name, :id)
   end
