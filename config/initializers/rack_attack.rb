@@ -26,6 +26,24 @@ class Rack::Attack
     req.ip if req.path == "/users" && req.post?
   end
 
+  # Password reset: limit by IP address (5 per minute)
+  throttle("password_reset/ip", limit: 5, period: 1.minute) do |req|
+    req.ip if req.path == "/users/password" && req.post?
+  end
+
+  # Password reset: limit by email address (3 per 5 minutes)
+  throttle("password_reset/email", limit: 3, period: 5.minutes) do |req|
+    if req.path == "/users/password" && req.post?
+      email = req.params.dig("user", "email").to_s.strip.downcase
+      email unless email.empty?
+    end
+  end
+
+  # Confirmation email resend: limit by IP address (5 per minute)
+  throttle("confirmation/ip", limit: 5, period: 1.minute) do |req|
+    req.ip if req.path == "/users/confirmation" && req.post?
+  end
+
   ### Response for throttled requests ###
 
   self.throttled_responder = lambda do |req|

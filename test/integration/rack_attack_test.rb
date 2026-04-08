@@ -92,4 +92,49 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       assert response.headers["Retry-After"].to_i.positive?
     end
   end
+
+  test "throttles password reset requests by IP after limit" do
+    freeze_time do
+      5.times do |i|
+        post user_password_path, params: { user: { email: "reset#{i}@example.com" } }, headers: { "REMOTE_ADDR" => "4.5.6.7" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post user_password_path, params: { user: { email: "reset5@example.com" } }, headers: { "REMOTE_ADDR" => "4.5.6.7" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles password reset requests by email after limit" do
+    freeze_time do
+      3.times do |i|
+        post user_password_path,
+          params: { user: { email: "reset@example.com" } },
+          headers: { "REMOTE_ADDR" => "20.0.0.#{i + 1}" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post user_password_path,
+        params: { user: { email: "reset@example.com" } },
+        headers: { "REMOTE_ADDR" => "20.0.0.99" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles confirmation email resend by IP after limit" do
+    params = { user: { email: "unconfirmed@example.com" } }
+
+    freeze_time do
+      5.times do
+        post user_confirmation_path, params: params, headers: { "REMOTE_ADDR" => "5.6.7.8" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post user_confirmation_path, params: params, headers: { "REMOTE_ADDR" => "5.6.7.8" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
 end
