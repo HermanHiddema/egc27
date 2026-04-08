@@ -23,25 +23,23 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects registration when turnstile verification fails" do
-    fake_service = Object.new
-    def fake_service.verify(**) = false
-
-    CloudflareTurnstileService.stub(:new, fake_service) do
-      post participants_path, params: {
-        participant: {
-          first_name: "Jane",
-          last_name: "Doe",
-          email: "jane@example.org",
-          participant_type: "player",
-          date_of_birth: "11-02-1995",
-          country: "NL",
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true
-        }
+    ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
+    post participants_path, params: {
+      participant: {
+        first_name: "Jane",
+        last_name: "Doe",
+        email: "jane@example.org",
+        participant_type: "player",
+        date_of_birth: "11-02-1995",
+        country: "NL",
+        accepted_terms_and_conditions: true,
+        accepted_privacy_policy: true
       }
-    end
-
+      # deliberately omitting cf-turnstile-response so token is blank → verify returns false
+    }
     assert_response :unprocessable_entity
+  ensure
+    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
   end
 
   test "creates participant without authentication" do
