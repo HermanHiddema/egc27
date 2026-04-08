@@ -28,10 +28,25 @@ class Rack::Attack
 
   ### Response for throttled requests ###
 
-  self.throttled_responder = lambda do |env|
+  self.throttled_responder = lambda do |req|
+    match_data = req.env["rack.attack.match_data"] || {}
+    period = match_data[:period].to_i
+    epoch_time = match_data[:epoch_time].to_i
+
+    retry_after =
+      if period.positive? && epoch_time.positive?
+        remaining = period - (epoch_time % period)
+        remaining.positive? ? remaining : period
+      else
+        60
+      end
+
     [
       429,
-      { "Content-Type" => "text/plain" },
+      {
+        "Content-Type" => "text/plain",
+        "Retry-After" => retry_after.to_s
+      },
       ["Too many requests. Please try again later.\n"]
     ]
   end

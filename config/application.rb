@@ -16,7 +16,7 @@ module Egc27
     # Common ones are `templates`, `generators`, or `middleware`, for example.
     config.autoload_lib(ignore: %w[assets tasks])
 
-    config.middleware.use Rack::Attack
+    config.middleware.insert_after ActionDispatch::RemoteIp, Rack::Attack
 
     # Configuration for the application, engines, and railties goes here.
     #
