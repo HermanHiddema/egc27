@@ -70,8 +70,9 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
+            <% registrations_by_participant_id = @event.event_registrations.index_by(&:participant_id) %>
             <% @participants.each do |participant| %>
-              <% registration = @event.event_registrations.find { |r| r.participant_id == participant.id } %>
+              <% registration = registrations_by_participant_id[participant.id] %>
               <tr>
                 <td class="px-6 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-6 py-3 text-sm text-neutral-700"><%= participant.country %></td>

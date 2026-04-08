@@ -6,7 +6,7 @@ class EventsController < ApplicationController
   before_action :set_event, only: [:edit, :update, :destroy]
 
   def index
-    @events = Event.chronological.includes(:user)
+    @events = Event.chronological.includes(:user, :event_registrations)
   end
 
   def show
