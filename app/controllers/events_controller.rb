@@ -12,6 +12,7 @@ class EventsController < ApplicationController
   def show
     @event = Event.includes(event_registrations: :participant).find(params[:id])
     @participants = @event.participants.order(:last_name, :first_name)
+    @registrable_participants = registrable_participants_for(@event)
     @event_registration = EventRegistration.new
   end
 
@@ -53,5 +54,13 @@ class EventsController < ApplicationController
 
   def event_params
     params.require(:event).permit(:title, :description, :starts_at, :ends_at, :location)
+  end
+
+  def registrable_participants_for(event)
+    return Participant.none unless current_user
+
+    current_user.participants
+      .where.not(id: event.event_registrations.select(:participant_id))
+      .order(:last_name, :first_name, :id)
   end
 end

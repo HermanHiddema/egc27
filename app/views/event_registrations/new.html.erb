@@ -6,6 +6,6 @@
   <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
     <h1 class="text-3xl font-bold mb-2">Register for Event</h1>
     <p class="text-gray-600 mb-8"><%= @event.title %></p>
-    <%= render "form", event: @event, event_registration: @event_registration %>
+    <%= render "form", event: @event, event_registration: @event_registration, registrable_participants: @registrable_participants %>
   </div>
 </div>
