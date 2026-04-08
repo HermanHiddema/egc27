@@ -32,6 +32,7 @@ This file defines project-specific guidance for AI coding agents working in this
 - Add or update tests whenever behavior changes.
 - Prioritize model and controller tests for business logic and params.
 - Run focused tests for changed areas before broader test suites when possible.
+- Always run `bin/rubocop --autocorrect` before committing any changes.
 
 ## Safety and Data Integrity
 - Do not silently change persisted data semantics.
