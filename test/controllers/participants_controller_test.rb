@@ -28,8 +28,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects registration when turnstile verification fails" do
-    previous = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+    previous_secret = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+    previous_site = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
+    ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
     post participants_path, params: {
       participant: {
         first_name: "Jane",
@@ -45,10 +47,15 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     }
     assert_response :unprocessable_entity
   ensure
-    if previous.nil?
+    if previous_secret.nil?
       ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
     else
-      ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = previous
+      ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = previous_secret
+    end
+    if previous_site.nil?
+      ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    else
+      ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = previous_site
     end
   end
 

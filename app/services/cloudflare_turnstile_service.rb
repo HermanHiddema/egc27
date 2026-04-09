@@ -5,10 +5,22 @@ class CloudflareTurnstileService
   VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 
   # Verifies a Cloudflare Turnstile token.
-  # Returns true immediately when no secret key is configured (e.g. in development/test).
+  # Both CLOUDFLARE_TURNSTILE_SECRET_KEY and CLOUDFLARE_TURNSTILE_SITE_KEY must be set
+  # for verification to be active. If only one key is configured, a warning is logged and
+  # the request is allowed through (to avoid silently blocking all submissions).
   def verify(token:, remote_ip: nil)
     secret_key = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
-    return true if secret_key.blank?
+    site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
+
+    if secret_key.blank? && site_key.blank?
+      return true
+    end
+
+    if secret_key.blank? || site_key.blank?
+      Rails.logger.warn("Turnstile misconfiguration: both CLOUDFLARE_TURNSTILE_SECRET_KEY and CLOUDFLARE_TURNSTILE_SITE_KEY must be set. Skipping verification.")
+      return true
+    end
+
     return false if token.blank?
 
     body = { "secret" => secret_key, "response" => token.to_s }
