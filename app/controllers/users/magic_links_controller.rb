@@ -1,6 +1,9 @@
 module Users
   class MagicLinksController < ApplicationController
+    include TurnstileVerifiable
+
     skip_before_action :authenticate_user!
+    before_action :verify_turnstile, only: [:create]
 
     def new
     end

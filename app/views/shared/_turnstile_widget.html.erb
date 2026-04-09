@@ -1,0 +1,4 @@
+<% site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] %>
+<% if site_key.present? %>
+  <div class="cf-turnstile" data-sitekey="<%= site_key %>"></div>
+<% end %>

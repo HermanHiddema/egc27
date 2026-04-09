@@ -1,3 +1,8 @@
+<% if ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
+  <% content_for :head do %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% end %>
+<% end %>
 <%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>
   <% if participant.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -164,6 +169,8 @@
         </span>
       </label>
     </div>
+
+    <%= render "shared/turnstile_widget" %>
 
     <div class="flex gap-4">
       <%= form.submit "Register", class: "btn-primary" %>
