@@ -32,19 +32,21 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     previous_site = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
     ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
-    post participants_path, params: {
-      participant: {
-        first_name: "Jane",
-        last_name: "Doe",
-        email: "jane@example.org",
-        participant_type: "player",
-        date_of_birth: "11-02-1995",
-        country: "NL",
-        accepted_terms_and_conditions: true,
-        accepted_privacy_policy: true
+    assert_no_difference("Participant.count") do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "jane@example.org",
+          participant_type: "player",
+          date_of_birth: "11-02-1995",
+          country: "NL",
+          accepted_terms_and_conditions: true,
+          accepted_privacy_policy: true
+        }
+        # deliberately omitting cf-turnstile-response so token is blank → verify returns false
       }
-      # deliberately omitting cf-turnstile-response so token is blank → verify returns false
-    }
+    end
     assert_response :unprocessable_entity
   ensure
     if previous_secret.nil?
