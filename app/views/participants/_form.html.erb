@@ -1,4 +1,4 @@
-<%= content_for :head do %>
+<% content_for :head do %>
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <% end %>
 <%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>

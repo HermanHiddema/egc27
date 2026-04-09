@@ -29,11 +29,16 @@ class Users::MagicLinksControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "rejects magic link request when turnstile verification fails" do
+    previous = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
     # deliberately omitting cf-turnstile-response so token is blank → verify returns false
     post user_magic_link_session_path, params: { user: { email: users(:one).email } }
     assert_response :unprocessable_entity
   ensure
-    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    if previous.nil?
+      ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    else
+      ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = previous
+    end
   end
 end

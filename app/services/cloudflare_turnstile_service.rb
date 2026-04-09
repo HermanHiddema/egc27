@@ -14,7 +14,18 @@ class CloudflareTurnstileService
     body = { "secret" => secret_key, "response" => token.to_s }
     body["remoteip"] = remote_ip.to_s if remote_ip.present?
 
-    response = Net::HTTP.post_form(URI(VERIFY_URL), body)
+    uri = URI(VERIFY_URL)
+    response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+      http.open_timeout = 5
+      http.read_timeout = 10
+      http.post(uri.path, URI.encode_www_form(body), "Content-Type" => "application/x-www-form-urlencoded")
+    end
+
+    unless response.is_a?(Net::HTTPSuccess)
+      Rails.logger.warn("Turnstile verification non-success status=#{response.code}")
+      return false
+    end
+
     JSON.parse(response.body)["success"] == true
   rescue StandardError => e
     Rails.logger.warn("Turnstile verification error: #{e.class}")

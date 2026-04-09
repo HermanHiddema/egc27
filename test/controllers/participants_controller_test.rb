@@ -15,14 +15,20 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "registration form includes turnstile widget when site key is configured" do
+    previous = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
     get new_participant_path
     assert_select "div.cf-turnstile"
   ensure
-    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    if previous.nil?
+      ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    else
+      ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = previous
+    end
   end
 
   test "rejects registration when turnstile verification fails" do
+    previous = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
     post participants_path, params: {
       participant: {
@@ -39,7 +45,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     }
     assert_response :unprocessable_entity
   ensure
-    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    if previous.nil?
+      ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    else
+      ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = previous
+    end
   end
 
   test "creates participant without authentication" do
