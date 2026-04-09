@@ -14,8 +14,6 @@ class ParticipantsController < ApplicationController
   end
 
   def create
-    @participant.assign_attributes(participant_params)
-
     ActiveRecord::Base.transaction do
       @participant.save!
       user = find_or_create_user_for(@participant)
@@ -59,6 +57,6 @@ class ParticipantsController < ApplicationController
   end
 
   def build_participant
-    @participant = Participant.new
+    @participant = Participant.new(participant_params)
   end
 end
