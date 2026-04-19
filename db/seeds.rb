@@ -3,13 +3,13 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 # Create or reset test user with properly hashed password
-user = User.find_or_initialize_by(email: "test@example.com")
-user.update!(
-  email: "test@example.com",
-  password: "password123",
-  password_confirmation: "password123",
-  full_name: "Test User"
-)
+# user = User.find_or_initialize_by(email: "test@example.com")
+# user.update!(
+#   email: "test@example.com",
+#   password: "password123",
+#   password_confirmation: "password123",
+#   full_name: "Test User"
+# )
 
 puts "✓ Test user created: test@example.com / password123"
 
