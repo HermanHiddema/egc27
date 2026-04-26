@@ -58,7 +58,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "egc27.com" }
+  config.action_mailer.default_url_options = { host: "egc2027.nl" }
 
   # Send transactional email via Postmark.
   # Set the POSTMARK_API_TOKEN environment variable or add it to credentials:
