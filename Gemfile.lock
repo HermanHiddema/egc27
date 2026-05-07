@@ -123,6 +123,14 @@ GEM
     erubi (1.13.1)
     et-orbi (1.4.0)
       tzinfo
+    faraday (2.14.1)
+      faraday-net_http (>= 2.0, < 3.5)
+      json
+      logger
+    faraday-multipart (1.2.0)
+      multipart-post (~> 2.0)
+    faraday-net_http (3.4.2)
+      net-http (~> 0.5)
     ffi (1.17.3-aarch64-linux-gnu)
     ffi (1.17.3-aarch64-linux-musl)
     ffi (1.17.3-arm-linux-gnu)
@@ -187,6 +195,11 @@ GEM
       net-imap
       net-pop
       net-smtp
+    mailgun-ruby (1.4.3)
+      faraday (~> 2.1)
+      faraday-multipart (< 2)
+      mini_mime
+      zeitwerk
     marcel (1.1.0)
     matrix (0.4.3)
     mcp (0.11.0)
@@ -198,6 +211,9 @@ GEM
       drb (~> 2.0)
       prism (~> 1.5)
     msgpack (1.8.0)
+    multipart-post (2.4.1)
+    net-http (0.9.1)
+      uri (>= 0.11.1)
     net-imap (0.6.3)
       date
       net-protocol
@@ -438,6 +454,7 @@ DEPENDENCIES
   importmap-rails
   jbuilder
   kamal
+  mailgun-ruby
   pg (>= 1.5)
   propshaft
   puma (>= 5.0)

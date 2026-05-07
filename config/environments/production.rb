@@ -60,14 +60,14 @@ Rails.application.configure do
   # Set host to be used by links generated in mailer templates.
   config.action_mailer.default_url_options = { host: "example.com" }
 
-  # Specify outgoing SMTP server. Remember to add smtp/* credentials via bin/rails credentials:edit.
-  # config.action_mailer.smtp_settings = {
-  #   user_name: Rails.application.credentials.dig(:smtp, :user_name),
-  #   password: Rails.application.credentials.dig(:smtp, :password),
-  #   address: "smtp.example.com",
-  #   port: 587,
-  #   authentication: :plain
-  # }
+  # Send email through Mailgun. Configure mailgun/* credentials via bin/rails credentials:edit
+  # or by setting MAILGUN_API_KEY, MAILGUN_DOMAIN and optional MAILGUN_API_HOST.
+  config.action_mailer.delivery_method = :mailgun
+  config.action_mailer.mailgun_settings = {
+    api_key: Rails.application.credentials.dig(:mailgun, :api_key) || ENV["MAILGUN_API_KEY"],
+    domain: Rails.application.credentials.dig(:mailgun, :domain) || ENV["MAILGUN_DOMAIN"],
+    api_host: Rails.application.credentials.dig(:mailgun, :api_host) || ENV["MAILGUN_API_HOST"]
+  }.compact
 
   # Enable locale fallbacks for I18n (makes lookups for any locale fall back to
   # the I18n.default_locale when a translation cannot be found).
