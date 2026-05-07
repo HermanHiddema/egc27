@@ -13,4 +13,11 @@ class ProductionMailgunConfigurationTest < ActiveSupport::TestCase
     assert_includes production_config, "MAILGUN_API_KEY"
     assert_includes production_config, "MAILGUN_DOMAIN"
   end
+
+  test "production environment connects solid cache to cache database" do
+    production_config = File.read(File.expand_path("../../config/environments/production.rb", __dir__))
+
+    assert_includes production_config, "config.cache_store = :solid_cache_store"
+    assert_includes production_config, "config.solid_cache.connects_to = { database: { writing: :cache } }"
+  end
 end
