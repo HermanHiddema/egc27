@@ -1,7 +1,9 @@
 <div class="container-wide py-12">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Menus</h1>
-    <%= link_to "New Menu", new_menu_path, class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
+    <% if current_user&.can_create? %>
+      <%= link_to "New Menu", new_menu_path, class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
+    <% end %>
   </div>
 
   <div class="space-y-6">
@@ -18,8 +20,12 @@
 
           <div class="flex gap-4 shrink-0">
             <%= link_to "Items", menu_menu_items_path(menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-            <%= link_to "Edit", edit_menu_path(menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-            <%= button_to "Delete", menu_path(menu), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+            <% if current_user&.can_edit? %>
+              <%= link_to "Edit", edit_menu_path(menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+            <% end %>
+            <% if current_user&.can_delete? %>
+              <%= button_to "Delete", menu_path(menu), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+            <% end %>
           </div>
         </div>
       </div>
@@ -28,9 +34,11 @@
     <% if @menus.empty? %>
       <div class="text-center text-gray-500 py-12">
         <p class="text-xl">No menus yet.</p>
-        <p class="mt-4">
-          <%= link_to "Create the first menu", new_menu_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </p>
+        <% if current_user&.can_create? %>
+          <p class="mt-4">
+            <%= link_to "Create the first menu", new_menu_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+          </p>
+        <% end %>
       </div>
     <% end %>
   </div>

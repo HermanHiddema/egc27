@@ -33,7 +33,7 @@
   <% else %>
     <div class="text-center py-12">
       <p class="text-xl text-neutral-500 mb-4">No news articles yet.</p>
-      <% if user_signed_in? %>
+      <% if current_user&.can_create? %>
         <%= link_to "Create the first article", new_article_path, class: "btn-primary" %>
       <% end %>
     </div>

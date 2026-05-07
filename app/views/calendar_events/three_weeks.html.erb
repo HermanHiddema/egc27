@@ -5,7 +5,7 @@
       <%= link_to "← Previous", three_weeks_calendar_events_path(date: (@period_start - 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Current", three_weeks_calendar_events_path(date: Date.current), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Next →", three_weeks_calendar_events_path(date: (@period_start + 21.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <% if user_signed_in? %>
+      <% if current_user&.can_create? %>
         <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>

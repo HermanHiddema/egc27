@@ -45,6 +45,19 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert CalendarEvent.exists?(calendar_events(:one).id)
   end
 
+  test "regular user does not see calendar event management buttons" do
+    sign_in users(:one)
+
+    get calendar_path
+    assert_response :success
+    assert_select "a", text: "New Event", count: 0
+
+    get calendar_event_path(calendar_events(:one))
+    assert_response :success
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
   test "editor can access new calendar event" do
     sign_in users(:editor)
     get new_calendar_event_path

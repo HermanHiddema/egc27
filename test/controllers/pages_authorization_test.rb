@@ -28,6 +28,21 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_equal pages(:one).title, pages(:one).reload.title
   end
 
+  test "regular user does not see page management buttons" do
+    sign_in users(:one)
+
+    get pages_path
+    assert_response :success
+    assert_select "a", text: "New Page", count: 0
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+
+    get page_path(pages(:one))
+    assert_response :success
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
   test "editor can access new page" do
     sign_in users(:editor)
     get new_page_path

@@ -32,6 +32,21 @@ class MenuItemsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_equal menu_items(:schedule).label, menu_items(:schedule).reload.label
   end
 
+  test "regular user does not see menu item management buttons" do
+    sign_in users(:one)
+
+    get menu_menu_items_path(menus(:primary))
+    assert_response :success
+    assert_select "a", text: "New Menu Item", count: 0
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+
+    get menu_menu_item_path(menus(:primary), menu_items(:schedule))
+    assert_response :success
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
   test "editor can access new menu item" do
     sign_in users(:editor)
     get new_menu_menu_item_path(menus(:primary))
