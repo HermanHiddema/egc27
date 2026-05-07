@@ -5,7 +5,7 @@ class ProductionMailgunConfigurationTest < ActiveSupport::TestCase
     assert ActionMailer::Base.delivery_methods.key?(:mailgun)
   end
 
-  def test_production_environment_uses_mailgun_delivery_method
+  test "production environment uses mailgun delivery method" do
     production_config = File.read(File.expand_path("../../config/environments/production.rb", __dir__))
 
     assert_includes production_config, "config.action_mailer.delivery_method = :mailgun"
