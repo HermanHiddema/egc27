@@ -1,6 +1,10 @@
-require "minitest/autorun"
+require "test_helper"
 
-class ProductionMailgunConfigurationTest < Minitest::Test
+class ProductionMailgunConfigurationTest < ActiveSupport::TestCase
+  test "mailgun delivery method is registered with action mailer" do
+    assert ActionMailer::Base.delivery_methods.key?(:mailgun)
+  end
+
   def test_production_environment_uses_mailgun_delivery_method
     production_config = File.read(File.expand_path("../../config/environments/production.rb", __dir__))
 
