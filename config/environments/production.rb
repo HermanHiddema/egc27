@@ -58,7 +58,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: ENV["DEFAULT_URL_HOST"] || "egc2027.nl" }
+  config.action_mailer.default_url_options = { host: ENV.fetch("DEFAULT_URL_HOST", nil).presence || "egc2027.nl" }
 
   # Send email through Mailgun. Configure mailgun/* credentials via bin/rails credentials:edit
   # or by setting MAILGUN_API_KEY, MAILGUN_DOMAIN and optional MAILGUN_API_HOST.
