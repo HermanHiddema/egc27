@@ -41,6 +41,7 @@ Rails.application.routes.draw do
       get :egd_search
     end
   end
+  resources :users, only: [:index, :edit, :update]
   resources :menus do
     resources :menu_items
   end
