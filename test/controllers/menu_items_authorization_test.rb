@@ -47,6 +47,33 @@ class MenuItemsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Delete", count: 0
   end
 
+  test "editor sees menu item create and edit buttons but not delete" do
+    sign_in users(:editor)
+
+    get menu_menu_items_path(menus(:primary))
+    assert_response :success
+    assert_select "a[href='#{new_menu_menu_item_path(menus(:primary))}']", text: "New Menu Item", count: 1
+    assert_select "a[href='#{edit_menu_menu_item_path(menus(:primary), menu_items(:schedule))}']", text: "Edit", count: 1
+    assert_select "form[action='#{menu_menu_item_path(menus(:primary), menu_items(:schedule))}'] button", text: "Delete", count: 0
+
+    get menu_menu_item_path(menus(:primary), menu_items(:schedule))
+    assert_response :success
+    assert_select "a[href='#{edit_menu_menu_item_path(menus(:primary), menu_items(:schedule))}']", text: "Edit", count: 1
+    assert_select "form[action='#{menu_menu_item_path(menus(:primary), menu_items(:schedule))}'] button", text: "Delete", count: 0
+  end
+
+  test "admin sees menu item delete buttons" do
+    sign_in users(:admin)
+
+    get menu_menu_items_path(menus(:primary))
+    assert_response :success
+    assert_select "form[action='#{menu_menu_item_path(menus(:primary), menu_items(:schedule))}'] button", text: "Delete"
+
+    get menu_menu_item_path(menus(:primary), menu_items(:schedule))
+    assert_response :success
+    assert_select "form[action='#{menu_menu_item_path(menus(:primary), menu_items(:schedule))}'] button", text: "Delete"
+  end
+
   test "editor can access new menu item" do
     sign_in users(:editor)
     get new_menu_menu_item_path(menus(:primary))

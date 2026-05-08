@@ -43,6 +43,33 @@ class MenusAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Delete", count: 0
   end
 
+  test "editor sees menu create and edit buttons but not delete" do
+    sign_in users(:editor)
+
+    get menus_path
+    assert_response :success
+    assert_select "a[href='#{new_menu_path}']", text: "New Menu", count: 1
+    assert_select "a[href='#{edit_menu_path(menus(:primary))}']", text: "Edit", count: 1
+    assert_select "form[action='#{menu_path(menus(:primary))}'] button", text: "Delete", count: 0
+
+    get menu_path(menus(:primary))
+    assert_response :success
+    assert_select "a[href='#{edit_menu_path(menus(:primary))}']", text: "Edit", count: 1
+    assert_select "form[action='#{menu_path(menus(:primary))}'] button", text: "Delete", count: 0
+  end
+
+  test "admin sees menu delete buttons" do
+    sign_in users(:admin)
+
+    get menus_path
+    assert_response :success
+    assert_select "form[action='#{menu_path(menus(:primary))}'] button", text: "Delete"
+
+    get menu_path(menus(:primary))
+    assert_response :success
+    assert_select "form[action='#{menu_path(menus(:primary))}'] button", text: "Delete"
+  end
+
   test "regular user cannot destroy menu" do
     sign_in users(:one)
     assert_no_difference "Menu.count" do

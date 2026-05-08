@@ -53,6 +53,18 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Delete", count: 0
   end
 
+  test "admin sees delete buttons for articles" do
+    sign_in users(:admin)
+
+    get articles_path
+    assert_response :success
+    assert_select "form[action='#{article_path(articles(:one))}'] button", text: "Delete"
+
+    get article_path(articles(:one))
+    assert_response :success
+    assert_select "form[action='#{article_path(articles(:one))}'] button", text: "Delete"
+  end
+
   test "editor can access new article" do
     sign_in users(:editor)
     get new_article_path

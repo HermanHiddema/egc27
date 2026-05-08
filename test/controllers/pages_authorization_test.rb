@@ -43,6 +43,33 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Delete", count: 0
   end
 
+  test "editor sees page create and edit buttons but not delete" do
+    sign_in users(:editor)
+
+    get pages_path
+    assert_response :success
+    assert_select "a[href='#{new_page_path}']", text: "New Page", count: 1
+    assert_select "a[href='#{edit_page_path(pages(:one))}']", text: "Edit", count: 1
+    assert_select "form[action='#{page_path(pages(:one))}'] button", text: "Delete", count: 0
+
+    get page_path(pages(:one))
+    assert_response :success
+    assert_select "a[href='#{edit_page_path(pages(:one))}']", text: "Edit", count: 1
+    assert_select "form[action='#{page_path(pages(:one))}'] button", text: "Delete", count: 0
+  end
+
+  test "admin sees page delete buttons" do
+    sign_in users(:admin)
+
+    get pages_path
+    assert_response :success
+    assert_select "form[action='#{page_path(pages(:one))}'] button", text: "Delete"
+
+    get page_path(pages(:one))
+    assert_response :success
+    assert_select "form[action='#{page_path(pages(:one))}'] button", text: "Delete"
+  end
+
   test "editor can access new page" do
     sign_in users(:editor)
     get new_page_path
