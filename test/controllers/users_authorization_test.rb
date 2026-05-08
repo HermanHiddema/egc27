@@ -20,6 +20,30 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "h1", text: "Users"
   end
 
+  test "editor cannot access new user page" do
+    sign_in users(:editor)
+    get new_user_path
+    assert_redirected_to root_path
+  end
+
+  test "editor cannot create user" do
+    sign_in users(:editor)
+
+    assert_no_difference "User.count" do
+      post create_user_path, params: {
+        user: {
+          email: "created-by-editor@example.com",
+          full_name: "Editor Created User",
+          role: "regular",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_redirected_to root_path
+  end
+
   test "editor can update user details but not role" do
     sign_in users(:editor)
     patch user_path(users(:one)), params: {
@@ -41,6 +65,34 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to users_path
     assert_equal "editor", users(:one).reload.role
+  end
+
+  test "admin can access new user page" do
+    sign_in users(:admin)
+    get new_user_path
+    assert_response :success
+    assert_select "h1", text: "New User"
+  end
+
+  test "admin can create user" do
+    sign_in users(:admin)
+
+    assert_difference "User.count", 1 do
+      post create_user_path, params: {
+        user: {
+          email: "created-by-admin@example.com",
+          full_name: "Admin Created User",
+          role: "editor",
+          password: "password123",
+          password_confirmation: "password123"
+        }
+      }
+    end
+
+    assert_redirected_to users_path
+    user = User.find_by!(email: "created-by-admin@example.com")
+    assert_equal "Admin Created User", user.full_name
+    assert_equal "editor", user.role
   end
 
   test "admin cannot remove own admin role" do

@@ -41,7 +41,8 @@ Rails.application.routes.draw do
       get :egd_search
     end
   end
-  resources :users, only: [:index, :edit, :update]
+  resources :users, only: [:index, :new, :edit, :update]
+  post "users/create", to: "users#create", as: :create_user
   resources :menus do
     resources :menu_items
   end
