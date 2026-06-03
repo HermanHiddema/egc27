@@ -1,16 +1,25 @@
 class Participant < ApplicationRecord
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
+  ATTENDANCE_OPTIONS = {
+    "all_events" => { first_week: true, weekend: true, second_week: true },
+    "first_week_plus_weekend" => { first_week: true, weekend: true, second_week: false },
+    "weekend_plus_second_week" => { first_week: false, weekend: true, second_week: true },
+    "weekend_only" => { first_week: false, weekend: true, second_week: false }
+  }.freeze
 
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   belongs_to :user, optional: true
 
+  attr_accessor :attendance_option
+
   validates :first_name, :last_name, :email, :date_of_birth, :country, presence: true
   validates :participant_type, inclusion: { in: PARTICIPANT_TYPES }
-  validates :gender, inclusion: { in: GENDERS }, allow_nil: true
+  validates :gender, inclusion: { in: GENDERS }
   validates :accepted_terms_and_conditions, inclusion: { in: [true], message: "must be accepted" }
   validates :accepted_privacy_policy, inclusion: { in: [true], message: "must be accepted" }
+  validates :image_use_consent, inclusion: { in: [true, false] }
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }
@@ -27,9 +36,22 @@ class Participant < ApplicationRecord
   before_validation :normalize_date_of_birth
   before_validation :normalize_rank
   before_validation :normalize_rating
+  before_validation :set_implicit_policy_acceptance
+  before_validation :apply_attendance_option
 
   def rank_grade
     EgdGradeMapping.grade_for(rank)
+  end
+
+  def attendance_option
+    return @attendance_option if @attendance_option.present?
+
+    case [first_week, weekend, second_week]
+    when [true, true, true] then "all_events"
+    when [true, true, false] then "first_week_plus_weekend"
+    when [false, true, true] then "weekend_plus_second_week"
+    when [false, true, false] then "weekend_only"
+    end
   end
 
   private
@@ -91,6 +113,23 @@ class Participant < ApplicationRecord
     return nil if digits.blank?
 
     "+#{digits}"
+  end
+
+  def set_implicit_policy_acceptance
+    self.accepted_terms_and_conditions = true
+    self.accepted_privacy_policy = true
+  end
+
+  def apply_attendance_option
+    option = attendance_option.to_s
+    return if option.blank?
+
+    selection = ATTENDANCE_OPTIONS[option]
+    return unless selection
+
+    self.first_week = selection[:first_week]
+    self.weekend = selection[:weekend]
+    self.second_week = selection[:second_week]
   end
 
   def parse_date(value)

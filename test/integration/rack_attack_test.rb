@@ -61,8 +61,8 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       participant: {
         first_name: "Jane", last_name: "Doe", email: "jane@example.org",
         participant_type: "player", date_of_birth: "11-02-1995",
-        country: "NL", club: "Utrecht", accepted_terms_and_conditions: true,
-        accepted_privacy_policy: true
+        country: "NL", club: "Utrecht", gender: "female",
+        image_use_consent: true
       }
     }
 
