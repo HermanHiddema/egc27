@@ -11,7 +11,6 @@ class ParticipantsController < ApplicationController
 
   def new
     @participant = Participant.new
-    @participant.image_use_consent = nil
   end
 
   def create
@@ -59,6 +58,5 @@ class ParticipantsController < ApplicationController
 
   def build_participant
     @participant = Participant.new(participant_params)
-    @participant.image_use_consent = nil unless params[:participant].key?(:image_use_consent)
   end
 end
