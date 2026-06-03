@@ -200,6 +200,10 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal true, participant.second_week
   end
 
+  test "image consent defaults to nil for new participants" do
+    assert_nil Participant.new.image_use_consent
+  end
+
   test "attendance option updates attendance periods" do
     participant = Participant.new(
       first_name: "Mia",
@@ -218,6 +222,24 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal false, participant.first_week
     assert_equal true, participant.weekend
     assert_equal false, participant.second_week
+  end
+
+  test "rejects unknown attendance option" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      gender: "female",
+      rank: "8 kyu",
+      image_use_consent: true,
+      attendance_option: "unexpected"
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:attendance_option], "is not included in the list"
   end
 
   test "requires explicit image consent choice" do
