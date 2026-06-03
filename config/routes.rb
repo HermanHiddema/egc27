@@ -45,5 +45,10 @@ Rails.application.routes.draw do
     resources :menu_items
   end
 
+  namespace :admin do
+    root "dashboard#index"
+    resources :menus, only: [:index]
+  end
+
   root "home#index"
 end
