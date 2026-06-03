@@ -15,6 +15,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='participant[accepted_terms_and_conditions]']", count: 0
     assert_select "input[name='participant[accepted_privacy_policy]']", count: 0
     assert_select "input[name='participant[image_use_consent]'][type='radio']", count: 2
+    assert_select "input[name='participant[image_use_consent]'][type='radio'][checked]", count: 0
   end
 
   test "registration form includes turnstile widget when site key is configured" do

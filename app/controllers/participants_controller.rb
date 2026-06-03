@@ -11,6 +11,7 @@ class ParticipantsController < ApplicationController
 
   def new
     @participant = Participant.new
+    @participant.image_use_consent = nil
   end
 
   def create
