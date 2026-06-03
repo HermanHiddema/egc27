@@ -12,6 +12,12 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input[name='participant[egd_pin]']:not([type='hidden']):not([disabled])"
+    assert_select "input[name='participant[accepted_terms_and_conditions]']", count: 0
+    assert_select "input[name='participant[accepted_privacy_policy]']", count: 0
+    assert_select "input[name='participant[image_use_consent]'][type='radio']", count: 2
+    assert_select "input[name='participant[image_use_consent]'][type='radio'][checked]", count: 0
+    assert_select "label[for='participant_attendance_option']", text: "Attendance period"
+    assert_select "a[href='#{new_participant_path}']", text: "Register now"
   end
 
   test "registration form includes turnstile widget when site key is configured" do
@@ -41,8 +47,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           participant_type: "player",
           date_of_birth: "11-02-1995",
           country: "NL",
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true
+          gender: "female",
+          image_use_consent: true
         }
         # deliberately omitting cf-turnstile-response so token is blank → verify returns false
       }
@@ -73,11 +79,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           country: "NL",
           club: "Utrecht",
           rank: 27,
+          gender: "female",
           phone: "+31612345678",
           rating: 1742,
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true,
           image_use_consent: true,
+          attendance_option: "weekend_only",
           egd_pin: "12345678"
         }
       }
@@ -90,6 +96,9 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = Participant.order(:id).last
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
+    assert_equal false, participant.first_week
+    assert_equal true, participant.weekend
+    assert_equal false, participant.second_week
   end
 
   test "creates a user account when registering a new participant" do
@@ -104,8 +113,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
             date_of_birth: "11-02-1995",
             country: "NL",
             club: "Utrecht",
-            accepted_terms_and_conditions: true,
-            accepted_privacy_policy: true
+            gender: "female",
+            image_use_consent: false
           }
         }
       end
@@ -126,8 +135,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
         date_of_birth: "11-02-1995",
         country: "NL",
         club: "Utrecht",
-        accepted_terms_and_conditions: true,
-        accepted_privacy_policy: true
+        gender: "female",
+        image_use_consent: true
       }
     }
 
@@ -150,8 +159,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           date_of_birth: "01-01-1990",
           country: "NL",
           club: "Utrecht",
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true
+          gender: "female",
+          image_use_consent: false
         }
       }
     end
