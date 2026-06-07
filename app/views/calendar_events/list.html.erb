@@ -5,7 +5,7 @@
       <%= link_to "← Previous", list_calendar_events_path(from: (@period_start - 30.days), to: (@period_end - 30.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Current", list_calendar_events_path(from: Date.current.beginning_of_month, to: Date.current.end_of_month), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Next →", list_calendar_events_path(from: (@period_start + 30.days), to: (@period_end + 30.days)), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <% if user_signed_in? %>
+      <% if current_user&.can_create? %>
         <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>

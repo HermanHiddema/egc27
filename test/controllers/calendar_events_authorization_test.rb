@@ -45,6 +45,61 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert CalendarEvent.exists?(calendar_events(:one).id)
   end
 
+  test "regular user does not see calendar event management buttons" do
+    sign_in users(:one)
+
+    calendar_event_date = calendar_events(:one).starts_at.to_date
+    [
+      calendar_path(month: calendar_event_date.strftime("%Y-%m")),
+      day_calendar_events_path(date: calendar_event_date),
+      week_calendar_events_path(date: calendar_event_date),
+      two_weeks_calendar_events_path(date: calendar_event_date),
+      three_weeks_calendar_events_path(date: calendar_event_date),
+      list_calendar_events_path(from: calendar_event_date.beginning_of_month, to: calendar_event_date.end_of_month)
+    ].each do |path|
+      get path
+      assert_response :success
+      assert_select "a", text: "New Event", count: 0
+    end
+
+    get calendar_event_path(calendar_events(:one))
+    assert_response :success
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
+  test "editor sees calendar create and edit buttons but not delete" do
+    sign_in users(:editor)
+
+    calendar_event_date = calendar_events(:one).starts_at.to_date
+    [
+      calendar_path(month: calendar_event_date.strftime("%Y-%m")),
+      day_calendar_events_path(date: calendar_event_date),
+      week_calendar_events_path(date: calendar_event_date),
+      two_weeks_calendar_events_path(date: calendar_event_date),
+      three_weeks_calendar_events_path(date: calendar_event_date),
+      list_calendar_events_path(from: calendar_event_date.beginning_of_month, to: calendar_event_date.end_of_month)
+    ].each do |path|
+      get path
+      assert_response :success
+      assert_select "a[href='#{new_calendar_event_path}']", text: "New Event", count: 1
+    end
+
+    get calendar_event_path(calendar_events(:one))
+    assert_response :success
+    assert_select "a[href='#{edit_calendar_event_path(calendar_events(:one))}']", text: "Edit", count: 1
+    assert_select "form[action='#{calendar_event_path(calendar_events(:one))}'] button", text: "Delete", count: 0
+  end
+
+  test "admin sees calendar event delete button" do
+    sign_in users(:admin)
+
+    get calendar_event_path(calendar_events(:one))
+    assert_response :success
+    assert_select "a[href='#{edit_calendar_event_path(calendar_events(:one))}']", text: "Edit", count: 1
+    assert_select "form[action='#{calendar_event_path(calendar_events(:one))}'] button", text: "Delete"
+  end
+
   test "editor can access new calendar event" do
     sign_in users(:editor)
     get new_calendar_event_path

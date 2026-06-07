@@ -28,6 +28,43 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_equal articles(:one).title, articles(:one).reload.title
   end
 
+  test "regular user does not see article management buttons" do
+    sign_in users(:one)
+
+    get articles_path
+    assert_response :success
+    assert_select "a", text: "New Article", count: 0
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+
+    get article_path(articles(:one))
+    assert_response :success
+    assert_select "a", text: "Edit", count: 0
+    assert_select "button", text: "Delete", count: 0
+  end
+
+  test "editor sees create and edit buttons but not delete for articles" do
+    sign_in users(:editor)
+
+    get articles_path
+    assert_response :success
+    assert_select "a", text: "New Article", count: 1
+    assert_select "a", text: "Edit"
+    assert_select "button", text: "Delete", count: 0
+  end
+
+  test "admin sees delete buttons for articles" do
+    sign_in users(:admin)
+
+    get articles_path
+    assert_response :success
+    assert_select "form[action='#{article_path(articles(:one))}'] button", text: "Delete"
+
+    get article_path(articles(:one))
+    assert_response :success
+    assert_select "form[action='#{article_path(articles(:one))}'] button", text: "Delete"
+  end
+
   test "editor can access new article" do
     sign_in users(:editor)
     get new_article_path
