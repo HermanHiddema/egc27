@@ -2,7 +2,7 @@ class NewsletterSubscriptionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:create, :unsubscribe]
 
   def create
-    email = newsletter_subscription_params[:email].to_s.strip.downcase
+    email = NewsletterSubscription.normalize_email(newsletter_subscription_params[:email])
     @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
     @newsletter_subscription.assign_attributes(newsletter_subscription_params)
     @newsletter_subscription.subscribed = true

@@ -6,6 +6,10 @@ class NewsletterSubscription < ApplicationRecord
   validates :email, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :subscribed, inclusion: { in: [true, false] }
 
+  def self.normalize_email(email)
+    email.to_s.strip.downcase
+  end
+
   def unsubscribe!
     update!(subscribed: false, unsubscribed_at: Time.current)
   end
@@ -15,7 +19,7 @@ class NewsletterSubscription < ApplicationRecord
   def normalize_fields
     self.first_name = first_name.to_s.strip
     self.last_name = last_name.to_s.strip
-    self.email = email.to_s.strip.downcase
+    self.email = self.class.normalize_email(email)
   end
 
   def ensure_unsubscribe_token

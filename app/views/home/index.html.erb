@@ -14,7 +14,7 @@
       </div>
     <% end %>
 
-    <%= form_with model: (@newsletter_subscription || NewsletterSubscription.new), url: newsletter_subscriptions_path, class: "grid grid-cols-1 md:grid-cols-4 gap-4 items-end" do |form| %>
+    <%= form_with model: @newsletter_subscription, url: newsletter_subscriptions_path, class: "grid grid-cols-1 md:grid-cols-4 gap-4 items-end" do |form| %>
       <div>
         <%= form.label :first_name, "First name", class: "block text-sm font-medium text-gray-700 mb-2" %>
         <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", autocomplete: "given-name", required: true %>
