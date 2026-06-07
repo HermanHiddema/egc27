@@ -1,6 +1,14 @@
 require "test_helper"
 
 class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
+  test "shows newsletter subscription page" do
+    get newsletter_path
+
+    assert_response :success
+    assert_select "h1", text: "Newsletter"
+    assert_select "form[action='#{newsletter_subscriptions_path}']"
+  end
+
   test "creates a newsletter subscription" do
     assert_difference("NewsletterSubscription.count", 1) do
       post newsletter_subscriptions_path, params: {
@@ -12,7 +20,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to root_path
+    assert_redirected_to newsletter_path
     assert_equal "Thanks for subscribing to the newsletter.", flash[:notice]
   end
 
@@ -29,7 +37,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to root_path
+    assert_redirected_to newsletter_path
     subscription.reload
     assert_equal "Bobby", subscription.first_name
     assert_equal true, subscription.subscribed
@@ -46,7 +54,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     }
 
     assert_response :unprocessable_entity
-    assert_select "h3", text: "There were errors with your submission:"
+    assert_select "h2", text: "There were errors with your submission:"
   end
 
   test "unsubscribes a valid token" do
