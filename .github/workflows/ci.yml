@@ -31,6 +31,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libvips && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -85,6 +88,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - &install_libvips
+        name: Install system dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libvips && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*
+
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
         with:
@@ -120,6 +127,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+
+      - *install_libvips
 
       - name: Set up Ruby
         uses: ruby/setup-ruby@v1
