@@ -1,6 +1,10 @@
 require "test_helper"
 
 class PagesAuthorizationTest < ActionDispatch::IntegrationTest
+  def image_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+  end
+
   test "regular user cannot access new page" do
     sign_in users(:one)
     get new_page_path
@@ -81,6 +85,36 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_difference "Page.count", 1 do
       post pages_path, params: { page: { title: "New Page", slug: "new-page", content: "Some content" } }
     end
+  end
+
+  test "editor can create page with main image" do
+    sign_in users(:editor)
+
+    assert_difference "Page.count", 1 do
+      post pages_path, params: {
+        page: {
+          title: "Page with image",
+          slug: "page-with-image",
+          content: "Some content",
+          main_image: image_upload
+        }
+      }
+    end
+
+    assert Page.last.main_image.attached?
+  end
+
+  test "page summaries and detail show main image when attached" do
+    page = pages(:one)
+    page.main_image.attach(image_upload)
+
+    get pages_path
+    assert_response :success
+    assert_select "img[alt='#{page.title} main image']"
+
+    get page_path(page)
+    assert_response :success
+    assert_select "img[alt='#{page.title} main image']"
   end
 
   test "editor can edit page" do

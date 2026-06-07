@@ -19,6 +19,12 @@
       <% end %>
     </header>
 
+    <% if @page.main_image.attached? && @page.main_image.image? %>
+      <div class="mb-8">
+        <%= image_tag @page.main_image, alt: "#{@page.title} main image", class: "w-full h-auto max-h-[32rem] object-cover rounded-lg border border-gray-200" %>
+      </div>
+    <% end %>
+
     <div class="rich-content trix-content max-w-none">
       <%= @page.content %>
     </div>

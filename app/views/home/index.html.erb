@@ -20,6 +20,12 @@
             </div>
           </div>
 
+          <% if article.main_image.attached? && article.main_image.image? %>
+            <div class="mb-4">
+              <%= image_tag article.main_image, alt: "#{article.title} main image", class: "h-32 w-full max-w-xs object-cover rounded-lg border border-gray-200" %>
+            </div>
+          <% end %>
+
           <div class="rich-content trix-content text-neutral-700 mb-4 line-clamp-3">
             <%= article.content %>
           </div>

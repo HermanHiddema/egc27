@@ -1,6 +1,10 @@
 require "test_helper"
 
 class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
+  def image_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+  end
+
   test "regular user cannot access new article" do
     sign_in users(:one)
     get new_article_path
@@ -76,6 +80,35 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_difference "Article.count", 1 do
       post articles_path, params: { article: { title: "Test Article", content: "Some content" } }
     end
+  end
+
+  test "editor can create article with main image" do
+    sign_in users(:editor)
+
+    assert_difference "Article.count", 1 do
+      post articles_path, params: {
+        article: {
+          title: "Article with image",
+          content: "Some content",
+          main_image: image_upload
+        }
+      }
+    end
+
+    assert Article.last.main_image.attached?
+  end
+
+  test "article summaries and detail show main image when attached" do
+    article = articles(:one)
+    article.main_image.attach(image_upload)
+
+    get articles_path
+    assert_response :success
+    assert_select "img[alt='#{article.title} main image']"
+
+    get article_path(article)
+    assert_response :success
+    assert_select "img[alt='#{article.title} main image']"
   end
 
   test "editor can edit article" do

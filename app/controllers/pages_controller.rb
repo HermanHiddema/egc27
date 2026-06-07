@@ -6,7 +6,7 @@ class PagesController < ApplicationController
   before_action :set_page, only: [:show, :edit, :update, :destroy]
 
   def index
-    @pages = Page.order(:title)
+    @pages = Page.with_attached_main_image.order(:title)
   end
 
   def show
@@ -45,10 +45,10 @@ class PagesController < ApplicationController
   private
 
   def set_page
-    @page = Page.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
+    @page = Page.with_attached_main_image.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
   end
 
   def page_params
-    params.require(:page).permit(:title, :content, :slug)
+    params.require(:page).permit(:title, :content, :slug, :main_image)
   end
 end
