@@ -6,7 +6,7 @@
     else
       blob.preview(resize_to_limit: resize_limit)
     end %>
-    <%= image_tag representation.processed,
+    <%= image_tag representation,
       style: "max-width: 100%; height: auto;",
       loading: "lazy",
       decoding: "async" %>
