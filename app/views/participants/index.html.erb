@@ -4,7 +4,7 @@
     <%= link_to "Register As Participant", new_participant_path, class: "btn-primary" %>
   </div>
 
-  <% if @participants.any? %>
+  <% if @participants.any? || @country_filter.present? %>
     <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
       <div class="flex flex-wrap items-end justify-between gap-4">
         <%= form_with url: participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do %>
