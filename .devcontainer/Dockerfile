@@ -10,6 +10,7 @@ ENV RAILS_DEVELOPMENT_HOSTS=".githubpreview.dev,.preview.app.github.dev,.app.git
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends libvips \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # [Optional] Uncomment this line to install additional gems.
