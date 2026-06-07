@@ -6,7 +6,15 @@ class ParticipantsController < ApplicationController
   before_action :verify_turnstile, only: [:create]
 
   def index
-    @participants = Participant.order(:last_name, :first_name, :id)
+    @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
+    @country_filter = params[:country].to_s.upcase.presence
+    @sort = permitted_sort
+    @direction = permitted_direction
+
+    participants = Participant.all
+    participants = participants.where(country: @country_filter) if @country_filter.present?
+
+    @participants = sorted_participants(participants)
   end
 
   def new
@@ -32,6 +40,29 @@ class ParticipantsController < ApplicationController
   end
 
   private
+
+  def permitted_sort
+    %w[name country club rank rating].include?(params[:sort]) ? params[:sort] : "name"
+  end
+
+  def permitted_direction
+    params[:direction] == "desc" ? :desc : :asc
+  end
+
+  def sorted_participants(participants)
+    case @sort
+    when "country"
+      participants.order(country: @direction, last_name: :asc, first_name: :asc, id: :asc)
+    when "club"
+      participants.order(club: @direction, last_name: :asc, first_name: :asc, id: :asc)
+    when "rank"
+      participants.order(rank: @direction, last_name: :asc, first_name: :asc, id: :asc)
+    when "rating"
+      participants.order(rating: @direction, last_name: :asc, first_name: :asc, id: :asc)
+    else
+      participants.order(last_name: @direction, first_name: @direction, id: :asc)
+    end
+  end
 
   def find_or_create_user_for(participant)
     email = participant.email.to_s.strip.downcase

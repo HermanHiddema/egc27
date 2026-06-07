@@ -72,4 +72,23 @@ module ApplicationHelper
   def eu_date_range(start_value, end_value, month: :short, include_start_year: false, include_end_year: true)
     "#{eu_date(start_value, include_year: include_start_year, month: month)} - #{eu_date(end_value, include_year: include_end_year, month: month)}"
   end
+
+  def country_flag_emoji(country_code)
+    code = country_code.to_s.strip.upcase
+    return "" unless code.match?(/\A[A-Z]{2}\z/)
+
+    code.chars.map { |char| (127397 + char.ord).chr(Encoding::UTF_8) }.join
+  end
+
+  def next_sort_direction(column, current_sort, current_direction)
+    return :asc unless current_sort == column
+
+    current_direction == :asc ? :desc : :asc
+  end
+
+  def sort_indicator(column, current_sort, current_direction)
+    return "" unless current_sort == column
+
+    current_direction == :asc ? "↑" : "↓"
+  end
 end

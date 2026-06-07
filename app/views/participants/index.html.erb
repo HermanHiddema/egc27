@@ -5,23 +5,54 @@
   </div>
 
   <% if @participants.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <%= form_with url: participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do %>
+          <div>
+            <label for="country" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Country</label>
+            <%= select_tag :country, options_for_select([["All countries", ""]] + @countries.map { |country| [country, country] }, @country_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900" %>
+          </div>
+          <%= hidden_field_tag :sort, @sort %>
+          <%= hidden_field_tag :direction, @direction %>
+          <%= submit_tag "Filter", class: "btn-secondary" %>
+          <% if @country_filter.present? %>
+            <%= link_to "Clear", participants_path(sort: @sort, direction: @direction), class: "text-sm text-brand-red-600 hover:text-brand-red-700 transition" %>
+          <% end %>
+        <% end %>
+
+        <p class="text-sm text-neutral-700"><strong><%= @participants.size %></strong> result<%= "s" unless @participants.size == 1 %></p>
+      </div>
+    </div>
+
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Club</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rank</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Rating</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">#</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Name #{sort_indicator("name", @sort, @direction)}".strip, participants_path(sort: "name", direction: next_sort_direction("name", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Country #{sort_indicator("country", @sort, @direction)}".strip, participants_path(sort: "country", direction: next_sort_direction("country", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Club #{sort_indicator("club", @sort, @direction)}".strip, participants_path(sort: "club", direction: next_sort_direction("club", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Rank #{sort_indicator("rank", @sort, @direction)}".strip, participants_path(sort: "rank", direction: next_sort_direction("rank", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Rating #{sort_indicator("rating", @sort, @direction)}".strip, participants_path(sort: "rating", direction: next_sort_direction("rating", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
+              </th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
-            <% @participants.each do |participant| %>
+            <% @participants.each_with_index do |participant, index| %>
               <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= index + 1 %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.country %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= "#{country_flag_emoji(participant.country)} #{participant.country}".strip %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.club %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>
