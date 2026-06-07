@@ -3,5 +3,6 @@ class HomeController < ApplicationController
 
   def index
     @recent_articles = Article.with_rich_text_content_and_embeds.order(created_at: :desc).limit(3).includes(:user)
+    @newsletter_subscription = NewsletterSubscription.new
   end
 end

@@ -41,6 +41,8 @@ Rails.application.routes.draw do
       get :egd_search
     end
   end
+  resources :newsletter_subscriptions, only: [:create]
+  get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   resources :menus do
     resources :menu_items
   end

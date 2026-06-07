@@ -1,0 +1,35 @@
+class NewsletterSubscriptionsController < ApplicationController
+  skip_before_action :authenticate_user!, only: [:create, :unsubscribe]
+
+  def create
+    email = newsletter_subscription_params[:email].to_s.strip.downcase
+    @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
+    @newsletter_subscription.assign_attributes(newsletter_subscription_params)
+    @newsletter_subscription.subscribed = true
+    @newsletter_subscription.unsubscribed_at = nil
+
+    if @newsletter_subscription.save
+      redirect_to root_path, notice: "Thanks for subscribing to the newsletter."
+    else
+      @recent_articles = Article.with_rich_text_content_and_embeds.order(created_at: :desc).limit(3).includes(:user)
+      render "home/index", status: :unprocessable_entity
+    end
+  end
+
+  def unsubscribe
+    subscription = NewsletterSubscription.find_by(unsubscribe_token: params[:token].to_s)
+
+    if subscription
+      subscription.unsubscribe!
+      redirect_to root_path, notice: "You have been unsubscribed from the newsletter."
+    else
+      redirect_to root_path, alert: "Invalid unsubscribe link."
+    end
+  end
+
+  private
+
+  def newsletter_subscription_params
+    params.require(:newsletter_subscription).permit(:first_name, :last_name, :email)
+  end
+end
