@@ -30,9 +30,8 @@
         <div class="flex items-center gap-2">
           <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC27 Logo", class: "h-24 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
           <div>
-            <%= link_to root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do %>
-              <span class="md:hidden">EGC 2027</span>
-              <span class="hidden md:inline">European Go Congress 2027</span>
+            <%= link_to root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
+<span class="md:hidden">EGC 2027</span><span class="hidden md:inline">European Go Congress 2027</span>
             <% end %>
             <p class="hidden md:block text-sm text-brand-yellow-300">'s Hertogenbosch, the Netherlands, 24 Jul - 8 Aug, 2027</p>
           </div>
