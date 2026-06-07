@@ -1,6 +1,15 @@
 <figure class="attachment attachment--<%= blob.representable? ? "preview" : "file" %> attachment--<%= blob.filename.extension %>">
   <% if blob.representable? %>
-    <%= image_tag blob.representation(resize_to_limit: local_assigns[:in_gallery] ? [ 800, 600 ] : [ 1024, 768 ]) %>
+    <% resize_limit = local_assigns[:in_gallery] ? [800, 600] : [1024, 768] %>
+    <% representation = if blob.variable?
+      blob.variant(resize_to_limit: resize_limit)
+    else
+      blob.preview(resize_to_limit: resize_limit)
+    end %>
+    <%= image_tag representation.processed,
+      style: "max-width: 100%; height: auto;",
+      loading: "lazy",
+      decoding: "async" %>
   <% end %>
 
   <figcaption class="attachment__caption">
