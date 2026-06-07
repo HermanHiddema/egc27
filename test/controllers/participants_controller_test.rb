@@ -7,6 +7,30 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "participants index supports country filter and shows numbered filtered results with flags" do
+    get participants_path, params: { country: "NL" }
+
+    assert_response :success
+    assert_select "tbody tr", count: 2
+    assert_select "tbody tr td:first-child", text: "1", count: 1
+    assert_select "tbody tr td:first-child", text: "2", count: 1
+    assert_select "p", text: /2 results/
+    assert_select "select[name='country'] option[value='NL'][selected='selected']"
+    assert_match "🇳🇱 NL", response.body
+    assert_no_match "🇩🇪 DE", response.body
+  end
+
+  test "participants index sorts by rank using rank integer values" do
+    get participants_path, params: { sort: "rank", direction: "desc" }
+
+    assert_response :success
+
+    body = response.body
+    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+    assert_match "Rank ↓", body
+  end
+
   test "registration form is publicly accessible" do
     get new_participant_path
 
