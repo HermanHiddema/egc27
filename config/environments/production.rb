@@ -23,7 +23,6 @@ Rails.application.configure do
 
   # Store uploaded files on the Railway S3-compatible bucket (see config/storage.yml for options).
   config.active_storage.service = :railway
-  config.active_storage.variant_processor = :vips
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
