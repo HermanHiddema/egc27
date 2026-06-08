@@ -1,14 +1,17 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-  static targets = ["menu"]
+  static targets = ["menu", "toggle"]
   timeout = null
+  openedByHover = false
 
   closeOtherDropdowns() {
-    const allMenus = document.querySelectorAll('[data-dropdown-target="menu"]')
-    allMenus.forEach((menu) => {
-      if (menu !== this.menuTarget) {
-        menu.classList.add("hidden")
+    const allDropdowns = document.querySelectorAll('[data-controller~="dropdown"]')
+
+    allDropdowns.forEach((dropdown) => {
+      if (dropdown !== this.element) {
+        dropdown.querySelector('[data-dropdown-target="menu"]')?.classList.add("hidden")
+        dropdown.querySelector('[data-dropdown-target="toggle"]')?.setAttribute("aria-expanded", "false")
       }
     })
   }
@@ -26,32 +29,82 @@ export default class extends Controller {
 
   show() {
     this.menuTarget.classList.remove("hidden")
+    this.toggleTarget.setAttribute("aria-expanded", "true")
   }
 
   hide() {
     this.menuTarget.classList.add("hidden")
+    this.toggleTarget.setAttribute("aria-expanded", "false")
+    this.openedByHover = false
+  }
+
+  toggle(event) {
+    event.preventDefault()
+    event.stopPropagation()
+
+    if (this.menuTarget.classList.contains("hidden") || this.openedByHover) {
+      if (this.timeout) {
+        clearTimeout(this.timeout)
+        this.timeout = null
+      }
+
+      this.closeOtherDropdowns()
+      this.closeExternalSubmenus()
+      this.openedByHover = false
+      this.show()
+      return
+    }
+
+    this.hide()
   }
 
   connect() {
+    this.hide()
+
+    this.toggleClickHandler = (event) => this.toggle(event)
+    this.documentClickHandler = (event) => {
+      if (!this.element.contains(event.target)) {
+        this.hide()
+      }
+    }
+    this.focusOutHandler = (event) => {
+      if (!this.element.contains(event.relatedTarget)) {
+        this.hide()
+      }
+    }
+    this.keydownHandler = (event) => {
+      if (event.key === "Escape") {
+        this.hide()
+        this.toggleTarget.focus()
+      }
+    }
+
+    this.toggleTarget.addEventListener("click", this.toggleClickHandler)
+    document.addEventListener("click", this.documentClickHandler)
+    this.element.addEventListener("focusout", this.focusOutHandler)
+    this.element.addEventListener("keydown", this.keydownHandler)
+
     // Show on hover
-    this.element.addEventListener("mouseenter", () => {
+    this.mouseEnterHandler = () => {
       if (this.timeout) {
         clearTimeout(this.timeout)
         this.timeout = null
       }
       this.closeOtherDropdowns()
       this.closeExternalSubmenus()
+      this.openedByHover = true
       this.show()
-    })
+    }
+    this.element.addEventListener("mouseenter", this.mouseEnterHandler)
 
     // Hide when mouse leaves the entire dropdown area with delay
-    this.element.addEventListener("mouseleave", (e) => {
+    this.mouseLeaveHandler = (event) => {
       // Check if we're leaving to a submenu
-      const submenuIds = ['excursions-menu', 'meals-menu']
-      const relatedTarget = e.relatedTarget
+      const submenuIds = ["excursions-menu", "meals-menu"]
+      const relatedTarget = event.relatedTarget
 
       if (relatedTarget) {
-        const isGoingToSubmenu = submenuIds.some(id => {
+        const isGoingToSubmenu = submenuIds.some((id) => {
           const submenu = document.getElementById(id)
           return submenu && (submenu === relatedTarget || submenu.contains(relatedTarget))
         })
@@ -62,28 +115,40 @@ export default class extends Controller {
       }
 
       this.timeout = setTimeout(() => {
+        this.openedByHover = false
         this.hide()
       }, 300)
-    })
+    }
+    this.element.addEventListener("mouseleave", this.mouseLeaveHandler)
 
     // Also keep menu open if hovering over external submenus
-    const submenuIds = ['excursions-menu', 'meals-menu']
-    submenuIds.forEach(menuId => {
+    const submenuIds = ["excursions-menu", "meals-menu"]
+    submenuIds.forEach((menuId) => {
       const submenu = document.getElementById(menuId)
       if (submenu) {
-        submenu.addEventListener('mouseenter', () => {
+        submenu.addEventListener("mouseenter", () => {
           if (this.timeout) {
             clearTimeout(this.timeout)
             this.timeout = null
           }
         })
 
-        submenu.addEventListener('mouseleave', () => {
+        submenu.addEventListener("mouseleave", () => {
           this.timeout = setTimeout(() => {
+            this.openedByHover = false
             this.hide()
           }, 300)
         })
       }
     })
+  }
+
+  disconnect() {
+    this.toggleTarget.removeEventListener("click", this.toggleClickHandler)
+    document.removeEventListener("click", this.documentClickHandler)
+    this.element.removeEventListener("focusout", this.focusOutHandler)
+    this.element.removeEventListener("keydown", this.keydownHandler)
+    this.element.removeEventListener("mouseenter", this.mouseEnterHandler)
+    this.element.removeEventListener("mouseleave", this.mouseLeaveHandler)
   }
 }

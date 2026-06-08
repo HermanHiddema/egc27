@@ -56,6 +56,10 @@ class UsersController < ApplicationController
   def user_update_params
     attributes = user_params.to_h
 
+    unless current_user&.admin?
+      attributes.except!("password", "password_confirmation")
+    end
+
     if attributes["password"].blank?
       attributes.except!("password", "password_confirmation")
     end

@@ -59,6 +59,45 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert_equal "regular", updated_user.role
   end
 
+  test "editor cannot update another user's password" do
+    sign_in users(:editor)
+
+    patch user_path(users(:one)), params: {
+      user: {
+        password: "newpassword123",
+        password_confirmation: "newpassword123"
+      }
+    }
+
+    assert_redirected_to users_path
+    refute users(:one).reload.valid_password?("newpassword123")
+    assert users(:one).valid_password?("password123")
+  end
+
+  test "editor does not see password fields on edit form" do
+    sign_in users(:editor)
+
+    get edit_user_path(users(:one))
+
+    assert_response :success
+    assert_select "input[name='user[password]']", count: 0
+    assert_select "input[name='user[password_confirmation]']", count: 0
+  end
+
+  test "admin can update another user's password" do
+    sign_in users(:admin)
+
+    patch user_path(users(:one)), params: {
+      user: {
+        password: "newpassword123",
+        password_confirmation: "newpassword123"
+      }
+    }
+
+    assert_redirected_to users_path
+    assert users(:one).reload.valid_password?("newpassword123")
+  end
+
   test "admin can change another user's role" do
     sign_in users(:admin)
     patch user_path(users(:one)), params: { user: { role: "editor" } }
