@@ -17,6 +17,8 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
 
     get edit_user_registration_path
     assert_response :success
+    assert_select "button", text: /#{Regexp.escape(users(:one).display_name)}/
+    assert_select "a", text: "Account"
     assert_select "h1", text: "Edit Account"
     assert_select "input[name='user[full_name]']"
 

@@ -39,7 +39,7 @@
 
         <div class="flex items-center gap-4">
           <%= link_to "Register now", new_participant_path, class: "inline-flex items-center rounded-lg bg-green-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
-          <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
+          <% if defined?(current_user) && (!respond_to?(:devise_controller?) || !devise_controller? || current_user.present?) %>
             <% if current_user.present? %>
               <% if current_user.admin? %>
                 <%= link_to "Admin", admin_root_path, class: "text-sm text-brand-yellow-300 hover:text-brand-yellow-200 transition-colors" %>
