@@ -6,7 +6,7 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
-    assert_select "button", text: /#{Regexp.escape(users(:one).display_name)}/
+    assert_select "button", text: users(:one).display_name
     assert_select "a", text: "Account"
     assert_select "a", text: "Users", count: 0
     assert_select "button", text: "Sign out"
