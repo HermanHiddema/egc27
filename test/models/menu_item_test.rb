@@ -5,11 +5,10 @@ class MenuItemTest < ActiveSupport::TestCase
     assert menu_items(:schedule).valid?
   end
 
-  test "requires destination" do
+  test "allows empty destination for placeholder items" do
     item = MenuItem.new(menu: menus(:primary), label: "Missing destination")
 
-    assert_not item.valid?
-    assert_includes item.errors[:base], "must have either a page or a URL"
+    assert item.valid?
   end
 
   test "cannot have both page and url" do
