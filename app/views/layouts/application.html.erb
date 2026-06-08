@@ -108,104 +108,72 @@
     <script>
       // Setup submenu handlers - runs on initial load and after Turbo navigations
       function setupSubmenus() {
-        const excursionsBtn = document.getElementById('excursions-btn');
-        const excursionsMenu = document.getElementById('excursions-menu');
-        const mealsBtn = document.getElementById('meals-btn');
-        const mealsMenu = document.getElementById('meals-menu');
-        let excursionsTimeout;
-        let mealsTimeout;
+        // Find all submenu triggers and set up their event listeners
+        const submenuTriggers = document.querySelectorAll('[data-submenu-trigger]');
+        const timeouts = {};
 
-        function hideExcursions() {
-          if (!excursionsMenu) return;
-          excursionsMenu.style.display = 'none';
-          excursionsMenu.classList.add('hidden');
-        }
-
-        function hideMeals() {
-          if (!mealsMenu) return;
-          mealsMenu.style.display = 'none';
-          mealsMenu.classList.add('hidden');
-        }
-        
-        if (excursionsBtn && excursionsMenu) {
-          // Remove existing listeners to prevent duplicates
-          const newExcursionsBtn = excursionsBtn.cloneNode(true);
-          excursionsBtn.parentNode.replaceChild(newExcursionsBtn, excursionsBtn);
+        submenuTriggers.forEach(btn => {
+          const submenuKey = btn.getAttribute('data-submenu-trigger');
+          const menuId = `${submenuKey}-menu`;
+          const menu = document.getElementById(menuId);
+          
+          if (!menu) return;
+          
+          // Clone button and menu to remove old listeners
+          const newBtn = btn.cloneNode(true);
+          btn.parentNode.replaceChild(newBtn, btn);
+          const newMenu = menu.cloneNode(true);
+          menu.parentNode.replaceChild(newMenu, menu);
           
           // Show submenu on hover
-          newExcursionsBtn.addEventListener('mouseenter', function(e) {
-            clearTimeout(excursionsTimeout);
-            clearTimeout(mealsTimeout);
-            hideMeals();
+          newBtn.addEventListener('mouseenter', function(e) {
+            // Clear timeouts for this and other menus
+            Object.keys(timeouts).forEach(key => {
+              clearTimeout(timeouts[key]);
+              timeouts[key] = null;
+            });
             
-            // Show the menu
-            excursionsMenu.style.display = 'block';
-            excursionsMenu.classList.remove('hidden');
+            // Hide all other submenus
+            document.querySelectorAll('[data-submenu-target]').forEach(otherMenu => {
+              if (otherMenu !== newMenu) {
+                otherMenu.style.display = 'none';
+                otherMenu.classList.add('hidden');
+              }
+            });
+            
+            // Show this menu
+            newMenu.style.display = 'block';
+            newMenu.classList.remove('hidden');
             
             // Position it to the right of the button
-            const rect = newExcursionsBtn.getBoundingClientRect();
-            excursionsMenu.style.position = 'fixed';
-            excursionsMenu.style.left = (rect.right + 5) + 'px';
-            excursionsMenu.style.top = rect.top + 'px';
+            const rect = newBtn.getBoundingClientRect();
+            newMenu.style.position = 'fixed';
+            newMenu.style.left = (rect.right + 5) + 'px';
+            newMenu.style.top = rect.top + 'px';
           });
           
           // Hide when leaving button (unless going to menu)
-          newExcursionsBtn.addEventListener('mouseleave', function(e) {
-            excursionsTimeout = setTimeout(function() {
-              hideExcursions();
+          newBtn.addEventListener('mouseleave', function(e) {
+            timeouts[submenuKey] = setTimeout(function() {
+              newMenu.style.display = 'none';
+              newMenu.classList.add('hidden');
             }, 200);
           });
           
           // Keep open when hovering over menu
-          excursionsMenu.addEventListener('mouseenter', function(e) {
-            clearTimeout(excursionsTimeout);
+          newMenu.addEventListener('mouseenter', function(e) {
+            if (timeouts[submenuKey]) {
+              clearTimeout(timeouts[submenuKey]);
+              timeouts[submenuKey] = null;
+            }
           });
           
           // Hide when leaving menu
-          excursionsMenu.addEventListener('mouseleave', function(e) {
-            hideExcursions();
+          newMenu.addEventListener('mouseleave', function(e) {
+            newMenu.style.display = 'none';
+            newMenu.classList.add('hidden');
           });
-        }
-        
-        if (mealsBtn && mealsMenu) {
-          // Remove existing listeners to prevent duplicates
-          const newMealsBtn = mealsBtn.cloneNode(true);
-          mealsBtn.parentNode.replaceChild(newMealsBtn, mealsBtn);
-          
-          // Show submenu on hover
-          newMealsBtn.addEventListener('mouseenter', function(e) {
-            clearTimeout(mealsTimeout);
-            clearTimeout(excursionsTimeout);
-            hideExcursions();
-            
-            // Show the menu
-            mealsMenu.style.display = 'block';
-            mealsMenu.classList.remove('hidden');
-            
-            // Position it to the right of the button
-            const rect = newMealsBtn.getBoundingClientRect();
-            mealsMenu.style.position = 'fixed';
-            mealsMenu.style.left = (rect.right + 5) + 'px';
-            mealsMenu.style.top = rect.top + 'px';
-          });
-          
-          // Hide when leaving button (unless going to menu)
-          newMealsBtn.addEventListener('mouseleave', function(e) {
-            mealsTimeout = setTimeout(function() {
-              hideMeals();
-            }, 200);
-          });
-          
-          // Keep open when hovering over menu
-          mealsMenu.addEventListener('mouseenter', function(e) {
-            clearTimeout(mealsTimeout);
-          });
-          
-          // Hide when leaving menu
-          mealsMenu.addEventListener('mouseleave', function(e) {
-            hideMeals();
-          });
-        }
+        });
       }
       
       // Run on initial page load
