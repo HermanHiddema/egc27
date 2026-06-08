@@ -119,9 +119,11 @@
           
           if (!menu) return;
           
-          // Clone button to remove old listeners
+          // Clone button and menu to remove old listeners
           const newBtn = btn.cloneNode(true);
           btn.parentNode.replaceChild(newBtn, btn);
+          const newMenu = menu.cloneNode(true);
+          menu.parentNode.replaceChild(newMenu, menu);
           
           // Show submenu on hover
           newBtn.addEventListener('mouseenter', function(e) {
@@ -133,33 +135,33 @@
             
             // Hide all other submenus
             document.querySelectorAll('[data-submenu-target]').forEach(otherMenu => {
-              if (otherMenu !== menu) {
+              if (otherMenu !== newMenu) {
                 otherMenu.style.display = 'none';
                 otherMenu.classList.add('hidden');
               }
             });
             
             // Show this menu
-            menu.style.display = 'block';
-            menu.classList.remove('hidden');
+            newMenu.style.display = 'block';
+            newMenu.classList.remove('hidden');
             
             // Position it to the right of the button
             const rect = newBtn.getBoundingClientRect();
-            menu.style.position = 'fixed';
-            menu.style.left = (rect.right + 5) + 'px';
-            menu.style.top = rect.top + 'px';
+            newMenu.style.position = 'fixed';
+            newMenu.style.left = (rect.right + 5) + 'px';
+            newMenu.style.top = rect.top + 'px';
           });
           
           // Hide when leaving button (unless going to menu)
           newBtn.addEventListener('mouseleave', function(e) {
             timeouts[submenuKey] = setTimeout(function() {
-              menu.style.display = 'none';
-              menu.classList.add('hidden');
+              newMenu.style.display = 'none';
+              newMenu.classList.add('hidden');
             }, 200);
           });
           
           // Keep open when hovering over menu
-          menu.addEventListener('mouseenter', function(e) {
+          newMenu.addEventListener('mouseenter', function(e) {
             if (timeouts[submenuKey]) {
               clearTimeout(timeouts[submenuKey]);
               timeouts[submenuKey] = null;
@@ -167,9 +169,9 @@
           });
           
           // Hide when leaving menu
-          menu.addEventListener('mouseleave', function(e) {
-            menu.style.display = 'none';
-            menu.classList.add('hidden');
+          newMenu.addEventListener('mouseleave', function(e) {
+            newMenu.style.display = 'none';
+            newMenu.classList.add('hidden');
           });
         });
       }
