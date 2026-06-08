@@ -5,7 +5,7 @@
       <%= link_to "← Previous", week_calendar_events_path(date: (@period_start - 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Current Week", week_calendar_events_path(date: Date.current, show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Next →", week_calendar_events_path(date: (@period_start + 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <% if user_signed_in? %>
+      <% if current_user&.can_create? %>
         <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>

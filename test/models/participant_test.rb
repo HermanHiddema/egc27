@@ -19,10 +19,10 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "jane@example.org",
       date_of_birth: Date.new(1990, 1, 1),
       country: "NL",
+      gender: "female",
       club: "Utrecht",
       rank: "3k",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rating: "1789"
     )
 
@@ -39,9 +39,9 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "ilja@example.org",
       date_of_birth: Date.new(1990, 1, 1),
       country: "RU",
+      gender: "male",
       club: "Kazan",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "4p"
     )
 
@@ -57,9 +57,9 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "eva@example.org",
       date_of_birth: "31-12-1999",
       country: "NL",
+      gender: "female",
       club: "Eindhoven",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "1 dan"
     )
 
@@ -74,9 +74,9 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "ana@example.org",
       date_of_birth: "01-01-2000",
       country: "pt",
+      gender: "female",
       club: "Porto",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "10 kyu"
     )
 
@@ -91,9 +91,9 @@ class ParticipantTest < ActiveSupport::TestCase
       email: "lee@example.org",
       date_of_birth: "01-01-2001",
       country: "KR",
+      gender: "male",
       club: "Seoul",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "2 dan"
     )
 
@@ -109,9 +109,9 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "visitor",
       date_of_birth: "05-06-1998",
       country: "SE",
+      gender: "female",
       club: "Stockholm",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "5 kyu"
     )
 
@@ -128,9 +128,9 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "player",
       date_of_birth: "10-10-1997",
       country: "IT",
+      gender: "female",
       club: "",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       rank: "8 kyu"
     )
 
@@ -146,9 +146,9 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "player",
       date_of_birth: "10-10-1997",
       country: "IT",
+      gender: "female",
       rank: "8 kyu",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       phone: "(+39) 06 1234 5678"
     )
 
@@ -164,9 +164,9 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "player",
       date_of_birth: "10-10-1997",
       country: "IT",
+      gender: "female",
       rank: "8 kyu",
-      accepted_terms_and_conditions: true,
-      accepted_privacy_policy: true,
+      image_use_consent: true,
       phone: "+12"
     )
 
@@ -174,7 +174,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:phone], "must be a valid international phone number"
   end
 
-  test "requires acceptance of terms and privacy policy" do
+  test "implicitly accepts terms and privacy policy" do
     participant = Participant.new(
       first_name: "Mia",
       last_name: "Rossi",
@@ -182,14 +182,14 @@ class ParticipantTest < ActiveSupport::TestCase
       participant_type: "player",
       date_of_birth: "10-10-1997",
       country: "IT",
+      gender: "female",
       rank: "8 kyu",
-      accepted_terms_and_conditions: false,
-      accepted_privacy_policy: false
+      image_use_consent: true
     )
 
-    assert_not participant.valid?
-    assert_includes participant.errors[:accepted_terms_and_conditions], "must be accepted"
-    assert_includes participant.errors[:accepted_privacy_policy], "must be accepted"
+    assert participant.valid?
+    assert_equal true, participant.accepted_terms_and_conditions
+    assert_equal true, participant.accepted_privacy_policy
   end
 
   test "attendance periods default to selected" do
@@ -198,5 +198,64 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal true, participant.first_week
     assert_equal true, participant.weekend
     assert_equal true, participant.second_week
+  end
+
+  test "image consent defaults to nil for new participants" do
+    assert_nil Participant.new.image_use_consent
+  end
+
+  test "attendance option updates attendance periods" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      gender: "female",
+      rank: "8 kyu",
+      image_use_consent: true,
+      attendance_option: "weekend_only"
+    )
+
+    assert participant.valid?
+    assert_equal false, participant.first_week
+    assert_equal true, participant.weekend
+    assert_equal false, participant.second_week
+  end
+
+  test "rejects unknown attendance option" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      gender: "female",
+      rank: "8 kyu",
+      image_use_consent: true,
+      attendance_option: "unexpected"
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:attendance_option], "is not included in the list"
+  end
+
+  test "requires explicit image consent choice" do
+    participant = Participant.new(
+      first_name: "Mia",
+      last_name: "Rossi",
+      email: "mia@example.org",
+      participant_type: "player",
+      date_of_birth: "10-10-1997",
+      country: "IT",
+      gender: "female",
+      rank: "8 kyu",
+      image_use_consent: nil
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:image_use_consent], "is not included in the list"
   end
 end

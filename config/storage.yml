@@ -14,6 +14,16 @@ local:
 #   region: us-east-1
 #   bucket: your_own_bucket-<%= Rails.env %>
 
+# Railway S3-compatible bucket (configured via Railway-provided environment variables)
+railway:
+  service: S3
+  access_key_id: <%= ENV["BUCKET_ACCESS_KEY_ID"] %>
+  secret_access_key: <%= ENV["BUCKET_SECRET_ACCESS_KEY"] %>
+  region: <%= ENV["AWS_DEFAULT_REGION"] %>
+  bucket: <%= ENV["BUCKET_NAME"] %>
+  endpoint: <%= ENV["BUCKET_ENDPOINT_URL"] %>
+  force_path_style: true
+
 # Remember not to checkin your GCS keyfile to a repository
 # google:
 #   service: GCS

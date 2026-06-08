@@ -48,7 +48,12 @@ gem "kamal", require: false
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 1.2"
+gem "image_processing", "~> 2.0"
+# Requires the libvips system package on non-Docker setups.
+gem "ruby-vips", ">= 2.1"
+
+# Use AWS S3 for Active Storage in production (Railway S3-compatible bucket)
+gem "aws-sdk-s3", require: false
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

@@ -49,8 +49,8 @@
           </div>
 
           <div>
-            <%= form.label :gender, "Gender", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], participant.gender), { prompt: "Select gender (optional)" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+            <%= form.label :gender, "Gender *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], participant.gender), { prompt: "Select gender" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
           </div>
 
           <div>
@@ -123,51 +123,31 @@
         </div>
 
         <div class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-          <p class="text-sm font-medium text-gray-900">Attendance period</p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <label class="flex items-center gap-3 text-sm text-gray-800">
-              <%= form.check_box :first_week, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-              <span>First week</span>
-            </label>
-
-            <label class="flex items-center gap-3 text-sm text-gray-800">
-              <%= form.check_box :weekend, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-              <span>Weekend</span>
-            </label>
-
-            <label class="flex items-center gap-3 text-sm text-gray-800">
-              <%= form.check_box :second_week, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-              <span>Second week</span>
-            </label>
-          </div>
+          <%= form.label :attendance_option, "Attendance period", class: "block text-sm font-medium text-gray-900" %>
+          <%= form.select :attendance_option, options_for_select([["All events", "all_events"], ["First week + weekend", "first_week_plus_weekend"], ["Weekend + second week", "weekend_plus_second_week"], ["Weekend only", "weekend_only"]], participant.attendance_option.presence || "all_events"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
         </div>
       </div>
     </div>
 
     <div class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-      <label class="flex items-start gap-3 text-sm text-gray-800">
-        <%= form.check_box :accepted_terms_and_conditions, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-        <span>
-          I have read and agree with the
-          <%= link_to "Terms and Conditions", page_path("terms-and-conditions"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>
-        </span>
-      </label>
+      <p class="text-sm text-gray-800">
+        By registering, you agree to the
+        <%= link_to "Terms and Conditions", page_path("terms-and-conditions"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>
+        and
+        <%= link_to "Privacy Policy", page_path("privacy"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>.
+      </p>
 
-      <label class="flex items-start gap-3 text-sm text-gray-800">
-        <%= form.check_box :accepted_privacy_policy, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-        <span>
-          I have read and agree with the
-          <%= link_to "Privacy Policy", page_path("privacy"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %>
-        </span>
-      </label>
-
-      <label class="flex items-start gap-3 text-sm text-gray-800">
-        <%= form.check_box :image_use_consent, class: "mt-1 h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
-        <span>
-          I grant the use of my image on videos and photos taken during the event to the NGoB, for the sole purpose of promotion and communication around the EGC
-        </span>
-      </label>
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-gray-900">Photo policy *</legend>
+        <label class="flex items-start gap-3 text-sm text-gray-800">
+          <%= form.radio_button :image_use_consent, true, class: "mt-1 h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+          <span>I consent to the use of images of me / my child on the EGC website and social media.</span>
+        </label>
+        <label class="flex items-start gap-3 text-sm text-gray-800">
+          <%= form.radio_button :image_use_consent, false, class: "mt-1 h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+          <span>I do not consent to the use of images in which I / my child can be recognized on the EGC website or social media.</span>
+        </label>
+      </fieldset>
     </div>
 
     <%= render "shared/turnstile_widget" %>

@@ -7,11 +7,41 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "participants index supports country filter and shows numbered filtered results with flags" do
+    get participants_path, params: { country: "NL" }
+
+    assert_response :success
+    assert_select "tbody tr", count: 2
+    assert_select "tbody tr td:first-child", text: "1", count: 1
+    assert_select "tbody tr td:first-child", text: "2", count: 1
+    assert_select "p", text: /2 results/
+    assert_select "select[name='country'] option[value='NL'][selected='selected']"
+    assert_match "🇳🇱 NL", response.body
+    assert_no_match "🇩🇪 DE", response.body
+  end
+
+  test "participants index sorts by rank using rank integer values" do
+    get participants_path, params: { sort: "rank", direction: "desc" }
+
+    assert_response :success
+
+    body = response.body
+    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+    assert_match "Rank ↓", body
+  end
+
   test "registration form is publicly accessible" do
     get new_participant_path
 
     assert_response :success
     assert_select "input[name='participant[egd_pin]']:not([type='hidden']):not([disabled])"
+    assert_select "input[name='participant[accepted_terms_and_conditions]']", count: 0
+    assert_select "input[name='participant[accepted_privacy_policy]']", count: 0
+    assert_select "input[name='participant[image_use_consent]'][type='radio']", count: 2
+    assert_select "input[name='participant[image_use_consent]'][type='radio'][checked]", count: 0
+    assert_select "label[for='participant_attendance_option']", text: "Attendance period"
+    assert_select "a[href='#{new_participant_path}']", text: "Register now"
   end
 
   test "registration form includes turnstile widget when site key is configured" do
@@ -41,8 +71,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           participant_type: "player",
           date_of_birth: "11-02-1995",
           country: "NL",
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true
+          gender: "female",
+          image_use_consent: true
         }
         # deliberately omitting cf-turnstile-response so token is blank → verify returns false
       }
@@ -73,11 +103,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           country: "NL",
           club: "Utrecht",
           rank: 27,
+          gender: "female",
           phone: "+31612345678",
           rating: 1742,
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true,
           image_use_consent: true,
+          attendance_option: "weekend_only",
           egd_pin: "12345678"
         }
       }
@@ -90,6 +120,9 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = Participant.order(:id).last
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
+    assert_equal false, participant.first_week
+    assert_equal true, participant.weekend
+    assert_equal false, participant.second_week
   end
 
   test "creates a user account when registering a new participant" do
@@ -104,8 +137,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
             date_of_birth: "11-02-1995",
             country: "NL",
             club: "Utrecht",
-            accepted_terms_and_conditions: true,
-            accepted_privacy_policy: true
+            gender: "female",
+            image_use_consent: false
           }
         }
       end
@@ -126,8 +159,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
         date_of_birth: "11-02-1995",
         country: "NL",
         club: "Utrecht",
-        accepted_terms_and_conditions: true,
-        accepted_privacy_policy: true
+        gender: "female",
+        image_use_consent: true
       }
     }
 
@@ -150,8 +183,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           date_of_birth: "01-01-1990",
           country: "NL",
           club: "Utrecht",
-          accepted_terms_and_conditions: true,
-          accepted_privacy_policy: true
+          gender: "female",
+          image_use_consent: false
         }
       }
     end

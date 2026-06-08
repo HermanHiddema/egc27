@@ -5,7 +5,7 @@
       <%= link_to "← Previous", calendar_path(month: (@month << 1).strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Today", calendar_path(month: Date.current.strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Next →", calendar_path(month: (@month >> 1).strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      <% if user_signed_in? %>
+      <% if current_user&.can_create? %>
         <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
       <% end %>
     </div>

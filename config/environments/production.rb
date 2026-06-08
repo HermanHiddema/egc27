@@ -21,8 +21,8 @@ Rails.application.configure do
   # Enable serving of images, stylesheets, and JavaScripts from an asset server.
   # config.asset_host = "http://assets.example.com"
 
-  # Store uploaded files on the local file system (see config/storage.yml for options).
-  config.active_storage.service = :local
+  # Store uploaded files on the Railway S3-compatible bucket (see config/storage.yml for options).
+  config.active_storage.service = :railway
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
   config.assume_ssl = true
@@ -58,7 +58,7 @@ Rails.application.configure do
   # config.action_mailer.raise_delivery_errors = false
 
   # Set host to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "egc2027.nl" }
+  config.action_mailer.default_url_options = { host: ENV["DEFAULT_URL_HOST"].presence || "egc2027.nl" }
 
   # Send email through Mailgun. Configure mailgun/* credentials via bin/rails credentials:edit
   # or by setting MAILGUN_API_KEY, MAILGUN_DOMAIN and optional MAILGUN_API_HOST.

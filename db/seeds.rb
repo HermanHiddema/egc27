@@ -3,13 +3,13 @@
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
 # Create or reset test user with properly hashed password
-# user = User.find_or_initialize_by(email: "test@example.com")
-# user.update!(
-#   email: "test@example.com",
-#   password: "password123",
-#   password_confirmation: "password123",
-#   full_name: "Test User"
-# )
+user = User.find_or_initialize_by(email: "test@example.com")
+user.update!(
+  email: "test@example.com",
+  password: "password123",
+  password_confirmation: "password123",
+  full_name: "Test User"
+)
 
 puts "✓ Test user created: test@example.com / password123"
 
@@ -83,7 +83,6 @@ end
 create_menu_item.call(menu: header_menu, label: "Home", position: 1, url: "/")
 create_menu_item.call(menu: header_menu, label: "News", position: 2, url: "/articles")
 create_menu_item.call(menu: header_menu, label: "Schedule", position: 3, url: "/calendar_events/three_weeks?date=2027-07-19")
-create_menu_item.call(menu: header_menu, label: "Calendar", position: 4, url: "/calendar")
 
 go_tournaments = create_menu_item.call(menu: header_menu, label: "Go Tournaments", position: 5, url: "#")
 %w[
