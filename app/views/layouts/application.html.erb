@@ -35,12 +35,26 @@
         <div class="flex items-center gap-4">
           <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
             <% if current_user.present? %>
-              <span class="text-sm text-brand-yellow-300"><%= current_user.display_name %></span>
-              <%= link_to "Account", edit_user_registration_path, class: "text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
-              <% if current_user.can_edit? %>
-                <%= link_to "Users", users_path, class: "text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
-              <% end %>
-              <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm text-brand-yellow-300 btn-primary px-4 py-2" %>
+              <div class="relative" data-controller="dropdown">
+                <button class="text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors flex items-center gap-1" type="button">
+                  <span><%= current_user.display_name %></span>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+
+                <div data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
+                  <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <% if current_user.can_edit? %>
+                    <%= link_to "Users", users_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <% end %>
+                  <%= button_to "Sign out",
+                                destroy_user_session_path,
+                                method: :delete,
+                                form_class: "w-full",
+                                class: "w-full text-left px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors bg-transparent border-0" %>
+                </div>
+              </div>
             <% else %>
               <%= link_to "Sign in", new_user_session_path, class: "btn-primary text-brand-yellow-300 px-4 py-2" %>
             <% end %>

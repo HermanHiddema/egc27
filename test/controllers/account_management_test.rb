@@ -1,6 +1,17 @@
 require "test_helper"
 
 class AccountManagementTest < ActionDispatch::IntegrationTest
+  test "regular user sees account links in username dropdown" do
+    sign_in users(:one)
+
+    get root_path
+    assert_response :success
+    assert_select "button", text: /#{Regexp.escape(users(:one).display_name)}/
+    assert_select "a", text: "Account"
+    assert_select "a", text: "Users", count: 0
+    assert_select "button", text: "Sign out"
+  end
+
   test "user can edit account page and update display name email and password" do
     sign_in users(:one)
 
