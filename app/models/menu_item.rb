@@ -37,8 +37,6 @@ class MenuItem < ApplicationRecord
   def destination_is_valid
     if page_id.present? && url.present?
       errors.add(:base, "choose either a page or a URL, not both")
-    elsif page_id.blank? && url.blank?
-      errors.add(:base, "must have either a page or a URL")
     end
   end
 end
