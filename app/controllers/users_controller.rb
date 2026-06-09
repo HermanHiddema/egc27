@@ -26,7 +26,7 @@ class UsersController < ApplicationController
   def update
     attributes = user_update_params
 
-    if current_user.admin? && @user == current_user && attributes["role"].present? && attributes["role"] != "admin"
+    if @user == current_user && attributes["role"].present? && attributes["role"] != "admin"
       @user.errors.add(:role, "cannot be changed for your own account.")
       render :edit, status: :unprocessable_entity
       return
@@ -54,10 +54,6 @@ class UsersController < ApplicationController
 
   def user_update_params
     attributes = user_params.to_h
-
-    unless current_user&.admin?
-      attributes.except!("password", "password_confirmation")
-    end
 
     if attributes["password"].blank?
       attributes.except!("password", "password_confirmation")
