@@ -10,7 +10,7 @@ class User < ApplicationRecord
 
   ROLES = %w[regular editor admin].freeze
 
-  enum :role, ROLES.index_with(&:itself), default: "regular"
+  enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
   def display_name
     full_name.presence || email

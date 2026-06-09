@@ -122,23 +122,26 @@ export default class extends Controller {
     this.element.addEventListener("mouseleave", this.mouseLeaveHandler)
 
     // Also keep menu open if hovering over external submenus
+    this.externalSubmenuListeners = []
     const submenuIds = ["excursions-menu", "meals-menu"]
     submenuIds.forEach((menuId) => {
       const submenu = document.getElementById(menuId)
       if (submenu) {
-        submenu.addEventListener("mouseenter", () => {
+        const enterHandler = () => {
           if (this.timeout) {
             clearTimeout(this.timeout)
             this.timeout = null
           }
-        })
-
-        submenu.addEventListener("mouseleave", () => {
+        }
+        const leaveHandler = () => {
           this.timeout = setTimeout(() => {
             this.openedByHover = false
             this.hide()
           }, 300)
-        })
+        }
+        submenu.addEventListener("mouseenter", enterHandler)
+        submenu.addEventListener("mouseleave", leaveHandler)
+        this.externalSubmenuListeners.push({ submenu, enterHandler, leaveHandler })
       }
     })
   }
@@ -150,5 +153,13 @@ export default class extends Controller {
     this.element.removeEventListener("keydown", this.keydownHandler)
     this.element.removeEventListener("mouseenter", this.mouseEnterHandler)
     this.element.removeEventListener("mouseleave", this.mouseLeaveHandler)
+
+    if (this.externalSubmenuListeners) {
+      this.externalSubmenuListeners.forEach(({ submenu, enterHandler, leaveHandler }) => {
+        submenu.removeEventListener("mouseenter", enterHandler)
+        submenu.removeEventListener("mouseleave", leaveHandler)
+      })
+      this.externalSubmenuListeners = []
+    }
   }
 }
