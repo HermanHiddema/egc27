@@ -28,8 +28,6 @@ class NewsletterSubscriptionsController < ApplicationController
       raise if retried_create
 
       retried_create = true
-      @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
-      @newsletter_subscription.unsubscribe_token = nil
       retry
     end
   end
