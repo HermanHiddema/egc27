@@ -7,6 +7,21 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "participants index shows presence period column" do
+    get participants_path
+
+    assert_response :success
+    assert_select "th", text: "Presence"
+    body = response.body
+    assert_match "✓", body
+    assert_match "✗", body
+    assert_select "span[aria-label*='Week 1:']"
+    assert_select "span[aria-label*='Weekend:']"
+    assert_select "span[aria-label*='Week 2:']"
+    assert_select "span[aria-label='Week 1: attending']"
+    assert_select "span[aria-label='Week 1: not attending']"
+  end
+
   test "participants index supports country filter and shows numbered filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
