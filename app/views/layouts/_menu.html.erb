@@ -73,14 +73,19 @@
               <% menu_classes << "max-h-96 overflow-y-auto" if ["Go Tournaments", "Other Activities"].include?(root_item.label) %>
 
               <div class="<%= dropdown_classes.join(" ") %>" data-controller="dropdown">
-                <button class="text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors flex items-center gap-1" type="button">
+                <button class="text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors flex items-center gap-1"
+                        type="button"
+                        data-dropdown-target="toggle"
+                        aria-controls="<%= "menu-item-#{root_item.id}" %>"
+                        aria-expanded="false"
+                        aria-haspopup="true">
                   <%= root_item.label %>
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
                   </svg>
                 </button>
 
-                <div data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
+                <div id="<%= "menu-item-#{root_item.id}" %>" data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
                   <% children.each_with_index do |child, child_index| %>
                     <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
                     <% first_class = (child_index.zero? ? " first:rounded-t-md" : "") %>

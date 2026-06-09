@@ -10,7 +10,7 @@ class User < ApplicationRecord
 
   ROLES = %w[regular editor admin].freeze
 
-  enum :role, ROLES.index_with(&:itself), default: "regular"
+  enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
   def display_name
     full_name.presence || email
@@ -26,6 +26,10 @@ class User < ApplicationRecord
 
   def can_delete?
     admin?
+  end
+
+  def password_set?
+    encrypted_password.present?
   end
 
   # Allow users to be created without a password when explicitly created via

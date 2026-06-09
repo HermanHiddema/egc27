@@ -1,0 +1,35 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Users</h1>
+    <% if current_user.admin? %>
+      <%= link_to "New User", new_user_path, class: "btn-primary" %>
+    <% end %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-neutral-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Display name</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Email</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Role</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100 bg-white">
+          <% @users.each do |user| %>
+            <tr>
+              <td class="px-4 py-3 text-sm text-neutral-900"><%= user.display_name %></td>
+              <td class="px-4 py-3 text-sm text-neutral-700"><%= user.email %></td>
+              <td class="px-4 py-3 text-sm text-neutral-700"><%= user.role %></td>
+              <td class="px-4 py-3 text-sm text-neutral-700">
+                <%= link_to "Edit", edit_user_path(user), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              </td>
+            </tr>
+          <% end %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

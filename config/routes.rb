@@ -1,6 +1,7 @@
 Rails.application.routes.draw do
   devise_for :users,
     controllers: {
+      registrations: "users/registrations",
       sessions: "users/sessions",
       magic_links: "devise/magic_links"
     }
@@ -41,6 +42,8 @@ Rails.application.routes.draw do
       get :egd_search
     end
   end
+  resources :users, only: [:index, :new, :edit, :update]
+  post "users/create", to: "users#create", as: :create_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
   resources :newsletter_subscriptions, only: [:create]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
