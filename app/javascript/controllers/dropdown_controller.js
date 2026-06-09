@@ -117,20 +117,66 @@ export default class extends Controller {
     }
     this.element.addEventListener("mouseleave", this.mouseLeaveHandler)
 
+    // Set up hover behavior for submenu triggers within this dropdown.
+    // Each [data-submenu-trigger] shows its corresponding [data-submenu-target] on hover.
+    this.submenuTriggerListeners = []
+    this.submenuTimeouts = {}
+    this.element.querySelectorAll("[data-submenu-trigger]").forEach((trigger) => {
+      const submenuKey = trigger.getAttribute("data-submenu-trigger")
+      const submenu = this.element.querySelector(`[data-submenu-target="${submenuKey}"]`)
+      if (!submenu) return
+
+      const enterHandler = () => {
+        Object.keys(this.submenuTimeouts).forEach((key) => {
+          clearTimeout(this.submenuTimeouts[key])
+          delete this.submenuTimeouts[key]
+        })
+        this.element.querySelectorAll("[data-submenu-target]").forEach((otherMenu) => {
+          if (otherMenu !== submenu) {
+            otherMenu.style.display = "none"
+            otherMenu.classList.add("hidden")
+          }
+        })
+        const rect = trigger.getBoundingClientRect()
+        submenu.style.position = "fixed"
+        submenu.style.left = `${rect.right + 5}px`
+        submenu.style.top = `${rect.top}px`
+        submenu.style.display = "block"
+        submenu.classList.remove("hidden")
+      }
+
+      const leaveHandler = () => {
+        this.submenuTimeouts[submenuKey] = setTimeout(() => {
+          submenu.style.display = "none"
+          submenu.classList.add("hidden")
+          delete this.submenuTimeouts[submenuKey]
+        }, 200)
+      }
+
+      trigger.addEventListener("mouseenter", enterHandler)
+      trigger.addEventListener("mouseleave", leaveHandler)
+      this.submenuTriggerListeners.push({ trigger, enterHandler, leaveHandler })
+    })
+
     // Keep the dropdown open while hovering over any of its sub-submenus.
+    // Also cancel any pending hide timeout for the submenu itself.
     this.submenuListeners = []
     this.submenus().forEach((submenu) => {
+      const submenuKey = submenu.getAttribute("data-submenu-target")
+
       const enterHandler = () => {
         if (this.timeout) {
           clearTimeout(this.timeout)
           this.timeout = null
         }
+        if (submenuKey && this.submenuTimeouts?.[submenuKey]) {
+          clearTimeout(this.submenuTimeouts[submenuKey])
+          delete this.submenuTimeouts[submenuKey]
+        }
       }
       const leaveHandler = () => {
-        this.timeout = setTimeout(() => {
-          this.openedByHover = false
-          this.hide()
-        }, 300)
+        submenu.style.display = "none"
+        submenu.classList.add("hidden")
       }
       submenu.addEventListener("mouseenter", enterHandler)
       submenu.addEventListener("mouseleave", leaveHandler)
@@ -145,6 +191,14 @@ export default class extends Controller {
     this.element.removeEventListener("keydown", this.keydownHandler)
     this.element.removeEventListener("mouseenter", this.mouseEnterHandler)
     this.element.removeEventListener("mouseleave", this.mouseLeaveHandler)
+
+    if (this.submenuTriggerListeners) {
+      this.submenuTriggerListeners.forEach(({ trigger, enterHandler, leaveHandler }) => {
+        trigger.removeEventListener("mouseenter", enterHandler)
+        trigger.removeEventListener("mouseleave", leaveHandler)
+      })
+      this.submenuTriggerListeners = []
+    }
 
     if (this.submenuListeners) {
       this.submenuListeners.forEach(({ submenu, enterHandler, leaveHandler }) => {

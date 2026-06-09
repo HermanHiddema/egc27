@@ -67,7 +67,7 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to root_path
-    assert users(:one).valid_password?("password123")
+    assert users(:one).reload.valid_password?("password123")
   end
 
   test "editor cannot access user edit form" do
