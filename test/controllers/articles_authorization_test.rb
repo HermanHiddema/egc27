@@ -99,6 +99,7 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
   end
 
   test "article summaries and detail show main image when attached" do
+    sign_in users(:one)
     article = articles(:one)
     article.main_image.attach(image_upload)
 

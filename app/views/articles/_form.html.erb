@@ -24,7 +24,7 @@
 
     <div>
       <%= form.label :main_image, class: "block text-sm font-medium text-gray-700 mb-2" %>
-      <%= form.file_field :main_image, accept: "image/*", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= form.file_field :main_image, accept: "image/png,image/jpeg,image/webp", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
       <% if article.main_image.attached? && article.main_image.image? %>
         <div class="mt-3">
           <%= image_tag article.main_image, alt: "#{article.title} main image", class: "h-24 w-auto rounded-lg border border-gray-200" %>

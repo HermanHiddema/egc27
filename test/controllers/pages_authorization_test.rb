@@ -105,6 +105,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   end
 
   test "page summaries and detail show main image when attached" do
+    sign_in users(:one)
     page = pages(:one)
     page.main_image.attach(image_upload)
 
