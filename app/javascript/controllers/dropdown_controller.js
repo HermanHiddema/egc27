@@ -169,7 +169,7 @@ export default class extends Controller {
           clearTimeout(this.timeout)
           this.timeout = null
         }
-        if (submenuKey && this.submenuTimeouts?.[submenuKey]) {
+        if (submenuKey && this.submenuTimeouts[submenuKey]) {
           clearTimeout(this.submenuTimeouts[submenuKey])
           delete this.submenuTimeouts[submenuKey]
         }
