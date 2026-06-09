@@ -1,3 +1,9 @@
+<% if ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
+  <% content_for :head do %>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <% end %>
+<% end %>
+
 <div class="container-wide py-12">
   <div class="max-w-4xl mx-auto card p-6">
     <h1 class="text-3xl font-bold mb-2">Newsletter</h1>
@@ -29,6 +35,9 @@
       </div>
       <div>
         <%= form.submit "Subscribe", class: "btn-primary w-full" %>
+      </div>
+      <div class="md:col-span-4">
+        <%= render "shared/turnstile_widget" %>
       </div>
     <% end %>
   </div>

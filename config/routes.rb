@@ -44,6 +44,7 @@ Rails.application.routes.draw do
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
   resources :newsletter_subscriptions, only: [:create]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
+  delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
   resources :menus do
     resources :menu_items
   end
