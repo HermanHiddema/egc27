@@ -45,9 +45,7 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Rating #{sort_indicator("rating", @sort, @direction)}".strip, participants_path(sort: "rating", direction: next_sort_direction("rating", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
               </th>
-              <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-700">Week 1</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-700">Weekend</th>
-              <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-neutral-700">Week 2</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Presence</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
@@ -59,9 +57,11 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.club %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>
-                <td class="px-4 py-3 text-sm text-center"><%= participant.first_week? ? "✓" : "✗" %></td>
-                <td class="px-4 py-3 text-sm text-center"><%= participant.weekend? ? "✓" : "✗" %></td>
-                <td class="px-4 py-3 text-sm text-center"><%= participant.second_week? ? "✓" : "✗" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap">
+                  <span title="Week 1"><%= participant.first_week? ? "✓" : "✗" %></span>
+                  <span title="Weekend"><%= participant.weekend? ? "✓" : "✗" %></span>
+                  <span title="Week 2"><%= participant.second_week? ? "✓" : "✗" %></span>
+                </td>
               </tr>
             <% end %>
           </tbody>

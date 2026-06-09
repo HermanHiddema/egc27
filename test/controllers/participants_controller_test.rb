@@ -7,13 +7,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "participants index shows presence period columns" do
+  test "participants index shows presence period column" do
     get participants_path
 
     assert_response :success
-    assert_select "th", text: "Week 1"
-    assert_select "th", text: "Weekend"
-    assert_select "th", text: "Week 2"
+    assert_select "th", text: "Presence"
     body = response.body
     assert_match "✓", body
     assert_match "✗", body
