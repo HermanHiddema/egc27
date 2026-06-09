@@ -38,7 +38,7 @@ class Admin::NewsletterSubscriptionsAuthorizationTest < ActionDispatch::Integrat
     assert_redirected_to admin_newsletter_subscriptions_path
     subscription.reload
     assert_equal "Updated", subscription.first_name
-    assert_equal false, subscription.subscribed
+    assert_not subscription.subscribed
   end
 
   test "editor cannot access admin newsletter subscriptions" do
