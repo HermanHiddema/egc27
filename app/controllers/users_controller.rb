@@ -1,6 +1,5 @@
 class UsersController < ApplicationController
-  before_action :require_editor!, only: [:index, :edit, :update]
-  before_action :require_admin!, only: [:new, :create]
+  before_action :require_admin!
   before_action :set_user, only: [:edit, :update]
 
   def index

@@ -36,6 +36,10 @@ export default class extends Controller {
     this.menuTarget.classList.add("hidden")
     this.toggleTarget.setAttribute("aria-expanded", "false")
     this.openedByHover = false
+    this.submenus().forEach((submenu) => {
+      submenu.classList.add("hidden")
+      submenu.style.display = "none"
+    })
   }
 
   toggle(event) {

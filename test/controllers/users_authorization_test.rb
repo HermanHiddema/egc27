@@ -13,11 +13,10 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "editor can see users index" do
+  test "editor cannot see users index" do
     sign_in users(:editor)
     get users_path
-    assert_response :success
-    assert_select "h1", text: "Users"
+    assert_redirected_to root_path
   end
 
   test "editor cannot access new user page" do
@@ -44,7 +43,7 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "editor can update user details but not role" do
+  test "editor cannot update user details" do
     sign_in users(:editor)
     patch user_path(users(:one)), params: {
       user: {
@@ -53,10 +52,8 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to users_path
-    updated_user = users(:one).reload
-    assert_equal "Updated Name", updated_user.full_name
-    assert_equal "regular", updated_user.role
+    assert_redirected_to root_path
+    assert_equal users(:one).full_name, users(:one).reload.full_name
   end
 
   test "editor cannot update another user's password" do
@@ -69,19 +66,16 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to users_path
-    refute users(:one).reload.valid_password?("newpassword123")
+    assert_redirected_to root_path
     assert users(:one).valid_password?("password123")
   end
 
-  test "editor does not see password fields on edit form" do
+  test "editor cannot access user edit form" do
     sign_in users(:editor)
 
     get edit_user_path(users(:one))
 
-    assert_response :success
-    assert_select "input[name='user[password]']", count: 0
-    assert_select "input[name='user[password_confirmation]']", count: 0
+    assert_redirected_to root_path
   end
 
   test "admin can update another user's password" do

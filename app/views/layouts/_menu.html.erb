@@ -76,7 +76,7 @@
                 <button class="text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors flex items-center gap-1"
                         type="button"
                         data-dropdown-target="toggle"
-                        aria-controls="<%= "#{root_item.label.parameterize}-menu" %>"
+                        aria-controls="<%= "menu-item-#{root_item.id}" %>"
                         aria-expanded="false"
                         aria-haspopup="true">
                   <%= root_item.label %>
@@ -85,7 +85,7 @@
                   </svg>
                 </button>
 
-                <div id="<%= "#{root_item.label.parameterize}-menu" %>" data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
+                <div id="<%= "menu-item-#{root_item.id}" %>" data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
                   <% children.each_with_index do |child, child_index| %>
                     <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
                     <% first_class = (child_index.zero? ? " first:rounded-t-md" : "") %>
