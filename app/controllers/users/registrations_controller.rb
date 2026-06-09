@@ -5,7 +5,10 @@ module Users
     def update_resource(resource, params)
       return super if resource.password_set?
 
-      resource.update(params.except(:current_password))
+      sanitized_params = params.dup
+      sanitized_params.delete(:current_password)
+
+      resource.update(sanitized_params)
     end
   end
 end

@@ -64,6 +64,8 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
 
     get edit_user_registration_path
     assert_response :success
+    assert_select "input[name='user[password]']"
+    assert_select "input[name='user[password_confirmation]']"
     assert_select "input[name='user[current_password]']", count: 0
     assert_match "You do not have a password yet. Set one here to enable password sign-in.", response.body
 
