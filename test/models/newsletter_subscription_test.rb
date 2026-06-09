@@ -31,4 +31,13 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal false, subscription.subscribed
     assert_not_nil subscription.unsubscribed_at
   end
+
+  test "unsubscribe preserves existing unsubscribed_at" do
+    subscription = newsletter_subscriptions(:inactive)
+    unsubscribed_at = subscription.unsubscribed_at
+
+    subscription.unsubscribe!
+
+    assert_equal unsubscribed_at, subscription.reload.unsubscribed_at
+  end
 end

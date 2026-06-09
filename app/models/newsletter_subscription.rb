@@ -12,7 +12,7 @@ class NewsletterSubscription < ApplicationRecord
   end
 
   def unsubscribe!
-    update!(subscribed: false, unsubscribed_at: Time.current)
+    update!(subscribed: false)
   end
 
   private

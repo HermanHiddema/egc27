@@ -1,3 +1,5 @@
+<% subscription_count = @newsletter_subscriptions.length %>
+
 <div class="container-wide py-12">
   <div class="mb-6">
     <%= link_to "← Back to Admin", admin_root_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
@@ -5,7 +7,7 @@
 
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Newsletter Subscriptions</h1>
-    <p class="text-gray-600"><%= pluralize(@newsletter_subscriptions.count, "subscription") %></p>
+    <p class="text-gray-600"><%= pluralize(subscription_count, "subscription") %></p>
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
