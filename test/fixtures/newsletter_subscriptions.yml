@@ -1,0 +1,17 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+active:
+  first_name: Alice
+  last_name: Jones
+  email: alice@example.com
+  subscribed: true
+  unsubscribe_token: token-active
+  unsubscribed_at:
+
+inactive:
+  first_name: Bob
+  last_name: Smith
+  email: bob@example.com
+  subscribed: false
+  unsubscribe_token: token-inactive
+  unsubscribed_at: <%= 2.days.ago %>

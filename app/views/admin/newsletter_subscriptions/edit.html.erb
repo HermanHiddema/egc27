@@ -1,0 +1,52 @@
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Subscriptions", admin_newsletter_subscriptions_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm max-w-xl">
+    <h1 class="text-3xl font-bold mb-6">Edit Subscription</h1>
+
+    <% if @newsletter_subscription.errors.any? %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+        <ul class="text-red-700 list-disc list-inside">
+          <% @newsletter_subscription.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with model: [:admin, @newsletter_subscription] do |form| %>
+      <div class="space-y-4">
+        <div>
+          <%= form.label :first_name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div>
+          <%= form.label :last_name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :last_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div>
+          <%= form.label :email, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.email_field :email, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div>
+          <%= form.label :subscribed, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.select :subscribed,
+              [["Active", true], ["Unsubscribed", false]],
+              {},
+              class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div class="flex gap-4 pt-2">
+          <%= form.submit "Save changes", class: "btn-primary" %>
+          <%= link_to "Cancel", admin_newsletter_subscriptions_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+        </div>
+      </div>
+    <% end %>
+  </div>
+</div>
