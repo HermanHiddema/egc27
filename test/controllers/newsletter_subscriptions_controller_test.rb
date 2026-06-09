@@ -67,6 +67,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
 
   test "re-subscribes an existing unsubscribed email" do
     subscription = newsletter_subscriptions(:inactive)
+    original_token = subscription.unsubscribe_token
 
     assert_no_difference("NewsletterSubscription.count") do
       post newsletter_subscriptions_path, params: {
@@ -83,6 +84,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Bobby", subscription.first_name
     assert_equal true, subscription.subscribed
     assert_nil subscription.unsubscribed_at
+    assert_not_equal original_token, subscription.unsubscribe_token
   end
 
   test "renders newsletter page with errors for invalid newsletter subscription" do

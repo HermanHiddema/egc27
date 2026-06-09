@@ -16,6 +16,7 @@ class NewsletterSubscriptionsController < ApplicationController
     begin
       @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
       @newsletter_subscription.assign_attributes(newsletter_subscription_params)
+      @newsletter_subscription.unsubscribe_token = nil if @newsletter_subscription.persisted? && !@newsletter_subscription.subscribed?
       @newsletter_subscription.subscribed = true
       @newsletter_subscription.unsubscribed_at = nil
 
