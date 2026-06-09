@@ -51,4 +51,30 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
     assert_equal "updated@example.com", updated_user.unconfirmed_email
     assert updated_user.valid_password?("newpassword123")
   end
+
+  test "passwordless user can set an initial password without current password" do
+    user = User.create!(
+      email: "passwordless@example.com",
+      full_name: "Passwordless User",
+      skip_password_validation: true,
+      confirmed_at: Time.current
+    )
+
+    devise_sign_in user
+
+    get edit_user_registration_path
+    assert_response :success
+    assert_select "input[name='user[current_password]']", count: 0
+    assert_match "You do not have a password yet. Set one here to enable password sign-in.", response.body
+
+    patch user_registration_path, params: {
+      user: {
+        password: "newpassword123",
+        password_confirmation: "newpassword123"
+      }
+    }
+
+    assert_response :redirect
+    assert user.reload.valid_password?("newpassword123")
+  end
 end

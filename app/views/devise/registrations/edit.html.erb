@@ -22,7 +22,11 @@
       <div>
         <%= f.label :password, "New password", class: "block text-sm font-medium text-gray-700 mb-2" %>
         <%= f.password_field :password, autocomplete: "new-password", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-        <p class="text-sm text-gray-600 mt-2">Leave blank if you don't want to change it.</p>
+        <% if resource.password_set? %>
+          <p class="text-sm text-gray-600 mt-2">Leave blank if you don't want to change it.</p>
+        <% else %>
+          <p class="text-sm text-gray-600 mt-2">You do not have a password yet. Set one here to enable password sign-in.</p>
+        <% end %>
       </div>
 
       <div>
@@ -30,11 +34,13 @@
         <%= f.password_field :password_confirmation, autocomplete: "new-password", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
       </div>
 
-      <div>
-        <%= f.label :current_password, class: "block text-sm font-medium text-gray-700 mb-2" %>
-        <%= f.password_field :current_password, autocomplete: "current-password", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-        <p class="text-sm text-gray-600 mt-2">We need your current password to confirm changes.</p>
-      </div>
+      <% if resource.password_set? %>
+        <div>
+          <%= f.label :current_password, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= f.password_field :current_password, autocomplete: "current-password", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          <p class="text-sm text-gray-600 mt-2">We need your current password to confirm changes.</p>
+        </div>
+      <% end %>
 
       <div class="flex gap-4">
         <%= f.submit "Update Account", class: "btn-primary" %>

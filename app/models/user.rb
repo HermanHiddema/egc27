@@ -28,6 +28,10 @@ class User < ApplicationRecord
     admin?
   end
 
+  def password_set?
+    encrypted_password.present?
+  end
+
   # Allow users to be created without a password when explicitly created via
   # the passwordless flow (e.g. auto-created on participant registration).
   # Regular Devise registrations still require a password.

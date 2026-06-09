@@ -79,4 +79,10 @@ class UserTest < ActiveSupport::TestCase
     user = User.new(email: "passwordless@example.com", skip_password_validation: true)
     assert user.valid?, "User without password should be valid: #{user.errors.full_messages}"
   end
+
+  test "password_set? is false when no password has been stored" do
+    user = User.new(email: "passwordless@example.com", skip_password_validation: true)
+
+    refute user.password_set?
+  end
 end
