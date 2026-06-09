@@ -15,6 +15,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     body = response.body
     assert_match "✓", body
     assert_match "✗", body
+    assert_select "span[aria-label*='Week 1:']"
+    assert_select "span[aria-label*='Weekend:']"
+    assert_select "span[aria-label*='Week 2:']"
+    assert_select "span[aria-label='Week 1: attending']"
+    assert_select "span[aria-label='Week 1: not attending']"
   end
 
   test "participants index supports country filter and shows numbered filtered results with flags" do
