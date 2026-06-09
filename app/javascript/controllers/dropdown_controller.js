@@ -12,7 +12,12 @@ export default class extends Controller {
       if (dropdown !== this.element) {
         dropdown.querySelector('[data-dropdown-target="menu"]')?.classList.add("hidden")
         dropdown.querySelector('[data-dropdown-target="toggle"]')?.setAttribute("aria-expanded", "false")
+        dropdown.querySelectorAll("[data-submenu-target]").forEach((submenu) => {
+          submenu.classList.add("hidden")
+          submenu.style.display = "none"
+        })
       }
+    })
     })
   }
 
