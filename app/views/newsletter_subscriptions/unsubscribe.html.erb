@@ -1,0 +1,11 @@
+<div class="container-wide py-12">
+  <div class="max-w-2xl mx-auto card p-6 space-y-6">
+    <h1 class="text-3xl font-bold">Confirm unsubscribe</h1>
+    <p class="text-neutral-700">Are you sure you want to unsubscribe from the newsletter?</p>
+
+    <div class="flex gap-4">
+      <%= button_to "Unsubscribe", destroy_unsubscribe_newsletter_path(@newsletter_subscription.unsubscribe_token), method: :delete, class: "btn-primary" %>
+      <%= link_to "Keep me subscribed", newsletter_path, class: "btn-secondary" %>
+    </div>
+  </div>
+</div>
