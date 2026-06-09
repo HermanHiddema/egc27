@@ -16,15 +16,15 @@ export default class extends Controller {
     })
   }
 
-  closeExternalSubmenus() {
-    const externalSubmenuIds = ["excursions-menu", "meals-menu"]
-    externalSubmenuIds.forEach((id) => {
-      const submenu = document.getElementById(id)
-      if (submenu) {
-        submenu.style.display = "none"
-        submenu.classList.add("hidden")
-      }
-    })
+  // Returns all [data-submenu-target] elements that are DOM descendants of this dropdown.
+  // These are sub-submenus that may be positioned outside the visual bounds of the dropdown
+  // (e.g. via position:fixed) but still need to keep it open while hovered.
+  submenus() {
+    return Array.from(this.element.querySelectorAll("[data-submenu-target]"))
+  }
+
+  isInsideSubmenu(node) {
+    return this.submenus().some((submenu) => submenu === node || submenu.contains(node))
   }
 
   show() {
@@ -49,7 +49,6 @@ export default class extends Controller {
       }
 
       this.closeOtherDropdowns()
-      this.closeExternalSubmenus()
       this.openedByHover = false
       this.show()
       return
@@ -91,27 +90,16 @@ export default class extends Controller {
         this.timeout = null
       }
       this.closeOtherDropdowns()
-      this.closeExternalSubmenus()
       this.openedByHover = true
       this.show()
     }
     this.element.addEventListener("mouseenter", this.mouseEnterHandler)
 
-    // Hide when mouse leaves the entire dropdown area with delay
+    // Hide when mouse leaves the entire dropdown area with delay.
+    // Skip if the pointer is moving into a sub-submenu that belongs to this dropdown.
     this.mouseLeaveHandler = (event) => {
-      // Check if we're leaving to a submenu
-      const submenuIds = ["excursions-menu", "meals-menu"]
-      const relatedTarget = event.relatedTarget
-
-      if (relatedTarget) {
-        const isGoingToSubmenu = submenuIds.some((id) => {
-          const submenu = document.getElementById(id)
-          return submenu && (submenu === relatedTarget || submenu.contains(relatedTarget))
-        })
-
-        if (isGoingToSubmenu) {
-          return // Don't hide if going to submenu
-        }
+      if (event.relatedTarget && this.isInsideSubmenu(event.relatedTarget)) {
+        return
       }
 
       this.timeout = setTimeout(() => {
@@ -121,28 +109,24 @@ export default class extends Controller {
     }
     this.element.addEventListener("mouseleave", this.mouseLeaveHandler)
 
-    // Also keep menu open if hovering over external submenus
-    this.externalSubmenuListeners = []
-    const submenuIds = ["excursions-menu", "meals-menu"]
-    submenuIds.forEach((menuId) => {
-      const submenu = document.getElementById(menuId)
-      if (submenu) {
-        const enterHandler = () => {
-          if (this.timeout) {
-            clearTimeout(this.timeout)
-            this.timeout = null
-          }
+    // Keep the dropdown open while hovering over any of its sub-submenus.
+    this.submenuListeners = []
+    this.submenus().forEach((submenu) => {
+      const enterHandler = () => {
+        if (this.timeout) {
+          clearTimeout(this.timeout)
+          this.timeout = null
         }
-        const leaveHandler = () => {
-          this.timeout = setTimeout(() => {
-            this.openedByHover = false
-            this.hide()
-          }, 300)
-        }
-        submenu.addEventListener("mouseenter", enterHandler)
-        submenu.addEventListener("mouseleave", leaveHandler)
-        this.externalSubmenuListeners.push({ submenu, enterHandler, leaveHandler })
       }
+      const leaveHandler = () => {
+        this.timeout = setTimeout(() => {
+          this.openedByHover = false
+          this.hide()
+        }, 300)
+      }
+      submenu.addEventListener("mouseenter", enterHandler)
+      submenu.addEventListener("mouseleave", leaveHandler)
+      this.submenuListeners.push({ submenu, enterHandler, leaveHandler })
     })
   }
 
@@ -154,12 +138,12 @@ export default class extends Controller {
     this.element.removeEventListener("mouseenter", this.mouseEnterHandler)
     this.element.removeEventListener("mouseleave", this.mouseLeaveHandler)
 
-    if (this.externalSubmenuListeners) {
-      this.externalSubmenuListeners.forEach(({ submenu, enterHandler, leaveHandler }) => {
+    if (this.submenuListeners) {
+      this.submenuListeners.forEach(({ submenu, enterHandler, leaveHandler }) => {
         submenu.removeEventListener("mouseenter", enterHandler)
         submenu.removeEventListener("mouseleave", leaveHandler)
       })
-      this.externalSubmenuListeners = []
+      this.submenuListeners = []
     }
   }
 }
