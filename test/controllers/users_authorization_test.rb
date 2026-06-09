@@ -53,7 +53,7 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     }
 
     assert_redirected_to root_path
-    assert_equal users(:one).full_name, users(:one).reload.full_name
+    assert_nil users(:one).reload.full_name
   end
 
   test "editor cannot update another user's password" do

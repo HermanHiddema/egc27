@@ -18,7 +18,6 @@ export default class extends Controller {
         })
       }
     })
-    })
   }
 
   // Returns all [data-submenu-target] elements that are DOM descendants of this dropdown.
