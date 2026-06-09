@@ -52,6 +52,7 @@ Rails.application.routes.draw do
   namespace :admin do
     root "dashboard#index"
     resources :menus, only: [:index]
+    resources :newsletter_subscriptions, only: [:index, :edit, :update]
   end
 
   root "home#index"
