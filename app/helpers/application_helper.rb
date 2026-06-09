@@ -34,6 +34,12 @@ module ApplicationHelper
     options
   end
 
+  def main_image_representation(attachment, **transformations)
+    return attachment unless attachment.attached? && attachment.variable?
+
+    attachment.variant(**transformations)
+  end
+
   def eu_date(value, include_year: true, month: :long, weekday: nil)
     return "" if value.blank?
 

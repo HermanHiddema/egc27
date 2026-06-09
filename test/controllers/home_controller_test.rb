@@ -2,7 +2,7 @@ require "test_helper"
 
 class HomeControllerTest < ActionDispatch::IntegrationTest
   def image_upload
-    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
   end
 
   test "home page includes header registration call to action" do
@@ -23,6 +23,6 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "img[alt='#{article.title} main image']"
+    assert_select "img[alt=?]", "#{article.title} main image"
   end
 end

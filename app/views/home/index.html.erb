@@ -22,7 +22,7 @@
 
           <% if article.main_image.attached? && article.main_image.image? %>
             <div class="mb-4">
-              <%= image_tag article.main_image, alt: "#{article.title} main image", class: "h-32 w-full max-w-xs object-cover rounded-lg border border-gray-200" %>
+              <%= image_tag main_image_representation(article.main_image, resize_to_limit: [320, 128]), alt: "#{article.title} main image", class: "h-32 w-full max-w-xs object-cover rounded-lg border border-gray-200" %>
             </div>
           <% end %>
 

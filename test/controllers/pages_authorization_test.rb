@@ -2,7 +2,7 @@ require "test_helper"
 
 class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   def image_upload
-    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
   end
 
   test "regular user cannot access new page" do
@@ -110,11 +110,11 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
 
     get pages_path
     assert_response :success
-    assert_select "img[alt='#{page.title} main image']"
+    assert_select "img[alt=?]", "#{page.title} main image"
 
     get page_path(page)
     assert_response :success
-    assert_select "img[alt='#{page.title} main image']"
+    assert_select "img[alt=?]", "#{page.title} main image"
   end
 
   test "editor can edit page" do

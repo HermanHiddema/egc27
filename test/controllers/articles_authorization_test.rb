@@ -2,7 +2,7 @@ require "test_helper"
 
 class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
   def image_upload
-    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
   end
 
   test "regular user cannot access new article" do
@@ -104,11 +104,11 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
 
     get articles_path
     assert_response :success
-    assert_select "img[alt='#{article.title} main image']"
+    assert_select "img[alt=?]", "#{article.title} main image"
 
     get article_path(article)
     assert_response :success
-    assert_select "img[alt='#{article.title} main image']"
+    assert_select "img[alt=?]", "#{article.title} main image"
   end
 
   test "editor can edit article" do
