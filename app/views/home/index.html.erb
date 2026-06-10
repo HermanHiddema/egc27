@@ -22,7 +22,7 @@
           <div class="relative">
             <% if has_image %>
               <% image_side_class = image_on_left ? "sm:left-0" : "sm:right-0" %>
-              <div class="relative w-full h-64 sm:w-64 sm:h-auto sm:absolute sm:top-0 sm:bottom-0 <%= image_side_class %>">
+              <div class="relative w-full aspect-square sm:aspect-auto sm:w-64 sm:h-auto sm:absolute sm:top-0 sm:bottom-0 <%= image_side_class %>">
                 <%= image_tag main_image_representation(article.main_image, resize_to_limit: [512, 512]), alt: "#{article.title} main image", class: "h-full w-full sm:h-full object-cover" %>
                 <div class="absolute inset-x-0 bottom-0 p-4 sm:hidden bg-gradient-to-t from-black/75 via-black/30 to-transparent">
                   <h2 class="text-2xl font-bold text-white" style="text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95); -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);">
