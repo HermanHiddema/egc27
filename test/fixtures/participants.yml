@@ -25,6 +25,9 @@ two:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
+  first_week: false
+  weekend: true
+  second_week: false
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 

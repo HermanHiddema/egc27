@@ -38,14 +38,35 @@
         </div>
 
         <div class="flex items-center gap-4">
+          <%= link_to "Newsletter", newsletter_path, class: "inline-flex items-center rounded-lg bg-green-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
           <%= link_to "Register now", new_participant_path, class: "inline-flex items-center rounded-lg bg-green-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
-          <% if respond_to?(:devise_controller?) && !devise_controller? && defined?(current_user) %>
+          <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
-              <% if current_user.admin? %>
-                <%= link_to "Admin", admin_root_path, class: "text-sm text-brand-yellow-300 hover:text-brand-yellow-200 transition-colors" %>
-              <% end %>
-              <span class="text-sm text-brand-yellow-300"><%= current_user.display_name %></span>
-              <%= button_to "Sign out", destroy_user_session_path, method: :delete, class: "text-sm text-brand-yellow-300 btn-primary px-4 py-2" %>
+              <div class="relative" data-controller="dropdown">
+                <button class="text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors flex items-center gap-1"
+                        type="button"
+                        data-dropdown-target="toggle"
+                        aria-controls="user-menu"
+                        aria-expanded="false"
+                        aria-haspopup="true">
+                  <span><%= current_user.display_name %></span>
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                  </svg>
+                </button>
+
+                <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
+                  <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <% if current_user.admin? %>
+                    <%= link_to "Admin", admin_root_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <% end %>
+                  <%= button_to "Sign out",
+                                destroy_user_session_path,
+                                method: :delete,
+                                form_class: "w-full",
+                                class: "w-full text-left px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors bg-transparent border-0" %>
+                </div>
+              </div>
             <% else %>
               <%= link_to "Sign in", new_user_session_path, class: "btn-primary text-brand-yellow-300 px-4 py-2" %>
             <% end %>
@@ -105,114 +126,5 @@
       </div>
     </footer>
 
-    <script>
-      // Setup submenu handlers - runs on initial load and after Turbo navigations
-      function setupSubmenus() {
-        const excursionsBtn = document.getElementById('excursions-btn');
-        const excursionsMenu = document.getElementById('excursions-menu');
-        const mealsBtn = document.getElementById('meals-btn');
-        const mealsMenu = document.getElementById('meals-menu');
-        let excursionsTimeout;
-        let mealsTimeout;
-
-        function hideExcursions() {
-          if (!excursionsMenu) return;
-          excursionsMenu.style.display = 'none';
-          excursionsMenu.classList.add('hidden');
-        }
-
-        function hideMeals() {
-          if (!mealsMenu) return;
-          mealsMenu.style.display = 'none';
-          mealsMenu.classList.add('hidden');
-        }
-        
-        if (excursionsBtn && excursionsMenu) {
-          // Remove existing listeners to prevent duplicates
-          const newExcursionsBtn = excursionsBtn.cloneNode(true);
-          excursionsBtn.parentNode.replaceChild(newExcursionsBtn, excursionsBtn);
-          
-          // Show submenu on hover
-          newExcursionsBtn.addEventListener('mouseenter', function(e) {
-            clearTimeout(excursionsTimeout);
-            clearTimeout(mealsTimeout);
-            hideMeals();
-            
-            // Show the menu
-            excursionsMenu.style.display = 'block';
-            excursionsMenu.classList.remove('hidden');
-            
-            // Position it to the right of the button
-            const rect = newExcursionsBtn.getBoundingClientRect();
-            excursionsMenu.style.position = 'fixed';
-            excursionsMenu.style.left = (rect.right + 5) + 'px';
-            excursionsMenu.style.top = rect.top + 'px';
-          });
-          
-          // Hide when leaving button (unless going to menu)
-          newExcursionsBtn.addEventListener('mouseleave', function(e) {
-            excursionsTimeout = setTimeout(function() {
-              hideExcursions();
-            }, 200);
-          });
-          
-          // Keep open when hovering over menu
-          excursionsMenu.addEventListener('mouseenter', function(e) {
-            clearTimeout(excursionsTimeout);
-          });
-          
-          // Hide when leaving menu
-          excursionsMenu.addEventListener('mouseleave', function(e) {
-            hideExcursions();
-          });
-        }
-        
-        if (mealsBtn && mealsMenu) {
-          // Remove existing listeners to prevent duplicates
-          const newMealsBtn = mealsBtn.cloneNode(true);
-          mealsBtn.parentNode.replaceChild(newMealsBtn, mealsBtn);
-          
-          // Show submenu on hover
-          newMealsBtn.addEventListener('mouseenter', function(e) {
-            clearTimeout(mealsTimeout);
-            clearTimeout(excursionsTimeout);
-            hideExcursions();
-            
-            // Show the menu
-            mealsMenu.style.display = 'block';
-            mealsMenu.classList.remove('hidden');
-            
-            // Position it to the right of the button
-            const rect = newMealsBtn.getBoundingClientRect();
-            mealsMenu.style.position = 'fixed';
-            mealsMenu.style.left = (rect.right + 5) + 'px';
-            mealsMenu.style.top = rect.top + 'px';
-          });
-          
-          // Hide when leaving button (unless going to menu)
-          newMealsBtn.addEventListener('mouseleave', function(e) {
-            mealsTimeout = setTimeout(function() {
-              hideMeals();
-            }, 200);
-          });
-          
-          // Keep open when hovering over menu
-          mealsMenu.addEventListener('mouseenter', function(e) {
-            clearTimeout(mealsTimeout);
-          });
-          
-          // Hide when leaving menu
-          mealsMenu.addEventListener('mouseleave', function(e) {
-            hideMeals();
-          });
-        }
-      }
-      
-      // Run on initial page load
-      document.addEventListener('DOMContentLoaded', setupSubmenus);
-      
-      // Run after Turbo navigations
-      document.addEventListener('turbo:load', setupSubmenus);
-    </script>
   </body>
 </html>

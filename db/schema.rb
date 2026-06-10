@@ -124,6 +124,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
     t.index ["location"], name: "index_menus_on_location", unique: true
   end
 
+  create_table "newsletter_subscriptions", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.string "email", null: false
+    t.string "first_name", null: false
+    t.string "last_name", null: false
+    t.boolean "subscribed", default: true, null: false
+    t.string "unsubscribe_token", null: false
+    t.datetime "unsubscribed_at"
+    t.datetime "updated_at", null: false
+    t.index ["email"], name: "index_newsletter_subscriptions_on_email", unique: true
+    t.index ["unsubscribe_token"], name: "index_newsletter_subscriptions_on_unsubscribe_token", unique: true
+  end
+
   create_table "pages", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "slug", null: false

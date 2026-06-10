@@ -1,0 +1,52 @@
+<% subscription_count = @newsletter_subscriptions.length %>
+
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Admin", admin_root_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Newsletter Subscriptions</h1>
+    <p class="text-gray-600"><%= pluralize(subscription_count, "subscription") %></p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Name</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Email</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Status</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Subscribed at</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Unsubscribed at</th>
+          <th class="px-6 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @newsletter_subscriptions.each do |subscription| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4"><%= "#{subscription.first_name} #{subscription.last_name}" %></td>
+            <td class="px-6 py-4"><%= subscription.email %></td>
+            <td class="px-6 py-4">
+              <% if subscription.subscribed? %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Active</span>
+              <% else %>
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">Unsubscribed</span>
+              <% end %>
+            </td>
+            <td class="px-6 py-4 text-gray-600"><%= subscription.created_at.strftime("%d %b %Y") %></td>
+            <td class="px-6 py-4 text-gray-600"><%= subscription.unsubscribed_at&.strftime("%d %b %Y") || "—" %></td>
+            <td class="px-6 py-4 text-right">
+              <%= link_to "Edit", edit_admin_newsletter_subscription_path(subscription), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+            </td>
+          </tr>
+        <% end %>
+        <% if @newsletter_subscriptions.empty? %>
+          <tr>
+            <td colspan="6" class="px-6 py-8 text-center text-gray-500">No subscriptions yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
