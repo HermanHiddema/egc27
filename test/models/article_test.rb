@@ -1,10 +1,6 @@
 require "test_helper"
 
 class ArticleTest < ActiveSupport::TestCase
-  def png_upload
-    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
-  end
-
   def svg_upload
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
   end

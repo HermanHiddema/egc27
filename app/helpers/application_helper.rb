@@ -35,7 +35,7 @@ module ApplicationHelper
   end
 
   def main_image_representation(attachment, **transformations)
-    return attachment unless attachment.attached? && attachment.variable?
+    return nil unless attachment.attached? && attachment.variable?
 
     attachment.variant(**transformations)
   end
