@@ -17,21 +17,9 @@ class ArticleTest < ActiveSupport::TestCase
     assert_includes article.errors[:main_image], "must be a PNG, JPEG, or WebP image"
   end
 
-  test "attaches a random placeholder main image when none is provided" do
+  test "attaches no main image when none is provided" do
     article = Article.create!(title: "Article", content: "Details", user: users(:admin))
-    placeholder_filenames = Dir.glob(Rails.root.join("app/assets/images/placeholders/*"))
-      .map { |path| File.basename(path) }
-      .select { |name| name.match?(/\.(png|jpe?g|webp)\z/i) }
 
-    assert article.main_image.attached?
-    assert_includes Article::ALLOWED_MAIN_IMAGE_CONTENT_TYPES, article.main_image.blob.content_type
-    assert_includes placeholder_filenames, article.main_image.filename.to_s
-  end
-
-  test "does not replace an explicitly uploaded main image" do
-    article = Article.create!(title: "Article", content: "Details", user: users(:admin), main_image: png_upload)
-
-    assert article.main_image.attached?
-    assert_equal "main-image.png", article.main_image.filename.to_s
+    assert_not article.main_image.attached?
   end
 end

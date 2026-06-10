@@ -31,7 +31,7 @@
       <%= form.file_field :main_image, accept: "image/png,image/jpeg,image/webp", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
       <% if page.main_image.attached? && page.main_image.variable? %>
         <div class="mt-3">
-          <%= image_tag page.main_image, alt: "#{page.title} main image", class: "h-24 w-auto rounded-lg border border-gray-200" %>
+          <%= image_tag main_image_representation(page.main_image, resize_to_limit: [ 96, 96 ]), alt: "#{page.title} main image", class: "h-24 w-auto rounded-lg border border-gray-200" %>
         </div>
       <% end %>
     </div>
