@@ -22,7 +22,7 @@ class Admin::MenusAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{menu_menu_items_path(menus(:primary))}']"
   end
 
-  test "admin dashboard links to users page" do
+  test "admin dashboard links to users and sponsors pages" do
     sign_in users(:admin)
     get admin_root_path
 

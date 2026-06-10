@@ -53,7 +53,7 @@ module Admin
     end
 
     def normalized_social_media_links(value)
-      return {} unless value.is_a?(Hash)
+      return value unless value.is_a?(Hash)
 
       value.transform_values { |link| link.to_s.strip }.reject { |_platform, link| link.blank? }
     end

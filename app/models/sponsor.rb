@@ -22,12 +22,12 @@ class Sponsor < ApplicationRecord
   end
 
   def social_media_links_must_be_valid
-    return if social_media_links.blank?
-
     unless social_media_links.is_a?(Hash)
       errors.add(:social_media_links, "must be a key/value object")
       return
     end
+
+    return if social_media_links.empty?
 
     social_media_links.each_value do |url|
       next if url.blank?

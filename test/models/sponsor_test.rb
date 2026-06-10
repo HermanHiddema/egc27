@@ -39,6 +39,16 @@ class SponsorTest < ActiveSupport::TestCase
     assert_includes sponsor.errors[:social_media_links], "must only contain valid HTTP(S) URLs"
   end
 
+  test "rejects non-hash social media links payload" do
+    sponsor = Sponsor.new(
+      name: "Invalid Social Payload",
+      social_media_links: "not-a-hash"
+    )
+
+    assert_not sponsor.valid?
+    assert_includes sponsor.errors[:social_media_links], "must be a key/value object"
+  end
+
   test "defines logo attachment" do
     sponsor = Sponsor.new(name: "Logo Sponsor")
 
