@@ -1,10 +1,14 @@
 class Page < ApplicationRecord
+  ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
+
   has_many :menu_items, dependent: :nullify, inverse_of: :page
   has_rich_text :content
+  has_one_attached :main_image
 
   validates :title, presence: true
   validates :content, presence: true
   validates :slug, presence: true, uniqueness: true
+  validate :main_image_must_be_image
 
   before_validation :assign_slug
 
@@ -36,5 +40,12 @@ class Page < ApplicationRecord
     end
 
     candidate
+  end
+
+  def main_image_must_be_image
+    return unless main_image.attached?
+    return if ALLOWED_MAIN_IMAGE_CONTENT_TYPES.include?(main_image.blob.content_type.to_s)
+
+    errors.add(:main_image, "must be a PNG, JPEG, or WebP image")
   end
 end

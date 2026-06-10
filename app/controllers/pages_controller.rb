@@ -6,7 +6,7 @@ class PagesController < ApplicationController
   before_action :set_page, only: [:show, :edit, :update, :destroy]
 
   def index
-    @pages = Page.order(:title)
+    @pages = Page.with_attached_main_image.order(:title)
   end
 
   def show
@@ -30,7 +30,11 @@ class PagesController < ApplicationController
   end
 
   def update
-    if @page.update(page_params)
+    if page_params[:remove_main_image] == "1" && @page.main_image.attached?
+      @page.main_image.purge
+    end
+
+    if @page.update(page_params.except(:remove_main_image))
       redirect_to @page, notice: "Page was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -45,10 +49,10 @@ class PagesController < ApplicationController
   private
 
   def set_page
-    @page = Page.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
+    @page = Page.with_attached_main_image.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
   end
 
   def page_params
-    params.require(:page).permit(:title, :content, :slug)
+    params.require(:page).permit(:title, :content, :slug, :main_image, :remove_main_image)
   end
 end

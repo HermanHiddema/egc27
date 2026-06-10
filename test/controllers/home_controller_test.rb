@@ -1,6 +1,10 @@
 require "test_helper"
 
 class HomeControllerTest < ActionDispatch::IntegrationTest
+  def image_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
+  end
+
   test "home page includes header registration call to action" do
     get root_path
 
@@ -11,5 +15,15 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "a span.hidden.md\\:inline", text: "European Go Congress 2027"
     assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 Jul - 8 Aug, 2027"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
+  end
+
+  test "home page shows article main image in summaries when attached" do
+    article = articles(:one)
+    article.main_image.attach(image_upload)
+
+    get root_path
+
+    assert_response :success
+    assert_select "img[alt=?]", "#{article.title} main image"
   end
 end

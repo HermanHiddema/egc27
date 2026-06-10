@@ -7,29 +7,53 @@
   </div>
 
   <div class="space-y-8">
-    <% @articles.each do |article| %>
-      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div class="mb-4">
-          <h2 class="text-2xl font-bold mb-2">
-            <%= link_to article.title, article, class: "hover:text-brand-red-600 transition" %>
-          </h2>
-          <div class="text-sm text-gray-600">
-            Posted by <%= article.user.display_name %> on <%= eu_datetime(article.created_at, twelve_hour: true) %>
+    <% @articles.each_with_index do |article, index| %>
+      <div class="bg-white border border-gray-200 rounded-lg p-0 shadow-sm overflow-hidden">
+        <% has_image = article.main_image.attached? && article.main_image.variable? %>
+        <% image_on_left = index.even? %>
+        <% content_side_padding = if has_image
+                                    image_on_left ? "sm:pl-72" : "sm:pr-72"
+                                  else
+                                    ""
+                                  end %>
+
+        <div class="relative">
+          <% if has_image %>
+            <% image_side_class = image_on_left ? "sm:left-0" : "sm:right-0" %>
+            <div class="relative w-full h-64 sm:w-64 sm:h-auto sm:absolute sm:top-0 sm:bottom-0 <%= image_side_class %>">
+              <%= image_tag main_image_representation(article.main_image, resize_to_limit: [512, 512]), alt: "#{article.title} main image", class: "h-full w-full sm:h-full object-cover" %>
+              <div class="absolute inset-x-0 bottom-0 p-4 sm:hidden bg-gradient-to-t from-black/75 via-black/30 to-transparent">
+                <h2 class="text-2xl font-bold text-white" style="text-shadow: 0 2px 6px rgba(0, 0, 0, 0.95); -webkit-text-stroke: 1px rgba(0, 0, 0, 0.55);">
+                  <%= link_to article.title, article, class: "hover:text-brand-red-200 transition" %>
+                </h2>
+              </div>
+            </div>
+          <% end %>
+
+          <div class="p-6 <%= content_side_padding %>">
+            <div class="mb-4 <%= has_image ? "hidden sm:block" : "block" %>">
+              <h2 class="text-2xl font-bold mb-2">
+                <%= link_to article.title, article, class: "hover:text-brand-red-600 transition" %>
+              </h2>
+              <div class="text-sm text-gray-600">
+                Posted by <%= article.user.display_name %> on <%= eu_datetime(article.created_at, twelve_hour: true) %>
+              </div>
+            </div>
+
+            <div class="rich-content trix-content text-gray-700 mb-4 line-clamp-3">
+              <%= article.content %>
+            </div>
+
+            <div class="flex gap-4">
+              <%= link_to "Read More", article, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              <% if current_user&.can_edit? %>
+                <%= link_to "Edit", edit_article_path(article), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              <% end %>
+              <% if current_user&.can_delete? %>
+                <%= button_to "Delete", article, method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+              <% end %>
+            </div>
           </div>
-        </div>
-
-        <div class="rich-content trix-content text-gray-700 mb-4 line-clamp-3">
-          <%= article.content %>
-        </div>
-
-        <div class="flex gap-4">
-          <%= link_to "Read More", article, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-          <% if current_user&.can_edit? %>
-            <%= link_to "Edit", edit_article_path(article), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-          <% end %>
-          <% if current_user&.can_delete? %>
-            <%= button_to "Delete", article, method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-          <% end %>
         </div>
       </div>
     <% end %>

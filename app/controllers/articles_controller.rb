@@ -6,7 +6,7 @@ class ArticlesController < ApplicationController
   before_action :set_article, only: [:show, :edit, :update, :destroy]
 
   def index
-    @articles = Article.with_rich_text_content_and_embeds.order(created_at: :desc).includes(:user)
+    @articles = Article.with_attached_main_image.with_rich_text_content_and_embeds.order(created_at: :desc).includes(:user)
   end
 
   def show
@@ -30,7 +30,11 @@ class ArticlesController < ApplicationController
   end
 
   def update
-    if @article.update(article_params)
+    if article_params[:remove_main_image] == "1" && @article.main_image.attached?
+      @article.main_image.purge
+    end
+
+    if @article.update(article_params.except(:remove_main_image))
       redirect_to @article, notice: "Article was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -45,10 +49,10 @@ class ArticlesController < ApplicationController
   private
 
   def set_article
-    @article = Article.with_rich_text_content_and_embeds.find(params[:id])
+    @article = Article.with_attached_main_image.with_rich_text_content_and_embeds.find(params[:id])
   end
 
   def article_params
-    params.require(:article).permit(:title, :content)
+    params.require(:article).permit(:title, :content, :main_image, :remove_main_image)
   end
 end

@@ -1,6 +1,10 @@
 require "test_helper"
 
 class PagesAuthorizationTest < ActionDispatch::IntegrationTest
+  def image_upload
+    Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
+  end
+
   test "regular user cannot access new page" do
     sign_in users(:one)
     get new_page_path
@@ -83,6 +87,37 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "editor can create page with main image" do
+    sign_in users(:editor)
+
+    assert_difference "Page.count", 1 do
+      post pages_path, params: {
+        page: {
+          title: "Page with image",
+          slug: "page-with-image",
+          content: "Some content",
+          main_image: image_upload
+        }
+      }
+    end
+
+    assert Page.last.main_image.attached?
+  end
+
+  test "page summaries and detail show main image when attached" do
+    sign_in users(:one)
+    page = pages(:one)
+    page.main_image.attach(image_upload)
+
+    get pages_path
+    assert_response :success
+    assert_select "img[alt=?]", "#{page.title} main image"
+
+    get page_path(page)
+    assert_response :success
+    assert_select "img[alt=?]", "#{page.title} main image"
+  end
+
   test "editor can edit page" do
     sign_in users(:editor)
     get edit_page_path(pages(:one))
@@ -117,5 +152,16 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to pages_path
     refute Page.exists?(pages(:one).id)
+  end
+
+  test "editor can remove main image from page" do
+    sign_in users(:editor)
+    page = pages(:one)
+    page.main_image.attach(image_upload)
+    assert page.main_image.attached?
+
+    patch page_path(page), params: { page: { remove_main_image: "1" } }
+    assert_redirected_to page_path(page)
+    assert_not page.reload.main_image.attached?
   end
 end
