@@ -33,7 +33,7 @@ class ArticlesController < ApplicationController
     if article_params[:remove_main_image] == "1" && @article.main_image.attached?
       @article.main_image.purge
     end
-    
+
     if @article.update(article_params.except(:remove_main_image))
       redirect_to @article, notice: "Article was successfully updated."
     else

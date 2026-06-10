@@ -33,7 +33,7 @@ class PagesController < ApplicationController
     if page_params[:remove_main_image] == "1" && @page.main_image.attached?
       @page.main_image.purge
     end
-    
+
     if @page.update(page_params.except(:remove_main_image))
       redirect_to @page, notice: "Page was successfully updated."
     else
@@ -55,5 +55,4 @@ class PagesController < ApplicationController
   def page_params
     params.require(:page).permit(:title, :content, :slug, :main_image, :remove_main_image)
   end
-
 end
