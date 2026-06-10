@@ -1,4 +1,12 @@
 class Sponsor < ApplicationRecord
+  SOCIAL_MEDIA_PLATFORMS = {
+    "x" => "X",
+    "facebook" => "Facebook",
+    "instagram" => "Instagram",
+    "linkedin" => "LinkedIn",
+    "youtube" => "YouTube"
+  }.freeze
+
   has_one_attached :logo
 
   validates :name, presence: true

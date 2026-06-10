@@ -29,7 +29,7 @@
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-2">Social media links</label>
       <div class="space-y-3">
-        <% { "x" => "X", "facebook" => "Facebook", "instagram" => "Instagram", "linkedin" => "LinkedIn", "youtube" => "YouTube" }.each do |key, label| %>
+        <% Sponsor::SOCIAL_MEDIA_PLATFORMS.each do |key, label| %>
           <div>
             <%= label_tag "sponsor_social_media_links_#{key}", label, class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= text_field_tag "sponsor[social_media_links][#{key}]",

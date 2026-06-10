@@ -3,7 +3,7 @@ module Admin
     before_action :set_sponsor, only: [:edit, :update, :destroy]
 
     def index
-      @sponsors = Sponsor.order(:name, :id)
+      @sponsors = Sponsor.order(:name)
     end
 
     def new
