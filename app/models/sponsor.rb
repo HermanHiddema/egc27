@@ -41,7 +41,7 @@ class Sponsor < ApplicationRecord
   def valid_http_url?(value)
     uri = URI.parse(value)
     uri.is_a?(URI::HTTP) && uri.host.present?
-  rescue URI::InvalidURIError
+  rescue URI::InvalidURIError, TypeError, ArgumentError
     false
   end
 end

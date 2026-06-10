@@ -29,7 +29,7 @@
             <td class="px-6 py-4"><%= sponsor.name %></td>
             <td class="px-6 py-4 text-gray-600">
               <% if sponsor.website.present? %>
-                <%= link_to sponsor.website, sponsor.website, target: "_blank", rel: "noopener", class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                <%= link_to sponsor.website, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
               <% else %>
                 —
               <% end %>

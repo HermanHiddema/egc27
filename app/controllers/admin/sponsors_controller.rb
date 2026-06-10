@@ -48,7 +48,9 @@ module Admin
 
     def sponsor_attributes
       attributes = sponsor_params.to_h
-      attributes["social_media_links"] = normalized_social_media_links(attributes["social_media_links"])
+      if attributes.key?("social_media_links")
+        attributes["social_media_links"] = normalized_social_media_links(attributes["social_media_links"])
+      end
       attributes
     end
 
