@@ -1,0 +1,54 @@
+<% sponsor_count = @sponsors.length %>
+
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Back to Admin", admin_root_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Sponsors</h1>
+    <div class="flex items-center gap-4">
+      <p class="text-gray-600"><%= pluralize(sponsor_count, "sponsor") %></p>
+      <%= link_to "New Sponsor", new_admin_sponsor_path, class: "btn-primary" %>
+    </div>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <table class="w-full text-sm">
+      <thead class="bg-gray-50 border-b border-gray-200">
+        <tr>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Name</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Website</th>
+          <th class="px-6 py-3 text-left font-semibold text-gray-700">Logo</th>
+          <th class="px-6 py-3"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% @sponsors.each do |sponsor| %>
+          <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4"><%= sponsor.name %></td>
+            <td class="px-6 py-4 text-gray-600">
+              <% if sponsor.website.present? %>
+                <%= link_to sponsor.website, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              <% else %>
+                —
+              <% end %>
+            </td>
+            <td class="px-6 py-4 text-gray-600"><%= sponsor.logo.attached? ? "Yes" : "No" %></td>
+            <td class="px-6 py-4 text-right">
+              <div class="inline-flex items-center gap-3">
+                <%= link_to "Edit", edit_admin_sponsor_path(sponsor), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                <%= button_to "Delete", admin_sponsor_path(sponsor), method: :delete, data: { turbo_confirm: "Are you sure you want to delete this sponsor?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+              </div>
+            </td>
+          </tr>
+        <% end %>
+        <% if @sponsors.empty? %>
+          <tr>
+            <td colspan="4" class="px-6 py-8 text-center text-gray-500">No sponsors yet.</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

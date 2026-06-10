@@ -1,0 +1,16 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  name: Example Sponsor
+  website: https://example.com
+  social_media_links:
+    x: https://x.com/example
+    linkedin: https://www.linkedin.com/company/example
+  description: Example sponsor description.
+
+two:
+  name: Another Sponsor
+  website: https://another.example.com
+  social_media_links:
+    instagram: https://instagram.com/another
+  description: Another sponsor description.
