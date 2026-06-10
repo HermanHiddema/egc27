@@ -9,7 +9,7 @@ class Article < ApplicationRecord
   validates :title, presence: true
   validates :content, presence: true
   validate :main_image_must_be_image
-  before_validation :attach_random_placeholder_main_image, on: :create
+  before_create :attach_random_placeholder_main_image
 
   private
 

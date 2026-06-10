@@ -9,7 +9,7 @@
   <div class="space-y-8">
     <% @articles.each_with_index do |article, index| %>
       <div class="bg-white border border-gray-200 rounded-lg p-0 shadow-sm overflow-hidden">
-        <% has_image = article.main_image.attached? && article.main_image.image? %>
+        <% has_image = article.main_image.attached? && article.main_image.variable? %>
         <% image_on_left = index.even? %>
         <% content_side_padding = if has_image
                                     image_on_left ? "sm:pl-72" : "sm:pr-72"
