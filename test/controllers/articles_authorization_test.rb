@@ -147,4 +147,15 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to articles_path
     refute Article.exists?(articles(:one).id)
   end
+
+  test "editor can remove main image from article" do
+    sign_in users(:editor)
+    article = articles(:one)
+    article.main_image.attach(image_upload)
+    assert article.main_image.attached?
+
+    patch article_path(article), params: { article: { remove_main_image: "1" } }
+    assert_redirected_to article_path(article)
+    assert_not article.reload.main_image.attached?
+  end
 end

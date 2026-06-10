@@ -153,4 +153,15 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to pages_path
     refute Page.exists?(pages(:one).id)
   end
+
+  test "editor can remove main image from page" do
+    sign_in users(:editor)
+    page = pages(:one)
+    page.main_image.attach(image_upload)
+    assert page.main_image.attached?
+
+    patch page_path(page), params: { page: { remove_main_image: "1" } }
+    assert_redirected_to page_path(page)
+    assert_not page.reload.main_image.attached?
+  end
 end

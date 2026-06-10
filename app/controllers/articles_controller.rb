@@ -30,7 +30,11 @@ class ArticlesController < ApplicationController
   end
 
   def update
-    if @article.update(article_params)
+    if article_params[:remove_main_image] == "1" && @article.main_image.attached?
+      @article.main_image.purge
+    end
+    
+    if @article.update(article_params.except(:remove_main_image))
       redirect_to @article, notice: "Article was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -49,6 +53,6 @@ class ArticlesController < ApplicationController
   end
 
   def article_params
-    params.require(:article).permit(:title, :content, :main_image)
+    params.require(:article).permit(:title, :content, :main_image, :remove_main_image)
   end
 end
