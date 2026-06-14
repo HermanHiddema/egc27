@@ -48,3 +48,19 @@ three:
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+unconfirmed:
+  first_name: Dave
+  last_name: Pending
+  email: dave@example.org
+  user: one
+  date_of_birth: 1988-03-22
+  country: NL
+  club: Utrecht
+  rank: 27
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: player
+  confirmation_token: "test_token_abc123"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

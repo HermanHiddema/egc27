@@ -1,7 +1,7 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search, :confirm]
   before_action :build_participant, only: [:create]
   before_action :verify_turnstile, only: [:create]
 
@@ -30,13 +30,25 @@ class ParticipantsController < ApplicationController
     end
 
     if @participant.user&.confirmed?
-      @participant.confirm!
-      ParticipantMailer.registration_confirmation(@participant).deliver_later
+      @participant.generate_confirmation_token!
+      ParticipantMailer.participant_confirmation(@participant).deliver_later
     end
 
     redirect_to new_participant_payment_path(@participant), notice: "Registration received. Please complete your payment below."
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
+  end
+
+  def confirm
+    @participant = Participant.find(params[:id])
+
+    if @participant.confirmation_token.present? && ActiveSupport::SecurityUtils.secure_compare(@participant.confirmation_token, params[:token].to_s)
+      @participant.confirm!
+      ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
+      redirect_to new_participant_payment_path(@participant), notice: "Your registration has been confirmed."
+    else
+      redirect_to root_path, alert: "Invalid or expired confirmation link."
+    end
   end
 
   def egd_search

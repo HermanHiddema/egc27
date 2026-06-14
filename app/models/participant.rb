@@ -46,8 +46,12 @@ class Participant < ApplicationRecord
     confirmed_at.present?
   end
 
+  def generate_confirmation_token!
+    update_column(:confirmation_token, SecureRandom.urlsafe_base64(32))
+  end
+
   def confirm!
-    update_column(:confirmed_at, Time.current)
+    update_columns(confirmed_at: Time.current, confirmation_token: nil)
   end
 
   def rank_grade

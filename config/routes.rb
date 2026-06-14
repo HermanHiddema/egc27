@@ -41,6 +41,9 @@ Rails.application.routes.draw do
     collection do
       get :egd_search
     end
+    member do
+      get :confirm
+    end
     resource :payment, only: [:new, :create], controller: "payments"
   end
   resources :payments, only: [] do
