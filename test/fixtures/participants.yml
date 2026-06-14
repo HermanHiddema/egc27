@@ -55,7 +55,7 @@ unconfirmed:
   email: dave@example.org
   user: one
   date_of_birth: 1988-03-22
-  country: NL
+  country: BE
   club: Utrecht
   rank: 27
   accepted_terms_and_conditions: true

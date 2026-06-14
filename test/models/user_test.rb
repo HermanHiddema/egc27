@@ -1,6 +1,7 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
   test "default role is regular" do
     user = User.new(email: "new@example.com", password: "password123")
     assert_equal "regular", user.role
