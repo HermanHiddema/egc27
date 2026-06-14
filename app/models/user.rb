@@ -14,7 +14,12 @@ class User < ApplicationRecord
 
   def after_confirmation
     super
-    participants.each { |p| p.confirm! unless p.confirmed? }
+    participants.each do |participant|
+      next if participant.confirmed?
+
+      participant.confirm!
+      ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
+    end
   end
 
   def display_name

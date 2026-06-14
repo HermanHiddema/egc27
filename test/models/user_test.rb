@@ -107,7 +107,9 @@ class UserTest < ActiveSupport::TestCase
 
     assert_nil participant.confirmed_at
 
-    user.confirm!
+    assert_emails 1 do
+      user.confirm!
+    end
 
     assert_not_nil participant.reload.confirmed_at
   end
