@@ -37,7 +37,7 @@ Rails.application.routes.draw do
     end
   end
   resources :pages, param: :slug
-  resources :participants, only: [:index, :new, :create] do
+  resources :participants, only: [:index, :new, :create, :show] do
     collection do
       get :egd_search
     end

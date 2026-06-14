@@ -129,8 +129,9 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
 
     participant = Participant.order(:id).last
-    assert_redirected_to new_participant_payment_path(participant)
+    assert_redirected_to participant_path(participant)
     follow_redirect!
+    assert_match "Registration Confirmed", response.body
     assert_match "Registration received", response.body
 
     assert_equal "jane@example.org", participant.email

@@ -1,7 +1,7 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search, :confirm]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :confirm]
   before_action :build_participant, only: [:create]
   before_action :verify_turnstile, only: [:create]
 
@@ -21,6 +21,10 @@ class ParticipantsController < ApplicationController
     @participant = Participant.new
   end
 
+  def show
+    @participant = Participant.find(params[:id])
+  end
+
   def create
     ActiveRecord::Base.transaction do
       @participant.save!
@@ -34,7 +38,7 @@ class ParticipantsController < ApplicationController
       ParticipantMailer.participant_confirmation(@participant).deliver_later
     end
 
-    redirect_to new_participant_payment_path(@participant), notice: "Registration received. Please complete your payment below."
+    redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
   end
