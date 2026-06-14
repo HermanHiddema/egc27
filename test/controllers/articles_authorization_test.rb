@@ -80,6 +80,8 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_difference "Article.count", 1 do
       post articles_path, params: { article: { title: "Test Article", content: "Some content" } }
     end
+
+    assert Article.last.main_image.attached?
   end
 
   test "editor can create article with main image" do
