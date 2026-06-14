@@ -62,10 +62,11 @@
             <th class="px-4 py-2 font-semibold text-neutral-700">Late<br><span class="font-normal text-xs">From 1 Jun 2027</span></th>
           </tr>
         </thead>
+      <% labels = CongressPassPricing::PRICES.keys.index_with { |opt| CongressPassPricing.new(attendance_option: opt).attendance_label } %>
         <tbody class="divide-y divide-gray-100">
           <% CongressPassPricing::PRICES.each do |option, tiers| %>
             <tr class="<%= @participant.attendance_option == option ? 'bg-brand-yellow-50 font-semibold' : '' %>">
-              <td class="px-4 py-2 text-neutral-900"><%= CongressPassPricing.new(attendance_option: option).attendance_label %></td>
+              <td class="px-4 py-2 text-neutral-900"><%= labels[option] %></td>
               <% %i[special early regular late].each do |tier| %>
                 <td class="px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
               <% end %>
