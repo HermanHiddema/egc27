@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_14_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -176,6 +176,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
     t.index ["user_id"], name: "index_participants_on_user_id"
   end
 
+  create_table "payments", force: :cascade do |t|
+    t.integer "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.string "description", null: false
+    t.string "mollie_payment_id"
+    t.bigint "participant_id", null: false
+    t.string "status", default: "open", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
+    t.index ["participant_id"], name: "index_payments_on_participant_id"
+    t.index ["status"], name: "index_payments_on_status"
+  end
+
   create_table "sponsors", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.text "description"
@@ -220,4 +233,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
   add_foreign_key "participants", "users"
+  add_foreign_key "payments", "participants"
 end
