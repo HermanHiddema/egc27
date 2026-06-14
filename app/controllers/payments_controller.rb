@@ -3,8 +3,12 @@ class PaymentsController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:webhook]
 
   before_action :load_participant, only: [:new, :create]
+  before_action :require_confirmed_participant, only: [:create]
 
   def new
+    @confirmed = @participant.confirmed?
+    return unless @confirmed
+
     existing = @participant.payments.pending_or_open.last
     @payment = existing || build_payment_for(@participant)
   end
@@ -68,6 +72,13 @@ class PaymentsController < ApplicationController
 
   def load_participant
     @participant = Participant.find(params[:participant_id])
+  end
+
+  def require_confirmed_participant
+    unless @participant.confirmed?
+      redirect_to new_participant_payment_path(@participant),
+        alert: "Please confirm your email address before completing payment."
+    end
   end
 
   def build_payment_for(participant)

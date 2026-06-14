@@ -10,6 +10,7 @@ one:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -28,6 +29,7 @@ two:
   first_week: false
   weekend: true
   second_week: false
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -43,5 +45,6 @@ three:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

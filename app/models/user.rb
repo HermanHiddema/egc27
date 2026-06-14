@@ -12,6 +12,11 @@ class User < ApplicationRecord
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
+  def after_confirmation
+    super
+    participants.each { |p| p.confirm! unless p.confirmed? }
+  end
+
   def display_name
     full_name.presence || email
   end

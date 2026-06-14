@@ -1,0 +1,17 @@
+<p>Hello <%= @participant.first_name %>,</p>
+
+<p>Your registration for the European Go Congress 2027 has been confirmed.</p>
+
+<p>
+  <strong>Name:</strong> <%= @participant.first_name %> <%= @participant.last_name %><br>
+  <strong>Congress Pass:</strong> <%= @participant.attendance_option&.humanize %>
+</p>
+
+<p>To complete your registration, please pay for your congress pass:</p>
+
+<p><%= link_to "Complete Payment", @payment_url %></p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>

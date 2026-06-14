@@ -128,16 +128,17 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to new_participant_path
+    participant = Participant.order(:id).last
+    assert_redirected_to new_participant_payment_path(participant)
     follow_redirect!
     assert_match "Registration received", response.body
 
-    participant = Participant.order(:id).last
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
     assert_equal false, participant.first_week
     assert_equal true, participant.weekend
     assert_equal false, participant.second_week
+    assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
   test "creates a user account when registering a new participant" do
@@ -189,23 +190,67 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     existing_user = users(:one)
 
     assert_difference("User.count", 0) do
-      post participants_path, params: {
-        participant: {
-          first_name: "Test",
-          last_name: "User",
-          email: existing_user.email,
-          participant_type: "player",
-          date_of_birth: "01-01-1990",
-          country: "NL",
-          club: "Utrecht",
-          gender: "female",
-          image_use_consent: false
+      assert_emails 1 do
+        post participants_path, params: {
+          participant: {
+            first_name: "Test",
+            last_name: "User",
+            email: existing_user.email,
+            participant_type: "player",
+            date_of_birth: "01-01-1990",
+            country: "NL",
+            club: "Utrecht",
+            gender: "female",
+            image_use_consent: false
+          }
         }
-      }
+      end
     end
 
     participant = Participant.order(:id).last
     assert_equal existing_user, participant.user
+    assert_not_nil participant.confirmed_at, "participant linked to confirmed user should be auto-confirmed"
+  end
+
+  test "auto-confirms participant when linked to already-confirmed user" do
+    existing_user = users(:one)
+    assert existing_user.confirmed?, "fixture user should be confirmed"
+
+    post participants_path, params: {
+      participant: {
+        first_name: "Auto",
+        last_name: "Confirmed",
+        email: existing_user.email,
+        participant_type: "player",
+        date_of_birth: "15-03-1988",
+        country: "NL",
+        club: "Utrecht",
+        gender: "male",
+        image_use_consent: true
+      }
+    }
+
+    participant = Participant.order(:id).last
+    assert_not_nil participant.confirmed_at
+  end
+
+  test "does not confirm participant when user is unconfirmed" do
+    post participants_path, params: {
+      participant: {
+        first_name: "Unconfirmed",
+        last_name: "Person",
+        email: "unconfirmed_new@example.org",
+        participant_type: "player",
+        date_of_birth: "20-07-1993",
+        country: "DE",
+        club: "Berlin",
+        gender: "female",
+        image_use_consent: false
+      }
+    }
+
+    participant = Participant.order(:id).last
+    assert_nil participant.confirmed_at
   end
 
   test "returns json from egd search" do

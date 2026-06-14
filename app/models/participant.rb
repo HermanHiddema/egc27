@@ -42,6 +42,14 @@ class Participant < ApplicationRecord
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
 
+  def confirmed?
+    confirmed_at.present?
+  end
+
+  def confirm!
+    update_column(:confirmed_at, Time.current)
+  end
+
   def rank_grade
     EgdGradeMapping.grade_for(rank)
   end

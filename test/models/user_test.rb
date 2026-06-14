@@ -85,4 +85,30 @@ class UserTest < ActiveSupport::TestCase
 
     refute user.password_set?
   end
+
+  test "after_confirmation auto-confirms linked participants" do
+    user = User.create!(
+      email: "confirm_test@example.com",
+      skip_password_validation: true,
+      confirmation_token: "token123",
+      confirmation_sent_at: Time.current
+    )
+    participant = Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      date_of_birth: Date.new(1990, 1, 1),
+      country: "NL",
+      club: "Test Club",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    assert_nil participant.confirmed_at
+
+    user.confirm!
+
+    assert_not_nil participant.reload.confirmed_at
+  end
 end
