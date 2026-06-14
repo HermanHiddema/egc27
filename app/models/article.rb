@@ -7,7 +7,7 @@ class Article < ApplicationRecord
   has_rich_text :content
   has_one_attached :main_image
 
-  before_validation :attach_placeholder_main_image, on: :create
+  before_create :attach_placeholder_main_image
 
   validates :title, presence: true
   validates :content, presence: true
