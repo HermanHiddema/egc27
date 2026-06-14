@@ -1,6 +1,7 @@
 class Article < ApplicationRecord
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
   PLACEHOLDER_MAIN_IMAGES_GLOB = Rails.root.join("app/assets/images/placeholders/*").freeze
+  PLACEHOLDER_MAIN_IMAGE_PATHS = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].freeze
 
   belongs_to :user
   has_rich_text :content
@@ -17,7 +18,7 @@ class Article < ApplicationRecord
   def attach_placeholder_main_image
     return if main_image.attached?
 
-    placeholder_path = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].sample
+    placeholder_path = PLACEHOLDER_MAIN_IMAGE_PATHS.sample
     return if placeholder_path.blank?
 
     main_image.attach(

@@ -6,7 +6,7 @@ class ArticleTest < ActiveSupport::TestCase
   end
 
   def placeholder_filenames
-    Dir[Rails.root.join("app/assets/images/placeholders/*").to_s].map { |path| File.basename(path) }
+    Article::PLACEHOLDER_MAIN_IMAGE_PATHS.map { |path| File.basename(path) }
   end
 
   test "rejects svg main images" do
