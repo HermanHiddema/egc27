@@ -29,7 +29,7 @@ class ParticipantsController < ApplicationController
       @participant.update_column(:user_id, user.id) if user
     end
 
-    redirect_to new_participant_path, notice: "Registration received. Thank you!"
+    redirect_to new_participant_payment_path(@participant), notice: "Registration received. Please complete your payment below."
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
   end

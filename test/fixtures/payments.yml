@@ -1,0 +1,17 @@
+open_payment:
+  participant: one
+  mollie_payment_id: tr_open123
+  status: open
+  amount_cents: 19000
+  description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+paid_payment:
+  participant: two
+  mollie_payment_id: tr_paid456
+  status: paid
+  amount_cents: 5000
+  description: "EGC 2027 Congress Pass – Weekend only"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

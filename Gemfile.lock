@@ -221,6 +221,9 @@ GEM
     minitest (6.0.6)
       drb (~> 2.0)
       prism (~> 1.5)
+    mollie-api-ruby (4.19.0)
+      bigdecimal (>= 3.1.8, < 5.0)
+      ostruct (~> 0.6.0)
     msgpack (1.8.1)
     multipart-post (2.4.1)
     net-http (0.9.1)
@@ -466,6 +469,7 @@ DEPENDENCIES
   jbuilder
   kamal
   mailgun-ruby
+  mollie-api-ruby
   pg (>= 1.5)
   propshaft
   puma (>= 5.0)

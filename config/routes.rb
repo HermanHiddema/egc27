@@ -41,6 +41,13 @@ Rails.application.routes.draw do
     collection do
       get :egd_search
     end
+    resource :payment, only: [:new, :create], controller: "payments"
+  end
+  resources :payments, only: [] do
+    collection do
+      post :webhook
+      get :success
+    end
   end
   resources :users, only: [:index, :new, :edit, :update]
   post "users/create", to: "users#create", as: :create_user

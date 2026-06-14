@@ -24,6 +24,9 @@ gem "devise"
 gem "devise-passwordless"
 gem "mailgun-ruby"
 
+# Payment processing via Mollie
+gem "mollie-api-ruby"
+
 # Throttle and block abusive requests [https://github.com/rack/rack-attack]
 gem "rack-attack"
 
