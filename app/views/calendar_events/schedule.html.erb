@@ -1,0 +1,64 @@
+<div class="container-wide py-12">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <h1 class="text-4xl font-bold">Calendar — Schedule</h1>
+    <% if current_user&.can_create? %>
+      <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
+    <% end %>
+  </div>
+
+  <%= render "view_tabs" %>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto">
+    <div class="min-w-[70rem]">
+      <div class="grid border-b border-gray-200 bg-gray-50" style="grid-template-columns: 10rem minmax(0, 1fr);">
+        <div class="px-4 py-3 text-sm font-semibold text-gray-700 border-r border-gray-200">
+          Date
+        </div>
+        <div class="relative h-12">
+          <% (@start_hour..@end_hour).each do |hour| %>
+            <% left_percent = ((hour - @start_hour) / (@end_hour - @start_hour).to_f) * 100 %>
+            <div class="absolute top-0 bottom-0 border-l border-gray-200" style="left: <%= left_percent %>%"></div>
+            <div class="absolute top-1 -translate-x-1/2 text-xs text-gray-600" style="left: <%= left_percent %>%">
+              <%= format("%02d:00", hour) %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <% @days.each do |day| %>
+        <% day_start = day.beginning_of_day + @start_hour.hours %>
+        <% day_end = day.beginning_of_day + @end_hour.hours %>
+
+        <div class="grid border-b border-gray-200 last:border-b-0" style="grid-template-columns: 10rem minmax(0, 1fr);">
+          <div class="px-4 py-4 text-sm border-r border-gray-200 <%= day == Date.current ? 'text-brand-red-600 font-semibold' : 'text-gray-700' %>">
+            <%= eu_date(day, month: :short, weekday: :short) %>
+          </div>
+          <div class="relative h-14">
+            <% (@start_hour..@end_hour).each do |hour| %>
+              <% left_percent = ((hour - @start_hour) / (@end_hour - @start_hour).to_f) * 100 %>
+              <div class="absolute top-0 bottom-0 border-l border-gray-200" style="left: <%= left_percent %>%"></div>
+            <% end %>
+
+            <% (@calendar_events_by_day[day] || []).each do |calendar_event| %>
+              <% visible_start = [calendar_event.starts_at, day_start].max %>
+              <% visible_end = [calendar_event.ends_at, day_end].min %>
+              <% next if visible_end <= visible_start %>
+
+              <% start_minutes = (visible_start - day_start) / 60.0 %>
+              <% duration_minutes = (visible_end - visible_start) / 60.0 %>
+              <% left_percent = (start_minutes / @total_minutes) * 100 %>
+              <% width_percent = [((duration_minutes / @total_minutes) * 100), 1.0].max %>
+
+              <%= link_to calendar_event_path(calendar_event),
+                  class: "absolute top-2 h-10 rounded px-2 py-1 text-xs text-gray-900 border border-gray-300 overflow-hidden",
+                  style: "left: #{left_percent}%; width: #{width_percent}%; background-color: #{calendar_event.color};" do %>
+                <div class="truncate font-semibold"><%= calendar_event.title %></div>
+                <div class="truncate"><%= eu_time(calendar_event.starts_at) %> - <%= eu_time(calendar_event.ends_at) %></div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

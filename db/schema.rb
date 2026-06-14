@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_14_221527) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -61,6 +61,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
   end
 
   create_table "calendar_events", force: :cascade do |t|
+    t.string "color", default: "#dbeafe", null: false
     t.datetime "created_at", null: false
     t.text "description"
     t.datetime "ends_at", null: false

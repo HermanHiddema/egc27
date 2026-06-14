@@ -34,6 +34,7 @@ Rails.application.routes.draw do
       get :two_weeks
       get :three_weeks
       get :list
+      get :schedule
     end
   end
   resources :pages, param: :slug

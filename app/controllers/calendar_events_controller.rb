@@ -1,5 +1,5 @@
 class CalendarEventsController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
+  skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :schedule, :show]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update]
   before_action :require_admin!, only: [:destroy]
@@ -93,6 +93,18 @@ class CalendarEventsController < ApplicationController
     @calendar_events = calendar_events_in_range(@period_start.beginning_of_day..@period_end.end_of_day)
   end
 
+  def schedule
+    @current_view = :schedule
+    @period_start = Date.new(2026, 7, 24)
+    @period_end = Date.new(2026, 8, 8)
+    @days = (@period_start..@period_end).to_a
+    @start_hour = 9
+    @end_hour = 23
+    @total_minutes = (@end_hour - @start_hour) * 60.0
+    @calendar_events_by_day = calendar_events_in_range(@period_start.beginning_of_day..@period_end.end_of_day)
+      .group_by { |calendar_event| calendar_event.starts_at.to_date }
+  end
+
   def show
   end
 
@@ -138,7 +150,7 @@ class CalendarEventsController < ApplicationController
   end
 
   def calendar_event_params
-    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location)
+    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color)
   end
 
   def calendar_events_in_range(range)

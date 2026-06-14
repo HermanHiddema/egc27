@@ -1,7 +1,10 @@
 class CalendarEvent < ApplicationRecord
+  DEFAULT_COLOR = "#dbeafe".freeze
+
   belongs_to :user
 
   validates :title, :starts_at, :ends_at, presence: true
+  validates :color, format: { with: /\A#[0-9a-fA-F]{6}\z/ }
   validate :ends_at_not_before_starts_at
 
   scope :chronological, -> { order(:starts_at, :id) }
