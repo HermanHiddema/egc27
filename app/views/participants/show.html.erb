@@ -47,6 +47,12 @@
             <strong>Please check your email</strong> — a confirmation link has been sent to your email address. You must confirm your registration before you can complete payment.
           </p>
         </div>
+      <% elsif @participant.visitor? %>
+        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+          <p class="text-green-800 text-sm">
+            <strong>Your registration is confirmed.</strong> No payment is required for visitor registrations.
+          </p>
+        </div>
       <% else %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
           <p class="text-green-800 text-sm">

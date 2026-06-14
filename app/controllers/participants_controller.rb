@@ -49,7 +49,11 @@ class ParticipantsController < ApplicationController
     if params[:token].present? && @participant.confirmation_token.present? && ActiveSupport::SecurityUtils.secure_compare(@participant.confirmation_token, params[:token])
       @participant.confirm!
       ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
-      redirect_to new_participant_payment_path(@participant), notice: "Your registration has been confirmed."
+      if @participant.player?
+        redirect_to new_participant_payment_path(@participant), notice: "Your registration has been confirmed."
+      else
+        redirect_to participant_path(@participant), notice: "Your registration has been confirmed."
+      end
     else
       redirect_to root_path, alert: "Invalid or expired confirmation link."
     end

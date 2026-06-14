@@ -46,6 +46,14 @@ class Participant < ApplicationRecord
     confirmed_at.present?
   end
 
+  def player?
+    participant_type == "player"
+  end
+
+  def visitor?
+    participant_type == "visitor"
+  end
+
   def generate_confirmation_token!
     update_column(:confirmation_token, SecureRandom.urlsafe_base64(32))
   end

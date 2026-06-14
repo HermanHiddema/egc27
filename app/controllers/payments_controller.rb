@@ -3,6 +3,7 @@ class PaymentsController < ApplicationController
   skip_before_action :verify_authenticity_token, only: [:webhook]
 
   before_action :load_participant, only: [:new, :create]
+  before_action :require_player_participant, only: [:new, :create]
   before_action :require_confirmed_participant, only: [:create]
 
   def new
@@ -72,6 +73,12 @@ class PaymentsController < ApplicationController
 
   def load_participant
     @participant = Participant.find(params[:participant_id])
+  end
+
+  def require_player_participant
+    unless @participant.player?
+      redirect_to participant_path(@participant), notice: "No payment is required for visitor registrations."
+    end
   end
 
   def require_confirmed_participant
