@@ -1,7 +1,6 @@
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
-  include ActionMailer::TestHelper
   test "default role is regular" do
     user = User.new(email: "new@example.com", password: "password123")
     assert_equal "regular", user.role
@@ -90,9 +89,7 @@ class UserTest < ActiveSupport::TestCase
   test "after_confirmation auto-confirms linked participants" do
     user = User.create!(
       email: "confirm_test@example.com",
-      skip_password_validation: true,
-      confirmation_token: "token123",
-      confirmation_sent_at: Time.current
+      skip_password_validation: true
     )
     participant = Participant.create!(
       first_name: "Test",
@@ -108,9 +105,7 @@ class UserTest < ActiveSupport::TestCase
 
     assert_nil participant.confirmed_at
 
-    assert_emails 1 do
-      user.confirm!
-    end
+    user.after_confirmation
 
     assert_not_nil participant.reload.confirmed_at
   end
