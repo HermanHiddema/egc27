@@ -260,14 +260,17 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:unconfirmed)
     assert_nil participant.confirmed_at
 
+    emails = nil
     assert_emails 1 do
       get confirm_participant_path(participant, token: participant.confirmation_token)
+      emails = ActionMailer::Base.deliveries
     end
 
     participant.reload
     assert_not_nil participant.confirmed_at
     assert_nil participant.confirmation_token
     assert_redirected_to new_participant_payment_path(participant)
+    assert_equal "EGC 2027 – Your registration is confirmed", emails.last.subject
   end
 
   test "confirm action rejects invalid token" do
