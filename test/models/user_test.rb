@@ -95,7 +95,7 @@ class UserTest < ActiveSupport::TestCase
       first_name: "Test",
       last_name: "Person",
       email: user.email,
-      date_of_birth: Date.new(1990, 1, 1),
+      age_group: "18-49",
       country: "NL",
       club: "Test Club",
       gender: "male",
