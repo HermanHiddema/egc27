@@ -131,7 +131,6 @@ class EgdLookupService
       normalized = {
         first_name: first_name,
         last_name: last_name,
-        date_of_birth: normalize_date(value_for(row, %w[date_of_birth birth_date dob birthday])),
         country: value_for(row, %w[country country_code countrycode]).presence,
         club: value_for(row, %w[city town club club_city]).presence,
         playing_strength: grade_n_value,
@@ -194,14 +193,5 @@ class EgdLookupService
 
   def normalize_header(value)
     value.to_s.strip.downcase.gsub(/[^a-z0-9]+/, "_")
-  end
-
-  def normalize_date(value)
-    raw = value.to_s.strip
-    return nil if raw.blank?
-
-    Date.parse(raw).iso8601
-  rescue ArgumentError
-    nil
   end
 end

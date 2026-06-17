@@ -110,7 +110,7 @@ class ParticipantsController < ApplicationController
   end
 
   def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :date_of_birth, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
+    params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :age_group, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
   end
 
   def build_participant

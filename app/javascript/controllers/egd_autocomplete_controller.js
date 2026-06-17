@@ -29,7 +29,6 @@ export default class extends Controller {
         "results",
         "firstName",
         "lastName",
-        "dateOfBirth",
         "countryInput",
         "countryCode",
         "countryDatalist",
@@ -82,7 +81,6 @@ export default class extends Controller {
 
         this.firstNameTarget.value = match.first_name || ""
         this.lastNameTarget.value = match.last_name || ""
-        this.dateOfBirthTarget.value = this.formatDateForPicker(match.date_of_birth)
         this.applyCountryCode(match.country)
         this.clubTarget.value = match.club || ""
         this.rankTarget.value = match.playing_strength === null || match.playing_strength === undefined ? "" : String(match.playing_strength)
@@ -308,7 +306,6 @@ export default class extends Controller {
         return {
             first_name: this.normalizeSpaces(player.Name || player.Real_Name || ""),
             last_name: this.normalizeSpaces(player.Last_Name || player.Real_Last_Name || ""),
-            date_of_birth: "",
             country: this.normalizeSpaces(player.Country_Code || ""),
             club: this.normalizeSpaces(player.Club || ""),
             playing_strength: playingStrength,
@@ -387,19 +384,5 @@ export default class extends Controller {
             .replaceAll(">", "&gt;")
             .replaceAll('"', "&quot;")
             .replaceAll("'", "&#39;")
-    }
-
-    formatDateForPicker(value) {
-        const raw = String(value || "").trim()
-        if (!raw) return ""
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
-
-        const euMatch = raw.match(/^(\d{2})-(\d{2})-(\d{4})$/)
-        if (euMatch) {
-            return `${euMatch[3]}-${euMatch[2]}-${euMatch[1]}`
-        }
-
-        return raw
     }
 }

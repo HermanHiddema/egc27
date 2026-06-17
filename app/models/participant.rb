@@ -1,6 +1,7 @@
 class Participant < ApplicationRecord
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
+  AGE_GROUPS = %w[0-11 12-17 18-49 50+].freeze
   ATTENDANCE_OPTIONS = {
     "all_events" => { first_week: true, weekend: true, second_week: true },
     "first_week_plus_weekend" => { first_week: true, weekend: true, second_week: false },
@@ -16,7 +17,8 @@ class Participant < ApplicationRecord
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
 
-  validates :first_name, :last_name, :email, :date_of_birth, :country, presence: true
+  validates :first_name, :last_name, :email, :country, presence: true
+  validates :age_group, presence: true, inclusion: { in: AGE_GROUPS }
   validates :participant_type, inclusion: { in: PARTICIPANT_TYPES }
   validates :gender, inclusion: { in: GENDERS }
   validates :accepted_terms_and_conditions, inclusion: { in: [true], message: "must be accepted" }
@@ -36,7 +38,6 @@ class Participant < ApplicationRecord
   before_validation :normalize_text_fields
   before_validation :normalize_participant_type
   before_validation :normalize_gender
-  before_validation :normalize_date_of_birth
   before_validation :normalize_rank
   before_validation :normalize_rating
   before_validation :set_implicit_policy_acceptance
@@ -112,10 +113,6 @@ class Participant < ApplicationRecord
     self.rank = EgdGradeMapping.grade_n_for(source_value)
   end
 
-  def normalize_date_of_birth
-    self.date_of_birth = parse_date(date_of_birth)
-  end
-
   def normalize_rating
     self.rating = normalize_integer(rating)
   end
@@ -153,18 +150,5 @@ class Participant < ApplicationRecord
     self.first_week = selection[:first_week]
     self.weekend = selection[:weekend]
     self.second_week = selection[:second_week]
-  end
-
-  def parse_date(value)
-    return value if value.is_a?(Date)
-
-    raw = value.to_s.strip
-    return nil if raw.blank?
-
-    Date.strptime(raw, "%d-%m-%Y")
-  rescue ArgumentError
-    Date.parse(raw)
-  rescue TypeError
-    nil
   end
 end
