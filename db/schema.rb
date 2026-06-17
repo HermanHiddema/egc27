@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_17_200000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -148,10 +148,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_07_230413) do
   create_table "participants", force: :cascade do |t|
     t.boolean "accepted_privacy_policy", default: false, null: false
     t.boolean "accepted_terms_and_conditions", default: false, null: false
+    t.string "age_group", null: false
     t.string "club", null: false
     t.string "country", null: false
     t.datetime "created_at", null: false
-    t.date "date_of_birth", null: false
     t.string "egd_pin"
     t.string "email"
     t.string "first_name", null: false
