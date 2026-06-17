@@ -3,7 +3,7 @@ one:
   last_name: Smith
   email: alice@example.org
   user: one
-  date_of_birth: 1990-01-15
+  age_group: 18-49
   country: NL
   club: Amsterdam Go Club
   rank: 27
@@ -18,7 +18,7 @@ two:
   last_name: Jones
   email: bob@example.org
   user: two
-  date_of_birth: 1985-06-20
+  age_group: 18-49
   country: DE
   club: Berlin Go Club
   rank: 30
@@ -36,7 +36,7 @@ three:
   last_name: Smith
   email: carol@example.org
   user: one
-  date_of_birth: 1992-09-10
+  age_group: 18-49
   country: NL
   club: Amsterdam Go Club
   rank: 25
