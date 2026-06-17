@@ -1,4 +1,6 @@
 require "test_helper"
+require "minitest/mock"
+require "ostruct"
 
 class PaymentsControllerTest < ActionDispatch::IntegrationTest
   # new
@@ -32,7 +34,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects unconfirmed participant back to new" do
     participant = participants(:unconfirmed)
 
-    post participant_payments_path(participant)
+    post participant_payment_path(participant)
 
     assert_redirected_to new_participant_payment_path(participant)
   end
@@ -41,7 +43,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:one)
     participant.update!(participant_type: "visitor")
 
-    post participant_payments_path(participant)
+    post participant_payment_path(participant)
 
     assert_redirected_to participant_path(participant)
   end
@@ -49,20 +51,20 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to success page when payment already completed" do
     participant = participants(:two)
 
-    post participant_payments_path(participant)
+    post participant_payment_path(participant)
 
-    assert_redirected_to payments_success_path
+    assert_redirected_to success_payments_path
   end
 
   # success
   test "success renders page without payment_id" do
-    get payments_success_path
+    get success_payments_path
 
     assert_response :success
   end
 
   test "success renders page with unknown payment_id" do
-    get payments_success_path(payment_id: 0)
+    get success_payments_path(payment_id: 0)
 
     assert_response :success
   end
@@ -70,7 +72,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   # webhook
   test "webhook returns ok on unknown mollie id" do
     Mollie::Payment.stub(:get, ->(_id) { raise Mollie::Exception, "not found" }) do
-      post payments_webhook_path, params: { id: "tr_unknown" }
+      post webhook_payments_path, params: { id: "tr_unknown" }
     end
 
     assert_response :ok
@@ -81,7 +83,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
 
     Mollie::Payment.stub(:get, ->(_id) { mollie_stub }) do
-      post payments_webhook_path, params: { id: payment.mollie_payment_id }
+      post webhook_payments_path, params: { id: payment.mollie_payment_id }
     end
 
     assert_response :ok

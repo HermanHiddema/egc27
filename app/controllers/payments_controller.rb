@@ -15,7 +15,7 @@ class PaymentsController < ApplicationController
 
   def create
     existing = @participant.payments.completed.last
-    return redirect_to payments_success_path, notice: "Your registration has already been paid." if existing
+    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
 
     pricing = CongressPassPricing.new(attendance_option: @participant.attendance_option, age_group: @participant.age_group)
     @payment = @participant.payments.build(
@@ -31,8 +31,8 @@ class PaymentsController < ApplicationController
     mollie_payment = Mollie::Payment.create(
       amount: { value: format("%.2f", @payment.amount_eur), currency: "EUR" },
       description: @payment.description,
-      redirect_url: payments_success_url(payment_id: @payment.id),
-      webhook_url: payments_webhook_url,
+      redirect_url: success_payments_url(payment_id: @payment.id),
+      webhook_url: webhook_payments_url,
       metadata: { payment_id: @payment.id, participant_id: @participant.id }
     )
 
