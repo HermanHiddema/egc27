@@ -2,7 +2,7 @@ class CongressPassPricing
   PRICE_TIERS = [
     { name: :special,  until: Date.new(2026, 8, 31) },
     { name: :early,    until: Date.new(2027, 1, 31) },
-    { name: :regular,  until: Date.new(2027, 5, 30) },
+    { name: :regular,  until: Date.new(2027, 5, 31) },
     { name: :late,     until: nil }
   ].freeze
 

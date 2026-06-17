@@ -7,9 +7,15 @@
   <strong>Congress Pass:</strong> <%= @participant.attendance_option&.humanize %>
 </p>
 
-<p>To complete your registration, please pay for your congress pass:</p>
+<% if @participant.visitor? %>
+  <p>No payment is required for visitor registrations.</p>
 
-<p><%= link_to "Complete Payment", @payment_url %></p>
+  <p><%= link_to "View your registration", participant_url(@participant) %></p>
+<% else %>
+  <p>To complete your registration, please pay for your congress pass:</p>
+
+  <p><%= link_to "Complete Payment", @payment_url %></p>
+<% end %>
 
 <p>
   If you have any questions, please contact us at

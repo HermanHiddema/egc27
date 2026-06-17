@@ -10,8 +10,7 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    existing = @participant.payments.pending_or_open.last
-    @payment = existing || build_payment_for(@participant)
+    @payment = build_payment_for(@participant)
   end
 
   def create
@@ -50,8 +49,12 @@ class PaymentsController < ApplicationController
     @payment = Payment.find_by(id: params[:payment_id])
 
     if @payment&.mollie_payment_id.present?
-      mollie_payment = Mollie::Payment.get(@payment.mollie_payment_id)
-      @payment.update!(status: mollie_payment.status)
+      begin
+        mollie_payment = Mollie::Payment.get(@payment.mollie_payment_id)
+        @payment.update!(status: mollie_payment.status)
+      rescue Mollie::Exception => e
+        Rails.logger.error "[Mollie] Error fetching payment status for #{@payment.mollie_payment_id}: #{e.message}"
+      end
     end
   end
 

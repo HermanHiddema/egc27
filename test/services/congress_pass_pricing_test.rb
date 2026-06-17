@@ -36,15 +36,15 @@ class CongressPassPricingTest < ActiveSupport::TestCase
     assert_equal 60, pricing.price_eur
   end
 
-  # Regular tier (1 February 2027 to 30 May 2027)
+  # Regular tier (1 February 2027 to 31 May 2027)
   test "regular tier starts on 1 February 2027" do
     pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2027, 2, 1))
     assert_equal 260, pricing.price_eur
     assert_equal :regular, pricing.tier_name
   end
 
-  test "regular tier ends on 30 May 2027" do
-    pricing = CongressPassPricing.new(attendance_option: "first_week_plus_weekend", payment_date: Date.new(2027, 5, 30))
+  test "regular tier ends on 31 May 2027" do
+    pricing = CongressPassPricing.new(attendance_option: "first_week_plus_weekend", payment_date: Date.new(2027, 5, 31))
     assert_equal 190, pricing.price_eur
     assert_equal :regular, pricing.tier_name
   end
@@ -82,9 +82,9 @@ class CongressPassPricingTest < ActiveSupport::TestCase
     assert_equal :regular, pricing.tier_name
   end
 
-  test "31 May 2027 is late tier" do
+  test "last day of regular is 31 May 2027" do
     pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2027, 5, 31))
-    assert_equal :late, pricing.tier_name
+    assert_equal :regular, pricing.tier_name
   end
 
   # Youth discounts

@@ -46,7 +46,9 @@ class ParticipantsController < ApplicationController
   def confirm
     @participant = Participant.find(params[:id])
 
-    if params[:token].present? && @participant.confirmation_token.present? && ActiveSupport::SecurityUtils.secure_compare(@participant.confirmation_token, params[:token])
+    stored = @participant.confirmation_token.to_s
+    token = params[:token].to_s
+    if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
       ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
       notice = "Your registration has been confirmed."

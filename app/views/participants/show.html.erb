@@ -1,7 +1,7 @@
 <div class="container py-12">
   <div class="max-w-2xl mx-auto">
     <div class="flex justify-between items-center mb-8">
-      <h1 class="text-4xl font-bold">Registration Confirmed</h1>
+      <h1 class="text-4xl font-bold"><%= @participant.confirmed? ? "Registration Confirmed" : "Registration Received" %></h1>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm space-y-6">
