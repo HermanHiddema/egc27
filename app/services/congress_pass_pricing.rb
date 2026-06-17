@@ -13,16 +13,29 @@ class CongressPassPricing
     "weekend_plus_second_week" => { special: 130, early: 160, regular: 190, late: 230 }
   }.freeze
 
-  attr_reader :attendance_option, :payment_date
+  YOUTH_DISCOUNTS = {
+    "0-11"  => 0.80,
+    "12-17" => 0.50
+  }.freeze
 
-  def initialize(attendance_option:, payment_date: Date.current)
+  attr_reader :attendance_option, :payment_date, :age_group
+
+  def initialize(attendance_option:, payment_date: Date.current, age_group: nil)
     @attendance_option = attendance_option
     @payment_date = payment_date
+    @age_group = age_group
+  end
+
+  def base_price_eur
+    PRICES.fetch(attendance_option).fetch(current_tier)
+  end
+
+  def discount_fraction
+    YOUTH_DISCOUNTS.fetch(age_group, 0)
   end
 
   def price_eur
-    tier = current_tier
-    PRICES.fetch(attendance_option).fetch(tier)
+    (base_price_eur * (1 - discount_fraction)).round
   end
 
   def price_cents

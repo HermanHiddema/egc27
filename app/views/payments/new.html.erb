@@ -39,7 +39,13 @@
             <span class="text-brand-blue-900 font-medium">Congress Pass</span>
             <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
           </div>
-          <p class="text-xs text-brand-blue-700 mt-1">Price based on today's date.</p>
+          <% if @participant.age_group == "0-11" %>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. Price based on today's date.</p>
+          <% elsif @participant.age_group == "12-17" %>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. Price based on today's date.</p>
+          <% else %>
+            <p class="text-xs text-brand-blue-700 mt-1">Price based on today's date.</p>
+          <% end %>
         </div>
 
         <% if @payment.paid? %>

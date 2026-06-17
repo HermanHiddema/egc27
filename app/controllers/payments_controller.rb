@@ -18,7 +18,7 @@ class PaymentsController < ApplicationController
     existing = @participant.payments.completed.last
     return redirect_to payments_success_path, notice: "Your registration has already been paid." if existing
 
-    pricing = CongressPassPricing.new(attendance_option: @participant.attendance_option)
+    pricing = CongressPassPricing.new(attendance_option: @participant.attendance_option, age_group: @participant.age_group)
     @payment = @participant.payments.build(
       amount_cents: pricing.price_cents,
       description: pricing.description,
@@ -89,7 +89,7 @@ class PaymentsController < ApplicationController
   end
 
   def build_payment_for(participant)
-    pricing = CongressPassPricing.new(attendance_option: participant.attendance_option)
+    pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group)
     participant.payments.build(
       amount_cents: pricing.price_cents,
       description: pricing.description,

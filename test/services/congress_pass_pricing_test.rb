@@ -87,6 +87,69 @@ class CongressPassPricingTest < ActiveSupport::TestCase
     assert_equal :late, pricing.tier_name
   end
 
+  # Youth discounts
+  test "0-11 age group gets 80% discount on special tier" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "0-11")
+    assert_equal 38, pricing.price_eur  # 190 * 0.20 = 38
+    assert_equal 3_800, pricing.price_cents
+  end
+
+  test "0-11 age group gets 80% discount on late tier" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2027, 6, 1), age_group: "0-11")
+    assert_equal 60, pricing.price_eur  # 300 * 0.20 = 60
+  end
+
+  test "0-11 age group gets 80% discount on weekend only" do
+    pricing = CongressPassPricing.new(attendance_option: "weekend_only", payment_date: Date.new(2026, 8, 31), age_group: "0-11")
+    assert_equal 10, pricing.price_eur  # 50 * 0.20 = 10
+  end
+
+  test "12-17 age group gets 50% discount on special tier" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "12-17")
+    assert_equal 95, pricing.price_eur  # 190 * 0.50 = 95
+    assert_equal 9_500, pricing.price_cents
+  end
+
+  test "12-17 age group gets 50% discount on late tier" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2027, 6, 1), age_group: "12-17")
+    assert_equal 150, pricing.price_eur  # 300 * 0.50 = 150
+  end
+
+  test "18-49 age group gets no discount" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "18-49")
+    assert_equal 190, pricing.price_eur
+  end
+
+  test "50+ age group gets no discount" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "50+")
+    assert_equal 190, pricing.price_eur
+  end
+
+  test "no age group gets no discount" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31))
+    assert_equal 190, pricing.price_eur
+  end
+
+  test "base_price_eur returns undiscounted price" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "0-11")
+    assert_equal 190, pricing.base_price_eur
+  end
+
+  test "discount_fraction is 0.80 for 0-11" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "0-11")
+    assert_equal 0.80, pricing.discount_fraction
+  end
+
+  test "discount_fraction is 0.50 for 12-17" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "12-17")
+    assert_equal 0.50, pricing.discount_fraction
+  end
+
+  test "discount_fraction is 0 for adult age groups" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 8, 31), age_group: "18-49")
+    assert_equal 0, pricing.discount_fraction
+  end
+
   # Description and labels
   test "description includes attendance label" do
     pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 6, 1))
