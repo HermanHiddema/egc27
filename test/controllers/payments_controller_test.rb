@@ -1,5 +1,4 @@
 require "test_helper"
-require "minitest/mock"
 require "ostruct"
 
 class PaymentsControllerTest < ActionDispatch::IntegrationTest
