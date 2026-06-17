@@ -70,22 +70,28 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   # webhook
   test "webhook returns ok on unknown mollie id" do
-    Mollie::Payment.stub(:get, ->(_id) { raise Mollie::Exception, "not found" }) do
-      post webhook_payments_path, params: { id: "tr_unknown" }
-    end
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "not found" }
+
+    post webhook_payments_path, params: { id: "tr_unknown" }
 
     assert_response :ok
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original)
   end
 
   test "webhook updates payment status" do
     payment = payments(:open_payment)
     mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
 
-    Mollie::Payment.stub(:get, ->(_id) { mollie_stub }) do
-      post webhook_payments_path, params: { id: payment.mollie_payment_id }
-    end
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
 
     assert_response :ok
     assert_equal "paid", payment.reload.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original)
   end
 end
