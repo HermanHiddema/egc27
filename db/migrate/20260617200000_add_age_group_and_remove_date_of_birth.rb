@@ -32,8 +32,8 @@ class AddAgeGroupAndRemoveDateOfBirth < ActiveRecord::Migration[8.1]
   end
 
   def down
-    add_column :participants, :date_of_birth, :date
-    change_column_null :participants, :date_of_birth, true
-    remove_column :participants, :age_group
+    raise ActiveRecord::IrreversibleMigration,
+      "Cannot restore date_of_birth values from age_group ranges. " \
+      "This migration is intentionally irreversible to prevent data loss."
   end
 end
