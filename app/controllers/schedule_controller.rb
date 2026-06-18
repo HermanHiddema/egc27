@@ -17,7 +17,7 @@ class ScheduleController < ApplicationController
   def calendar_events_in_range(range)
     CalendarEvent
       .where("starts_at <= ? AND ends_at >= ?", range.end, range.begin)
-      .includes(:user, :event_group)
+      .includes(:event_group)
       .chronological
   end
 end

@@ -1,7 +1,6 @@
 class CalendarEvent < ApplicationRecord
   DEFAULT_COLOR = "#dbeafe".freeze
 
-  belongs_to :user
   belongs_to :event_group, optional: true
 
   validates :title, :starts_at, :ends_at, presence: true

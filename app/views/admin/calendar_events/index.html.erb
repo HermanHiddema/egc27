@@ -14,7 +14,6 @@
             <th class="px-6 py-3 text-left font-semibold text-gray-700">Group</th>
             <th class="px-6 py-3 text-left font-semibold text-gray-700">Starts At</th>
             <th class="px-6 py-3 text-left font-semibold text-gray-700">Ends At</th>
-            <th class="px-6 py-3 text-left font-semibold text-gray-700">User</th>
             <th class="px-6 py-3 text-left font-semibold text-gray-700">Color</th>
             <th class="px-6 py-3 text-left font-semibold text-gray-700">Actions</th>
           </tr>
@@ -26,7 +25,6 @@
               <td class="px-6 py-4 text-gray-700"><%= calendar_event.event_group&.name || "-" %></td>
               <td class="px-6 py-4 text-gray-700"><%= calendar_event.starts_at.strftime("%d %b %Y %H:%M") %></td>
               <td class="px-6 py-4 text-gray-700"><%= calendar_event.ends_at.strftime("%d %b %Y %H:%M") %></td>
-              <td class="px-6 py-4 text-gray-700"><%= calendar_event.user.display_name %></td>
               <td class="px-6 py-4">
                 <% if calendar_event.color.present? %>
                   <span class="inline-block w-6 h-6 rounded" style="background-color: <%= calendar_event.color %>;" title="<%= calendar_event.color %>"></span>

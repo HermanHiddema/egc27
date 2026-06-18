@@ -46,16 +46,9 @@
           <%= form.text_field :location, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <%= form.label :user_id, class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.collection_select :user_id, @users, :id, :display_name, { prompt: "Select a user" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-          </div>
-
-          <div>
-            <%= form.label :event_group_id, class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.collection_select :event_group_id, @event_groups, :id, :name, { prompt: "Select a group" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-          </div>
+        <div>
+          <%= form.label :event_group_id, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.collection_select :event_group_id, @event_groups, :id, :name, { prompt: "Select a group" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
         </div>
 
         <div>

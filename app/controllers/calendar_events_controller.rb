@@ -18,7 +18,6 @@ class CalendarEventsController < ApplicationController
     @calendar_days = (@display_start..@display_end).to_a
     @calendar_events_by_day = CalendarEvent
       .where(starts_at: @display_start.beginning_of_day..@display_end.end_of_day)
-      .includes(:user)
       .chronological
       .group_by { |calendar_event| calendar_event.starts_at.to_date }
   end
@@ -104,7 +103,7 @@ class CalendarEventsController < ApplicationController
   end
 
   def create
-    @calendar_event = current_user.calendar_events.build(calendar_event_params)
+    @calendar_event = CalendarEvent.new(calendar_event_params)
 
     if @calendar_event.save
       redirect_to @calendar_event, notice: "Event was successfully created."
@@ -134,7 +133,7 @@ class CalendarEventsController < ApplicationController
   private
 
   def set_calendar_event
-    @calendar_event = CalendarEvent.includes(:user, :event_group).find(params[:id])
+    @calendar_event = CalendarEvent.includes(:event_group).find(params[:id])
   end
 
   def calendar_event_params
@@ -144,7 +143,7 @@ class CalendarEventsController < ApplicationController
   def calendar_events_in_range(range)
     CalendarEvent
       .where("starts_at <= ? AND ends_at >= ?", range.end, range.begin)
-      .includes(:user, :event_group)
+      .includes(:event_group)
       .chronological
   end
 
