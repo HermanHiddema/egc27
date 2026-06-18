@@ -5,7 +5,6 @@ one:
   ends_at: <%= Time.zone.parse("2026-07-25 11:30") %>
   location: Main Hall
   color: "#93c5fd"
-  user: one
 
 two:
   title: Main Tournament Round 1
@@ -14,4 +13,3 @@ two:
   ends_at: <%= Time.zone.parse("2026-07-26 12:00") %>
   location: Tournament Room A
   color: "#fca5a5"
-  user: two
