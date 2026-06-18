@@ -25,4 +25,16 @@ class CalendarEventTest < ActiveSupport::TestCase
     assert_not calendar_event.valid?
     assert_includes calendar_event.errors[:color], "is invalid"
   end
+
+  test "allows blank color override" do
+    calendar_event = CalendarEvent.new(
+      title: "Group Color Event",
+      starts_at: Time.zone.parse("2026-07-20 14:00"),
+      ends_at: Time.zone.parse("2026-07-20 15:00"),
+      color: nil,
+      user: users(:one)
+    )
+
+    assert calendar_event.valid?
+  end
 end

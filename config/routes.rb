@@ -27,6 +27,7 @@ Rails.application.routes.draw do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
   get "calendar" => "calendar_events#index", as: :calendar
+  get "schedule" => "schedule#index", as: :schedule
   resources :calendar_events do
     collection do
       get :day
@@ -34,7 +35,6 @@ Rails.application.routes.draw do
       get :two_weeks
       get :three_weeks
       get :list
-      get :schedule
     end
   end
   resources :pages, param: :slug

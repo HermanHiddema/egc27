@@ -2,18 +2,26 @@ require "test_helper"
 
 class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
   test "unauthenticated user can view schedule" do
-    get schedule_calendar_events_path
+    get schedule_path
     assert_response :success
-    assert_match "Calendar — Schedule", response.body
-    assert_match "Fri, 24 Jul 2026", response.body
-    assert_match "Sat, 08 Aug 2026", response.body
+    assert_match "Tournament Schedule", response.body
+    assert_match "Sat, 24 Jul 2027", response.body
+    assert_match "Sun, 08 Aug 2027", response.body
   end
 
   test "schedule renders event color" do
-    get schedule_calendar_events_path
+    CalendarEvent.create!(
+      title: "Color Check",
+      starts_at: Time.zone.parse("2027-07-24 10:00"),
+      ends_at: Time.zone.parse("2027-07-24 11:00"),
+      color: "#93c5fd",
+      user: users(:editor)
+    )
+
+    get schedule_path
 
     assert_response :success
-    assert_match "background-color: #{calendar_events(:one).color};", response.body
+    assert_match "background-color: #93c5fd;", response.body
   end
 
   test "regular user cannot access new calendar event" do
@@ -68,7 +76,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
       calendar_path(month: calendar_event_date.strftime("%Y-%m")),
       day_calendar_events_path(date: calendar_event_date),
       week_calendar_events_path(date: calendar_event_date),
-      schedule_calendar_events_path,
+      schedule_path,
       two_weeks_calendar_events_path(date: calendar_event_date),
       three_weeks_calendar_events_path(date: calendar_event_date),
       list_calendar_events_path(from: calendar_event_date.beginning_of_month, to: calendar_event_date.end_of_month)
@@ -92,7 +100,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
       calendar_path(month: calendar_event_date.strftime("%Y-%m")),
       day_calendar_events_path(date: calendar_event_date),
       week_calendar_events_path(date: calendar_event_date),
-      schedule_calendar_events_path,
+      schedule_path,
       two_weeks_calendar_events_path(date: calendar_event_date),
       three_weeks_calendar_events_path(date: calendar_event_date),
       list_calendar_events_path(from: calendar_event_date.beginning_of_month, to: calendar_event_date.end_of_month)
