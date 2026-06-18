@@ -12,6 +12,8 @@ class User < ApplicationRecord
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
+  scope :ordered_by_name, -> { order(full_name: :asc) }
+
   def display_name
     full_name.presence || email
   end

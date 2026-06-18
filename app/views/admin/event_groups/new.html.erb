@@ -1,0 +1,48 @@
+<div class="container-wide py-12">
+  <div class="mb-6">
+    <%= link_to "← Event Groups", admin_event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm max-w-2xl">
+    <h1 class="text-3xl font-bold mb-6"><%= @event_group.new_record? ? "New Event Group" : "Edit Event Group" %></h1>
+
+    <% if @event_group.errors.any? %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <p class="text-red-800 font-semibold"><%= pluralize(@event_group.errors.count, "error") %> prevented this group from being saved:</p>
+        <ul class="list-disc list-inside text-red-700 mt-2">
+          <% @event_group.errors.each do |error| %>
+            <li><%= error.full_message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= form_with(model: [:admin, @event_group], local: true) do |form| %>
+      <div class="space-y-4">
+        <div>
+          <%= form.label :key, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :key, required: true, placeholder: "e.g., main_open", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          <p class="text-xs text-gray-600 mt-1">Unique identifier (snake_case)</p>
+        </div>
+
+        <div>
+          <%= form.label :name, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.text_field :name, required: true, placeholder: "e.g., Main Open Tournament", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+        </div>
+
+        <div>
+          <%= form.label :color, class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <div class="flex gap-2">
+            <%= form.color_field :color, class: "w-16 h-10 border border-gray-300 rounded-lg cursor-pointer" %>
+            <div class="flex-1 text-sm text-gray-600 pt-2">Color for events in this group</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex gap-3 mt-6">
+        <%= form.submit @event_group.new_record? ? "Create Group" : "Update Group", class: "btn-primary" %>
+        <%= link_to "Cancel", admin_event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      </div>
+    <% end %>
+  </div>
+</div>
