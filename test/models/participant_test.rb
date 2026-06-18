@@ -8,7 +8,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:first_name], "can't be blank"
     assert_includes participant.errors[:last_name], "can't be blank"
     assert_includes participant.errors[:email], "can't be blank"
-    assert_includes participant.errors[:date_of_birth], "can't be blank"
+    assert_includes participant.errors[:age_group], "can't be blank"
     assert_includes participant.errors[:country], "can't be blank"
   end
 
@@ -17,7 +17,7 @@ class ParticipantTest < ActiveSupport::TestCase
       first_name: "Jane",
       last_name: "Doe",
       email: "jane@example.org",
-      date_of_birth: Date.new(1990, 1, 1),
+      age_group: "18-49",
       country: "NL",
       gender: "female",
       club: "Utrecht",
@@ -37,7 +37,7 @@ class ParticipantTest < ActiveSupport::TestCase
       first_name: "Ilja",
       last_name: "Shikshin",
       email: "ilja@example.org",
-      date_of_birth: Date.new(1990, 1, 1),
+      age_group: "18-49",
       country: "RU",
       gender: "male",
       club: "Kazan",
@@ -50,12 +50,12 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("4 dan pro", participant.rank_grade)
   end
 
-  test "parses european date format" do
+  test "validates age group must be one of the allowed values" do
     participant = Participant.new(
       first_name: "Eva",
       last_name: "Jansen",
       email: "eva@example.org",
-      date_of_birth: "31-12-1999",
+      age_group: "25-30",
       country: "NL",
       gender: "female",
       club: "Eindhoven",
@@ -63,8 +63,26 @@ class ParticipantTest < ActiveSupport::TestCase
       rank: "1 dan"
     )
 
-    assert participant.valid?
-    assert_equal(Date.new(1999, 12, 31), participant.date_of_birth)
+    assert_not participant.valid?
+    assert_includes participant.errors[:age_group], "is not included in the list"
+  end
+
+  test "accepts all valid age group values" do
+    Participant::AGE_GROUPS.each do |group|
+      participant = Participant.new(
+        first_name: "Eva",
+        last_name: "Jansen",
+        email: "eva@example.org",
+        age_group: group,
+        country: "NL",
+        gender: "female",
+        club: "Eindhoven",
+        image_use_consent: true,
+        rank: "1 dan"
+      )
+
+      assert participant.valid?, "Expected #{group} to be valid, but got: #{participant.errors.full_messages}"
+    end
   end
 
   test "normalizes country to uppercase iso code" do
@@ -72,7 +90,7 @@ class ParticipantTest < ActiveSupport::TestCase
       first_name: "Ana",
       last_name: "Silva",
       email: "ana@example.org",
-      date_of_birth: "01-01-2000",
+      age_group: "18-49",
       country: "pt",
       gender: "female",
       club: "Porto",
@@ -89,7 +107,7 @@ class ParticipantTest < ActiveSupport::TestCase
       first_name: "Lee",
       last_name: "Min",
       email: "lee@example.org",
-      date_of_birth: "01-01-2001",
+      age_group: "18-49",
       country: "KR",
       gender: "male",
       club: "Seoul",
@@ -107,7 +125,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Berg",
       email: " Nora.Berg@Example.COM ",
       participant_type: "visitor",
-      date_of_birth: "05-06-1998",
+      age_group: "18-49",
       country: "SE",
       gender: "female",
       club: "Stockholm",
@@ -126,7 +144,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       club: "",
@@ -144,7 +162,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",
@@ -162,7 +180,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",
@@ -180,7 +198,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",
@@ -210,7 +228,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",
@@ -230,7 +248,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",
@@ -248,7 +266,7 @@ class ParticipantTest < ActiveSupport::TestCase
       last_name: "Rossi",
       email: "mia@example.org",
       participant_type: "player",
-      date_of_birth: "10-10-1997",
+      age_group: "18-49",
       country: "IT",
       gender: "female",
       rank: "8 kyu",

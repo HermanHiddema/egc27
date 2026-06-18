@@ -60,7 +60,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     params = {
       participant: {
         first_name: "Jane", last_name: "Doe", email: "jane@example.org",
-        participant_type: "player", date_of_birth: "11-02-1995",
+        participant_type: "player", age_group: "18-49",
         country: "NL", club: "Utrecht", gender: "female",
         image_use_consent: true
       }
