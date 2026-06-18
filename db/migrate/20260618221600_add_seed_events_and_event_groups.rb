@@ -265,12 +265,6 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
             nil
           end
 
-          is_new = CalendarEvent.find_by(
-            title: calendar_event_data[:title],
-            starts_at: calendar_event_data[:starts_at],
-            ends_at: calendar_event_data[:ends_at]
-          ).nil?
-
           calendar_event = CalendarEvent.find_or_create_by(
             title: calendar_event_data[:title],
             starts_at: calendar_event_data[:starts_at],
@@ -279,10 +273,10 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
             ce.color = color_override
             ce.event_group = event_group
           end
-          calendar_event_count += 1 if is_new
+          calendar_event_count += 1 if calendar_event.previously_new_record?
         end
 
-        puts "✓ CalendarEvents created or verified: #{calendar_event_count}"
+        puts "✓ CalendarEvents created: #{calendar_event_count}"
       end
 
       dir.down do
