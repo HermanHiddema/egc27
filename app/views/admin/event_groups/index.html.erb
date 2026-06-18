@@ -29,7 +29,7 @@
                   <span class="text-gray-500">-</span>
                 <% end %>
               </td>
-              <td class="px-6 py-4 text-gray-700"><%= event_group.calendar_events.count %></td>
+              <td class="px-6 py-4 text-gray-700"><%= event_group.calendar_events.size %></td>
               <td class="px-6 py-4 text-right">
                 <%= link_to "Edit", edit_admin_event_group_path(event_group), class: "text-brand-blue-600 hover:text-brand-red-600 transition mr-4" %>
                 <%= button_to "Delete", admin_event_group_path(event_group), method: :delete, form: { class: "inline", data: { turbo_confirm: "Are you sure?" } }, class: "text-brand-red-600 hover:text-brand-red-800" %>

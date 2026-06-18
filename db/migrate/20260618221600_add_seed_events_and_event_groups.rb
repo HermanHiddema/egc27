@@ -1,4 +1,13 @@
 class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
+  # Local stub classes to avoid depending on application models, which may change over time
+  class EventGroup < ApplicationRecord
+    self.table_name = "event_groups"
+  end
+
+  class CalendarEvent < ApplicationRecord
+    self.table_name = "calendar_events"
+  end
+
   def change
     reversible do |dir|
       dir.up do

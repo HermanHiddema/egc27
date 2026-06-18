@@ -387,12 +387,6 @@ calendar_event_seeds = [
   { title: "Closing with Prizegiving", starts_at: Time.zone.parse("2027-08-07 16:00"), ends_at: Time.zone.parse("2027-08-07 18:00"), color: "#ffd966" }
 ]
 
-removed_calendar_events = CalendarEvent.count
-CalendarEvent.destroy_all
-
-removed_event_groups = EventGroup.count
-EventGroup.destroy_all
-
 event_group_seeds = [
   { key: "registration", name: "Registration", color: "#b7b7b7" },
   { key: "ceremony", name: "Ceremony and Official", color: "#ffd966" },
@@ -417,11 +411,10 @@ event_group_seeds = [
 ]
 
 event_groups_by_key = event_group_seeds.each_with_object({}) do |event_group_data, memo|
-  event_group = EventGroup.create!(
-    key: event_group_data[:key],
-    name: event_group_data[:name],
-    color: event_group_data[:color]
-  )
+  event_group = EventGroup.find_or_create_by(key: event_group_data[:key]) do |eg|
+    eg.name = event_group_data[:name]
+    eg.color = event_group_data[:color]
+  end
   memo[event_group.key] = event_group
 end
 
@@ -492,19 +485,14 @@ calendar_event_seeds.each do |calendar_event_data|
     nil
   end
 
-  CalendarEvent.create!(
-    title: calendar_event_data[:title],
-    starts_at: calendar_event_data[:starts_at],
-    ends_at: calendar_event_data[:ends_at],
-    color: color_override,
-    event_group: event_group,
-    description: calendar_event_data[:description],
-    location: calendar_event_data[:location],
-    user: user
-  )
+  CalendarEvent.find_or_create_by(title: calendar_event_data[:title], starts_at: calendar_event_data[:starts_at]) do |ce|
+    ce.ends_at = calendar_event_data[:ends_at]
+    ce.color = color_override
+    ce.event_group = event_group
+    ce.description = calendar_event_data[:description]
+    ce.location = calendar_event_data[:location]
+  end
 end
 
-puts "✓ Removed #{removed_calendar_events} existing calendar events"
-puts "✓ Removed #{removed_event_groups} existing event groups"
 puts "✓ Seeded #{event_group_seeds.size} event groups"
 puts "✓ Seeded #{calendar_event_seeds.size} calendar events"

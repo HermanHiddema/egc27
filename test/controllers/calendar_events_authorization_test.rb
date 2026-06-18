@@ -14,8 +14,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
       title: "Color Check",
       starts_at: Time.zone.parse("2027-07-24 10:00"),
       ends_at: Time.zone.parse("2027-07-24 11:00"),
-      color: "#93c5fd",
-      user: users(:editor)
+      color: "#93c5fd"
     )
 
     get schedule_path
