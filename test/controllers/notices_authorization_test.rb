@@ -108,6 +108,79 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "regular user cannot deactivate or reactivate notices" do
+    sign_in users(:one)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert_not inactive_notice.reload.active?
+  end
+
+  test "editor cannot deactivate or reactivate notices" do
+    sign_in users(:editor)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert_not inactive_notice.reload.active?
+  end
+
+  test "admin can deactivate and reactivate notices" do
+    sign_in users(:admin)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert_not active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert inactive_notice.reload.active?
+  end
+
+  test "admin sees error when deactivation fails" do
+    sign_in users(:admin)
+
+    active_notice = notices(:one)
+    # Force validation failure so Notice#deactivate (update) returns false.
+    active_notice.update_column(:title, "")
+    assert_not active_notice.reload.valid?
+    patch deactivate_notice_path(active_notice)
+
+    assert_redirected_to root_path
+    assert_equal "Notice could not be deactivated.", flash[:alert]
+    assert active_notice.reload.active?
+  end
+
+  test "admin sees error when reactivation fails" do
+    sign_in users(:admin)
+
+    inactive_notice = notices(:two)
+    # Force validation failure so Notice#reactivate (update) returns false.
+    inactive_notice.update_column(:title, "")
+    assert_not inactive_notice.reload.valid?
+    patch reactivate_notice_path(inactive_notice)
+
+    assert_redirected_to root_path
+    assert_equal "Notice could not be reactivated.", flash[:alert]
+    assert_not inactive_notice.reload.active?
+  end
+
   test "admin can delete notice" do
     sign_in users(:admin)
     assert_difference "Notice.count", -1 do
