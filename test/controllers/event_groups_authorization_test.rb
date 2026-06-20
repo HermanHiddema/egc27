@@ -1,0 +1,63 @@
+require "test_helper"
+
+class EventGroupsAuthorizationTest < ActionDispatch::IntegrationTest
+  test "regular user cannot access event groups" do
+    sign_in users(:one)
+    get event_groups_path
+    assert_redirected_to root_path
+  end
+
+  test "editor cannot access event groups" do
+    sign_in users(:editor)
+    get event_groups_path
+    assert_redirected_to root_path
+  end
+
+  test "admin can list event groups" do
+    sign_in users(:admin)
+    get event_groups_path
+    assert_response :success
+    assert_select "h1", text: "Event Groups"
+  end
+
+  test "admin can create event group" do
+    sign_in users(:admin)
+
+    assert_difference "EventGroup.count", 1 do
+      post event_groups_path, params: {
+        event_group: {
+          key: "admin_created_group",
+          name: "Admin Created Group",
+          color: "#dbeafe"
+        }
+      }
+    end
+
+    assert_redirected_to event_groups_path
+  end
+
+  test "admin can update event group" do
+    sign_in users(:admin)
+    event_group = EventGroup.create!(key: "admin_update_group", name: "Before Name", color: "#93c5fd")
+
+    patch event_group_path(event_group), params: {
+      event_group: {
+        name: "After Name"
+      }
+    }
+
+    assert_redirected_to event_groups_path
+    assert_equal "After Name", event_group.reload.name
+  end
+
+  test "admin can destroy event group" do
+    sign_in users(:admin)
+    event_group = EventGroup.create!(key: "admin_delete_group", name: "Delete Me", color: "#93c5fd")
+
+    assert_difference "EventGroup.count", -1 do
+      delete event_group_path(event_group)
+    end
+
+    assert_redirected_to event_groups_path
+  end
+end

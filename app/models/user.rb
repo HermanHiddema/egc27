@@ -4,13 +4,14 @@ class User < ApplicationRecord
          :trackable, :confirmable
 
   has_many :articles, dependent: :destroy
-  has_many :calendar_events, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :participants, dependent: :nullify
 
   ROLES = %w[regular editor admin].freeze
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
+
+  scope :ordered_by_name, -> { order(full_name: :asc) }
 
   def display_name
     full_name.presence || email
