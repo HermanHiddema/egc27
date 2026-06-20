@@ -1,6 +1,6 @@
 require "test_helper"
 
-class Admin::NewsletterSubscriptionsAuthorizationTest < ActionDispatch::IntegrationTest
+class AdminNewsletterSubscriptionsAuthorizationTest < ActionDispatch::IntegrationTest
   test "regular user cannot access admin newsletter subscriptions" do
     sign_in users(:one)
     get admin_newsletter_subscriptions_path

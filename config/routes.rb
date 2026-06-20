@@ -54,11 +54,11 @@ Rails.application.routes.draw do
     resources :menu_items
   end
 
-  namespace :admin do
-    root "dashboard#index"
-    resources :menus, only: [:index]
-    resources :newsletter_subscriptions, only: [:index, :edit, :update]
-    resources :sponsors, except: [:show]
+  scope :admin, as: :admin do
+    get "/", to: "admin_dashboard#index", as: :root
+    resources :menus, only: [:index], controller: "admin_menus"
+    resources :newsletter_subscriptions, only: [:index, :edit, :update], controller: "admin_newsletter_subscriptions"
+    resources :sponsors, except: [:show], controller: "admin_sponsors"
   end
 
   root "home#index"
