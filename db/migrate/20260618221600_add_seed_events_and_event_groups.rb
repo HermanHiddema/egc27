@@ -1,4 +1,6 @@
 class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
+  DEFAULT_EVENT_COLOR = "#dbeafe"
+
   # Local stub classes to avoid depending on application models, which may change over time
   class EventGroup < ApplicationRecord
     self.table_name = "event_groups"
@@ -32,7 +34,7 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
           { key: "excursions", name: "Excursions", color: "#6fa8dc" },
           { key: "entertainment", name: "Entertainment", color: "#6fa8dc" },
           { key: "student_changqi", name: "Student and ChangQi", color: "#00ff00" },
-          { key: "other", name: "Other", color: "#dbeafe" }
+          { key: "other", name: "Other", color: DEFAULT_EVENT_COLOR }
         ]
 
         event_groups_by_key = {}
@@ -257,7 +259,7 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
         calendar_event_count = 0
         calendar_event_seeds.each do |calendar_event_data|
           explicit_color = calendar_event_data[:color]
-          event_group_key = calendar_event_data[:event_group_key] || event_group_key_for.call(calendar_event_data[:title], explicit_color || "#dbeafe")
+          event_group_key = calendar_event_data[:event_group_key] || event_group_key_for.call(calendar_event_data[:title], explicit_color || DEFAULT_EVENT_COLOR)
           event_group = event_groups_by_key.fetch(event_group_key)
           color_override = if explicit_color.present? && explicit_color.downcase != event_group.color.to_s.downcase
             explicit_color
