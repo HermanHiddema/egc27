@@ -44,6 +44,8 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Recently Registered"
     assert_select "li span", text: "Alice Smith"
     assert_select "li span", text: "Bob Jones"
+    assert_select "li span", text: participants(:one).rank_grade
+    assert_select "li span", text: participants(:two).rank_grade
     assert_select "ul.divide-y.divide-gray-100 li", maximum: 10
   end
 end
