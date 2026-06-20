@@ -108,6 +108,51 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "regular user cannot deactivate or reactivate notices" do
+    sign_in users(:one)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert_not inactive_notice.reload.active?
+  end
+
+  test "editor cannot deactivate or reactivate notices" do
+    sign_in users(:editor)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert_not inactive_notice.reload.active?
+  end
+
+  test "admin can deactivate and reactivate notices" do
+    sign_in users(:admin)
+
+    active_notice = notices(:one)
+    inactive_notice = notices(:two)
+
+    patch deactivate_notice_path(active_notice)
+    assert_redirected_to root_path
+    assert_not active_notice.reload.active?
+
+    patch reactivate_notice_path(inactive_notice)
+    assert_redirected_to root_path
+    assert inactive_notice.reload.active?
+  end
+
   test "admin can delete notice" do
     sign_in users(:admin)
     assert_difference "Notice.count", -1 do
