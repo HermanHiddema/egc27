@@ -23,6 +23,37 @@ class MenuItemTest < ActiveSupport::TestCase
     assert_includes item.errors[:base], "choose either a page or a URL, not both"
   end
 
+  test "allows local path destination" do
+    item = MenuItem.new(
+      menu: menus(:primary),
+      label: "Local path",
+      url: "/participants"
+    )
+
+    assert item.valid?
+  end
+
+  test "allows hash destination" do
+    item = MenuItem.new(
+      menu: menus(:primary),
+      label: "Hash destination",
+      url: "#"
+    )
+
+    assert item.valid?
+  end
+
+  test "rejects invalid url destination" do
+    item = MenuItem.new(
+      menu: menus(:primary),
+      label: "Invalid URL",
+      url: "not-a-url"
+    )
+
+    assert_not item.valid?
+    assert_includes item.errors[:url], "must be a full URL or a local path starting with /"
+  end
+
   test "parent must belong to same menu" do
     item = MenuItem.new(
       menu: menus(:footer),

@@ -15,6 +15,7 @@ class MenuItem < ApplicationRecord
   validate :parent_belongs_to_same_menu
   validate :parent_is_not_self
   validate :destination_is_valid
+  validate :url_is_external_or_local_path
 
   scope :visible, -> { where(visible: true) }
   scope :roots, -> { where(parent_id: nil) }
@@ -38,5 +39,18 @@ class MenuItem < ApplicationRecord
     if page_id.present? && url.present?
       errors.add(:base, "choose either a page or a URL, not both")
     end
+  end
+
+  def url_is_external_or_local_path
+    return if url.blank?
+    return if url.start_with?("#")
+    return if url.start_with?("/") && !url.start_with?("//")
+
+    uri = URI.parse(url)
+    return if uri.host.present? && uri.scheme.present? && %w[http https].include?(uri.scheme.downcase)
+
+    errors.add(:url, "must be a full URL or a local path starting with /")
+  rescue URI::InvalidURIError
+    errors.add(:url, "must be a full URL or a local path starting with /")
   end
 end
