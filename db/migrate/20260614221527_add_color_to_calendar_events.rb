@@ -1,5 +1,5 @@
 class AddColorToCalendarEvents < ActiveRecord::Migration[8.1]
   def change
-    add_column :calendar_events, :color, :string, null: false, default: "#dbeafe"
+    add_column :calendar_events, :color, :string
   end
 end
