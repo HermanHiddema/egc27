@@ -10,7 +10,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
   end
 
   test "schedule renders event color" do
-    CalendarEvent.create!(
+    calendar_event = CalendarEvent.create!(
       title: "Color Check",
       starts_at: Time.zone.parse("2027-07-24 10:00"),
       ends_at: Time.zone.parse("2027-07-24 11:00"),
@@ -21,6 +21,37 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "background-color: #93c5fd;", response.body
+    assert_select "a[href='#{edit_calendar_event_path(calendar_event)}']", count: 0
+  end
+
+  test "regular user cannot click schedule events to edit" do
+    sign_in users(:one)
+    calendar_event = CalendarEvent.create!(
+      title: "Schedule Access Check",
+      starts_at: Time.zone.parse("2027-07-24 12:00"),
+      ends_at: Time.zone.parse("2027-07-24 13:00"),
+      color: "#93c5fd"
+    )
+
+    get schedule_path
+
+    assert_response :success
+    assert_select "a[href='#{edit_calendar_event_path(calendar_event)}']", count: 0
+  end
+
+  test "editor can click schedule events to edit" do
+    sign_in users(:editor)
+    calendar_event = CalendarEvent.create!(
+      title: "Editor Schedule Access",
+      starts_at: Time.zone.parse("2027-07-24 14:00"),
+      ends_at: Time.zone.parse("2027-07-24 15:00"),
+      color: "#93c5fd"
+    )
+
+    get schedule_path
+
+    assert_response :success
+    assert_select "a[href='#{edit_calendar_event_path(calendar_event)}']", count: 1
   end
 
   test "regular user cannot access new calendar event" do
@@ -150,6 +181,18 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:editor)
     get edit_calendar_event_path(calendar_events(:one))
     assert_response :success
+    assert_select "form[action='#{calendar_event_path(calendar_events(:one))}'] button", text: "Delete Event", count: 0
+  end
+
+  test "editor can update calendar event and returns to schedule" do
+    sign_in users(:editor)
+
+    patch calendar_event_path(calendar_events(:one)), params: {
+      calendar_event: { title: "Changed by editor" }
+    }
+
+    assert_redirected_to schedule_path
+    assert_equal "Changed by editor", calendar_events(:one).reload.title
   end
 
   test "editor cannot destroy calendar event" do
@@ -171,6 +214,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     get edit_calendar_event_path(calendar_events(:one))
     assert_response :success
+    assert_select "form[action='#{calendar_event_path(calendar_events(:one))}'] button", text: "Delete Event", count: 1
   end
 
   test "admin can destroy calendar event" do
@@ -178,7 +222,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_difference "CalendarEvent.count", -1 do
       delete calendar_event_path(calendar_events(:one))
     end
-    assert_redirected_to calendar_path(month: calendar_events(:one).starts_at.strftime("%Y-%m"))
+    assert_redirected_to schedule_path
     refute CalendarEvent.exists?(calendar_events(:one).id)
   end
 end

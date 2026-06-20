@@ -56,7 +56,7 @@
 
     <div class="flex gap-4">
       <%= form.submit class: "btn-primary" %>
-      <%= link_to "Cancel", calendar_path(month: (calendar_event.starts_at || Time.current).strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      <%= link_to "Cancel", schedule_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
     </div>
   </div>
 <% end %>

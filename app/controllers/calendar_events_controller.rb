@@ -117,17 +117,16 @@ class CalendarEventsController < ApplicationController
 
   def update
     if @calendar_event.update(calendar_event_params)
-      redirect_to @calendar_event, notice: "Event was successfully updated."
+      redirect_to schedule_path, notice: "Event was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
-    month = @calendar_event.starts_at.strftime("%Y-%m")
     @calendar_event.destroy
 
-    redirect_to calendar_path(month: month), notice: "Event was successfully deleted."
+    redirect_to schedule_path, notice: "Event was successfully deleted."
   end
 
   private

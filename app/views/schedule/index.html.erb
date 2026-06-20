@@ -123,12 +123,20 @@
               <% calendar_event = positioned_event[:calendar_event] %>
               <% row_index = positioned_event[:row_index] %>
               <% top_px = lane_padding_px + (row_index * (row_height_px + row_gap_px)) %>
+              <% event_style = "left: #{positioned_event[:left_percent]}%; width: #{positioned_event[:width_percent]}%; top: #{top_px}px; height: #{row_height_px}px; background-color: #{calendar_event.effective_color};" %>
+              <% event_classes = "absolute rounded px-2 py-0.5 text-xs leading-tight text-gray-900 border border-gray-300 overflow-hidden" %>
 
-              <%= link_to calendar_event_path(calendar_event),
-                  class: "absolute rounded px-2 py-0.5 text-xs leading-tight text-gray-900 border border-gray-300 overflow-hidden",
-                  style: "left: #{positioned_event[:left_percent]}%; width: #{positioned_event[:width_percent]}%; top: #{top_px}px; height: #{row_height_px}px; background-color: #{calendar_event.effective_color};",
-                  title: "#{calendar_event.title} (#{eu_time(calendar_event.starts_at)} - #{eu_time(calendar_event.ends_at)})" do %>
-                <div class="truncate font-semibold"><%= calendar_event.title %></div>
+              <% if current_user&.can_edit? %>
+                <%= link_to edit_calendar_event_path(calendar_event),
+                    class: event_classes,
+                    style: event_style,
+                    title: "Edit #{calendar_event.title} (#{eu_time(calendar_event.starts_at)} - #{eu_time(calendar_event.ends_at)})" do %>
+                  <div class="truncate font-semibold"><%= calendar_event.title %></div>
+                <% end %>
+              <% else %>
+                <div class="<%= event_classes %>" style="<%= event_style %>" title="<%= calendar_event.title %> (<%= eu_time(calendar_event.starts_at) %> - <%= eu_time(calendar_event.ends_at) %>)">
+                  <div class="truncate font-semibold"><%= calendar_event.title %></div>
+                </div>
               <% end %>
             <% end %>
           </div>
