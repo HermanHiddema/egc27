@@ -30,6 +30,12 @@ Rails.application.routes.draw do
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
+  resources :notices, except: [:show] do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
+  end
   get "calendar" => "calendar_events#index", as: :calendar
   get "schedule" => "schedule#index", as: :schedule
   resources :calendar_events do
@@ -54,7 +60,6 @@ Rails.application.routes.draw do
   resources :newsletter_subscriptions, only: [:create]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
-  resources :notices, except: [:show]
   resources :menus do
     resources :menu_items
   end
