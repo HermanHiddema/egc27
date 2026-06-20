@@ -40,7 +40,7 @@ class NoticesController < ApplicationController
 
   def deactivate
     @notice.deactivate
-    undo_link = view_context.link_to('Undo', reactivate_notice_path(@notice), method: :patch, data: { turbo_method: :patch }, class: "underline font-semibold text-green-700 hover:text-green-800")
+    undo_link = view_context.link_to("Undo", reactivate_notice_path(@notice), method: :patch, data: { turbo_method: :patch }, class: "underline font-semibold text-green-700 hover:text-green-800")
     redirect_to root_path, notice: "Notice has been deactivated. #{undo_link} this action.".html_safe
   end
 
