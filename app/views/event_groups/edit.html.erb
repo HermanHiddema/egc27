@@ -39,7 +39,7 @@
         </div>
 
         <% calendar_events = @event_group.calendar_events %>
-        <% calendar_events_count = calendar_events.count %>
+        <% calendar_events_count = calendar_events.size %>
         <% if calendar_events_count.positive? %>
           <div class="mt-6 pt-6 border-t border-gray-300">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Associated Events</h2>
