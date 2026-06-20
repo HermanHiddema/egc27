@@ -38,6 +38,26 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "home page shows recently registered participants" do
+    11.times do |index|
+      timestamp = 1.day.ago - index.minutes
+      Participant.create!(
+        first_name: "Extra#{index}",
+        last_name: "Participant",
+        email: "extra#{index}@example.org",
+        age_group: "18-49",
+        country: "NL",
+        club: "Test Club",
+        rank: 20,
+        gender: "male",
+        participant_type: "player",
+        image_use_consent: true,
+        accepted_terms_and_conditions: true,
+        accepted_privacy_policy: true,
+        created_at: timestamp,
+        updated_at: timestamp
+      )
+    end
+
     get root_path
 
     assert_response :success
@@ -46,6 +66,6 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "li span", text: "Bob Jones"
     assert_select "li span", text: participants(:one).rank_grade
     assert_select "li span", text: participants(:two).rank_grade
-    assert_select "ul.divide-y.divide-gray-100 li", maximum: 10
+    assert_select "ul.divide-y.divide-gray-100 li", count: 10
   end
 end
