@@ -2,11 +2,11 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
   DEFAULT_EVENT_COLOR = "#dbeafe"
 
   # Local stub classes to avoid depending on application models, which may change over time
-  class EventGroup < ApplicationRecord
+  class EventGroup < ActiveRecord::Base
     self.table_name = "event_groups"
   end
 
-  class CalendarEvent < ApplicationRecord
+  class CalendarEvent < ActiveRecord::Base
     self.table_name = "calendar_events"
   end
 
