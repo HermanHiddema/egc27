@@ -54,6 +54,28 @@ class MenuItemTest < ActiveSupport::TestCase
     assert_includes item.errors[:url], "must be a full URL or a local path starting with /"
   end
 
+  test "rejects local path with spaces" do
+    item = MenuItem.new(
+      menu: menus(:primary),
+      label: "Spaced path",
+      url: "/foo bar"
+    )
+
+    assert_not item.valid?
+    assert_includes item.errors[:url], "must be a full URL or a local path starting with /"
+  end
+
+  test "strips leading and trailing whitespace from url" do
+    item = MenuItem.new(
+      menu: menus(:primary),
+      label: "Whitespace url",
+      url: "  /participants  "
+    )
+
+    assert item.valid?
+    assert_equal "/participants", item.url
+  end
+
   test "parent must belong to same menu" do
     item = MenuItem.new(
       menu: menus(:footer),

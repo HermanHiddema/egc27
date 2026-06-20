@@ -10,6 +10,8 @@ class MenuItem < ApplicationRecord
     dependent: :destroy,
     inverse_of: :parent
 
+  before_validation { self.url = url&.strip }
+
   validates :label, presence: true
   validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
   validate :parent_belongs_to_same_menu
@@ -44,9 +46,13 @@ class MenuItem < ApplicationRecord
   def url_is_external_or_local_path
     return if url.blank?
     return if url.start_with?("#")
-    return if url.start_with?("/") && !url.start_with?("//")
 
     uri = URI.parse(url)
+
+    if url.start_with?("/") && !url.start_with?("//")
+      return
+    end
+
     return if uri.host.present? && uri.scheme.present? && %w[http https].include?(uri.scheme.downcase)
 
     errors.add(:url, "must be a full URL or a local path starting with /")
