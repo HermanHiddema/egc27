@@ -43,7 +43,6 @@ class NoticesController < ApplicationController
     undo_link = view_context.link_to(
       "Undo",
       reactivate_notice_path(@notice),
-      method: :patch,
       data: { turbo_method: :patch },
       class: "underline font-semibold text-green-700 hover:text-green-800"
     )

@@ -84,7 +84,7 @@
         <div class="container-wide mt-4">
           <div class="p-4 rounded-lg <%= type.to_s == 'notice' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200' %>">
             <% if type.to_s == "notice" %>
-              <%= sanitize(message.to_s, tags: %w[a], attributes: %w[href class rel data-method data-turbo-method data-turbo-confirm]) %>
+              <%= sanitize(message.to_s, tags: %w[a], attributes: %w[href class rel data-turbo-method data-turbo-confirm]) %>
             <% else %>
               <%= message %>
             <% end %>
