@@ -1,12 +1,34 @@
 <div class="container-wide py-12">
-  <% if @notices.any? %>
-    <div class="mb-8 space-y-3">
-      <% @notices.each do |notice| %>
-        <div class="bg-brand-blue-50 border border-brand-blue-200 rounded-lg p-4">
-          <p class="font-semibold text-brand-blue-900 mb-1"><%= notice.title %></p>
-          <% if notice.body.present? %>
-            <p class="text-brand-blue-800"><%= notice.body %></p>
+  <% if @notices.any? || @recent_participants.any? %>
+    <div class="mb-8 flex flex-col md:flex-row gap-6">
+      <% if @notices.any? %>
+        <div class="flex-1 space-y-3">
+          <% @notices.each do |notice| %>
+            <div class="bg-brand-blue-50 border border-brand-blue-200 rounded-lg p-4">
+              <p class="font-semibold text-brand-blue-900 mb-1"><%= notice.title %></p>
+              <% if notice.body.present? %>
+                <p class="text-brand-blue-800"><%= notice.body %></p>
+              <% end %>
+            </div>
           <% end %>
+        </div>
+      <% end %>
+
+      <% if @recent_participants.any? %>
+        <div class="md:w-72 shrink-0">
+          <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-200 bg-neutral-50">
+              <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-700">Recently Registered</h2>
+            </div>
+            <ul class="divide-y divide-gray-100">
+              <% @recent_participants.each do |participant| %>
+                <li class="px-4 py-2 flex justify-between items-center gap-2">
+                  <span class="text-sm text-neutral-900"><%= "#{participant.first_name} #{participant.last_name}" %></span>
+                  <span class="text-xs text-neutral-500 whitespace-nowrap"><%= participant.rank_grade.presence || "–" %></span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
         </div>
       <% end %>
     </div>

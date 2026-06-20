@@ -36,4 +36,15 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "p.font-semibold.text-brand-blue-900", text: notices(:two).title, count: 0
     assert_select "p.text-brand-blue-800", text: notices(:two).body, count: 0
   end
+
+  test "home page shows recently registered participants" do
+    get root_path
+
+    assert_response :success
+    assert_select "h2", text: "Recently Registered"
+    assert_select "li span", text: "Alice Smith"
+    assert_select "li span", text: "Bob Jones"
+    assert_select "ul li", minimum: 1
+    assert_operator assigns(:recent_participants).length, :<=, 10
+  end
 end
