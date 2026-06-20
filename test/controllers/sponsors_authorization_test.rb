@@ -1,13 +1,13 @@
 require "test_helper"
 
-class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
-  test "regular user cannot access admin sponsors" do
+class SponsorsAuthorizationTest < ActionDispatch::IntegrationTest
+  test "regular user cannot access sponsors" do
     sign_in users(:one)
     get sponsors_path
     assert_redirected_to root_path
   end
 
-  test "editor cannot access admin sponsors" do
+  test "editor cannot access sponsors" do
     sign_in users(:editor)
     get sponsors_path
     assert_redirected_to root_path

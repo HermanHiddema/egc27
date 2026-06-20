@@ -1,7 +1,7 @@
 require "test_helper"
 
-class AdminMenusAuthorizationTest < ActionDispatch::IntegrationTest
-  test "regular user cannot access admin dashboard" do
+class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
+  test "regular user cannot access dashboard" do
     sign_in users(:one)
     get dashboard_path
     assert_redirected_to root_path
