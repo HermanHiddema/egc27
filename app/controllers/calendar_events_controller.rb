@@ -4,6 +4,7 @@ class CalendarEventsController < ApplicationController
   before_action :require_editor!, only: [:edit, :update]
   before_action :require_admin!, only: [:destroy]
   before_action :set_calendar_event, only: [:show, :edit, :update, :destroy]
+  before_action :set_event_groups, only: [:new, :create, :edit, :update]
 
   def index
     @current_view = :month
@@ -18,7 +19,6 @@ class CalendarEventsController < ApplicationController
     @calendar_days = (@display_start..@display_end).to_a
     @calendar_events_by_day = CalendarEvent
       .where(starts_at: @display_start.beginning_of_day..@display_end.end_of_day)
-      .includes(:user)
       .chronological
       .group_by { |calendar_event| calendar_event.starts_at.to_date }
   end
@@ -104,7 +104,7 @@ class CalendarEventsController < ApplicationController
   end
 
   def create
-    @calendar_event = current_user.calendar_events.build(calendar_event_params)
+    @calendar_event = CalendarEvent.new(calendar_event_params)
 
     if @calendar_event.save
       redirect_to @calendar_event, notice: "Event was successfully created."
@@ -118,33 +118,36 @@ class CalendarEventsController < ApplicationController
 
   def update
     if @calendar_event.update(calendar_event_params)
-      redirect_to @calendar_event, notice: "Event was successfully updated."
+      redirect_to schedule_path, notice: "Event was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
   end
 
   def destroy
-    month = @calendar_event.starts_at.strftime("%Y-%m")
     @calendar_event.destroy
 
-    redirect_to calendar_path(month: month), notice: "Event was successfully deleted."
+    redirect_to schedule_path, notice: "Event was successfully deleted."
   end
 
   private
 
   def set_calendar_event
-    @calendar_event = CalendarEvent.includes(:user).find(params[:id])
+    @calendar_event = CalendarEvent.includes(:event_group).find(params[:id])
+  end
+
+  def set_event_groups
+    @event_groups = EventGroup.ordered_by_name
   end
 
   def calendar_event_params
-    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location)
+    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color, :event_group_id)
   end
 
   def calendar_events_in_range(range)
     CalendarEvent
       .where("starts_at <= ? AND ends_at >= ?", range.end, range.begin)
-      .includes(:user)
+      .includes(:event_group)
       .chronological
   end
 
