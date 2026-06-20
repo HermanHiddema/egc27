@@ -60,7 +60,7 @@ class NewsletterSubscriptionsController < ApplicationController
   end
 
   def update
-    if @newsletter_subscription.update(admin_newsletter_subscription_params)
+    if @newsletter_subscription.update(newsletter_subscription_update_params)
       redirect_to newsletter_subscriptions_path, notice: "Subscription was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -83,7 +83,7 @@ class NewsletterSubscriptionsController < ApplicationController
     params.require(:newsletter_subscription).permit(:first_name, :last_name, :email)
   end
 
-  def admin_newsletter_subscription_params
+  def newsletter_subscription_update_params
     params.require(:newsletter_subscription).permit(:first_name, :last_name, :email, :subscribed)
   end
 end
