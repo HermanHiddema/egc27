@@ -7,7 +7,7 @@ class AdminMenusAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "admin can access admin menus and edit links" do
+  test "admin can access menus index and management controls" do
     sign_in users(:admin)
     get menus_path
     assert_response :success
