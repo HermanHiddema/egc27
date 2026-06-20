@@ -20,7 +20,7 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "button[aria-controls='user-menu'][aria-expanded='false'][aria-haspopup='true']", text: users(:admin).display_name
     assert_select "a[href='#{edit_user_registration_path}']", text: "Account"
-    assert_select "a[href='#{admin_root_path}']", text: "Admin"
+    assert_select "a[href='#{dashboard_path}']", text: "Admin"
     assert_select "a", text: "Users", count: 0
     assert_select "button", text: "Sign out"
   end

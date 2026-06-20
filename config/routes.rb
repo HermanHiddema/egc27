@@ -57,19 +57,15 @@ Rails.application.routes.draw do
   resources :users, only: [:index, :new, :edit, :update]
   post "users/create", to: "users#create", as: :create_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
-  resources :newsletter_subscriptions, only: [:create]
+  resources :newsletter_subscriptions, only: [:index, :create, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
   resources :menus do
     resources :menu_items
   end
 
-  namespace :admin do
-    root "dashboard#index"
-    resources :menus, only: [:index]
-    resources :newsletter_subscriptions, only: [:index, :edit, :update]
-    resources :sponsors, except: [:show]
-  end
+  get "dashboard", to: "dashboard#index", as: :dashboard
+  resources :sponsors, except: [:show]
 
   root "home#index"
 end

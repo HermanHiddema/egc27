@@ -4,6 +4,8 @@ class NewsletterSubscriptionsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy]
   before_action :prepare_newsletter_subscription, only: [:create]
   before_action :verify_turnstile, only: [:create]
+  before_action :require_admin!, only: [:index, :edit, :update]
+  before_action :set_newsletter_subscription, only: [:edit, :update]
 
   def new
     @newsletter_subscription = NewsletterSubscription.new
@@ -50,6 +52,21 @@ class NewsletterSubscriptionsController < ApplicationController
     redirect_to root_path, notice: "You have been unsubscribed from the newsletter."
   end
 
+  def index
+    @newsletter_subscriptions = NewsletterSubscription.order(created_at: :desc)
+  end
+
+  def edit
+  end
+
+  def update
+    if @newsletter_subscription.update(newsletter_subscription_update_params)
+      redirect_to newsletter_subscriptions_path, notice: "Subscription was successfully updated."
+    else
+      render :edit, status: :unprocessable_entity
+    end
+  end
+
   private
 
   def prepare_newsletter_subscription
@@ -58,7 +75,15 @@ class NewsletterSubscriptionsController < ApplicationController
     @newsletter_subscription = NewsletterSubscription.new(newsletter_subscription_params)
   end
 
+  def set_newsletter_subscription
+    @newsletter_subscription = NewsletterSubscription.find(params[:id])
+  end
+
   def newsletter_subscription_params
     params.require(:newsletter_subscription).permit(:first_name, :last_name, :email)
+  end
+
+  def newsletter_subscription_update_params
+    params.require(:newsletter_subscription).permit(:first_name, :last_name, :email, :subscribed)
   end
 end
