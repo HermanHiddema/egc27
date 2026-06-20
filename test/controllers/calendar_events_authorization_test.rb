@@ -6,7 +6,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Tournament Schedule", response.body
     assert_match "Sat, 24 Jul 2027", response.body
-    assert_match "Sun, 08 Aug 2027", response.body
+    assert_match "Sat, 07 Aug 2027", response.body
   end
 
   test "schedule renders event color" do

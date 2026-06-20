@@ -3,7 +3,7 @@ class ScheduleController < ApplicationController
 
   def index
     @period_start = Date.new(2027, 7, 24)
-    @period_end = Date.new(2027, 8, 8)
+    @period_end = Date.new(2027, 8, 7)
     @days = (@period_start..@period_end).to_a
     @start_hour = 9
     @end_hour = 23
