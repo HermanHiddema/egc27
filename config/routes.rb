@@ -56,6 +56,7 @@ Rails.application.routes.draw do
     root "dashboard#index"
     resources :menus, only: [:index]
     resources :newsletter_subscriptions, only: [:index, :edit, :update]
+    resources :notices, except: [:show]
     resources :sponsors, except: [:show]
   end
 
