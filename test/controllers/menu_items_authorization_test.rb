@@ -78,6 +78,7 @@ class MenuItemsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:editor)
     get new_menu_menu_item_path(menus(:primary))
     assert_response :success
+    assert_select "input[name='menu_item[url]'][type='text']"
   end
 
   test "editor can create menu item" do
