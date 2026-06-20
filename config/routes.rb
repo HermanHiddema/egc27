@@ -30,6 +30,12 @@ Rails.application.routes.draw do
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
+  resources :notices do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
+  end
   get "calendar" => "calendar_events#index", as: :calendar
   get "schedule" => "schedule#index", as: :schedule
   resources :calendar_events do
