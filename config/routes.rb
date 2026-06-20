@@ -48,16 +48,16 @@ Rails.application.routes.draw do
   post "users/create", to: "users#create", as: :create_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
   post "newsletter_subscriptions", to: "newsletter_subscriptions#create"
-  resources :newsletter_subscriptions, only: [:index, :edit, :update], controller: "admin_newsletter_subscriptions"
+  resources :newsletter_subscriptions, only: [:index, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
   resources :menus do
     resources :menu_items
   end
 
-  get "dashboard", to: "admin_dashboard#index", as: :dashboard
-  get "menu_management", to: "admin_menus#index", as: :menu_management
-  resources :sponsors, except: [:show], controller: "admin_sponsors"
+  get "dashboard", to: "dashboard#index", as: :dashboard
+  get "menu_management", to: "menu_management#index", as: :menu_management
+  resources :sponsors, except: [:show]
 
   root "home#index"
 end

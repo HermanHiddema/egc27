@@ -1,4 +1,4 @@
-class AdminSponsorsController < ApplicationController
+class SponsorsController < ApplicationController
   before_action :require_admin!
   before_action :set_sponsor, only: [:edit, :update, :destroy]
 

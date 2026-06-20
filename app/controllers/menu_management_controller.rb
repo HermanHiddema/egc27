@@ -1,4 +1,4 @@
-class AdminMenusController < ApplicationController
+class MenuManagementController < ApplicationController
   before_action :require_admin!
 
   def index
