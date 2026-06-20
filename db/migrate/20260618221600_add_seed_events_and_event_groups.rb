@@ -32,7 +32,7 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
           { key: "excursions", name: "Excursions", color: "#6fa8dc" },
           { key: "entertainment", name: "Entertainment", color: "#6fa8dc" },
           { key: "student_changqi", name: "Student and ChangQi", color: "#00ff00" },
-          { key: "other", name: "Other", color: "#bfbfbf" }
+          { key: "other", name: "Other", color: "#dbeafe" }
         ]
 
         event_groups_by_key = {}
@@ -257,7 +257,7 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
         calendar_event_count = 0
         calendar_event_seeds.each do |calendar_event_data|
           explicit_color = calendar_event_data[:color]
-          event_group_key = calendar_event_data[:event_group_key] || event_group_key_for.call(calendar_event_data[:title], explicit_color || "#bfbfbf")
+          event_group_key = calendar_event_data[:event_group_key] || event_group_key_for.call(calendar_event_data[:title], explicit_color || "#dbeafe")
           event_group = event_groups_by_key.fetch(event_group_key)
           color_override = if explicit_color.present? && explicit_color.downcase != event_group.color.to_s.downcase
             explicit_color
@@ -271,7 +271,7 @@ class AddSeedEventsAndEventGroups < ActiveRecord::Migration[8.1]
             ends_at: calendar_event_data[:ends_at]
           ) do |ce|
             ce.color = color_override
-            ce.event_group = event_group
+            ce.event_group_id = event_group.id
           end
           calendar_event_count += 1 if calendar_event.previously_new_record?
         end

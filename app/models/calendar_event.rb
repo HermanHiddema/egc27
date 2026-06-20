@@ -3,6 +3,8 @@ class CalendarEvent < ApplicationRecord
 
   belongs_to :event_group, optional: true
 
+  before_validation :normalize_blank_color
+
   validates :title, :starts_at, :ends_at, presence: true
   validates :color, format: { with: /\A#[0-9a-fA-F]{6}\z/ }, allow_blank: true
   validate :ends_at_not_before_starts_at
@@ -14,6 +16,10 @@ class CalendarEvent < ApplicationRecord
   end
 
   private
+
+  def normalize_blank_color
+    self.color = nil if color.blank?
+  end
 
   def ends_at_not_before_starts_at
     return if starts_at.blank? || ends_at.blank? || ends_at >= starts_at

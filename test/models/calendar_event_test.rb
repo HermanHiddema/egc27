@@ -34,4 +34,15 @@ class CalendarEventTest < ActiveSupport::TestCase
 
     assert calendar_event.valid?
   end
+
+  test "normalizes blank color override to nil" do
+    calendar_event = CalendarEvent.create!(
+      title: "Blank Color Event",
+      starts_at: Time.zone.parse("2026-07-20 14:00"),
+      ends_at: Time.zone.parse("2026-07-20 15:00"),
+      color: ""
+    )
+
+    assert_nil calendar_event.reload.color
+  end
 end
