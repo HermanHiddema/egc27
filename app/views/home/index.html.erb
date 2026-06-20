@@ -6,7 +6,9 @@
           <% if notice.title.present? %>
             <p class="font-semibold text-brand-blue-900 mb-1"><%= notice.title %></p>
           <% end %>
-          <p class="text-brand-blue-800"><%= notice.body %></p>
+          <% if notice.body.present? %>
+            <p class="text-brand-blue-800"><%= notice.body %></p>
+          <% end %>
         </div>
       <% end %>
     </div>

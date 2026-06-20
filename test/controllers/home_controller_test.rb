@@ -26,4 +26,14 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "img[alt=?]", "#{article.title} main image"
   end
+
+  test "home page only shows active notices" do
+    get root_path
+
+    assert_response :success
+    assert_select "p", text: notices(:one).title
+    assert_select "p", text: notices(:one).body
+    assert_select "p", text: notices(:two).title, count: 0
+    assert_select "p", text: notices(:two).body, count: 0
+  end
 end
