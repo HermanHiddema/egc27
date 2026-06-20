@@ -47,12 +47,12 @@ class MenuItem < ApplicationRecord
     return if url.blank?
     return if url.start_with?("#")
 
-    uri = URI.parse(url)
-
     if url.start_with?("/") && !url.start_with?("//")
+      URI.parse(url)
       return
     end
 
+    uri = URI.parse(url)
     return if uri.host.present? && uri.scheme.present? && %w[http https].include?(uri.scheme.downcase)
 
     errors.add(:url, "must be a full URL or a local path starting with /")
