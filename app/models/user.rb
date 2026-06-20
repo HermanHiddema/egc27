@@ -4,7 +4,6 @@ class User < ApplicationRecord
          :trackable, :confirmable
 
   has_many :articles, dependent: :destroy
-  has_many :calendar_events, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :participants, dependent: :nullify
 
@@ -21,6 +20,8 @@ class User < ApplicationRecord
       ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
     end
   end
+
+  scope :ordered_by_name, -> { order(full_name: :asc) }
 
   def display_name
     full_name.presence || email

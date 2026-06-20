@@ -75,6 +75,11 @@ end
 group :development do
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
+
+  # Preview sent emails in the browser during development
+  gem "letter_opener"
+  gem "letter_opener_web"
+
   # Speed up development by automatically reloading the browser when files change
   gem "hotwire-livereload"
 end

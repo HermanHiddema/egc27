@@ -1,0 +1,9 @@
+one:
+  title: "Important Notice"
+  body: "This is an important notice for participants."
+  active: true
+
+two:
+  title: "Inactive Notice"
+  body: "This notice is not currently shown."
+  active: false

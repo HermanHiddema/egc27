@@ -58,7 +58,7 @@
                 <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
                   <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% if current_user.admin? %>
-                    <%= link_to "Admin", admin_root_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                    <%= link_to "Admin", dashboard_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
                   <%= button_to "Sign out",
                                 destroy_user_session_path,
@@ -83,7 +83,11 @@
       <% flash.each do |type, message| %>
         <div class="container-wide mt-4">
           <div class="p-4 rounded-lg <%= type.to_s == 'notice' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200' %>">
-            <%= message %>
+            <% if type.to_s == "notice" %>
+              <%= sanitize(message.to_s, tags: %w[a], attributes: %w[href class rel data-turbo-method data-turbo-confirm]) %>
+            <% else %>
+              <%= message %>
+            <% end %>
           </div>
         </div>
       <% end %>

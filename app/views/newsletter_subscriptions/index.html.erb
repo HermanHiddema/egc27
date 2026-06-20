@@ -2,7 +2,7 @@
 
 <div class="container-wide py-12">
   <div class="mb-6">
-    <%= link_to "← Back to Admin", admin_root_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    <%= link_to "← Back to Admin", dashboard_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
   </div>
 
   <div class="flex justify-between items-center mb-8">
@@ -37,7 +37,7 @@
             <td class="px-6 py-4 text-gray-600"><%= subscription.created_at.strftime("%d %b %Y") %></td>
             <td class="px-6 py-4 text-gray-600"><%= subscription.unsubscribed_at&.strftime("%d %b %Y") || "—" %></td>
             <td class="px-6 py-4 text-right">
-              <%= link_to "Edit", edit_admin_newsletter_subscription_path(subscription), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+              <%= link_to "Edit", edit_newsletter_subscription_path(subscription), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
             </td>
           </tr>
         <% end %>

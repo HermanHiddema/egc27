@@ -26,4 +26,46 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "img[alt=?]", "#{article.title} main image"
   end
+
+  test "home page only shows active notices" do
+    get root_path
+
+    assert_response :success
+    assert_select "p[class~='text-[#5f4f00]']", text: notices(:one).title
+    assert_select "p[class~='text-[#6f5f00]']", text: notices(:one).body
+    assert_select "p[class~='text-[#5f4f00]']", text: notices(:two).title, count: 0
+    assert_select "p[class~='text-[#6f5f00]']", text: notices(:two).body, count: 0
+  end
+
+  test "home page shows recently registered participants" do
+    11.times do |index|
+      timestamp = 1.day.ago - index.minutes
+      Participant.create!(
+        first_name: "Extra#{index}",
+        last_name: "Participant",
+        email: "extra#{index}@example.org",
+        age_group: "18-49",
+        country: "NL",
+        club: "Test Club",
+        rank: 20,
+        gender: "male",
+        participant_type: "player",
+        image_use_consent: true,
+        accepted_terms_and_conditions: true,
+        accepted_privacy_policy: true,
+        created_at: timestamp,
+        updated_at: timestamp
+      )
+    end
+
+    get root_path
+
+    assert_response :success
+    assert_select "h2", text: "Recently Registered"
+    assert_select "li span", text: "Alice Smith"
+    assert_select "li span", text: "Bob Jones"
+    assert_select "li span", text: participants(:one).rank_grade
+    assert_select "li span", text: participants(:two).rank_grade
+    assert_select "ul.divide-y.divide-gray-100 li", count: 10
+  end
 end

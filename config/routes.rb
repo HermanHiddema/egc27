@@ -1,4 +1,8 @@
 Rails.application.routes.draw do
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
   devise_for :users,
     controllers: {
       registrations: "users/registrations",
@@ -26,7 +30,14 @@ Rails.application.routes.draw do
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
+  resources :notices, except: [:show] do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
+  end
   get "calendar" => "calendar_events#index", as: :calendar
+  get "schedule" => "schedule#index", as: :schedule
   resources :calendar_events do
     collection do
       get :day
@@ -36,6 +47,7 @@ Rails.application.routes.draw do
       get :list
     end
   end
+  resources :event_groups, except: [:show]
   resources :pages, param: :slug
   resources :participants, only: [:index, :new, :create, :show] do
     collection do
@@ -55,19 +67,15 @@ Rails.application.routes.draw do
   resources :users, only: [:index, :new, :edit, :update]
   post "users/create", to: "users#create", as: :create_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
-  resources :newsletter_subscriptions, only: [:create]
+  resources :newsletter_subscriptions, only: [:index, :create, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
   resources :menus do
     resources :menu_items
   end
 
-  namespace :admin do
-    root "dashboard#index"
-    resources :menus, only: [:index]
-    resources :newsletter_subscriptions, only: [:index, :edit, :update]
-    resources :sponsors, except: [:show]
-  end
+  get "dashboard", to: "dashboard#index", as: :dashboard
+  resources :sponsors, except: [:show]
 
   root "home#index"
 end

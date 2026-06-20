@@ -1,0 +1,153 @@
+<div class="container-wide py-12">
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+    <h1 class="text-4xl font-bold">Tournament Schedule</h1>
+    <% if current_user&.can_create? %>
+      <%= link_to "New Event", new_calendar_event_path, class: "btn-primary" %>
+    <% end %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto">
+    <div class="min-w-[70rem]">
+      <div class="grid border-b border-gray-200 bg-gray-50" style="grid-template-columns: 10rem minmax(0, 1fr);">
+        <div class="px-4 py-3 text-sm font-semibold text-gray-700 border-r border-gray-200">
+          Date
+        </div>
+        <div class="relative h-12">
+          <% (@start_hour..@end_hour).each do |hour| %>
+            <% left_percent = ((hour - @start_hour) / (@end_hour - @start_hour).to_f) * 100 %>
+            <div class="absolute top-0 bottom-0 border-l border-gray-200" style="left: <%= left_percent %>%"></div>
+            <% if hour < @end_hour %>
+              <% if hour == @start_hour %>
+                <div class="absolute top-1 left-0 text-xs text-gray-600">
+                  <%= format("%02d:00", hour) %>
+                </div>
+              <% else %>
+                <div class="absolute top-1 -translate-x-1/2 text-xs text-gray-600" style="left: <%= left_percent %>%">
+                  <%= format("%02d:00", hour) %>
+                </div>
+              <% end %>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+
+      <% @days.each do |day| %>
+        <% day_start = day.beginning_of_day + @start_hour.hours %>
+        <% day_end = day.beginning_of_day + @end_hour.hours %>
+        <% day_events = (@calendar_events_by_day[day] || []).sort_by do |calendar_event|
+             [
+               calendar_event.event_group&.key.to_s,
+               calendar_event.effective_color.to_s,
+               calendar_event.title.to_s.downcase,
+               calendar_event.starts_at,
+               calendar_event.id
+             ]
+           end %>
+        <% positioned_events = [] %>
+        <% grouped_events = day_events.group_by { |calendar_event| calendar_event.event_group&.key.to_s.presence || "ungrouped" } %>
+        <% group_first_start_minutes = grouped_events.transform_values do |events|
+             visible_starts = events.filter_map do |calendar_event|
+               visible_start = [calendar_event.starts_at, day_start].max
+               visible_end = [calendar_event.ends_at, day_end].min
+               next if visible_end <= visible_start
+
+               (visible_start - day_start) / 60.0
+             end
+
+             visible_starts.min || Float::INFINITY
+           end %>
+        <% sorted_group_keys = grouped_events.keys.sort_by { |group_key| [group_first_start_minutes[group_key], group_key] } %>
+        <% row_intervals = [] %>
+        <% group_preferred_rows = Hash.new { |hash, key| hash[key] = [] } %>
+
+        <% sorted_group_keys.each do |group_key| %>
+          <% group_events = grouped_events[group_key].sort_by { |calendar_event| [calendar_event.starts_at, calendar_event.id] } %>
+          <% preferred_rows = group_preferred_rows[group_key] %>
+
+          <% group_events.each do |calendar_event| %>
+            <% visible_start = [calendar_event.starts_at, day_start].max %>
+            <% visible_end = [calendar_event.ends_at, day_end].min %>
+            <% next if visible_end <= visible_start %>
+
+            <% start_minutes = (visible_start - day_start) / 60.0 %>
+            <% end_minutes = (visible_end - day_start) / 60.0 %>
+            <% duration_minutes = (visible_end - visible_start) / 60.0 %>
+            <% left_percent = [[(start_minutes / @total_minutes) * 100, 0.0].max, 100.0].min %>
+            <% width_percent = [((duration_minutes / @total_minutes) * 100), 1.0].max %>
+            <% width_percent = [width_percent, [100.0 - left_percent, 0.0].max].min %>
+
+            <% available_rows = row_intervals.each_index.select do |row_index|
+                 row_intervals[row_index].none? do |existing_start, existing_end|
+                   start_minutes < existing_end && end_minutes > existing_start
+                 end
+               end %>
+            <% reusable_group_rows = preferred_rows & available_rows %>
+            <% row_index = if reusable_group_rows.any?
+                             reusable_group_rows.min_by { |idx| row_intervals[idx].size }
+                           elsif available_rows.any?
+                             available_rows.min_by { |idx| row_intervals[idx].size }
+                           else
+                             row_intervals << []
+                             row_intervals.length - 1
+                           end %>
+
+            <% row_intervals[row_index] << [start_minutes, end_minutes] %>
+            <% preferred_rows << row_index unless preferred_rows.include?(row_index) %>
+
+            <% positioned_events << {
+              calendar_event: calendar_event,
+              row_index: row_index,
+              left_percent: left_percent,
+              width_percent: width_percent
+            } %>
+          <% end %>
+        <% end %>
+
+        <% row_count = [row_intervals.size, 1].max %>
+        <% lane_padding_px = 6 %>
+        <% row_height_px = 30 %>
+        <% row_gap_px = 4 %>
+        <% lane_height_px = (lane_padding_px * 2) + (row_count * row_height_px) + ((row_count - 1) * row_gap_px) %>
+
+        <div class="grid border-b border-gray-200 last:border-b-0" style="grid-template-columns: 10rem minmax(0, 1fr);">
+          <div class="px-4 py-4 text-sm border-r border-gray-200 <%= day == Date.current ? 'text-brand-red-600 font-semibold' : 'text-gray-700' %>">
+            <%= eu_date(day, month: :short, weekday: :short) %>
+          </div>
+          <div class="relative" style="height: <%= lane_height_px %>px;">
+            <% (@start_hour..@end_hour).each do |hour| %>
+              <% left_percent = ((hour - @start_hour) / (@end_hour - @start_hour).to_f) * 100 %>
+              <div class="absolute top-0 bottom-0 border-l border-gray-200" style="left: <%= left_percent %>%"></div>
+            <% end %>
+
+            <% positioned_events.each do |positioned_event| %>
+              <% calendar_event = positioned_event[:calendar_event] %>
+              <% row_index = positioned_event[:row_index] %>
+              <% top_px = lane_padding_px + (row_index * (row_height_px + row_gap_px)) %>
+              <% event_style = "left: #{positioned_event[:left_percent]}%; width: #{positioned_event[:width_percent]}%; top: #{top_px}px; height: #{row_height_px}px; background-color: #{calendar_event.effective_color};" %>
+              <% event_classes = "absolute rounded px-2 py-0.5 text-xs leading-tight text-gray-900 border border-gray-300 overflow-hidden" %>
+
+              <% if current_user&.can_edit? %>
+                <%= link_to edit_calendar_event_path(calendar_event),
+                    class: event_classes,
+                    style: event_style,
+                    title: "Edit #{calendar_event.title} (#{eu_time(calendar_event.starts_at)} - #{eu_time(calendar_event.ends_at)})" do %>
+                  <div class="truncate font-semibold"><%= calendar_event.title %></div>
+                <% end %>
+              <% else %>
+                <div class="<%= event_classes %>" style="<%= event_style %>" title="<%= calendar_event.title %> (<%= eu_time(calendar_event.starts_at) %> - <%= eu_time(calendar_event.ends_at) %>)">
+                  <div class="truncate font-semibold"><%= calendar_event.title %></div>
+                </div>
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <div class="mt-4 bg-white border border-gray-200 rounded-lg shadow-sm p-4 text-sm text-gray-700">
+    <p class="font-semibold mb-1"><strong>*</strong>
+      Fun Go is one of: Keima-Go, Hex-Go, Torus-go, Chess and Go, Phantom Go, One Color Go.
+    </p>
+  </div>
+</div>

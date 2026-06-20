@@ -9,7 +9,7 @@ RUN su vscode -c "/usr/local/rvm/bin/rvm fix-permissions"
 ENV RAILS_DEVELOPMENT_HOSTS=".githubpreview.dev,.preview.app.github.dev,.app.github.dev"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends libvips \
+    && apt-get -y install --no-install-recommends libvips ripgrep \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
