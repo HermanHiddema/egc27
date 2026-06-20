@@ -159,6 +159,7 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     active_notice = notices(:one)
     # Force validation failure so Notice#deactivate (update) returns false.
     active_notice.update_column(:title, "")
+    assert_not active_notice.reload.valid?
     patch deactivate_notice_path(active_notice)
 
     assert_redirected_to root_path
@@ -172,6 +173,7 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     inactive_notice = notices(:two)
     # Force validation failure so Notice#reactivate (update) returns false.
     inactive_notice.update_column(:title, "")
+    assert_not inactive_notice.reload.valid?
     patch reactivate_notice_path(inactive_notice)
 
     assert_redirected_to root_path
