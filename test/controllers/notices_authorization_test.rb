@@ -157,11 +157,8 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     active_notice = notices(:one)
-    Notice.stub(:find, active_notice) do
-      active_notice.stub(:deactivate, false) do
-        patch deactivate_notice_path(active_notice)
-      end
-    end
+    active_notice.update_column(:title, "")
+    patch deactivate_notice_path(active_notice)
 
     assert_redirected_to root_path
     assert_equal "Notice could not be deactivated.", flash[:alert]
@@ -172,11 +169,8 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     inactive_notice = notices(:two)
-    Notice.stub(:find, inactive_notice) do
-      inactive_notice.stub(:reactivate, false) do
-        patch reactivate_notice_path(inactive_notice)
-      end
-    end
+    inactive_notice.update_column(:title, "")
+    patch reactivate_notice_path(inactive_notice)
 
     assert_redirected_to root_path
     assert_equal "Notice could not be reactivated.", flash[:alert]
