@@ -56,7 +56,6 @@ Rails.application.routes.draw do
   end
 
   get "dashboard", to: "dashboard#index", as: :dashboard
-  get "menu_management", to: "menu_management#index", as: :menu_management
   resources :sponsors, except: [:show]
 
   root "home#index"

@@ -52,3 +52,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Show stronger playing strengths first.
 - Country selector should support autocomplete with ISO alpha-2 semantics.
 - Taiwan display name: `Chinese Taipei (Taiwan)`.
+- Prefer standard Rails resource/controller naming; avoid custom controller names like `*ManagementController`.
