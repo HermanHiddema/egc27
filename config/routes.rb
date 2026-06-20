@@ -1,4 +1,8 @@
 Rails.application.routes.draw do
+  if Rails.env.development?
+    mount LetterOpenerWeb::Engine, at: "/letter_opener"
+  end
+
   devise_for :users,
     controllers: {
       registrations: "users/registrations",
@@ -25,6 +29,12 @@ Rails.application.routes.draw do
   resources :articles
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
+  end
+  resources :notices, except: [:show] do
+    member do
+      patch :deactivate
+      patch :reactivate
+    end
   end
   get "calendar" => "calendar_events#index", as: :calendar
   get "schedule" => "schedule#index", as: :schedule

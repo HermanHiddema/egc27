@@ -37,8 +37,19 @@ Rails.application.configure do
   # Make template changes take effect immediately.
   config.action_mailer.perform_caching = false
 
-  # Set localhost to be used by links generated in mailer templates.
-  config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  # Open sent emails in the browser for local development.
+  config.action_mailer.delivery_method = :letter_opener
+  config.action_mailer.perform_deliveries = true
+
+  # Use the public Codespaces URL for mailer links when available.
+  if ENV["CODESPACE_NAME"].present? && ENV["GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN"].present?
+    config.action_mailer.default_url_options = {
+      host: "#{ENV['CODESPACE_NAME']}-3000.#{ENV['GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN']}",
+      protocol: "https"
+    }
+  else
+    config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+  end
 
   # Print deprecation notices to the Rails logger.
   config.active_support.deprecation = :log
