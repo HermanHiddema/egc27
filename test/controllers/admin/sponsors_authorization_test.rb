@@ -3,19 +3,19 @@ require "test_helper"
 class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
   test "regular user cannot access admin sponsors" do
     sign_in users(:one)
-    get admin_sponsors_path
+    get sponsors_path
     assert_redirected_to root_path
   end
 
   test "editor cannot access admin sponsors" do
     sign_in users(:editor)
-    get admin_sponsors_path
+    get sponsors_path
     assert_redirected_to root_path
   end
 
   test "admin can list sponsors" do
     sign_in users(:admin)
-    get admin_sponsors_path
+    get sponsors_path
     assert_response :success
     assert_select "h1", text: "Sponsors"
     assert_select "td", text: sponsors(:one).name
@@ -23,7 +23,7 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "admin can access new sponsor page" do
     sign_in users(:admin)
-    get new_admin_sponsor_path
+    get new_sponsor_path
     assert_response :success
     assert_select "h1", text: "New Sponsor"
   end
@@ -32,7 +32,7 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     assert_difference "Sponsor.count", 1 do
-      post admin_sponsors_path, params: {
+      post sponsors_path, params: {
         sponsor: {
           name: "Created Sponsor",
           website: "https://created.example.org",
@@ -42,14 +42,14 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to admin_sponsors_path
+    assert_redirected_to sponsors_path
     sponsor = Sponsor.find_by!(name: "Created Sponsor")
     assert_equal "https://x.com/created", sponsor.social_media_links["x"]
   end
 
   test "admin can access edit sponsor page" do
     sign_in users(:admin)
-    get edit_admin_sponsor_path(sponsors(:one))
+    get edit_sponsor_path(sponsors(:one))
     assert_response :success
     assert_select "h1", text: "Edit Sponsor"
   end
@@ -58,7 +58,7 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     sponsor = sponsors(:one)
 
-    patch admin_sponsor_path(sponsor), params: {
+    patch sponsor_path(sponsor), params: {
       sponsor: {
         name: "Updated Sponsor Name",
         website: "https://updated.example.org",
@@ -66,7 +66,7 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to admin_sponsors_path
+    assert_redirected_to sponsors_path
     sponsor.reload
     assert_equal "Updated Sponsor Name", sponsor.name
     assert_equal "https://x.com/updated", sponsor.social_media_links["x"]
@@ -76,9 +76,9 @@ class AdminSponsorsAuthorizationTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     assert_difference "Sponsor.count", -1 do
-      delete admin_sponsor_path(sponsors(:two))
+      delete sponsor_path(sponsors(:two))
     end
 
-    assert_redirected_to admin_sponsors_path
+    assert_redirected_to sponsors_path
   end
 end

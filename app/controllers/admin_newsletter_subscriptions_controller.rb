@@ -11,7 +11,7 @@ class AdminNewsletterSubscriptionsController < ApplicationController
 
   def update
     if @newsletter_subscription.update(newsletter_subscription_params)
-      redirect_to admin_newsletter_subscriptions_path, notice: "Subscription was successfully updated."
+      redirect_to newsletter_subscriptions_path, notice: "Subscription was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end

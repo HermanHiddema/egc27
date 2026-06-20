@@ -14,7 +14,7 @@ class AdminSponsorsController < ApplicationController
     @sponsor = Sponsor.new(sponsor_attributes)
 
     if @sponsor.save
-      redirect_to admin_sponsors_path, notice: "Sponsor was successfully created."
+      redirect_to sponsors_path, notice: "Sponsor was successfully created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -25,7 +25,7 @@ class AdminSponsorsController < ApplicationController
 
   def update
     if @sponsor.update(sponsor_attributes)
-      redirect_to admin_sponsors_path, notice: "Sponsor was successfully updated."
+      redirect_to sponsors_path, notice: "Sponsor was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -33,7 +33,7 @@ class AdminSponsorsController < ApplicationController
 
   def destroy
     @sponsor.destroy
-    redirect_to admin_sponsors_path, notice: "Sponsor was successfully deleted."
+    redirect_to sponsors_path, notice: "Sponsor was successfully deleted."
   end
 
   private
