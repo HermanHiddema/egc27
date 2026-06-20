@@ -485,13 +485,15 @@ calendar_event_seeds.each do |calendar_event_data|
     nil
   end
 
-  CalendarEvent.find_or_create_by(title: calendar_event_data[:title], starts_at: calendar_event_data[:starts_at]) do |ce|
-    ce.ends_at = calendar_event_data[:ends_at]
-    ce.color = color_override
-    ce.event_group = event_group
-    ce.description = calendar_event_data[:description]
-    ce.location = calendar_event_data[:location]
-  end
+  calendar_event = CalendarEvent.find_or_initialize_by(title: calendar_event_data[:title], starts_at: calendar_event_data[:starts_at])
+  calendar_event.assign_attributes(
+    ends_at: calendar_event_data[:ends_at],
+    color: color_override,
+    event_group: event_group,
+    description: calendar_event_data[:description],
+    location: calendar_event_data[:location]
+  )
+  calendar_event.save! if calendar_event.changed?
 end
 
 puts "✓ Seeded #{event_group_seeds.size} event groups"

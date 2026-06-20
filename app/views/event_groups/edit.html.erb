@@ -38,17 +38,19 @@
           </div>
         </div>
 
-        <% if @event_group.calendar_events.any? %>
+        <% calendar_events = @event_group.calendar_events %>
+        <% calendar_events_count = calendar_events.count %>
+        <% if calendar_events_count.positive? %>
           <div class="mt-6 pt-6 border-t border-gray-300">
             <h2 class="text-lg font-semibold text-gray-900 mb-2">Associated Events</h2>
             <ul class="space-y-1">
-              <% @event_group.calendar_events.limit(5).each do |event| %>
+              <% calendar_events.limit(5).each do |event| %>
                 <li class="text-sm text-gray-700">
                   <%= link_to event.title, edit_calendar_event_path(event), class: "text-brand-blue-600 hover:text-brand-red-600" %>
                 </li>
               <% end %>
-              <% if @event_group.calendar_events.count > 5 %>
-                <li class="text-sm text-gray-600">... and <%= @event_group.calendar_events.count - 5 %> more</li>
+              <% if calendar_events_count > 5 %>
+                <li class="text-sm text-gray-600">... and <%= calendar_events_count - 5 %> more</li>
               <% end %>
             </ul>
           </div>

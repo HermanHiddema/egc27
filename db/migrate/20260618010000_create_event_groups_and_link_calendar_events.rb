@@ -11,6 +11,5 @@ class CreateEventGroupsAndLinkCalendarEvents < ActiveRecord::Migration[8.1]
     add_index :event_groups, :key, unique: true
 
     add_reference :calendar_events, :event_group, foreign_key: true
-    remove_column :calendar_events, :event_group, :string
   end
 end
