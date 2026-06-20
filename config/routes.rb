@@ -37,6 +37,7 @@ Rails.application.routes.draw do
       get :list
     end
   end
+  resources :event_groups, except: [:show]
   resources :pages, param: :slug
   resources :participants, only: [:index, :new, :create] do
     collection do
@@ -55,8 +56,6 @@ Rails.application.routes.draw do
 
   namespace :admin do
     root "dashboard#index"
-    resources :calendar_events
-    resources :event_groups
     resources :menus, only: [:index]
     resources :newsletter_subscriptions, only: [:index, :edit, :update]
     resources :sponsors, except: [:show]

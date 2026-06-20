@@ -1,7 +1,7 @@
 <div class="container-wide py-12 space-y-6">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Event Groups</h1>
-    <%= link_to "Add Group", new_admin_event_group_path, class: "btn-primary" %>
+    <%= link_to "Add Group", new_event_group_path, class: "btn-primary" %>
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
@@ -20,7 +20,7 @@
         <tbody class="divide-y divide-gray-100 bg-white">
           <% @event_groups.each do |event_group| %>
             <tr class="hover:bg-gray-50 transition">
-              <td class="px-6 py-4"><%= link_to event_group.key, edit_admin_event_group_path(event_group), class: "text-brand-blue-600 hover:text-brand-red-600" %></td>
+              <td class="px-6 py-4"><%= link_to event_group.key, edit_event_group_path(event_group), class: "text-brand-blue-600 hover:text-brand-red-600" %></td>
               <td class="px-6 py-4 text-gray-700"><%= event_group.name %></td>
               <td class="px-6 py-4">
                 <% if event_group.color.present? %>
@@ -31,8 +31,8 @@
               </td>
               <td class="px-6 py-4 text-gray-700"><%= event_group.calendar_events.length %></td>
               <td class="px-6 py-4 text-right">
-                <%= link_to "Edit", edit_admin_event_group_path(event_group), class: "text-brand-blue-600 hover:text-brand-red-600 transition mr-4" %>
-                <%= button_to "Delete", admin_event_group_path(event_group), method: :delete, form: { class: "inline", data: { turbo_confirm: "Are you sure?" } }, class: "text-brand-red-600 hover:text-brand-red-800" %>
+                <%= link_to "Edit", edit_event_group_path(event_group), class: "text-brand-blue-600 hover:text-brand-red-600 transition mr-4" %>
+                <%= button_to "Delete", event_group_path(event_group), method: :delete, form: { class: "inline", data: { turbo_confirm: "Are you sure?" } }, class: "text-brand-red-600 hover:text-brand-red-800" %>
               </td>
             </tr>
           <% end %>
@@ -42,7 +42,7 @@
   <% else %>
       <div class="text-center py-12 text-gray-500">
         <p class="mb-4">No event groups yet.</p>
-        <%= link_to "Create the first group", new_admin_event_group_path, class: "text-brand-blue-600 hover:text-brand-red-600" %>
+        <%= link_to "Create the first group", new_event_group_path, class: "text-brand-blue-600 hover:text-brand-red-600" %>
       </div>
   <% end %>
   </div>
