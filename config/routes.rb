@@ -47,7 +47,7 @@ Rails.application.routes.draw do
   resources :users, only: [:index, :new, :edit, :update]
   post "users/create", to: "users#create", as: :create_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
-  resources :newsletter_subscriptions, only: [:create]
+  post "newsletter_subscriptions", to: "newsletter_subscriptions#create"
   resources :newsletter_subscriptions, only: [:index, :edit, :update], controller: "admin_newsletter_subscriptions"
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
