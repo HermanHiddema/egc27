@@ -10,7 +10,7 @@ class MenuItem < ApplicationRecord
     dependent: :destroy,
     inverse_of: :parent
 
-  before_validation { self.url = url&.strip }
+  normalizes :url, with: ->(url) { url.strip }
 
   validates :label, presence: true
   validates :position, numericality: { only_integer: true, greater_than_or_equal_to: 0 }
