@@ -44,7 +44,6 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Recently Registered"
     assert_select "li span", text: "Alice Smith"
     assert_select "li span", text: "Bob Jones"
-    assert_select "ul li", minimum: 1
-    assert_operator assigns(:recent_participants).length, :<=, 10
+    assert_select "ul li", maximum: 10
   end
 end
