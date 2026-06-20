@@ -28,6 +28,7 @@ class Admin::MenusAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{users_path}']", text: "Users"
+    assert_select "a[href='#{notices_path}']", text: "Notices"
     assert_select "a[href='#{admin_sponsors_path}']", text: "Sponsors"
   end
 end
