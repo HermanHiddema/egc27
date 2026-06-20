@@ -4,6 +4,7 @@ class CalendarEventsController < ApplicationController
   before_action :require_editor!, only: [:edit, :update]
   before_action :require_admin!, only: [:destroy]
   before_action :set_calendar_event, only: [:show, :edit, :update, :destroy]
+  before_action :set_event_groups, only: [:new, :create, :edit, :update]
 
   def index
     @current_view = :month
@@ -133,6 +134,10 @@ class CalendarEventsController < ApplicationController
 
   def set_calendar_event
     @calendar_event = CalendarEvent.includes(:event_group).find(params[:id])
+  end
+
+  def set_event_groups
+    @event_groups = EventGroup.ordered_by_name
   end
 
   def calendar_event_params
