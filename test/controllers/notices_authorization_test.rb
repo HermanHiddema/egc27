@@ -153,6 +153,36 @@ class NoticesAuthorizationTest < ActionDispatch::IntegrationTest
     assert inactive_notice.reload.active?
   end
 
+  test "admin sees error when deactivation fails" do
+    sign_in users(:admin)
+
+    active_notice = notices(:one)
+    Notice.stub(:find, active_notice) do
+      active_notice.stub(:deactivate, false) do
+        patch deactivate_notice_path(active_notice)
+      end
+    end
+
+    assert_redirected_to root_path
+    assert_equal "Notice could not be deactivated.", flash[:alert]
+    assert active_notice.reload.active?
+  end
+
+  test "admin sees error when reactivation fails" do
+    sign_in users(:admin)
+
+    inactive_notice = notices(:two)
+    Notice.stub(:find, inactive_notice) do
+      inactive_notice.stub(:reactivate, false) do
+        patch reactivate_notice_path(inactive_notice)
+      end
+    end
+
+    assert_redirected_to root_path
+    assert_equal "Notice could not be reactivated.", flash[:alert]
+    assert_not inactive_notice.reload.active?
+  end
+
   test "admin can delete notice" do
     sign_in users(:admin)
     assert_difference "Notice.count", -1 do
