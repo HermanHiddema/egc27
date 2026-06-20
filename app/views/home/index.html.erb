@@ -41,7 +41,7 @@
             <ul class="divide-y divide-gray-100">
               <% @recent_participants.each do |participant| %>
                 <li class="px-4 py-2 flex justify-between items-center gap-2">
-                  <span class="text-sm text-neutral-900"><%= [ participant.first_name, participant.last_name ].join(" ") %></span>
+                  <span class="text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></span>
                   <span class="text-xs text-neutral-500 whitespace-nowrap"><%= participant.rank_grade.presence || "–" %></span>
                 </li>
               <% end %>
