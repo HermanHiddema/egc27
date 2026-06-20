@@ -136,7 +136,7 @@ class CalendarEventsController < ApplicationController
   end
 
   def calendar_event_params
-    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color)
+    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color, :event_group_id)
   end
 
   def calendar_events_in_range(range)
