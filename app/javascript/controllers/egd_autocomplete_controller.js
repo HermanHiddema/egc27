@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
 const ISO_COUNTRY_CODES = [
     "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
@@ -18,10 +19,6 @@ const ISO_COUNTRY_CODES = [
     "TR", "TT", "TV", "TW", "TZ", "UA", "UG", "UM", "US", "UY", "UZ", "VA", "VC", "VE", "VG", "VI",
     "VN", "VU", "WF", "WS", "YE", "YT", "ZA", "ZM", "ZW"
 ]
-
-const COUNTRY_NAME_OVERRIDES = {
-    TW: "Chinese Taipei (Taiwan)"
-}
 
 export default class extends Controller {
     static targets = [
