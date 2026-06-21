@@ -73,7 +73,7 @@ class EgdLookupService
     request["User-Agent"] = "EGC27/participant-registration"
     request["Accept"] = "application/json, text/plain, */*"
 
-    Rails.logger.info("EGD request url=#{uri} params=#{params.inspect}")
+    Rails.logger.info("EGD request host=#{uri.host} path=#{uri.path}")
 
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
       http.open_timeout = 5
@@ -85,13 +85,8 @@ class EgdLookupService
       Rails.logger.warn(
         "EGD lookup non-success " \
         "status=#{response.code} " \
-        "message=#{response.message.inspect} " \
-        "url=#{uri} " \
-        "content_type=#{response["content-type"].inspect} " \
-        "server=#{response["server"].inspect} " \
-        "cf_ray=#{response["cf-ray"].inspect} " \
-        "headers=#{response.to_hash.inspect} " \
-        "body_snippet=#{response.body.to_s[0, 500].inspect}"
+        "host=#{uri.host} " \
+        "path=#{uri.path}"
       )
       return nil
     end
@@ -99,7 +94,7 @@ class EgdLookupService
     response.body
   rescue StandardError => e
     Rails.logger.warn(
-      "EGD HTTP exception class=#{e.class} message=#{e.message.inspect} url=#{uri} params=#{params.inspect}"
+      "EGD HTTP exception class=#{e.class} host=#{uri&.host} path=#{uri&.path}"
     )
     nil
   end
