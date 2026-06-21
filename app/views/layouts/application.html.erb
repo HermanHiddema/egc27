@@ -26,24 +26,26 @@
   <body class="min-h-screen flex flex-col bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24">
-      <nav class="container-wide flex items-center justify-between h-24 transition-all duration-300" data-header-shrink-target="nav">
+      <nav class="container-wide flex items-center justify-between h-64 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
         <div class="flex items-center gap-2">
-          <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC27 Logo", class: "h-24 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
+          <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC27 Logo", class: "h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
           <div>
             <%= link_to root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
-<span class="md:hidden">EGC 2027</span><span class="hidden md:inline">European Go Congress 2027</span>
+<span class="md:hidden">EGC 2027</span><span class="hidden md:inline">European Go Congress</span>
             <% end %>
             <p class="hidden md:block text-sm text-brand-yellow-300">'s Hertogenbosch, the Netherlands, 24 Jul - 8 Aug, 2027</p>
           </div>
         </div>
 
-        <div class="flex items-center gap-4">
-          <%= link_to "Newsletter", newsletter_path, class: "inline-flex items-center rounded-lg bg-green-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
-          <%= link_to "Register now", new_participant_path, class: "inline-flex items-center rounded-lg bg-green-600 px-5 py-3 text-base font-semibold text-white shadow-sm transition-all duration-200 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" %>
+        <div class="flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
+          <%= link_to "Newsletter", newsletter_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" %>
+          <%= link_to new_participant_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" do %>
+            <span class="lg:hidden">Register</span><span class="hidden lg:inline">Register now</span>
+          <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
               <div class="relative" data-controller="dropdown">
-                <button class="text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors flex items-center gap-1"
+                <button class="btn-primary flex items-center gap-1"
                         type="button"
                         data-dropdown-target="toggle"
                         aria-controls="user-menu"
@@ -68,7 +70,7 @@
                 </div>
               </div>
             <% else %>
-              <%= link_to "Sign in", new_user_session_path, class: "btn-primary text-brand-yellow-300 px-4 py-2" %>
+              <%= link_to "Sign in", new_user_session_path, class: "btn-primary" %>
             <% end %>
           <% end %>
         </div>

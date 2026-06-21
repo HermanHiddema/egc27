@@ -9,10 +9,10 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     get root_path
 
     assert_response :success
-    assert_select "a[href='#{new_participant_path}']", text: "Register now"
+    assert_select "a[href='#{new_participant_path}'] span.hidden.lg\\:inline", text: "Register now"
     assert_select "a[href='#{newsletter_path}']", text: "Newsletter"
     assert_select "a span.md\\:hidden", text: "EGC 2027"
-    assert_select "a span.hidden.md\\:inline", text: "European Go Congress 2027"
+    assert_select "a span.hidden.md\\:inline", text: "European Go Congress"
     assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 Jul - 8 Aug, 2027"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
   end
