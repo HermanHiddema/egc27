@@ -283,11 +283,17 @@ class ParticipantTest < ActiveSupport::TestCase
     participant = participants(:one)
     original_updated_at = participant.updated_at
     generated_tokens = ["test_token_abc123", "replacement_token_123"]
+    singleton = SecureRandom.singleton_class
+    original_urlsafe_base64 = SecureRandom.method(:urlsafe_base64)
 
-    travel_to original_updated_at + 1.minute do
-      SecureRandom.stub(:urlsafe_base64, ->(_length = nil) { generated_tokens.shift }) do
+    begin
+      singleton.define_method(:urlsafe_base64) { |_length = nil| generated_tokens.shift }
+
+      travel_to original_updated_at + 1.minute do
         participant.generate_confirmation_token!
       end
+    ensure
+      singleton.define_method(:urlsafe_base64, original_urlsafe_base64)
     end
 
     participant.reload
