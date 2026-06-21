@@ -1,0 +1,42 @@
+<div class="container-wide py-12">
+  <div class="max-w-xl mx-auto text-center">
+    <% if @payment&.paid? %>
+      <div class="bg-green-50 border border-green-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">✓</div>
+        <h1 class="text-3xl font-bold text-green-900 mb-2">Payment Successful!</h1>
+        <p class="text-green-700">
+          Thank you — your congress pass payment has been confirmed.
+          You will receive a confirmation email shortly.
+        </p>
+      </div>
+    <% elsif @payment&.status.in?(%w[open pending authorized]) %>
+      <div class="bg-brand-yellow-50 border border-brand-yellow-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">⏳</div>
+        <h1 class="text-3xl font-bold text-brand-yellow-900 mb-2">Payment Pending</h1>
+        <p class="text-brand-yellow-800">
+          Your payment is being processed. You will receive a confirmation once it is complete.
+        </p>
+      </div>
+    <% elsif @payment %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">✗</div>
+        <h1 class="text-3xl font-bold text-red-900 mb-2">Payment Not Completed</h1>
+        <p class="text-red-700 mb-4">
+          Your payment was not completed (<%= @payment.status %>).
+        </p>
+        <%= link_to "Try again",
+              new_participant_payment_path(@payment.participant),
+              class: "btn-primary" %>
+      </div>
+    <% else %>
+      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm mb-6">
+        <h1 class="text-3xl font-bold mb-2">Return from Payment</h1>
+        <p class="text-neutral-600">
+          We are verifying your payment status. Please check your email for confirmation.
+        </p>
+      </div>
+    <% end %>
+
+    <%= link_to "Back to registration", new_participant_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
+  </div>
+</div>

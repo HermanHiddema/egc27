@@ -7,6 +7,7 @@ Rails.application.routes.draw do
     controllers: {
       registrations: "users/registrations",
       sessions: "users/sessions",
+      confirmations: "users/confirmations",
       magic_links: "devise/magic_links"
     }
 
@@ -49,9 +50,20 @@ Rails.application.routes.draw do
   end
   resources :event_groups, except: [:show]
   resources :pages, param: :slug
-  resources :participants, only: [:index, :new, :create] do
+  resources :participants, only: [:index, :new, :create, :show] do
     collection do
       get :egd_search
+      get :mine
+    end
+    member do
+      get :confirm
+    end
+    resource :payment, only: [:new, :create], controller: "payments"
+  end
+  resources :payments, only: [] do
+    collection do
+      post :webhook
+      get :success
     end
   end
   resources :users, only: [:index, :new, :edit, :update]

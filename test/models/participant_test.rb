@@ -1,6 +1,8 @@
 require "test_helper"
 
 class ParticipantTest < ActiveSupport::TestCase
+  include ActiveSupport::Testing::TimeHelpers
+
   test "requires all public registration fields" do
     participant = Participant.new
 
@@ -275,5 +277,43 @@ class ParticipantTest < ActiveSupport::TestCase
 
     assert_not participant.valid?
     assert_includes participant.errors[:image_use_consent], "is not included in the list"
+  end
+
+  test "generate_confirmation_token! retries on token collisions for legacy invalid records and updates timestamp" do
+    participant = participants(:one)
+    participant.update_column(:gender, nil)
+    original_updated_at = participant.updated_at
+    generated_tokens = ["test_token_abc123", "replacement_token_123"]
+    singleton = SecureRandom.singleton_class
+    original_urlsafe_base64 = SecureRandom.method(:urlsafe_base64)
+
+    begin
+      singleton.define_method(:urlsafe_base64) { |_length = nil| generated_tokens.shift }
+
+      travel_to original_updated_at + 1.minute do
+        participant.generate_confirmation_token!
+      end
+    ensure
+      singleton.define_method(:urlsafe_base64, original_urlsafe_base64)
+    end
+
+    participant.reload
+    assert_equal "replacement_token_123", participant.confirmation_token
+    assert_operator participant.updated_at, :>, original_updated_at
+  end
+
+  test "confirm! clears token for legacy invalid records and updates timestamp" do
+    participant = participants(:unconfirmed)
+    participant.update_column(:gender, nil)
+    original_updated_at = participant.updated_at
+
+    travel_to original_updated_at + 1.minute do
+      participant.confirm!
+    end
+
+    participant.reload
+    assert participant.confirmed?
+    assert_nil participant.confirmation_token
+    assert_operator participant.updated_at, :>, original_updated_at
   end
 end

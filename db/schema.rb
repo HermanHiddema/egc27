@@ -168,6 +168,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_203101) do
     t.boolean "accepted_terms_and_conditions", default: false, null: false
     t.string "age_group", null: false
     t.string "club", null: false
+    t.string "confirmation_token"
+    t.datetime "confirmed_at"
     t.string "country", null: false
     t.datetime "created_at", null: false
     t.string "egd_pin"
@@ -185,6 +187,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_203101) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.boolean "weekend", default: true, null: false
+    t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
+    t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
     t.index ["egd_pin"], name: "index_participants_on_egd_pin"
     t.index ["email"], name: "index_participants_on_email"
@@ -193,6 +197,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_203101) do
     t.index ["phone"], name: "index_participants_on_phone"
     t.index ["rating"], name: "index_participants_on_rating"
     t.index ["user_id"], name: "index_participants_on_user_id"
+  end
+
+  create_table "payments", force: :cascade do |t|
+    t.integer "amount_cents", null: false
+    t.datetime "created_at", null: false
+    t.string "description", null: false
+    t.string "mollie_payment_id"
+    t.bigint "participant_id", null: false
+    t.string "status", default: "open", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
+    t.index ["participant_id"], name: "index_payments_on_participant_id"
+    t.index ["status"], name: "index_payments_on_status"
   end
 
   create_table "sponsors", force: :cascade do |t|
@@ -239,4 +256,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_203101) do
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
   add_foreign_key "participants", "users"
+  add_foreign_key "payments", "participants"
 end

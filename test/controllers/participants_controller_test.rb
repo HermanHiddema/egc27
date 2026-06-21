@@ -7,6 +7,42 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "mine requires authentication" do
+    get mine_participants_path
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "mine shows only the signed in user's participants" do
+    sign_in users(:one)
+
+    get mine_participants_path
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_match "Carol Smith", response.body
+    assert_match "Dave Pending", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
+  test "user menu shows singular registration link for one participant" do
+    sign_in users(:two)
+
+    get root_path
+
+    assert_response :success
+    assert_select "a[href='#{participant_path(participants(:two))}']", text: "My registration"
+  end
+
+  test "user menu shows plural registrations link for multiple participants" do
+    sign_in users(:one)
+
+    get root_path
+
+    assert_response :success
+    assert_select "a[href='#{mine_participants_path}']", text: "My registrations"
+  end
+
   test "participants index shows presence period column" do
     get participants_path
 
@@ -128,16 +164,18 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to new_participant_path
+    participant = Participant.order(:id).last
+    assert_redirected_to participant_path(participant)
     follow_redirect!
+    assert_match "Registration Received", response.body
     assert_match "Registration received", response.body
 
-    participant = Participant.order(:id).last
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
     assert_equal false, participant.first_week
     assert_equal true, participant.weekend
     assert_equal false, participant.second_week
+    assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
   test "creates a user account when registering a new participant" do
@@ -189,23 +227,111 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     existing_user = users(:one)
 
     assert_difference("User.count", 0) do
+      assert_emails 1 do
+        post participants_path, params: {
+          participant: {
+            first_name: "Test",
+            last_name: "User",
+            email: existing_user.email,
+            participant_type: "player",
+            age_group: "18-49",
+            country: "NL",
+            club: "Utrecht",
+            gender: "female",
+            image_use_consent: false
+          }
+        }
+      end
+    end
+
+    participant = Participant.order(:id).last
+    assert_equal existing_user, participant.user
+    assert_nil participant.confirmed_at, "participant linked to confirmed user should not be auto-confirmed"
+  end
+
+  test "sends confirmation email when participant is linked to already-confirmed user" do
+    existing_user = users(:one)
+    assert existing_user.confirmed?, "fixture user should be confirmed"
+
+    assert_emails 1 do
       post participants_path, params: {
         participant: {
-          first_name: "Test",
-          last_name: "User",
+          first_name: "Auto",
+          last_name: "Confirmed",
           email: existing_user.email,
           participant_type: "player",
           age_group: "18-49",
           country: "NL",
           club: "Utrecht",
-          gender: "female",
-          image_use_consent: false
+          gender: "male",
+          image_use_consent: true
         }
       }
     end
 
     participant = Participant.order(:id).last
-    assert_equal existing_user, participant.user
+    assert_nil participant.confirmed_at, "participant should not be auto-confirmed"
+    assert_not_nil participant.confirmation_token, "confirmation token should be set"
+  end
+
+  test "does not confirm participant when user is unconfirmed" do
+    post participants_path, params: {
+      participant: {
+        first_name: "Unconfirmed",
+        last_name: "Person",
+        email: "unconfirmed_new@example.org",
+        participant_type: "player",
+        age_group: "18-49",
+        country: "DE",
+        club: "Berlin",
+        gender: "female",
+        image_use_consent: false
+      }
+    }
+
+    participant = Participant.order(:id).last
+    assert_nil participant.confirmed_at
+  end
+
+  test "confirm action confirms participant with valid token" do
+    participant = participants(:unconfirmed)
+    assert_nil participant.confirmed_at
+
+    emails = nil
+    assert_emails 1 do
+      get confirm_participant_path(participant, token: participant.confirmation_token)
+      emails = ActionMailer::Base.deliveries
+    end
+
+    participant.reload
+    assert_not_nil participant.confirmed_at
+    assert_nil participant.confirmation_token
+    assert_redirected_to new_participant_payment_path(participant)
+    assert_equal "EGC 2027 – Your registration is confirmed", emails.last.subject
+  end
+
+  test "confirm action rejects invalid token" do
+    participant = participants(:unconfirmed)
+
+    assert_emails 0 do
+      get confirm_participant_path(participant, token: "wrong_token")
+    end
+
+    participant.reload
+    assert_nil participant.confirmed_at
+    assert_redirected_to root_path
+  end
+
+  test "confirm action rejects missing token" do
+    participant = participants(:unconfirmed)
+
+    assert_emails 0 do
+      get confirm_participant_path(participant, token: "")
+    end
+
+    participant.reload
+    assert_nil participant.confirmed_at
+    assert_redirected_to root_path
   end
 
   test "returns json from egd search" do

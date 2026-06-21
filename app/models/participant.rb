@@ -11,6 +11,7 @@ class Participant < ApplicationRecord
 
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
+  has_many :payments, dependent: :destroy
   belongs_to :user, optional: true
 
   attribute :image_use_consent, :boolean, default: nil
@@ -41,6 +42,35 @@ class Participant < ApplicationRecord
   before_validation :normalize_rating
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
+
+  def confirmed?
+    confirmed_at.present?
+  end
+
+  def player?
+    participant_type == "player"
+  end
+
+  def visitor?
+    participant_type == "visitor"
+  end
+
+  def generate_confirmation_token!
+    self.class.transaction(requires_new: true) do
+      timestamp = Time.current
+      update_columns(
+        confirmation_token: SecureRandom.urlsafe_base64(32),
+        updated_at: timestamp
+      )
+    end
+  rescue ActiveRecord::RecordNotUnique
+    retry
+  end
+
+  def confirm!
+    timestamp = Time.current
+    update_columns(confirmed_at: timestamp, confirmation_token: nil, updated_at: timestamp)
+  end
 
   def rank_grade
     EgdGradeMapping.grade_for(rank)

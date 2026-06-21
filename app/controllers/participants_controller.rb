@@ -1,7 +1,7 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :egd_search]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :confirm]
   before_action :build_participant, only: [:create]
   before_action :verify_turnstile, only: [:create]
 
@@ -21,6 +21,14 @@ class ParticipantsController < ApplicationController
     @participant = Participant.new
   end
 
+  def mine
+    @participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc)
+  end
+
+  def show
+    @participant = Participant.find(params[:id])
+  end
+
   def create
     ActiveRecord::Base.transaction do
       @participant.save!
@@ -29,9 +37,33 @@ class ParticipantsController < ApplicationController
       @participant.update_column(:user_id, user.id) if user
     end
 
-    redirect_to new_participant_path, notice: "Registration received. Thank you!"
+    if @participant.user&.confirmed?
+      @participant.generate_confirmation_token!
+      ParticipantMailer.participant_confirmation(@participant).deliver_later
+    end
+
+    redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
+  end
+
+  def confirm
+    @participant = Participant.find(params[:id])
+
+    stored = @participant.confirmation_token.to_s
+    token = params[:token].to_s
+    if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
+      @participant.confirm!
+      ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
+      notice = "Your registration has been confirmed."
+      if @participant.player?
+        redirect_to new_participant_payment_path(@participant), notice: notice
+      else
+        redirect_to participant_path(@participant), notice: notice
+      end
+    else
+      redirect_to root_path, alert: "Invalid or expired confirmation link."
+    end
   end
 
   def egd_search

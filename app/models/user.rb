@@ -11,6 +11,16 @@ class User < ApplicationRecord
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
+  def after_confirmation
+    super
+    participants.each do |participant|
+      next if participant.confirmed?
+
+      participant.confirm!
+      ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
+    end
+  end
+
   scope :ordered_by_name, -> { order(full_name: :asc) }
 
   def display_name
