@@ -7,6 +7,42 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "mine requires authentication" do
+    get mine_participants_path
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "mine shows only the signed in user's participants" do
+    sign_in users(:one)
+
+    get mine_participants_path
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_match "Carol Smith", response.body
+    assert_match "Dave Pending", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
+  test "user menu shows singular registration link for one participant" do
+    sign_in users(:two)
+
+    get root_path
+
+    assert_response :success
+    assert_select "a[href='#{participant_path(participants(:two))}']", text: "My registration"
+  end
+
+  test "user menu shows plural registrations link for multiple participants" do
+    sign_in users(:one)
+
+    get root_path
+
+    assert_response :success
+    assert_select "a[href='#{mine_participants_path}']", text: "My registrations"
+  end
+
   test "participants index shows presence period column" do
     get participants_path
 

@@ -7,6 +7,7 @@ Rails.application.routes.draw do
     controllers: {
       registrations: "users/registrations",
       sessions: "users/sessions",
+      confirmations: "users/confirmations",
       magic_links: "devise/magic_links"
     }
 
@@ -52,6 +53,7 @@ Rails.application.routes.draw do
   resources :participants, only: [:index, :new, :create, :show] do
     collection do
       get :egd_search
+      get :mine
     end
     member do
       get :confirm

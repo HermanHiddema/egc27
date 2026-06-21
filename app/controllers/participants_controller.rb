@@ -21,6 +21,10 @@ class ParticipantsController < ApplicationController
     @participant = Participant.new
   end
 
+  def mine
+    @participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc)
+  end
+
   def show
     @participant = Participant.find(params[:id])
   end

@@ -187,8 +187,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_20_203101) do
     t.datetime "updated_at", null: false
     t.bigint "user_id"
     t.boolean "weekend", default: true, null: false
-    t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
+    t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
     t.index ["egd_pin"], name: "index_participants_on_egd_pin"
     t.index ["email"], name: "index_participants_on_email"

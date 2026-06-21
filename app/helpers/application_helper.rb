@@ -34,6 +34,19 @@ module ApplicationHelper
     options
   end
 
+  def user_registration_menu_link(user = safe_current_user)
+    return nil unless user.present?
+
+    participants = user.participants.order(:last_name, :first_name, :id).to_a
+    return nil if participants.empty?
+
+    if participants.one?
+      { label: "My registration", path: participant_path(participants.first) }
+    else
+      { label: "My registrations", path: mine_participants_path }
+    end
+  end
+
   def main_image_representation(attachment, **transformations)
     return nil unless attachment.attached? && attachment.variable?
 
