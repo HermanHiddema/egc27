@@ -24,7 +24,7 @@
             <% @participants.each do |participant| %>
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= "#{country_flag_emoji(participant.country)} #{participant.country}".strip %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type.humanize %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.confirmed? ? "Confirmed" : "Pending confirmation" %></td>
                 <td class="px-4 py-3 text-sm text-right">
