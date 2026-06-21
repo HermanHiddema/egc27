@@ -79,11 +79,26 @@ module ApplicationHelper
     "#{eu_date(start_value, include_year: include_start_year, month: month)} - #{eu_date(end_value, include_year: include_end_year, month: month)}"
   end
 
-  def country_flag_emoji(country_code)
+  def country_flag_image(country_code)
     code = country_code.to_s.strip.upcase
     return "" unless code.match?(/\A[A-Z]{2}\z/)
 
-    code.chars.map { |char| (127397 + char.ord).chr(Encoding::UTF_8) }.join
+    image_tag(
+      "https://flagcdn.com/24x18/#{code.downcase}.png",
+      alt: "",
+      width: 24,
+      height: 18,
+      loading: "lazy",
+      decoding: "async",
+      class: "inline-block rounded-sm align-[-0.1em]"
+    )
+  end
+
+  def country_with_flag(country_code)
+    code = country_code.to_s.strip.upcase
+    return code unless code.match?(/\A[A-Z]{2}\z/)
+
+    safe_join([country_flag_image(code), code], " ")
   end
 
   def next_sort_direction(column, current_sort, current_direction)
