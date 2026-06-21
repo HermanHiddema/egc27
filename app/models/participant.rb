@@ -56,8 +56,8 @@ class Participant < ApplicationRecord
   end
 
   def generate_confirmation_token!
-    timestamp = Time.current
     self.class.transaction(requires_new: true) do
+      timestamp = Time.current
       update_columns(
         confirmation_token: SecureRandom.urlsafe_base64(32),
         updated_at: timestamp

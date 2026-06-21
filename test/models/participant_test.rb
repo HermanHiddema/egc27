@@ -279,7 +279,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:image_use_consent], "is not included in the list"
   end
 
-  test "generate_confirmation_token! retries on token collisions and updates timestamp" do
+  test "generate_confirmation_token! retries on token collisions for legacy invalid records and updates timestamp" do
     participant = participants(:one)
     participant.update_column(:gender, nil)
     original_updated_at = participant.updated_at
@@ -302,7 +302,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_operator participant.updated_at, :>, original_updated_at
   end
 
-  test "confirm! clears token and updates timestamp" do
+  test "confirm! clears token for legacy invalid records and updates timestamp" do
     participant = participants(:unconfirmed)
     participant.update_column(:gender, nil)
     original_updated_at = participant.updated_at
