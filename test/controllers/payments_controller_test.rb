@@ -29,6 +29,15 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "new shows paid state for participant with completed payment" do
+    participant = participants(:two)
+
+    get new_participant_payment_path(participant)
+
+    assert_response :success
+    assert_match "already been paid", response.body
+  end
+
   # create
   test "create redirects unconfirmed participant back to new" do
     participant = participants(:unconfirmed)
@@ -53,6 +62,21 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     post participant_payment_path(participant)
 
     assert_redirected_to success_payments_path
+  end
+
+  test "create keeps confirmed payment view state when mollie creation fails" do
+    participant = participants(:one)
+
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) { |_params| raise Mollie::Exception, "boom" }
+
+    post participant_payment_path(participant)
+
+    assert_response :unprocessable_entity
+    assert_match "Payment could not be started: boom", response.body
+    assert_no_match "Please confirm your email address", response.body
+  ensure
+    Mollie::Payment.define_singleton_method(:create, original)
   end
 
   # success

@@ -10,10 +10,12 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    @payment = build_payment_for(@participant)
+    @payment = @participant.payments.completed.order(created_at: :desc).first || build_payment_for(@participant)
   end
 
   def create
+    @confirmed = @participant.confirmed?
+
     existing = @participant.payments.completed.last
     return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
 

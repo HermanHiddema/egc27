@@ -56,11 +56,13 @@ class Participant < ApplicationRecord
   end
 
   def generate_confirmation_token!
-    update_column(:confirmation_token, SecureRandom.urlsafe_base64(32))
+    update!(confirmation_token: SecureRandom.urlsafe_base64(32))
+  rescue ActiveRecord::RecordNotUnique
+    retry
   end
 
   def confirm!
-    update_columns(confirmed_at: Time.current, confirmation_token: nil)
+    update!(confirmed_at: Time.current, confirmation_token: nil)
   end
 
   def rank_grade

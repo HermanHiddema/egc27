@@ -1,6 +1,6 @@
 Mollie::Client.configure do |config|
-  config.api_key = Rails.application.credentials.mollie_api_key ||
-                   ENV.fetch("MOLLIE_API_KEY", nil)
+  config.api_key = Rails.application.credentials.mollie_api_key.presence ||
+                   ENV.fetch("MOLLIE_API_KEY", nil).presence
 end
 
 if Rails.env.production? && Mollie::Client.instance.api_key.blank?

@@ -77,7 +77,7 @@ class CongressPassPricingTest < ActiveSupport::TestCase
     assert_equal :early, pricing.tier_name
   end
 
-  test "last day of regular is 30 May 2027" do
+  test "30 May 2027 is still in the regular tier" do
     pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2027, 5, 30))
     assert_equal :regular, pricing.tier_name
   end

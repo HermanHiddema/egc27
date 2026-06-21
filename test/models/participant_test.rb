@@ -1,6 +1,8 @@
 require "test_helper"
 
 class ParticipantTest < ActiveSupport::TestCase
+  include ActiveSupport::Testing::TimeHelpers
+
   test "requires all public registration fields" do
     participant = Participant.new
 
@@ -275,5 +277,35 @@ class ParticipantTest < ActiveSupport::TestCase
 
     assert_not participant.valid?
     assert_includes participant.errors[:image_use_consent], "is not included in the list"
+  end
+
+  test "generate_confirmation_token! retries on token collisions and updates timestamp" do
+    participant = participants(:one)
+    original_updated_at = participant.updated_at
+    generated_tokens = ["test_token_abc123", "replacement_token_123"]
+
+    travel_to original_updated_at + 1.minute do
+      SecureRandom.stub(:urlsafe_base64, ->(_length = nil) { generated_tokens.shift }) do
+        participant.generate_confirmation_token!
+      end
+    end
+
+    participant.reload
+    assert_equal "replacement_token_123", participant.confirmation_token
+    assert_operator participant.updated_at, :>, original_updated_at
+  end
+
+  test "confirm! clears token and updates timestamp" do
+    participant = participants(:unconfirmed)
+    original_updated_at = participant.updated_at
+
+    travel_to original_updated_at + 1.minute do
+      participant.confirm!
+    end
+
+    participant.reload
+    assert participant.confirmed?
+    assert_nil participant.confirmation_token
+    assert_operator participant.updated_at, :>, original_updated_at
   end
 end
