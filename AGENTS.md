@@ -53,3 +53,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - Country selector should support autocomplete with ISO alpha-2 semantics.
 - Taiwan display name: `Chinese Taipei (Taiwan)`.
 - Prefer standard Rails resource/controller naming; avoid custom controller names like `*ManagementController`.
+- In the top bar, keep Newsletter and Register now CTAs green while reusing btn-primary for size and shape.
+- In the top bar stacked-button layout (< lg), shorten `Register now` to `Register`.
