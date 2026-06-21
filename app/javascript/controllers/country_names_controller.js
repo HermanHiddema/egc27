@@ -101,6 +101,13 @@ export default class extends Controller {
 
   filter(event) {
     this.updateSelectFlag(event.target)
-    event.target.form.requestSubmit()
+    const form = event.target.form
+    if (!form) return
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit()
+    } else {
+      form.submit()
+    }
   }
 }
