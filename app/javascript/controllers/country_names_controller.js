@@ -11,6 +11,7 @@ export default class extends Controller {
     if (!this.displayNames) return
 
     this.enhanceSelect()
+    this.selectTargets.forEach((select) => this.updateSelectFlag(select))
     this.enhanceCodes()
   }
 
@@ -56,6 +57,29 @@ export default class extends Controller {
     })
   }
 
+  flagUrl(code) {
+    return `https://flagcdn.com/24x18/${code.toLowerCase()}.png`
+  }
+
+  updateSelectFlag(select) {
+    const code = this.normalizeCode(select.value)
+
+    if (!code) {
+      select.style.backgroundImage = ""
+      select.style.backgroundRepeat = ""
+      select.style.backgroundPosition = ""
+      select.style.backgroundSize = ""
+      select.style.paddingLeft = ""
+      return
+    }
+
+    select.style.backgroundImage = `url(${this.flagUrl(code)})`
+    select.style.backgroundRepeat = "no-repeat"
+    select.style.backgroundPosition = "0.6rem center"
+    select.style.backgroundSize = "1.2rem 0.9rem"
+    select.style.paddingLeft = "2.2rem"
+  }
+
   enhanceCodes() {
     this.codeTargets.forEach((el) => {
       const code = this.normalizeCode(el.dataset.countryCode || "")
@@ -76,6 +100,7 @@ export default class extends Controller {
   }
 
   filter(event) {
+    this.updateSelectFlag(event.target)
     event.target.form.requestSubmit()
   }
 }
