@@ -31,8 +31,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody tr td:first-child", text: "2", count: 1
     assert_select "p", text: /2 results/
     assert_select "select[name='country'] option[value='NL'][selected='selected']"
-    assert_match "🇳🇱 NL", response.body
-    assert_no_match "🇩🇪 DE", response.body
+    assert_select "td[data-country-code='NL'] img[src*='flagcdn.com/24x18/nl.png']", count: 2
+    assert_select "td[data-country-code='DE'] img", count: 0
   end
 
   test "participants index sorts by rank using rank integer values" do

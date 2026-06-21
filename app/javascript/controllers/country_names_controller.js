@@ -1,7 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
-const REGIONAL_INDICATOR_BASE = 127397
 const ISO_COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
 
 export default class extends Controller {
@@ -45,13 +44,6 @@ export default class extends Controller {
     }
   }
 
-  flagFor(code) {
-    const normalizedCode = this.normalizeCode(code)
-    if (!normalizedCode) return ""
-
-    return [...normalizedCode].map((char) => String.fromCodePoint(REGIONAL_INDICATOR_BASE + char.charCodeAt(0))).join("")
-  }
-
   enhanceSelect() {
     this.selectTargets.forEach((select) => {
       for (const option of select.options) {
@@ -59,7 +51,7 @@ export default class extends Controller {
         if (!code) continue
 
         const name = this.nameFor(code)
-        if (name) option.text = `${this.flagFor(code)} ${name} (${code})`.trim()
+        if (name) option.text = `${name} (${code})`
       }
     })
   }
@@ -72,7 +64,14 @@ export default class extends Controller {
       const name = this.nameFor(code)
       if (!name) return
 
-      el.textContent = `${this.flagFor(code)} ${name}`.trim()
+      const flagImage = el.querySelector("img")
+
+      el.replaceChildren()
+      if (flagImage) {
+        el.append(flagImage)
+        el.append(" ")
+      }
+      el.append(name)
     })
   }
 
