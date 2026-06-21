@@ -1,0 +1,95 @@
+<div class="container-wide py-12">
+  <h1 class="text-4xl font-bold mb-2">Complete Your Registration</h1>
+  <p class="text-neutral-600 mb-8">One more step — pay for your congress pass to confirm your place.</p>
+
+  <% unless @confirmed %>
+    <div class="bg-yellow-50 border border-yellow-300 text-yellow-900 rounded-lg p-6 mb-8">
+      <h2 class="text-lg font-semibold mb-2">Please confirm your email address</h2>
+      <p>
+        We sent a confirmation email with a link to confirm your address before proceeding to payment.
+      </p>
+      <p class="mt-2 text-sm">Once confirmed, return to this page to complete your payment.</p>
+    </div>
+  <% else %>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+        <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Participant Details</h2>
+        <dl class="space-y-3 text-sm">
+          <div class="flex justify-between">
+            <dt class="text-neutral-500 font-medium">Name</dt>
+            <dd class="text-neutral-900"><%= "#{@participant.first_name} #{@participant.last_name}" %></dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-neutral-500 font-medium">Country</dt>
+            <dd class="text-neutral-900"><%= @participant.country %></dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-neutral-500 font-medium">Congress Pass</dt>
+            <dd class="text-neutral-900"><%= @payment.description %></dd>
+          </div>
+        </dl>
+      </div>
+
+      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+        <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Payment Summary</h2>
+
+        <div class="bg-brand-blue-50 rounded-lg p-4 mb-6">
+          <div class="flex justify-between items-center">
+            <span class="text-brand-blue-900 font-medium">Congress Pass</span>
+            <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
+          </div>
+          <% if @participant.age_group == "0-11" %>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. Price based on today's date.</p>
+          <% elsif @participant.age_group == "12-17" %>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. Price based on today's date.</p>
+          <% else %>
+            <p class="text-xs text-brand-blue-700 mt-1">Price based on today's date.</p>
+          <% end %>
+        </div>
+
+        <% if @payment.paid? %>
+          <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-4">
+            Your congress pass has already been paid. Thank you!
+          </div>
+        <% else %>
+          <%= form_with url: participant_payment_path(@participant), method: :post, data: { turbo: false } do |f| %>
+            <%= f.submit "Pay #{@payment.amount_formatted} via Mollie",
+                  class: "w-full btn-primary text-center block py-3 text-lg" %>
+          <% end %>
+          <p class="text-xs text-neutral-500 mt-3 text-center">
+            You will be redirected to Mollie's secure payment page.
+            Supported methods: iDEAL, credit card, Bancontact, and more.
+          </p>
+        <% end %>
+      </div>
+    </div>
+
+    <div class="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h3 class="text-base font-semibold mb-4 text-brand-blue-900">Congress Pass Price Overview</h3>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm text-left">
+          <thead>
+            <tr class="bg-gray-50">
+              <th class="px-4 py-2 font-semibold text-neutral-700">Congress Pass</th>
+              <th class="px-4 py-2 font-semibold text-neutral-700">Special<br><span class="font-normal text-xs">Until 31 Aug 2026</span></th>
+              <th class="px-4 py-2 font-semibold text-neutral-700">Early Bird<br><span class="font-normal text-xs">Until 31 Jan 2027</span></th>
+              <th class="px-4 py-2 font-semibold text-neutral-700">Regular<br><span class="font-normal text-xs">Until 31 May 2027</span></th>
+              <th class="px-4 py-2 font-semibold text-neutral-700">Late<br><span class="font-normal text-xs">From 1 Jun 2027</span></th>
+            </tr>
+          </thead>
+        <% labels = CongressPassPricing::PRICES.keys.index_with { |opt| CongressPassPricing.new(attendance_option: opt).attendance_label } %>
+          <tbody class="divide-y divide-gray-100">
+            <% CongressPassPricing::PRICES.each do |option, tiers| %>
+              <tr class="<%= @participant.attendance_option == option ? 'bg-brand-yellow-50 font-semibold' : '' %>">
+                <td class="px-4 py-2 text-neutral-900"><%= labels[option] %></td>
+                <% %i[special early regular late].each do |tier| %>
+                  <td class="px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% end %>
+</div>
