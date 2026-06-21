@@ -31,7 +31,7 @@ export default class extends Controller {
                 const code = option.value.trim().toUpperCase()
                 if (!code) continue
                 const name = this.nameFor(code)
-                if (name) option.text = `${name} (${code})`
+                if (name) option.text = `${this.flagFor(code)} ${name} (${code})`.trim()
             }
         })
     }
