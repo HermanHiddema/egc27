@@ -14,7 +14,7 @@
           </div>
           <div>
             <dt class="font-medium text-neutral-700">Country</dt>
-            <dd class="text-neutral-900"><%= "#{country_flag_emoji(@participant.country)} #{@participant.country}".strip %></dd>
+            <dd class="text-neutral-900"><%= country_with_flag(@participant.country) %></dd>
           </div>
           <% if @participant.club.present? %>
             <div>
@@ -47,7 +47,7 @@
             <strong>Please check your email</strong> — a confirmation link has been sent to your email address. You must confirm your registration before you can complete payment.
           </p>
         </div>
-      <% elsif @participant.confirmed? && @participant.visitor? %>
+      <% elsif @participant.visitor? %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
           <p class="text-green-800 text-sm">
             <strong>Your registration is confirmed.</strong> No payment is required for visitor registrations.

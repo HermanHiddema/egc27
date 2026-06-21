@@ -10,14 +10,11 @@
         <%= form_with url: participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do %>
           <div>
             <label for="country" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Country</label>
-            <%= select_tag :country, options_for_select([["All countries", ""]] + @countries.map { |country| [country, country] }, @country_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { country_names_target: "select" } %>
+            <%= select_tag :country, options_for_select([["All countries", ""]] + @countries.map { |country| [country, country] }, @country_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { country_names_target: "select", action: "change->country-names#filter" } %>
           </div>
           <%= hidden_field_tag :sort, @sort %>
           <%= hidden_field_tag :direction, @direction %>
-          <%= submit_tag "Filter", class: "btn-secondary" %>
-          <% if @country_filter.present? %>
-            <%= link_to "Clear", participants_path(sort: @sort, direction: @direction), class: "text-sm text-brand-red-600 hover:text-brand-red-700 transition" %>
-          <% end %>
+          <noscript><%= submit_tag "Filter", class: "btn-primary" %></noscript>
         <% end %>
 
         <p class="text-sm text-neutral-700"><strong><%= @participants.size %></strong> result<%= "s" unless @participants.size == 1 %></p>
@@ -53,7 +50,7 @@
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= index + 1 %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= "#{country_flag_emoji(participant.country)} #{participant.country}".strip %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.club %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>

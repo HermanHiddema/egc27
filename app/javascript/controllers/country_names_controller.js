@@ -1,7 +1,6 @@
 import { Controller } from "@hotwired/stimulus"
 import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
-const REGIONAL_INDICATOR_BASE = 127397
 const ISO_COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
 
 export default class extends Controller {
@@ -12,6 +11,7 @@ export default class extends Controller {
     if (!this.displayNames) return
 
     this.enhanceSelect()
+    this.selectTargets.forEach((select) => this.updateSelectFlag(select))
     this.enhanceCodes()
   }
 
@@ -45,13 +45,6 @@ export default class extends Controller {
     }
   }
 
-  flagFor(code) {
-    const normalizedCode = this.normalizeCode(code)
-    if (!normalizedCode) return ""
-
-    return [...normalizedCode].map((char) => String.fromCodePoint(REGIONAL_INDICATOR_BASE + char.charCodeAt(0))).join("")
-  }
-
   enhanceSelect() {
     this.selectTargets.forEach((select) => {
       for (const option of select.options) {
@@ -59,9 +52,32 @@ export default class extends Controller {
         if (!code) continue
 
         const name = this.nameFor(code)
-        if (name) option.text = `${this.flagFor(code)} ${name} (${code})`.trim()
+        if (name) option.text = `${name} (${code})`
       }
     })
+  }
+
+  flagUrl(code) {
+    return `https://flagcdn.com/24x18/${code.toLowerCase()}.png`
+  }
+
+  updateSelectFlag(select) {
+    const code = this.normalizeCode(select.value)
+
+    if (!code) {
+      select.style.backgroundImage = ""
+      select.style.backgroundRepeat = ""
+      select.style.backgroundPosition = ""
+      select.style.backgroundSize = ""
+      select.style.paddingLeft = ""
+      return
+    }
+
+    select.style.backgroundImage = `url(${this.flagUrl(code)})`
+    select.style.backgroundRepeat = "no-repeat"
+    select.style.backgroundPosition = "0.6rem center"
+    select.style.backgroundSize = "1.2rem 0.9rem"
+    select.style.paddingLeft = "2.2rem"
   }
 
   enhanceCodes() {
@@ -72,7 +88,26 @@ export default class extends Controller {
       const name = this.nameFor(code)
       if (!name) return
 
-      el.textContent = `${this.flagFor(code)} ${name}`.trim()
+      const flagImage = el.querySelector("img")
+
+      el.replaceChildren()
+      if (flagImage) {
+        el.append(flagImage)
+        el.append(" ")
+      }
+      el.append(name)
     })
+  }
+
+  filter(event) {
+    this.updateSelectFlag(event.target)
+    const form = event.target.form
+    if (!form) return
+
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit()
+    } else {
+      form.submit()
+    }
   }
 }
