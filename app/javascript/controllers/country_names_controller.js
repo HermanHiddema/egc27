@@ -75,4 +75,8 @@ export default class extends Controller {
       el.textContent = `${this.flagFor(code)} ${name}`.trim()
     })
   }
+
+  filter(event) {
+    event.target.form.requestSubmit()
+  }
 }
