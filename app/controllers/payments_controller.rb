@@ -16,7 +16,7 @@ class PaymentsController < ApplicationController
   def create
     @confirmed = @participant.confirmed?
 
-    existing = @participant.payments.completed.last
+    existing = @participant.payments.completed.order(created_at: :desc).first
     return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
 
     pricing = CongressPassPricing.new(attendance_option: @participant.attendance_option, age_group: @participant.age_group)
@@ -43,6 +43,7 @@ class PaymentsController < ApplicationController
     redirect_to mollie_payment.checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
     @payment&.destroy
+    @payment = build_payment_for(@participant)
     flash.now[:alert] = "Payment could not be started: #{e.message}"
     render :new, status: :unprocessable_entity
   end
