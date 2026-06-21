@@ -37,7 +37,13 @@ export default class extends Controller {
     const normalizedCode = this.normalizeCode(code)
     if (!normalizedCode || !this.displayNames) return null
 
-    return COUNTRY_NAME_OVERRIDES[normalizedCode] || this.displayNames.of(normalizedCode) || null
+    if (COUNTRY_NAME_OVERRIDES[normalizedCode]) return COUNTRY_NAME_OVERRIDES[normalizedCode]
+
+    try {
+      return this.displayNames.of(normalizedCode) || null
+    } catch {
+      return null
+    }
   }
 
   flagFor(code) {
