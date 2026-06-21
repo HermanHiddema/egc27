@@ -9,7 +9,7 @@
           You will receive a confirmation email shortly.
         </p>
       </div>
-    <% elsif @payment&.status == "open" || @payment&.status == "pending" %>
+    <% elsif @payment&.status.in?(%w[open pending authorized]) %>
       <div class="bg-brand-yellow-50 border border-brand-yellow-200 rounded-lg p-8 shadow-sm mb-6">
         <div class="text-5xl mb-4">⏳</div>
         <h1 class="text-3xl font-bold text-brand-yellow-900 mb-2">Payment Pending</h1>

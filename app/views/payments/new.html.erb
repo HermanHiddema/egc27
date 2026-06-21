@@ -6,8 +6,7 @@
     <div class="bg-yellow-50 border border-yellow-300 text-yellow-900 rounded-lg p-6 mb-8">
       <h2 class="text-lg font-semibold mb-2">Please confirm your email address</h2>
       <p>
-        We sent a confirmation email to <strong><%= @participant.email %></strong>.
-        Please click the link in that email to confirm your address before proceeding to payment.
+        We sent a confirmation email with a link to confirm your address before proceeding to payment.
       </p>
       <p class="mt-2 text-sm">Once confirmed, return to this page to complete your payment.</p>
     </div>
@@ -53,7 +52,7 @@
             Your congress pass has already been paid. Thank you!
           </div>
         <% else %>
-          <%= form_with url: participant_payment_path(@participant), method: :post do |f| %>
+          <%= form_with url: participant_payment_path(@participant), method: :post, data: { turbo: false } do |f| %>
             <%= f.submit "Pay #{@payment.amount_formatted} via Mollie",
                   class: "w-full btn-primary text-center block py-3 text-lg" %>
           <% end %>

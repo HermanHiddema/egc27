@@ -19,6 +19,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "confirm", response.body
+    assert_no_match participant.email, response.body
   end
 
   test "new builds a fresh payment for confirmed player" do
@@ -65,7 +66,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "create keeps confirmed payment view state when mollie creation fails" do
-    participant = participants(:one)
+    participant = participants(:three)
 
     original = Mollie::Payment.method(:create)
     Mollie::Payment.define_singleton_method(:create) { |_params| raise Mollie::Exception, "boom" }
@@ -79,6 +80,22 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create, original)
   end
 
+  test "create reuses the latest in-progress payment" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, checkout_url: "https://example.test/mollie-checkout")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(payment.participant)
+    end
+
+    assert_redirected_to "https://example.test/mollie-checkout"
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original)
+  end
+
   # success
   test "success renders page without payment_id" do
     get success_payments_path
@@ -90,6 +107,22 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     get success_payments_path(payment_id: 0)
 
     assert_response :success
+  end
+
+  test "success treats authorized payments as pending" do
+    payment = payments(:open_payment)
+    payment.update!(status: "authorized")
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "authorized")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    get success_payments_path(payment_id: payment.id)
+
+    assert_response :success
+    assert_match "Payment Pending", response.body
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original)
   end
 
   # webhook

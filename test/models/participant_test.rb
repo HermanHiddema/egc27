@@ -281,6 +281,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "generate_confirmation_token! retries on token collisions and updates timestamp" do
     participant = participants(:one)
+    participant.update_column(:gender, nil)
     original_updated_at = participant.updated_at
     generated_tokens = ["test_token_abc123", "replacement_token_123"]
     singleton = SecureRandom.singleton_class
@@ -303,6 +304,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "confirm! clears token and updates timestamp" do
     participant = participants(:unconfirmed)
+    participant.update_column(:gender, nil)
     original_updated_at = participant.updated_at
 
     travel_to original_updated_at + 1.minute do

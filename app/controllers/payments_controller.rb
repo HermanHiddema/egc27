@@ -15,35 +15,42 @@ class PaymentsController < ApplicationController
 
   def create
     @confirmed = @participant.confirmed?
+    created_payment = false
 
     existing = @participant.payments.completed.order(created_at: :desc).first
     return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
 
-    pricing = CongressPassPricing.new(attendance_option: @participant.attendance_option, age_group: @participant.age_group)
-    @payment = @participant.payments.build(
-      amount_cents: pricing.price_cents,
-      description: pricing.description,
-      status: "open"
-    )
+    @payment = @participant.payments.pending_or_open.order(created_at: :desc).first
 
-    unless @payment.save
-      render :new, status: :unprocessable_entity and return
+    unless @payment
+      @payment = build_payment_for(@participant)
+      created_payment = true
+
+      unless @payment.save
+        render :new, status: :unprocessable_entity and return
+      end
     end
 
-    mollie_payment = Mollie::Payment.create(
-      amount: { value: format("%.2f", @payment.amount_eur), currency: "EUR" },
-      description: @payment.description,
-      redirect_url: success_payments_url(payment_id: @payment.id),
-      webhook_url: webhook_payments_url,
-      metadata: { payment_id: @payment.id, participant_id: @participant.id }
-    )
+    mollie_payment = if @payment.mollie_payment_id.present?
+      Mollie::Payment.get(@payment.mollie_payment_id)
+    else
+      Mollie::Payment.create(
+        amount: { value: format("%.2f", @payment.amount_eur), currency: "EUR" },
+        description: @payment.description,
+        redirect_url: success_payments_url(payment_id: @payment.id),
+        webhook_url: webhook_payments_url,
+        metadata: { payment_id: @payment.id, participant_id: @participant.id }
+      )
+    end
 
-    @payment.update!(mollie_payment_id: mollie_payment.id)
+    @payment.update!(mollie_payment_id: mollie_payment.id) if @payment.mollie_payment_id.blank?
 
     redirect_to mollie_payment.checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
-    @payment&.destroy
-    @payment = build_payment_for(@participant)
+    if created_payment && @payment&.persisted? && @payment.mollie_payment_id.blank?
+      @payment.destroy
+      @payment = build_payment_for(@participant)
+    end
     flash.now[:alert] = "Payment could not be started: #{e.message}"
     render :new, status: :unprocessable_entity
   end
