@@ -1,8 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
-
-const COUNTRY_NAME_OVERRIDES = {
-  TW: "Chinese Taipei (Taiwan)"
-}
+import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
 const REGIONAL_INDICATOR_BASE = 127397
 const ISO_COUNTRY_CODE_PATTERN = /^[A-Z]{2}$/
@@ -40,7 +37,9 @@ export default class extends Controller {
     if (COUNTRY_NAME_OVERRIDES[normalizedCode]) return COUNTRY_NAME_OVERRIDES[normalizedCode]
 
     try {
-      return this.displayNames.of(normalizedCode) || null
+      const name = this.displayNames.of(normalizedCode)
+      if (!name || name === normalizedCode) return null
+      return name
     } catch {
       return null
     }
