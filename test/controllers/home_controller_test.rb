@@ -53,6 +53,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
         image_use_consent: true,
         accepted_terms_and_conditions: true,
         accepted_privacy_policy: true,
+        confirmed_at: timestamp,
         created_at: timestamp,
         updated_at: timestamp
       )
