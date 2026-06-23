@@ -3,6 +3,22 @@ import { Controller } from "@hotwired/stimulus"
 // Matches Tailwind's `lg` breakpoint
 const LG_BREAKPOINT = 1024
 const RESIZE_DEBOUNCE_MS = 100
+const SCROLL_DEBOUNCE_MS = 16
+
+function debounce(callback, waitMs) {
+  let timeoutId = null
+
+  const debounced = (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => callback(...args), waitMs)
+  }
+
+  debounced.cancel = () => {
+    clearTimeout(timeoutId)
+  }
+
+  return debounced
+}
 
 export default class extends Controller {
   static targets = ["nav", "logo", "title"]
@@ -13,18 +29,20 @@ export default class extends Controller {
   connect() {
     this.menuOffsetElement = document.querySelector("[data-header-shrink-menu-offset]")
     this.onScroll = this.onScroll.bind(this)
+    this.debouncedOnScroll = debounce(this.onScroll, SCROLL_DEBOUNCE_MS)
     this.onResize = this.onResize.bind(this)
     this.isMobile = window.innerWidth < LG_BREAKPOINT
     this.resizeTimer = null
-    window.addEventListener("scroll", this.onScroll, { passive: true })
+    window.addEventListener("scroll", this.debouncedOnScroll, { passive: true })
     window.addEventListener("resize", this.onResize, { passive: true })
     this.onScroll()
   }
 
   disconnect() {
-    window.removeEventListener("scroll", this.onScroll)
+    window.removeEventListener("scroll", this.debouncedOnScroll)
     window.removeEventListener("resize", this.onResize)
     clearTimeout(this.resizeTimer)
+    this.debouncedOnScroll.cancel()
   }
 
   onResize() {
