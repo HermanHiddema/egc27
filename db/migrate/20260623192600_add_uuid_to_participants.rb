@@ -1,7 +1,6 @@
 class AddUuidToParticipants < ActiveRecord::Migration[8.1]
   def change
-    # gen_random_uuid() is available in PostgreSQL core (13+) but pgcrypto
-    # provides it on older versions, so ensure it is enabled.
+    # Ensure gen_random_uuid() is available (provided by pgcrypto).
     enable_extension "pgcrypto" unless extension_enabled?("pgcrypto")
 
     # Adding the column with a volatile default backfills every existing row
