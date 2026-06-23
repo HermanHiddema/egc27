@@ -204,13 +204,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_23_204232) do
 
   create_table "payments", force: :cascade do |t|
     t.integer "amount_cents", null: false
+    t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description", null: false
     t.string "mollie_payment_id"
     t.bigint "participant_id", null: false
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
-    t.boolean "confirmation_sent", default: false, null: false
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
     t.index ["status"], name: "index_payments_on_status"
