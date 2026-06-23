@@ -434,7 +434,7 @@ event_group_key_for = lambda do |title, color|
     "women"
   when /\Asenior tmt\b/
     "senior"
-  when /\Ateam tmt\b/
+  when /\Ateam tmt\b|\Anations cup\b/
     "team"
   when /\Aweekend tmt\b/
     "weekend"

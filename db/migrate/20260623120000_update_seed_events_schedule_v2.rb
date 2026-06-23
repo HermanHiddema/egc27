@@ -106,11 +106,11 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
     event_groups_by_key = find_or_create_event_groups
 
     EVENTS_TO_DELETE.each do |event_data|
-      CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at])).delete_all
+      CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]), ends_at: parse_time(event_data[:ends_at])).delete_all
     end
 
     EVENTS_TO_UPDATE_ENDS_AT.each do |event_data|
-      event = CalendarEvent.find_by(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]))
+      event = CalendarEvent.find_by(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]), ends_at: parse_time(event_data[:old_ends_at]))
       next unless event
 
       event.update!(ends_at: parse_time(event_data[:new_ends_at]))
@@ -125,11 +125,11 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
     event_groups_by_key = find_or_create_event_groups
 
     EVENTS_TO_CREATE.each do |event_data|
-      CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at])).delete_all
+      CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]), ends_at: parse_time(event_data[:ends_at])).delete_all
     end
 
     EVENTS_TO_UPDATE_ENDS_AT.each do |event_data|
-      event = CalendarEvent.find_by(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]))
+      event = CalendarEvent.find_by(title: event_data[:title], starts_at: parse_time(event_data[:starts_at]), ends_at: parse_time(event_data[:new_ends_at]))
       next unless event
 
       event.update!(ends_at: parse_time(event_data[:old_ends_at]))
