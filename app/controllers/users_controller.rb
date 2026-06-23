@@ -29,6 +29,8 @@ class UsersController < ApplicationController
 
   def send_invitation
     @user = User.new(invitation_params)
+    # Invited users are created without a password; Devise emails confirmation
+    # instructions and they set their own password when confirming the account.
     @user.skip_password_validation = true
 
     if @user.save
