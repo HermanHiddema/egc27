@@ -1,6 +1,8 @@
 require "test_helper"
 
 class PaymentTest < ActiveSupport::TestCase
+  include ActionMailer::TestHelper
+
   test "valid payment with required attributes" do
     payment = Payment.new(
       participant: participants(:one),
@@ -66,5 +68,34 @@ class PaymentTest < ActiveSupport::TestCase
   test "pending_or_open scope returns open payments" do
     assert_includes Payment.pending_or_open, payments(:open_payment)
     assert_not_includes Payment.pending_or_open, payments(:paid_payment)
+  end
+
+  test "sends payment confirmation email when status changes to paid" do
+    payment = payments(:open_payment)
+    assert_emails 1 do
+      payment.update!(status: "paid")
+    end
+  end
+
+  test "does not send payment confirmation email when status changes to a non-paid status" do
+    payment = payments(:open_payment)
+    assert_no_emails do
+      payment.update!(status: "failed")
+    end
+  end
+
+  test "does not send payment confirmation email when confirmation_sent is already true" do
+    payment = payments(:open_payment)
+    payment.update_columns(confirmation_sent: true)
+    assert_no_emails do
+      payment.update!(status: "paid")
+    end
+  end
+
+  test "does not resend payment confirmation email when an already paid payment is saved" do
+    payment = payments(:paid_payment)
+    assert_no_emails do
+      payment.update!(status: "paid")
+    end
   end
 end

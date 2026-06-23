@@ -1,0 +1,18 @@
+<p>Hello <%= @participant.first_name %>,</p>
+
+<p>We have received your payment for the European Go Congress 2027. Thank you!</p>
+
+<p>
+  <strong>Name:</strong> <%= @participant.first_name %> <%= @participant.last_name %><br>
+  <strong>Congress Pass:</strong> <%= @payment.description %><br>
+  <strong>Amount paid:</strong> <%= @payment.amount_formatted %>
+</p>
+
+<p>Your registration is now complete.</p>
+
+<p><%= link_to "View your registration", participant_url(@participant) %></p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>
