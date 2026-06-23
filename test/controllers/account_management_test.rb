@@ -79,4 +79,63 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
     assert_response :redirect
     assert user.reload.valid_password?("newpassword123")
   end
+
+  test "registration-flow user sees a skip button on the password page" do
+    user = User.create!(
+      email: "registered@example.com",
+      full_name: "Registered User",
+      skip_password_validation: true,
+      confirmed_at: Time.current
+    )
+    Participant.create!(
+      first_name: "Registered",
+      last_name: "User",
+      email: "registered@example.com",
+      country: "NL",
+      age_group: "18-49",
+      participant_type: "player",
+      gender: "female",
+      image_use_consent: false,
+      user: user
+    )
+
+    devise_sign_in user
+
+    get edit_user_registration_path
+    assert_response :success
+    assert_select "form[action='#{skip_user_password_path}']"
+  end
+
+  test "invited user does not see a skip button on the password page" do
+    user = User.create!(
+      email: "invited@example.com",
+      full_name: "Invited User",
+      skip_password_validation: true,
+      confirmed_at: Time.current
+    )
+
+    devise_sign_in user
+
+    get edit_user_registration_path
+    assert_response :success
+    assert_select "form[action='#{skip_user_password_path}']", count: 0
+  end
+
+  test "skipping password setup redirects to my registrations with a flash" do
+    user = User.create!(
+      email: "skipper@example.com",
+      full_name: "Skipper",
+      skip_password_validation: true,
+      confirmed_at: Time.current
+    )
+
+    devise_sign_in user
+
+    post skip_user_password_path
+
+    assert_redirected_to mine_participants_path
+    follow_redirect!
+    assert_match "magic link", response.body
+    assert_not user.reload.password_set?
+  end
 end

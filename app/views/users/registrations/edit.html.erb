@@ -102,6 +102,14 @@
           </div>
         </div>
       <% end %>
+
+      <% if resource.participants.exists? %>
+        <div class="mt-6 pt-6 border-t border-gray-200">
+          <%= button_to "Skip for now", skip_user_password_path, method: :post,
+              class: "btn-secondary w-full" %>
+          <p class="text-sm text-gray-600 mt-2 text-center">You can sign in later with a magic link sent to your email.</p>
+        </div>
+      <% end %>
     </div>
   <% end %>
 </div>

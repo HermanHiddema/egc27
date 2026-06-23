@@ -1,0 +1,38 @@
+<p>Hello <%= @participant.first_name %>,</p>
+
+<p>
+  Thank you for registering for the European Go Congress 2027. We have created
+  an account for you using this email address so you can manage your
+  registration.
+</p>
+
+<p>Here are the details you provided:</p>
+
+<p>
+  <strong>Name:</strong> <%= @participant.first_name %> <%= @participant.last_name %><br>
+  <strong>Country:</strong> <%= @participant.country %><br>
+  <% if @participant.club.present? %>
+    <strong>Club:</strong> <%= @participant.club %><br>
+  <% end %>
+  <% if @participant.rank_grade.present? %>
+    <strong>Rank:</strong> <%= @participant.rank_grade %><br>
+  <% end %>
+  <% if @participant.rating.present? %>
+    <strong>Rating:</strong> <%= @participant.rating %><br>
+  <% end %>
+  <strong>Congress Pass:</strong> <%= @participant.attendance_option&.humanize || "—" %>
+</p>
+
+<p>Please confirm your account and email address through the link below:</p>
+
+<p><%= link_to "Confirm my account", confirmation_url(@resource, confirmation_token: @token) %></p>
+
+<p>
+  After confirming, you can set a password if you like. This is optional — you
+  can always sign in later by requesting a magic link to this email address.
+</p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>
