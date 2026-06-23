@@ -84,6 +84,14 @@ class PaymentTest < ActiveSupport::TestCase
     end
   end
 
+  test "does not send payment confirmation email when confirmation_sent is already true" do
+    payment = payments(:open_payment)
+    payment.update_columns(confirmation_sent: true)
+    assert_no_emails do
+      payment.update!(status: "paid")
+    end
+  end
+
   test "does not resend payment confirmation email when an already paid payment is saved" do
     payment = payments(:paid_payment)
     assert_no_emails do

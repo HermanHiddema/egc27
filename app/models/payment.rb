@@ -11,7 +11,7 @@ class Payment < ApplicationRecord
   scope :completed, -> { where(status: "paid") }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
 
-  after_update :send_payment_confirmation, if: :became_paid?
+  after_update_commit :send_payment_confirmation, if: :became_paid?
 
   def paid?
     status == "paid"
@@ -33,6 +33,7 @@ class Payment < ApplicationRecord
 
   def send_payment_confirmation
     return if participant.email.blank?
+    return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
     ParticipantMailer.payment_confirmation(self).deliver_later
   end
