@@ -9,11 +9,27 @@ module Users
         # Sign in the user immediately
         sign_in(resource)
         set_flash_message!(:notice, :confirmed)
-        # Redirect to password setup - use Devise's standard path
-        redirect_to edit_user_registration_path
+        redirect_to after_confirmation_path_for(resource)
       else
         self.confirmation_token = params[:confirmation_token]
         render :new
+      end
+    end
+
+    private
+
+    # After confirming, send users created via participant registration to
+    # their registration. A single participant goes straight to that
+    # participant's page; multiple participants go to the registrations list.
+    def after_confirmation_path_for(resource)
+      participants = resource.participants
+      case participants.size
+      when 0
+        edit_user_registration_path
+      when 1
+        participant_path(participants.first)
+      else
+        mine_participants_path
       end
     end
   end
