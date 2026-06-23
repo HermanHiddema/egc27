@@ -77,8 +77,7 @@ Rails.application.routes.draw do
       get :success
     end
   end
-  resources :users, only: [:index, :new, :edit, :update]
-  post "users/create", to: "users#create", as: :create_user
+  resources :users, only: [:index, :edit, :update]
   get "users/invite", to: "users#invite", as: :invite_user
   post "users/invite", to: "users#send_invitation", as: :send_invitation_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
