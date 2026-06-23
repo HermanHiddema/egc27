@@ -11,6 +11,8 @@ class Payment < ApplicationRecord
   scope :completed, -> { where(status: "paid") }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
 
+  after_update :send_payment_confirmation, if: :became_paid?
+
   def paid?
     status == "paid"
   end
@@ -21,5 +23,17 @@ class Payment < ApplicationRecord
 
   def amount_formatted
     "€ #{format('%.2f', amount_eur)}"
+  end
+
+  private
+
+  def became_paid?
+    saved_change_to_status? && paid?
+  end
+
+  def send_payment_confirmation
+    return if participant.email.blank?
+
+    ParticipantMailer.payment_confirmation(self).deliver_later
   end
 end

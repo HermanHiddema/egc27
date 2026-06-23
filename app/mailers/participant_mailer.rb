@@ -18,4 +18,14 @@ class ParticipantMailer < ApplicationMailer
       subject: "EGC 2027 – Your registration is confirmed"
     )
   end
+
+  def payment_confirmation(payment)
+    @payment = payment
+    @participant = payment.participant
+
+    mail(
+      to: @participant.email,
+      subject: "EGC 2027 – Payment received"
+    )
+  end
 end
