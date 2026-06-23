@@ -58,6 +58,24 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "span[aria-label='Week 1: not attending']"
   end
 
+  test "show looks up the participant by uuid" do
+    participant = participants(:one)
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_equal participant.uuid, participant.to_param
+    assert_match "Alice Smith", response.body
+  end
+
+  test "show does not resolve a participant by sequential id" do
+    participant = participants(:one)
+
+    get "/participants/#{participant.id}"
+
+    assert_response :not_found
+  end
+
   test "participants index supports country filter and shows numbered filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
