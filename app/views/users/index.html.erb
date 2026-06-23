@@ -2,7 +2,7 @@
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Users</h1>
     <% if current_user.admin? %>
-      <%= link_to "New User", new_user_path, class: "btn-primary" %>
+      <%= link_to "Invite User", invite_user_path, class: "btn-primary" %>
     <% end %>
   </div>
 

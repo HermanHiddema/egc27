@@ -4,12 +4,23 @@ Rails.application.routes.draw do
   end
 
   devise_for :users,
+    skip: [:registrations],
     controllers: {
-      registrations: "users/registrations",
       sessions: "users/sessions",
       confirmations: "users/confirmations",
       magic_links: "devise/magic_links"
     }
+
+  # Account management (edit/update/delete) without public self-registration.
+  # Public sign-up is intentionally disabled; admins invite users instead.
+  devise_scope :user do
+    resource :registration,
+      only: [:edit, :update, :destroy],
+      path: "users",
+      path_names: { edit: "edit" },
+      controller: "users/registrations",
+      as: :user_registration
+  end
 
   # Magic-link (passwordless) sign-in: request a link by email
   devise_scope :user do
@@ -66,8 +77,9 @@ Rails.application.routes.draw do
       get :success
     end
   end
-  resources :users, only: [:index, :new, :edit, :update]
-  post "users/create", to: "users#create", as: :create_user
+  resources :users, only: [:index, :edit, :update]
+  get "users/invite", to: "users#invite", as: :invite_user
+  post "users/invite", to: "users#send_invitation", as: :send_invitation_user
   get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
   resources :newsletter_subscriptions, only: [:index, :create, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter

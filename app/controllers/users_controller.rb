@@ -6,21 +6,24 @@ class UsersController < ApplicationController
     @users = User.order(:email, :id)
   end
 
-  def new
+  def edit
+  end
+
+  def invite
     @user = User.new
   end
 
-  def create
-    @user = User.new(user_params)
+  def send_invitation
+    @user = User.new(invitation_params)
+    # Invited users are created without a password; Devise emails confirmation
+    # instructions and they set their own password when confirming the account.
+    @user.skip_password_validation = true
 
     if @user.save
-      redirect_to users_path, notice: "User was successfully created."
+      redirect_to users_path, notice: "Invitation sent to #{@user.email}."
     else
-      render :new, status: :unprocessable_entity
+      render :invite, status: :unprocessable_entity
     end
-  end
-
-  def edit
   end
 
   def update
@@ -47,6 +50,13 @@ class UsersController < ApplicationController
 
   def user_params
     permitted_attributes = [:email, :full_name, :password, :password_confirmation]
+    permitted_attributes << :role if current_user&.admin?
+
+    params.require(:user).permit(permitted_attributes)
+  end
+
+  def invitation_params
+    permitted_attributes = [:email, :full_name]
     permitted_attributes << :role if current_user&.admin?
 
     params.require(:user).permit(permitted_attributes)

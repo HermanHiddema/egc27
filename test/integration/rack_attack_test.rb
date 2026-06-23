@@ -78,21 +78,6 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "throttles sign-up requests by IP after limit" do
-    params = { user: { email: "newuser@example.org", full_name: "Test User", password: "password123", password_confirmation: "password123" } }
-
-    freeze_time do
-      10.times do
-        post user_registration_path, params: params, headers: { "REMOTE_ADDR" => "3.4.5.6" }
-        assert_includes [200, 302, 422], response.status
-      end
-
-      post user_registration_path, params: params, headers: { "REMOTE_ADDR" => "3.4.5.6" }
-      assert_response 429
-      assert response.headers["Retry-After"].to_i.positive?
-    end
-  end
-
   test "throttles password reset requests by IP after limit" do
     freeze_time do
       5.times do |i|
