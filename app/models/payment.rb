@@ -33,6 +33,8 @@ class Payment < ApplicationRecord
 
   def send_payment_confirmation
     return if participant.email.blank?
+
+    # Atomic check-and-set prevents duplicate emails under concurrent webhook/redirect updates.
     return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
     ParticipantMailer.payment_confirmation(self).deliver_later
