@@ -32,7 +32,11 @@ class DeviseViewsTest < ActionDispatch::IntegrationTest
   end
 
   test "reset password page renders with site styling" do
-    get edit_user_password_path(reset_password_token: "abcdef")
+    user = users(:one)
+    raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)
+    user.update!(reset_password_token: hashed_token, reset_password_sent_at: Time.current)
+
+    get edit_user_password_path(reset_password_token: raw_token)
 
     assert_response :success
     assert_select "div.card-elevated"
