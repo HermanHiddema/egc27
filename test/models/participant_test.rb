@@ -316,4 +316,25 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_nil participant.confirmation_token
     assert_operator participant.updated_at, :>, original_updated_at
   end
+
+  test "assigns a uuid on creation" do
+    participant = Participant.create!(
+      first_name: "Uuid",
+      last_name: "Tester",
+      email: "uuid_tester@example.org",
+      age_group: "18-49",
+      gender: "female",
+      country: "NL",
+      club: "Amsterdam Go Club",
+      image_use_consent: true
+    )
+
+    assert_match(/\A[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\z/, participant.uuid)
+  end
+
+  test "to_param returns the uuid" do
+    participant = participants(:one)
+
+    assert_equal participant.uuid, participant.to_param
+  end
 end

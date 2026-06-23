@@ -85,7 +85,7 @@ class PaymentsController < ApplicationController
   private
 
   def load_participant
-    @participant = Participant.find(params[:participant_id])
+    @participant = Participant.find_by!(uuid: params[:participant_id])
   end
 
   def require_player_participant

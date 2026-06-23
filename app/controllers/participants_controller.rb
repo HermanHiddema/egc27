@@ -26,7 +26,7 @@ class ParticipantsController < ApplicationController
   end
 
   def show
-    @participant = Participant.find(params[:id])
+    @participant = Participant.find_by!(uuid: params[:id])
   end
 
   def create
@@ -48,7 +48,7 @@ class ParticipantsController < ApplicationController
   end
 
   def confirm
-    @participant = Participant.find(params[:id])
+    @participant = Participant.find_by!(uuid: params[:id])
 
     stored = @participant.confirmation_token.to_s
     token = params[:token].to_s

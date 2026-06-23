@@ -43,6 +43,10 @@ class Participant < ApplicationRecord
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
 
+  def to_param
+    uuid
+  end
+
   def confirmed?
     confirmed_at.present?
   end
