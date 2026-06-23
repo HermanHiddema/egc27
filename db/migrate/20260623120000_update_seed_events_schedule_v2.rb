@@ -1,6 +1,29 @@
 class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
   DEFAULT_EVENT_COLOR = "#dbeafe"
 
+  EVENT_GROUP_ATTRIBUTES = {
+    "registration"          => { name: "Registration",              color: "#b7b7b7" },
+    "ceremony"              => { name: "Ceremony and Official",     color: "#ffd966" },
+    "main_open"             => { name: "Main Open",                 color: "#c9daf8" },
+    "european_championship" => { name: "European Championship",     color: "#d5a6bd" },
+    "rapid"                 => { name: "Rapid",                     color: "#00ffff" },
+    "senior"                => { name: "Senior Tournament",         color: "#f4cccc" },
+    "women"                 => { name: "Women Tournament",          color: "#f4cccc" },
+    "team"                  => { name: "Team Tournament",           color: "#f4cccc" },
+    "youth"                 => { name: "Youth Tournament",          color: "#f4cccc" },
+    "pair_go"               => { name: "Pair Go",                   color: "#f4cccc" },
+    "weekend"               => { name: "Weekend Tournament",        color: "#c9daf8" },
+    "other_side_tournaments" => { name: "Other Side Tournaments",   color: "#f4cccc" },
+    "professional"          => { name: "Professional Activities",   color: "#b6d7a8" },
+    "lectures"              => { name: "Lectures",                  color: "#fff2cc" },
+    "panda_team"            => { name: "Panda Team",                color: "#ff00ff" },
+    "fun_go"                => { name: "Fun Go",                    color: "#e06666" },
+    "excursions"            => { name: "Excursions",                color: "#6fa8dc" },
+    "entertainment"         => { name: "Entertainment",             color: "#6fa8dc" },
+    "student_changqi"       => { name: "Student and ChangQi",       color: "#00ff00" },
+    "other"                 => { name: "Other",                     color: DEFAULT_EVENT_COLOR }
+  }.freeze
+
   class EventGroup < ActiveRecord::Base
     self.table_name = "event_groups"
   end
@@ -80,7 +103,7 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
   ].freeze
 
   def up
-    event_groups_by_key = EventGroup.where(key: event_group_keys).index_by(&:key)
+    event_groups_by_key = find_or_create_event_groups
 
     EVENTS_TO_DELETE.each do |event_data|
       CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at])).delete_all
@@ -99,7 +122,7 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
   end
 
   def down
-    event_groups_by_key = EventGroup.where(key: event_group_keys).index_by(&:key)
+    event_groups_by_key = find_or_create_event_groups
 
     EVENTS_TO_CREATE.each do |event_data|
       CalendarEvent.where(title: event_data[:title], starts_at: parse_time(event_data[:starts_at])).delete_all
@@ -126,7 +149,10 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
     )
 
     event_group_key = event_group_key_for(event_data[:title], event_data[:color] || DEFAULT_EVENT_COLOR)
-    event_group = event_groups_by_key.fetch(event_group_key)
+    event_group = event_groups_by_key.fetch(event_group_key) do
+      raise ActiveRecord::MigrationError, "EventGroup with key #{event_group_key.inspect} not found. " \
+        "Ensure it is present in EVENT_GROUP_ATTRIBUTES and has been seeded."
+    end
     explicit_color = event_data[:color]
 
     event.ends_at = parse_time(event_data[:ends_at])
@@ -139,6 +165,18 @@ class UpdateSeedEventsScheduleV2 < ActiveRecord::Migration[8.1]
 
   def parse_time(time_string)
     Time.zone.parse(time_string)
+  end
+
+  def find_or_create_event_groups
+    event_group_keys.each_with_object({}) do |key, memo|
+      attrs = EVENT_GROUP_ATTRIBUTES.fetch(key) do
+        raise ActiveRecord::MigrationError, "Unknown event group key: #{key.inspect}. Add it to EVENT_GROUP_ATTRIBUTES."
+      end
+      memo[key] = EventGroup.find_or_create_by!(key: key) do |eg|
+        eg.name = attrs[:name]
+        eg.color = attrs[:color]
+      end
+    end
   end
 
   def event_group_keys
