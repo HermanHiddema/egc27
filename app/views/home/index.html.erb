@@ -1,9 +1,8 @@
 <div class="container-wide py-12">
-  <% if @notices.any? || @recent_participants.any? %>
-    <div class="mb-8 flex flex-col md:flex-row gap-6">
+  <div class="mb-8 flex flex-col md:flex-row gap-6">
       <div class="flex-1 flex flex-col md:flex-row gap-6">
         <div class="md:w-72 shrink-0">
-          <%= image_tag "EGC2027-goborddraakje2.png", alt: "EGC 2027 mascot", class: "w-full h-auto object-cover" %>
+          <%= image_tag "EGC2027-goborddraakje2.png", alt: "EGC 2027 mascot", class: "w-full h-auto object-cover", loading: "lazy", decoding: "async" %>
         </div>
 
         <% if @notices.any? %>
@@ -58,7 +57,6 @@
         <% end %>
       </div>
     </div>
-  <% end %>
 
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Recent News</h1>

@@ -3,7 +3,6 @@ import { Controller } from "@hotwired/stimulus"
 // Matches Tailwind's `lg` breakpoint
 const LG_BREAKPOINT = 1024
 const RESIZE_DEBOUNCE_MS = 100
-const SCROLL_DEBOUNCE_MS = 16
 
 function debounce(callback, waitMs) {
   let timeoutId = null
@@ -20,6 +19,28 @@ function debounce(callback, waitMs) {
   return debounced
 }
 
+function scheduleWithAnimationFrame(callback) {
+  let frameId = null
+
+  const scheduled = () => {
+    if (frameId !== null) return
+
+    frameId = requestAnimationFrame(() => {
+      frameId = null
+      callback()
+    })
+  }
+
+  scheduled.cancel = () => {
+    if (frameId !== null) {
+      cancelAnimationFrame(frameId)
+      frameId = null
+    }
+  }
+
+  return scheduled
+}
+
 export default class extends Controller {
   static targets = ["nav", "logo", "title"]
   static values = {
@@ -29,20 +50,20 @@ export default class extends Controller {
   connect() {
     this.menuOffsetElement = document.querySelector("[data-header-shrink-menu-offset]")
     this.onScroll = this.onScroll.bind(this)
-    this.debouncedOnScroll = debounce(this.onScroll, SCROLL_DEBOUNCE_MS)
+    this.scheduledOnScroll = scheduleWithAnimationFrame(this.onScroll)
     this.onResize = this.onResize.bind(this)
     this.isMobile = window.innerWidth < LG_BREAKPOINT
     this.resizeTimer = null
-    window.addEventListener("scroll", this.debouncedOnScroll, { passive: true })
+    window.addEventListener("scroll", this.scheduledOnScroll, { passive: true })
     window.addEventListener("resize", this.onResize, { passive: true })
     this.onScroll()
   }
 
   disconnect() {
-    window.removeEventListener("scroll", this.debouncedOnScroll)
+    window.removeEventListener("scroll", this.scheduledOnScroll)
     window.removeEventListener("resize", this.onResize)
     clearTimeout(this.resizeTimer)
-    this.debouncedOnScroll.cancel()
+    this.scheduledOnScroll.cancel()
   }
 
   onResize() {
