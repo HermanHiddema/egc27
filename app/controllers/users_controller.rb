@@ -23,6 +23,21 @@ class UsersController < ApplicationController
   def edit
   end
 
+  def invite
+    @user = User.new
+  end
+
+  def send_invitation
+    @user = User.new(invitation_params)
+    @user.skip_password_validation = true
+
+    if @user.save
+      redirect_to users_path, notice: "Invitation sent to #{@user.email}."
+    else
+      render :invite, status: :unprocessable_entity
+    end
+  end
+
   def update
     attributes = user_update_params
 
@@ -47,6 +62,13 @@ class UsersController < ApplicationController
 
   def user_params
     permitted_attributes = [:email, :full_name, :password, :password_confirmation]
+    permitted_attributes << :role if current_user&.admin?
+
+    params.require(:user).permit(permitted_attributes)
+  end
+
+  def invitation_params
+    permitted_attributes = [:email, :full_name]
     permitted_attributes << :role if current_user&.admin?
 
     params.require(:user).permit(permitted_attributes)

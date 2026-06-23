@@ -12,16 +12,6 @@ class DeviseViewsTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Sign in"
   end
 
-  test "sign up page renders with site styling" do
-    get new_user_registration_path
-
-    assert_response :success
-    assert_select "div.card-elevated"
-    assert_select "h1", text: "Create your account"
-    assert_select "input[name='user[full_name]']"
-    assert_select "input[name='user[email]']"
-  end
-
   test "forgot password page renders with site styling" do
     get new_user_password_path
 

@@ -34,13 +34,6 @@
 
       <button type="submit" class="btn-primary w-full">Sign in</button>
 
-      <% if devise_mapping.registerable? %>
-        <p class="text-center text-sm text-neutral-600">
-          Don't have an account?
-          <%= link_to "Sign up", new_registration_path(resource_name), class: "font-medium text-brand-blue-600 hover:text-brand-blue-500" %>
-        </p>
-      <% end %>
-
       <p class="text-center text-sm text-neutral-600">
         <%= link_to "Sign in with a magic link", new_user_magic_link_session_path, class: "font-medium text-brand-blue-600 hover:text-brand-blue-500" %>
       </p>
