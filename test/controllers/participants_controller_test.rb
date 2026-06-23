@@ -7,6 +7,18 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "participants index shows only confirmed participants" do
+    get participants_path
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_match "Bob Jones", response.body
+    assert_no_match "Dave Pending", response.body
+    assert_select "select[name='country'] option[value='NL']", text: "NL"
+    assert_select "select[name='country'] option[value='DE']", text: "DE"
+    assert_select "select[name='country'] option[value='BE']", count: 0
+  end
+
   test "mine requires authentication" do
     get mine_participants_path
 
