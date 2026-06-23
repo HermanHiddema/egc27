@@ -26,6 +26,10 @@ module Users
 
     private
 
+    # Wraps authenticate_user! under a distinct filter name on purpose: declaring
+    # `before_action :authenticate_user!` here would re-register the same callback
+    # ApplicationController already defines and override its options for this
+    # controller, so we use a dedicated method to keep the existing chain intact.
     def require_authenticated_user
       authenticate_user!
     end

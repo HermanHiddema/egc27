@@ -22,6 +22,7 @@ class Users::MailerTest < ActionMailer::TestCase
     assert_equal "EGC 2027 – Confirm your account", email.subject
     body = email.body.decoded
     assert_match "Jane Doe", body
+    assert_match "NL", body
     assert_match "Utrecht", body
     assert_match "Weekend only", body
     assert_match "magic link", body
