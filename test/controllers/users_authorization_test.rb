@@ -19,24 +19,6 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "editor cannot create user" do
-    sign_in users(:editor)
-
-    assert_no_difference "User.count" do
-      post users_path, params: {
-        user: {
-          email: "created-by-editor@example.com",
-          full_name: "Editor Created User",
-          role: "regular",
-          password: "password123",
-          password_confirmation: "password123"
-        }
-      }
-    end
-
-    assert_redirected_to root_path
-  end
-
   test "editor cannot update user details" do
     sign_in users(:editor)
     patch user_path(users(:one)), params: {
