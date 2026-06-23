@@ -6,12 +6,12 @@ class ParticipantsController < ApplicationController
   before_action :verify_turnstile, only: [:create]
 
   def index
-    @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
+    @countries = Participant.where.not(confirmed_at: nil).where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @sort = permitted_sort
     @direction = permitted_direction
 
-    participants = Participant.all
+    participants = Participant.where.not(confirmed_at: nil)
     participants = participants.where(country: @country_filter) if @country_filter.present?
 
     @participants = sorted_participants(participants)
