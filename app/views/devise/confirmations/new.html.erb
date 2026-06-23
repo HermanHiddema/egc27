@@ -5,7 +5,7 @@
       <p class="mt-2 text-sm text-neutral-600">Enter your email and we'll send you a new confirmation link.</p>
     </div>
 
-    <%= form_for(resource, as: resource_name, url: confirmation_path(resource_name), html: { method: :post, class: "space-y-6" }) do |f| %>
+    <%= form_with model: resource, scope: resource_name, url: confirmation_path(resource_name), method: :post, class: "space-y-6" do |f| %>
       <%= render "devise/shared/error_messages", resource: resource %>
 
       <div>
