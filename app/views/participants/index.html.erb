@@ -55,9 +55,9 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rating.presence || "-" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap">
-                  <span title="Week 1" aria-label="Week 1: <%= participant.first_week? ? 'attending' : 'not attending' %>"><%= participant.first_week? ? "✓" : "✗" %></span>
-                  <span title="Weekend" aria-label="Weekend: <%= participant.weekend? ? 'attending' : 'not attending' %>"><%= participant.weekend? ? "✓" : "✗" %></span>
-                  <span title="Week 2" aria-label="Week 2: <%= participant.second_week? ? 'attending' : 'not attending' %>"><%= participant.second_week? ? "✓" : "✗" %></span>
+                  <span title="Week 1" aria-label="Week 1: <%= participant.first_week? ? 'attending' : 'not attending' %>"><%= participant.first_week? ? "✅" : "❌" %></span>
+                  <span title="Weekend" aria-label="Weekend: <%= participant.weekend? ? 'attending' : 'not attending' %>"><%= participant.weekend? ? "✅" : "❌" %></span>
+                  <span title="Week 2" aria-label="Week 2: <%= participant.second_week? ? 'attending' : 'not attending' %>"><%= participant.second_week? ? "✅" : "❌" %></span>
                 </td>
               </tr>
             <% end %>
