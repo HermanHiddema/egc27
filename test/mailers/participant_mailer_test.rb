@@ -16,7 +16,7 @@ class ParticipantMailerTest < ActionMailer::TestCase
     assert_match participant.country, body
     assert_match participant.club, body
     assert_match participant.rank_grade, body
-    confirmation_url = Rails.application.routes.url_helpers.confirm_participant_url(participant, token: participant.confirmation_token)
+    confirmation_url = Rails.application.routes.url_helpers.confirm_participant_url(participant, token: participant.confirmation_token, host: "example.com")
     assert_match confirmation_url, body
   end
 
