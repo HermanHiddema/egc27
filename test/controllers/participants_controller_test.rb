@@ -61,8 +61,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "th", text: "Presence"
     body = response.body
-    assert_match "✓", body
-    assert_match "✗", body
+    assert_match "✅", body
+    assert_match "❌", body
     assert_select "span[aria-label*='Week 1:']"
     assert_select "span[aria-label*='Weekend:']"
     assert_select "span[aria-label*='Week 2:']"
