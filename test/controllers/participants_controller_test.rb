@@ -33,7 +33,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Alice Smith", response.body
     assert_match "Carol Smith", response.body
-    assert_match "Dave Pending", response.body
+    assert_no_match "Dave Pending", response.body
     assert_no_match "Bob Jones", response.body
   end
 

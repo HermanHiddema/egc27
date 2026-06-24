@@ -29,3 +29,11 @@ two:
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+dave:
+  email: dave@example.org
+  encrypted_password: <%= BCrypt::Password.create('password123') %>
+  role: regular
+  confirmed_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

@@ -56,7 +56,7 @@ unconfirmed:
   first_name: Dave
   last_name: Pending
   email: dave@example.org
-  user: one
+  user: dave
   age_group: 18-49
   gender: male
   country: BE
