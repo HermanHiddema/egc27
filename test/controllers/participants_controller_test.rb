@@ -37,6 +37,14 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob Jones", response.body
   end
 
+  test "mine redirects to show page when user has only one participant" do
+    sign_in users(:two)
+
+    get mine_participants_path
+
+    assert_redirected_to participant_path(participants(:two))
+  end
+
   test "user menu shows singular registration link for one participant" do
     sign_in users(:two)
 

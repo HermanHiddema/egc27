@@ -22,7 +22,13 @@ class ParticipantsController < ApplicationController
   end
 
   def mine
-    @participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc)
+    participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc)
+
+    if participants.one?
+      redirect_to participant_path(participants.first)
+    else
+      @participants = participants
+    end
   end
 
   def show
