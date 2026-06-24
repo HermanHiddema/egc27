@@ -2,8 +2,7 @@ require "test_helper"
 
 class ParticipantMailerTest < ActionMailer::TestCase
   test "participant_confirmation explains an account already exists and includes details" do
-    participant = participants(:one)
-    participant.generate_confirmation_token!
+    participant = participants(:unconfirmed)
     email = ParticipantMailer.participant_confirmation(participant)
 
     assert_equal [participant.email], email.to
@@ -15,7 +14,10 @@ class ParticipantMailerTest < ActionMailer::TestCase
     assert_match "suspect someone is trying to abuse", body
     assert_match "#{participant.first_name} #{participant.last_name}", body
     assert_match participant.country, body
-    assert_match participant.confirmation_token, body
+    assert_match participant.club, body
+    assert_match participant.rank_grade, body
+    confirmation_url = Rails.application.routes.url_helpers.confirm_participant_url(participant, token: participant.confirmation_token)
+    assert_match confirmation_url, body
   end
 
   test "payment_confirmation is sent to the participant" do
