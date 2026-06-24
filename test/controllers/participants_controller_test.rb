@@ -37,6 +37,14 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob Jones", response.body
   end
 
+  test "mine redirects to show page when user has only one participant" do
+    sign_in users(:two)
+
+    get mine_participants_path
+
+    assert_redirected_to participant_path(participants(:two))
+  end
+
   test "user menu shows singular registration link for one participant" do
     sign_in users(:two)
 
@@ -230,6 +238,31 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     user = User.find_by(email: "new_user@example.org")
     assert_not_nil user
     assert_equal "Jane Doe", user.full_name
+  end
+
+  test "sends the tailored confirmation email when registering a new participant" do
+    post participants_path, params: {
+      participant: {
+        first_name: "Jane",
+        last_name: "Doe",
+        email: "tailored@example.org",
+        participant_type: "player",
+        age_group: "18-49",
+        country: "NL",
+        club: "Utrecht",
+        gender: "female",
+        image_use_consent: false
+      }
+    }
+
+    email = ActionMailer::Base.deliveries.last
+    assert_not_nil email
+    assert_equal ["tailored@example.org"], email.to
+    assert_equal "EGC 2027 – Confirm your account", email.subject
+    body = email.body.decoded
+    assert_match "Jane Doe", body
+    assert_match "Utrecht", body
+    assert_match "magic link", body
   end
 
   test "links participant to newly created user" do

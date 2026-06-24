@@ -22,7 +22,13 @@ class ParticipantsController < ApplicationController
   end
 
   def mine
-    @participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc)
+    participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc).load
+
+    if participants.one?
+      redirect_to participant_path(participants.first)
+    else
+      @participants = participants
+    end
   end
 
   def show
@@ -108,11 +114,14 @@ class ParticipantsController < ApplicationController
   end
 
   def create_user_for(email, participant)
-    User.create!(
+    user = User.new(
       email: email,
       full_name: "#{participant.first_name} #{participant.last_name}".strip,
       skip_password_validation: true
     )
+    user.registration_participant = participant
+    user.save!
+    user
   end
 
   def participant_params

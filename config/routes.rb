@@ -28,6 +28,12 @@ Rails.application.routes.draw do
     post "users/magic_link",      to: "users/magic_links#create",  as: :user_magic_link_session
   end
 
+  # Allow newly confirmed registration users to skip setting a password and go
+  # straight to their registrations, relying on magic-link sign-in in future.
+  devise_scope :user do
+    post "users/skip_password", to: "users/registrations#skip_password", as: :skip_user_password
+  end
+
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.

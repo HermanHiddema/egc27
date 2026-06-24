@@ -33,10 +33,11 @@
       <% end %>
 
       <button type="submit" class="btn-primary w-full">Sign in</button>
-
-      <p class="text-center text-sm text-neutral-600">
-        <%= link_to "Sign in with a magic link", new_user_magic_link_session_path, class: "font-medium text-brand-blue-600 hover:text-brand-blue-500" %>
-      </p>
     </form>
+
+    <div class="mt-6 pt-6 border-t border-gray-200">
+      <p class="text-sm text-gray-600 mb-3 text-center">Didn't set a password yet?</p>
+      <%= button_to "Sign in with a magic link", new_user_magic_link_session_path, method: :get, class: "btn-secondary w-full" %>
+    </div>
   </div>
 </div>

@@ -1,5 +1,15 @@
 module Users
   class RegistrationsController < Devise::RegistrationsController
+    before_action :require_authenticated_user, only: [:skip_password]
+
+    # Newly confirmed users created during participant registration can skip
+    # setting a password and go straight to their registrations. They can sign
+    # in again later by requesting a magic link to their email.
+    def skip_password
+      redirect_to mine_participants_path,
+        notice: "No problem — you can sign in any time by requesting a magic link to your email."
+    end
+
     protected
 
     def update_resource(resource, params)
@@ -12,6 +22,16 @@ module Users
         sanitized_params.delete(:current_password)
         resource.update(sanitized_params)
       end
+    end
+
+    private
+
+    # Wraps authenticate_user! under a distinct filter name on purpose: declaring
+    # `before_action :authenticate_user!` here would re-register the same callback
+    # ApplicationController already defines and override its options for this
+    # controller, so we use a dedicated method to keep the existing chain intact.
+    def require_authenticated_user
+      authenticate_user!
     end
   end
 end
