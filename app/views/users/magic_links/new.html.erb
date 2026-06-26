@@ -5,12 +5,6 @@
       <p class="mt-2 text-sm text-neutral-600">Enter your email and we'll send you a one-time sign-in link.</p>
     </div>
 
-    <% if ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
-      <% content_for :head do %>
-        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-      <% end %>
-    <% end %>
-
     <form method="post" action="<%= user_magic_link_session_path %>" class="space-y-6">
       <input type="hidden" name="authenticity_token" value="<%= form_authenticity_token %>">
 
