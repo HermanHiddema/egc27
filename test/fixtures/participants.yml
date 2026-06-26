@@ -70,3 +70,21 @@ unconfirmed:
   confirmation_token: "test_token_abc123"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+four:
+  first_name: Erin
+  last_name: Brown
+  email: erin@example.org
+  user: dave
+  age_group: 18-49
+  gender: female
+  country: FR
+  club: Paris Go Club
+  rank: 30
+  rating: 1500
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: player
+  confirmed_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

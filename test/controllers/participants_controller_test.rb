@@ -126,7 +126,9 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     body = response.body
-    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    # Bob and Erin share the same rank, so the higher rating (Bob 2100 > Erin 1500) comes first
+    assert_operator body.index("Bob Jones"), :<, body.index("Erin Brown")
+    assert_operator body.index("Erin Brown"), :<, body.index("Alice Smith")
     assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
     assert_match "Rank ↓", body
   end
