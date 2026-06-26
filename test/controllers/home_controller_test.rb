@@ -13,7 +13,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{newsletter_path}']", text: "Newsletter"
     assert_select "a span.md\\:hidden", text: "EGC 2027"
     assert_select "a span.hidden.md\\:inline", text: "European Go Congress"
-    assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 Jul - 8 Aug, 2027"
+    assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 July - 8 August, 2027"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
   end
 
@@ -68,5 +68,27 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "li span", text: participants(:one).rank_grade
     assert_select "li span", text: participants(:two).rank_grade
     assert_select "ul.divide-y.divide-gray-100 li", count: 10
+  end
+
+  test "home page shows sponsor carousel only for sponsors with a logo" do
+    with_logo = sponsors(:one)
+    with_logo.logo.attach(image_upload)
+
+    get root_path
+
+    assert_response :success
+    assert_select "div[data-controller='sponsor-carousel']"
+    assert_select "h2", text: "Our Sponsors"
+    assert_select "div[data-sponsor-carousel-target='slide']", count: 1
+    assert_select "img[alt=?]", "#{with_logo.name} logo"
+    assert_select "div[data-sponsor-carousel-target='slide']", text: /#{sponsors(:two).name}/, count: 0
+  end
+
+  test "home page hides sponsor carousel when no sponsor has a logo" do
+    get root_path
+
+    assert_response :success
+    assert_select "div[data-controller='sponsor-carousel']", count: 0
+    assert_select "h2", text: "Our Sponsors", count: 0
   end
 end
