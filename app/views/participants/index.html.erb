@@ -26,7 +26,6 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">#</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Name #{sort_indicator("name", @sort, @direction)}".strip, participants_path(sort: "name", direction: next_sort_direction("name", @sort, @direction), country: @country_filter), class: "hover:text-brand-red-700 transition" %>
               </th>
@@ -46,9 +45,8 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
-            <% @participants.each_with_index do |participant, index| %>
+            <% @participants.each do |participant| %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= index + 1 %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.club %></td>

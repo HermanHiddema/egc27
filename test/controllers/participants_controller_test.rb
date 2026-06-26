@@ -96,13 +96,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "participants index supports country filter and shows numbered filtered results with flags" do
+  test "participants index supports country filter and shows filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
     assert_response :success
     assert_select "tbody tr", count: 2
-    assert_select "tbody tr td:first-child", text: "1", count: 1
-    assert_select "tbody tr td:first-child", text: "2", count: 1
     assert_select "p", text: /2 results/
     assert_select "select[name='country'] option[value='NL'][selected='selected']"
     assert_select "td[data-country-code='NL'] img", count: 2
