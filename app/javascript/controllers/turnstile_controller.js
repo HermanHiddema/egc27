@@ -6,7 +6,7 @@ export default class extends Controller {
       this.renderWidget()
     } else {
       this._onTurnstileLoad = () => this.renderWidget()
-      window.addEventListener("turnstile:load", this._onTurnstileLoad, { once: true })
+      window.addEventListener("turnstile:load", this._onTurnstileLoad)
     }
   }
 
