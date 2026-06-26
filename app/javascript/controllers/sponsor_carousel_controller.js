@@ -9,7 +9,7 @@ export default class extends Controller {
     this.index = 0
     this.showCurrent()
 
-    if (this.slideTargets.length > 1) {
+    if (this.slideTargets.length > 1 && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       this.timer = setInterval(() => this.next(), this.intervalValue)
     }
   }

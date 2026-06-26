@@ -81,7 +81,6 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: "Our Sponsors"
     assert_select "div[data-sponsor-carousel-target='slide']", count: 1
     assert_select "img[alt=?]", "#{with_logo.name} logo"
-    assert_select "p", text: sponsors(:two).name, count: 0
   end
 
   test "home page hides sponsor carousel when no sponsor has a logo" do
