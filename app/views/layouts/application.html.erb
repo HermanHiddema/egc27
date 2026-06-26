@@ -24,7 +24,8 @@
 
     <%# Load Cloudflare Turnstile globally so it persists across Turbo navigations %>
     <% if ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
-      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+      <script>function onTurnstileLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
+      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad" async defer></script>
     <% end %>
   </head>
 

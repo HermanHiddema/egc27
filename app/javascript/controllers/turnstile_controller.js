@@ -2,23 +2,24 @@ import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
   connect() {
-    // Reinitialize Turnstile when this element is connected (on page load and after Turbo navigation)
-    this.reinitializeTurnstile()
+    if (typeof window.turnstile !== "undefined") {
+      this.renderWidget()
+    } else {
+      this._onTurnstileLoad = () => this.renderWidget()
+      window.addEventListener("turnstile:load", this._onTurnstileLoad, { once: true })
+    }
   }
 
-  reinitializeTurnstile() {
-    // Check if Turnstile is loaded
-    if (typeof window.turnstile === "undefined") {
-      return
+  disconnect() {
+    if (this._onTurnstileLoad) {
+      window.removeEventListener("turnstile:load", this._onTurnstileLoad)
+      this._onTurnstileLoad = null
     }
+  }
 
-    // Find all Turnstile widgets on the page and reinitialize them
-    const widgets = document.querySelectorAll(".cf-turnstile")
-    widgets.forEach((widget) => {
-      // Only render if not already rendered (checking for existing iframe)
-      if (!widget.querySelector("iframe")) {
-        window.turnstile.render(widget)
-      }
-    })
+  renderWidget() {
+    if (!this.element.querySelector("iframe")) {
+      window.turnstile.render(this.element)
+    }
   }
 }
