@@ -153,8 +153,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get participants_path
 
     assert_response :success
-    # No placeholder dash should be rendered for participants without a rating
-    assert_select "td", text: "-", count: 0
+    # The rating cell (5th column) for a participant without a rating should be blank
+    assert_select "td:nth-child(5)", text: /\A\s*\z/, count: 1
   end
 
   test "registration form is publicly accessible" do

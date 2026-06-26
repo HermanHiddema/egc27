@@ -87,7 +87,7 @@ class ParticipantsController < ApplicationController
     return params[:direction].to_sym if %w[asc desc].include?(params[:direction])
 
     # Default ordering (no explicit sort) is descending; column clicks default to ascending.
-    params[:sort].present? ? :asc : :desc
+    %w[name country club rank rating].include?(params[:sort]) ? :asc : :desc
   end
 
   def sorted_participants(participants)
