@@ -8,6 +8,7 @@ one:
   country: NL
   club: Amsterdam Go Club
   rank: 27
+  rating: 1789
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
@@ -25,6 +26,7 @@ two:
   country: DE
   club: Berlin Go Club
   rank: 30
+  rating: 2100
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
@@ -66,5 +68,23 @@ unconfirmed:
   accepted_privacy_policy: true
   participant_type: player
   confirmation_token: "test_token_abc123"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+four:
+  first_name: Erin
+  last_name: Brown
+  email: erin@example.org
+  user: dave
+  age_group: 18-49
+  gender: female
+  country: FR
+  club: Paris Go Club
+  rank: 30
+  rating: 1500
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: player
+  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

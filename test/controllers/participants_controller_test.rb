@@ -96,13 +96,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "participants index supports country filter and shows numbered filtered results with flags" do
+  test "participants index supports country filter and shows filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
     assert_response :success
     assert_select "tbody tr", count: 2
-    assert_select "tbody tr td:first-child", text: "1", count: 1
-    assert_select "tbody tr td:first-child", text: "2", count: 1
     assert_select "p", text: /2 results/
     assert_select "select[name='country'] option[value='NL'][selected='selected']"
     assert_select "td[data-country-code='NL'] img", count: 2
@@ -118,6 +116,45 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
     assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
     assert_match "Rank ↓", body
+  end
+
+  test "participants index defaults to rank descending then rating descending" do
+    get participants_path
+
+    assert_response :success
+
+    body = response.body
+    # Bob and Erin share the same rank, so the higher rating (Bob 2100 > Erin 1500) comes first
+    assert_operator body.index("Bob Jones"), :<, body.index("Erin Brown")
+    assert_operator body.index("Erin Brown"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+    assert_match "Rank ↓", body
+  end
+
+  test "participants index keeps participants without a rating last regardless of direction" do
+    get participants_path, params: { sort: "rating", direction: "desc" }
+
+    assert_response :success
+    body = response.body
+    # Carol has no rating and must sort last even when descending
+    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+
+    get participants_path, params: { sort: "rating", direction: "asc" }
+
+    assert_response :success
+    body = response.body
+    # Carol still sorts last when ascending
+    assert_operator body.index("Alice Smith"), :<, body.index("Bob Jones")
+    assert_operator body.index("Bob Jones"), :<, body.index("Carol Smith")
+  end
+
+  test "participants index renders an empty cell for a missing rating" do
+    get participants_path
+
+    assert_response :success
+    # The rating cell (5th column) for a participant without a rating should be blank
+    assert_select "td:nth-child(5)", text: /\A\s*\z/, count: 1
   end
 
   test "registration form is publicly accessible" do
