@@ -80,26 +80,43 @@ class ParticipantsController < ApplicationController
   private
 
   def permitted_sort
-    %w[name country club rank rating].include?(params[:sort]) ? params[:sort] : "name"
+    %w[name country club rank rating].include?(params[:sort]) ? params[:sort] : "rank"
   end
 
   def permitted_direction
-    params[:direction] == "desc" ? :desc : :asc
+    return params[:direction].to_sym if %w[asc desc].include?(params[:direction])
+
+    # Default ordering (no explicit sort) is descending; column clicks default to ascending.
+    params[:sort].present? ? :asc : :desc
   end
 
   def sorted_participants(participants)
-    case @sort
-    when "country"
-      participants.order(country: @direction, last_name: :asc, first_name: :asc, id: :asc)
-    when "club"
-      participants.order(club: @direction, last_name: :asc, first_name: :asc, id: :asc)
-    when "rank"
-      participants.order(rank: @direction, last_name: :asc, first_name: :asc, id: :asc)
-    when "rating"
-      participants.order(rating: @direction, last_name: :asc, first_name: :asc, id: :asc)
-    else
-      participants.order(last_name: @direction, first_name: @direction, id: :asc)
-    end
+    table = Participant.arel_table
+
+    clauses =
+      case @sort
+      when "country"
+        [ordered(table[:country])]
+      when "club"
+        [ordered(nullif_blank(table[:club]))]
+      when "rank"
+        [ordered(table[:rank]), ordered(table[:rating])]
+      when "rating"
+        [ordered(table[:rating])]
+      else
+        [ordered(table[:last_name]), ordered(table[:first_name])]
+      end
+
+    participants.order(*clauses, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
+  end
+
+  def ordered(column)
+    ordering = @direction == :desc ? column.desc : column.asc
+    ordering.nulls_last
+  end
+
+  def nullif_blank(column)
+    Arel::Nodes::NamedFunction.new("NULLIF", [column, Arel::Nodes.build_quoted("")])
   end
 
   def find_or_create_user_for(participant)

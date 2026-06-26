@@ -120,6 +120,43 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Rank ↓", body
   end
 
+  test "participants index defaults to rank descending then rating descending" do
+    get participants_path
+
+    assert_response :success
+
+    body = response.body
+    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+    assert_match "Rank ↓", body
+  end
+
+  test "participants index keeps participants without a rating last regardless of direction" do
+    get participants_path, params: { sort: "rating", direction: "desc" }
+
+    assert_response :success
+    body = response.body
+    # Carol has no rating and must sort last even when descending
+    assert_operator body.index("Bob Jones"), :<, body.index("Alice Smith")
+    assert_operator body.index("Alice Smith"), :<, body.index("Carol Smith")
+
+    get participants_path, params: { sort: "rating", direction: "asc" }
+
+    assert_response :success
+    body = response.body
+    # Carol still sorts last when ascending
+    assert_operator body.index("Alice Smith"), :<, body.index("Bob Jones")
+    assert_operator body.index("Bob Jones"), :<, body.index("Carol Smith")
+  end
+
+  test "participants index renders an empty cell for a missing rating" do
+    get participants_path
+
+    assert_response :success
+    # No placeholder dash should be rendered for participants without a rating
+    assert_select "td", text: "-", count: 0
+  end
+
   test "registration form is publicly accessible" do
     get new_participant_path
 

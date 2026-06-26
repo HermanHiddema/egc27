@@ -8,6 +8,7 @@ one:
   country: NL
   club: Amsterdam Go Club
   rank: 27
+  rating: 1789
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
@@ -25,6 +26,7 @@ two:
   country: DE
   club: Berlin Go Club
   rank: 30
+  rating: 2100
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
