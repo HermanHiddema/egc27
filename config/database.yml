@@ -24,7 +24,7 @@ test:
   database: egc27_test
 
 
-production:
+production: &production
   primary:
     <<: *default
     url: <%= ENV["DATABASE_URL"] %>
@@ -40,3 +40,7 @@ production:
     <<: *default
     url: <%= ENV["CABLE_DATABASE_URL"] || ENV["DATABASE_URL"] %>
     migrations_paths: db/cable_migrate
+
+# Staging mirrors the production database configuration.
+staging:
+  <<: *production
