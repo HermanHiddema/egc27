@@ -22,10 +22,10 @@
     <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
 
-    <%# Load Cloudflare Turnstile globally so it persists across Turbo navigations %>
-    <% if ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
-      <script>function onTurnstileLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
-      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad" async defer></script>
+    <%# Load Cloudflare Turnstile only on pages that render a widget %>
+    <% if content_for?(:turnstile_script) && ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
+      <script>function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
+      <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=egc27TurnstileOnLoad&render=explicit" async defer></script>
     <% end %>
   </head>
 
