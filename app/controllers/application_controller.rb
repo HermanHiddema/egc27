@@ -1,6 +1,7 @@
 class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  allow_browser versions: :modern
+  # Server-to-server endpoints (e.g. payment provider webhooks) opt out via #skip_browser_version_guard?.
+  allow_browser versions: :modern, unless: :skip_browser_version_guard?
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
@@ -10,6 +11,12 @@ class ApplicationController < ActionController::Base
   before_action :set_navigation_menus
 
   protected
+
+  # Browser version enforcement applies to interactive (browser) requests only.
+  # Controllers serving machine-to-machine endpoints override this to opt out.
+  def skip_browser_version_guard?
+    false
+  end
 
   def require_creator!
     redirect_to root_path, alert: "You are not authorized to perform this action." unless current_user&.can_create?
