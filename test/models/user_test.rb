@@ -242,6 +242,21 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
+  test "changing email does not update newsletter subscription when user has no participants" do
+    user = User.create!(email: "nopart@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.skip_reconfirmation!
+    user.update!(email: "nopart2@example.com")
+
+    assert_equal "nopart@example.com", subscription.reload.email
+  end
+
   test "confirming a reconfirmation propagates the new email" do
     user = User.create!(email: "reconfirm_before@example.com", skip_password_validation: true)
     user.update_column(:confirmed_at, Time.current)

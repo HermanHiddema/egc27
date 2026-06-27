@@ -14,7 +14,7 @@ class NewsletterSubscription < ApplicationRecord
   def self.subscribe_user(user)
     return if user.nil?
 
-    participant = user.participants.order(:id).first
+    participant = user.registration_participant
     return if participant.nil?
 
     email = normalize_email(user.email)

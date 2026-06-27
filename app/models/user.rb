@@ -70,6 +70,6 @@ class User < ApplicationRecord
     normalized_email = NewsletterSubscription.normalize_email(new_email)
 
     participants.update_all(email: normalized_email, updated_at: Time.current)
-    NewsletterSubscription.update_email(old_email, normalized_email)
+    NewsletterSubscription.update_email(old_email, normalized_email) if participants.exists?
   end
 end
