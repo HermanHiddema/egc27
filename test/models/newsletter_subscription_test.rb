@@ -151,7 +151,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
       subscribed: false
     )
 
-    assert_no_difference("NewsletterSubscription.count") do
+    assert_difference("NewsletterSubscription.count", -1) do
       NewsletterSubscription.update_email("old@example.com", "new@example.com")
     end
 
