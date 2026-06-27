@@ -1,4 +1,4 @@
-<%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, phone_input_country_field_id_value: "participant_country" } do |form| %>
+<%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, egd_autocomplete_registered_url_value: egd_registered_participants_path, phone_input_country_field_id_value: "participant_country" } do |form| %>
   <% if participant.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
@@ -28,6 +28,12 @@
       ></div>
       <p class="text-sm text-neutral-600 mt-2">Search uses last name by default. You can type first name and last name, but matching is driven by the last-name part. Entering an 8-digit EGD PIN runs a PIN lookup.</p>
     </div>
+
+    <div
+      class="hidden bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-4"
+      role="alert"
+      data-egd-autocomplete-target="registeredNotice"
+    ></div>
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">

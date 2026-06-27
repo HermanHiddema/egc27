@@ -32,12 +32,14 @@ export default class extends Controller {
         "club",
         "rank",
         "rating",
-        "egdPin"
+        "egdPin",
+        "registeredNotice"
     ]
 
     static values = {
         url: String,
-        pinUrl: String
+        pinUrl: String,
+        registeredUrl: String
     }
 
     connect() {
@@ -86,6 +88,60 @@ export default class extends Controller {
 
         this.queryTarget.value = [match.first_name, match.last_name].filter(Boolean).join(" ")
         this.hideResults()
+
+        this.checkRegistration(this.egdPinTarget.value)
+    }
+
+    async checkRegistration(egdPin) {
+        if (!this.hasRegisteredNoticeTarget || !this.hasRegisteredUrlValue) return
+
+        const pin = String(egdPin || "").trim()
+        if (!pin) {
+            this.hideRegisteredNotice()
+            return
+        }
+
+        try {
+            const url = new URL(this.registeredUrlValue, window.location.origin)
+            url.searchParams.set("egd_pin", pin)
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    Accept: "application/json"
+                }
+            })
+
+            if (!response.ok) {
+                this.hideRegisteredNotice()
+                return
+            }
+
+            const data = await response.json()
+            if (data && data.registered) {
+                this.showRegisteredNotice(data.alter_url)
+            } else {
+                this.hideRegisteredNotice()
+            }
+        } catch (_error) {
+            this.hideRegisteredNotice()
+        }
+    }
+
+    showRegisteredNotice(alterUrl) {
+        const link = alterUrl
+            ? `<a href="${this.escapeHtml(alterUrl)}" class="font-semibold underline">Click here to do that</a>`
+            : "Click here to do that"
+
+        this.registeredNoticeTarget.innerHTML =
+            `That EGD Entry is already registered. Do you want to alter your registration? ${link}`
+        this.registeredNoticeTarget.classList.remove("hidden")
+    }
+
+    hideRegisteredNotice() {
+        if (!this.hasRegisteredNoticeTarget) return
+
+        this.registeredNoticeTarget.innerHTML = ""
+        this.registeredNoticeTarget.classList.add("hidden")
     }
 
     hide() {

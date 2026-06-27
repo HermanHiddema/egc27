@@ -1,7 +1,7 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :confirm]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :alter_registration, :confirm]
   before_action :build_participant, only: [:create]
   before_action :verify_turnstile, only: [:create]
 
@@ -75,6 +75,40 @@ class ParticipantsController < ApplicationController
   def egd_search
     results = EgdLookupService.new.search(query: params[:q].to_s)
     render json: results
+  end
+
+  # Checks whether an EGD entry (by PIN) is already present in the participant
+  # list so the registration form can warn against duplicate registrations.
+  def egd_registered
+    pin = params[:egd_pin].to_s.strip
+    registered = pin.present? && Participant.exists?(egd_pin: pin)
+
+    payload = { registered: registered }
+    payload[:alter_url] = alter_registration_participants_path(egd_pin: pin) if registered
+
+    render json: payload
+  end
+
+  # Entry point for someone who tried to register an EGD entry that already
+  # exists. Routes them to re-access the existing account: unconfirmed users are
+  # asked to confirm their email, confirmed users are sent to sign in.
+  def alter_registration
+    pin = params[:egd_pin].to_s.strip
+    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :desc).first : nil
+
+    if @participant.nil?
+      redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
+      return
+    end
+
+    user = @participant.user
+
+    if user && !user.confirmed?
+      @email = user.email
+      render :alter_registration
+    else
+      redirect_to new_user_session_path, notice: "Login to alter your registration"
+    end
   end
 
   private

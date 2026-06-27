@@ -477,4 +477,58 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     payload = JSON.parse(response.body)
     assert_equal [], payload
   end
+
+  test "egd_registered reports a registered EGD pin with an alter url" do
+    get egd_registered_participants_path, params: { egd_pin: participants(:one).egd_pin }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_equal alter_registration_participants_path(egd_pin: participants(:one).egd_pin), payload["alter_url"]
+  end
+
+  test "egd_registered reports an unregistered EGD pin" do
+    get egd_registered_participants_path, params: { egd_pin: "99999999" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["alter_url"]
+  end
+
+  test "egd_registered treats a blank pin as unregistered" do
+    get egd_registered_participants_path, params: { egd_pin: "" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+  end
+
+  test "alter_registration sends confirmed users to sign in with a flash" do
+    assert users(:one).confirmed?, "fixture user should be confirmed"
+
+    get alter_registration_participants_path, params: { egd_pin: participants(:one).egd_pin }
+
+    assert_redirected_to new_user_session_path
+    assert_equal "Login to alter your registration", flash[:notice]
+  end
+
+  test "alter_registration prompts unconfirmed users to confirm their email" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    get alter_registration_participants_path, params: { egd_pin: participants(:unconfirmed).egd_pin }
+
+    assert_response :success
+    assert_match "Your registration is not yet confirmed", response.body
+    assert_select "form[action=?]", user_confirmation_path do
+      assert_select "input[name='user[email]'][value=?]", users(:dave).email
+      assert_select "input[type=submit][value='Resend my email confirmation']"
+    end
+  end
+
+  test "alter_registration redirects to new registration for an unknown pin" do
+    get alter_registration_participants_path, params: { egd_pin: "99999999" }
+
+    assert_redirected_to new_participant_path
+  end
 end
