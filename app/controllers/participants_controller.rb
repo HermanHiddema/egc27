@@ -167,6 +167,7 @@ class ParticipantsController < ApplicationController
       full_name: "#{participant.first_name} #{participant.last_name}".strip,
       skip_password_validation: true
     )
+    user.registration_participant = participant
     user.save!
     user
   end

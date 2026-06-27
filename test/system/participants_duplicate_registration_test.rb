@@ -43,12 +43,10 @@ class ParticipantsDuplicateRegistrationTest < ApplicationSystemTestCase
 
     fill_in "egd-search", with: "12345678"
 
-    notice = find("[data-egd-autocomplete-target='registeredNotice']")
-    assert_text "That EGD Entry is already registered. Do you want to alter your registration?"
-    assert_includes notice.text, "Click here to do that"
-
-    link = notice.find("a")
-    assert_equal "Click here to do that", link.text
-    assert_includes link[:href], "/participants/alter_registration?egd_pin=12345678"
+    within("[data-egd-autocomplete-target='registeredNotice']") do
+      assert_text "That EGD Entry is already registered. Do you want to alter your registration?"
+      link = find("a", text: "Click here to do that")
+      assert_includes link[:href], "/participants/alter_registration?egd_pin=12345678"
+    end
   end
 end

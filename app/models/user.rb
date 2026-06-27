@@ -48,8 +48,10 @@ class User < ApplicationRecord
   # Regular Devise registrations still require a password.
   attr_accessor :skip_password_validation
 
+  attr_writer :registration_participant
+
   def registration_participant
-    participants.order(created_at: :asc, id: :asc).first
+    @registration_participant || participants.order(created_at: :asc, id: :asc).first
   end
 
   def password_required?
