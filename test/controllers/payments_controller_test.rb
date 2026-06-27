@@ -2,6 +2,8 @@ require "test_helper"
 require "ostruct"
 
 class PaymentsControllerTest < ActionDispatch::IntegrationTest
+  include ActionMailer::TestHelper
+
   # new
   test "new redirects visitors to participant page" do
     participant = participants(:one)
@@ -145,6 +147,29 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
 
     post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    assert_equal "paid", payment.reload.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original)
+  end
+
+  test "webhook is not blocked by the modern browser guard" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    outdated_browser_user_agent =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " \
+      "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
+
+    assert_enqueued_emails 1 do
+      post webhook_payments_path,
+        params: { id: payment.mollie_payment_id },
+        headers: { "HTTP_USER_AGENT" => outdated_browser_user_agent }
+    end
 
     assert_response :ok
     assert_equal "paid", payment.reload.status
