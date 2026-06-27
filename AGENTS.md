@@ -39,6 +39,11 @@ This file defines project-specific guidance for AI coding agents working in this
 - If data format changes are required, include migration and model normalization.
 - Validate external API payloads defensively.
 
+## Bot Protection (Cloudflare Turnstile)
+- Every publicly available form that accepts anonymous submissions must include Cloudflare Turnstile: render `shared/turnstile_widget` in the view and verify it server-side with the `TurnstileVerifiable` concern (`before_action :verify_turnstile` on the create action).
+- This currently covers the newsletter subscription, participant registration, and magic-link sign-in forms. Add the widget and verification to any new public form by default.
+- Devise authentication endpoints (sign in, password reset, confirmation) are deliberately protected by Rack::Attack throttling instead of Turnstile; do not add Turnstile there.
+
 ## Preference Update Rule (Important)
 When the user expresses a new coding/UI/process preference in chat:
 1. Apply the preference to the current task immediately.
@@ -57,3 +62,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - In the top bar stacked-button layout (< lg), shorten `Register now` to `Register`.
 - Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
 - On mobile, the navigation bar toggles the menu as a whole (the full bar is the button) and uses a hamburger icon rather than a `Navigation` text label.
+- Cloudflare Turnstile is required on all publicly available submission forms (newsletter, participant registration, magic-link sign-in); Devise auth forms use Rack::Attack throttling instead.
