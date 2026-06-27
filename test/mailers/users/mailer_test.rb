@@ -2,7 +2,8 @@ require "test_helper"
 
 class Users::MailerTest < ActionMailer::TestCase
   test "confirmation_instructions for a registration-created user includes participant details" do
-    participant = Participant.new(
+    user = User.create!(email: "jane@example.org", full_name: "Jane Doe", skip_password_validation: true)
+    Participant.create!(
       first_name: "Jane",
       last_name: "Doe",
       email: "jane@example.org",
@@ -12,10 +13,10 @@ class Users::MailerTest < ActionMailer::TestCase
       age_group: "18-49",
       participant_type: "player",
       gender: "female",
-      attendance_option: "weekend_only"
+      attendance_option: "weekend_only",
+      image_use_consent: true,
+      user: user
     )
-    user = User.new(email: "jane@example.org", full_name: "Jane Doe", skip_password_validation: true)
-    user.registration_participant = participant
 
     email = Users::Mailer.confirmation_instructions(user, "token123")
 

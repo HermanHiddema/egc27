@@ -277,6 +277,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match "Registration Received", response.body
     assert_match "Registration received", response.body
+    assert_match "Didn’t receive your email?", response.body
+    assert_select "form[action='#{user_confirmation_path}'][method='post']"
+    assert_select "input[type='hidden'][name='user[email]'][value='jane@example.org']"
+    assert_select "input[type='submit'][value='Resend confirmation email']"
 
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
