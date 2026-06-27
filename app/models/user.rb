@@ -19,6 +19,7 @@ class User < ApplicationRecord
       participant.confirm!
       ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
     end
+    NewsletterSubscription.subscribe_user(self)
   end
 
   scope :ordered_by_name, -> { order(full_name: :asc) }

@@ -109,4 +109,43 @@ class UserTest < ActiveSupport::TestCase
 
     assert_not_nil participant.reload.confirmed_at
   end
+
+  test "after_confirmation subscribes a user with a participant to the newsletter" do
+    user = User.create!(
+      email: "newsletter_confirm@example.com",
+      skip_password_validation: true
+    )
+    Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      club: "Test Club",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    user.update_column(:confirmed_at, Time.current)
+
+    assert_difference("NewsletterSubscription.count", 1) do
+      user.after_confirmation
+    end
+
+    subscription = NewsletterSubscription.find_by(email: user.email)
+    assert_not_nil subscription
+    assert subscription.subscribed
+  end
+
+  test "after_confirmation does not subscribe a user without a participant" do
+    user = User.create!(
+      email: "no_participant_confirm@example.com",
+      skip_password_validation: true
+    )
+
+    assert_no_difference("NewsletterSubscription.count") do
+      user.after_confirmation
+    end
+  end
 end

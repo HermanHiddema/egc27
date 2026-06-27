@@ -43,8 +43,6 @@ class ParticipantsController < ApplicationController
       @participant.update_column(:user_id, user.id) if user
     end
 
-    NewsletterSubscription.subscribe_from_participant(@participant)
-
     if @participant.user&.confirmed?
       @participant.generate_confirmation_token!
       ParticipantMailer.participant_confirmation(@participant).deliver_later
@@ -62,6 +60,7 @@ class ParticipantsController < ApplicationController
     token = params[:token].to_s
     if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
+      NewsletterSubscription.subscribe_user(@participant.user)
       ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
       notice = "Your registration has been confirmed."
       if @participant.player?

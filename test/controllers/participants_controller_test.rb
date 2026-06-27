@@ -286,8 +286,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
-  test "subscribes a new participant to the newsletter on registration" do
-    assert_difference("NewsletterSubscription.count", 1) do
+  test "does not subscribe to the newsletter at registration time" do
+    assert_no_difference("NewsletterSubscription.count") do
       post participants_path, params: {
         participant: {
           first_name: "Jane",
@@ -302,27 +302,32 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    subscription = NewsletterSubscription.find_by(email: "newsletter_signup@example.org")
+    assert_nil NewsletterSubscription.find_by(email: "newsletter_signup@example.org")
+  end
+
+  test "confirm action subscribes the participant's user to the newsletter" do
+    participant = participants(:unconfirmed)
+
+    assert_difference("NewsletterSubscription.count", 1) do
+      get confirm_participant_path(participant, token: participant.confirmation_token)
+    end
+
+    subscription = NewsletterSubscription.find_by(email: participant.user.email)
     assert_not_nil subscription
     assert subscription.subscribed
   end
 
-  test "does not duplicate or alter an existing newsletter subscription on registration" do
-    existing = newsletter_subscriptions(:inactive)
+  test "confirm action does not alter an existing newsletter subscription" do
+    participant = participants(:unconfirmed)
+    existing = NewsletterSubscription.create!(
+      first_name: "Existing",
+      last_name: "Person",
+      email: participant.user.email,
+      subscribed: false
+    )
 
     assert_no_difference("NewsletterSubscription.count") do
-      post participants_path, params: {
-        participant: {
-          first_name: "Jane",
-          last_name: "Doe",
-          email: existing.email,
-          participant_type: "player",
-          age_group: "18-49",
-          country: "NL",
-          gender: "female",
-          image_use_consent: false
-        }
-      }
+      get confirm_participant_path(participant, token: participant.confirmation_token)
     end
 
     existing.reload

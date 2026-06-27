@@ -11,8 +11,13 @@ class NewsletterSubscription < ApplicationRecord
     email.to_s.strip.downcase
   end
 
-  def self.subscribe_from_participant(participant)
-    email = normalize_email(participant.email)
+  def self.subscribe_user(user)
+    return if user.nil?
+
+    participant = user.participants.order(:id).first
+    return if participant.nil?
+
+    email = normalize_email(user.email)
     return if email.blank?
     return if exists?(email: email)
 

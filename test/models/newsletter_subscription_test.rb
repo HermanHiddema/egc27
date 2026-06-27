@@ -41,11 +41,22 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal unsubscribed_at, subscription.reload.unsubscribed_at
   end
 
-  test "subscribe_from_participant adds a new participant to the list" do
-    participant = Participant.new(first_name: "Jane", last_name: "Doe", email: "Jane.New@Example.com")
+  test "subscribe_user adds a confirmed user's participant to the list" do
+    user = User.create!(email: "Jane.New@Example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    Participant.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      image_use_consent: true,
+      user: user
+    )
 
     assert_difference("NewsletterSubscription.count", 1) do
-      NewsletterSubscription.subscribe_from_participant(participant)
+      NewsletterSubscription.subscribe_user(user)
     end
 
     subscription = NewsletterSubscription.find_by(email: "jane.new@example.com")
@@ -55,12 +66,23 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert subscription.subscribed
   end
 
-  test "subscribe_from_participant does not change an existing subscription" do
+  test "subscribe_user does not change an existing subscription" do
     existing = newsletter_subscriptions(:inactive)
-    participant = Participant.new(first_name: "Changed", last_name: "Name", email: existing.email.upcase)
+    user = User.create!(email: existing.email.upcase, skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    Participant.create!(
+      first_name: "Changed",
+      last_name: "Name",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
 
     assert_no_difference("NewsletterSubscription.count") do
-      NewsletterSubscription.subscribe_from_participant(participant)
+      NewsletterSubscription.subscribe_user(user)
     end
 
     existing.reload
@@ -68,11 +90,17 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal false, existing.subscribed
   end
 
-  test "subscribe_from_participant ignores participants without an email" do
-    participant = Participant.new(first_name: "Jane", last_name: "Doe", email: "")
+  test "subscribe_user ignores users without a participant" do
+    user = User.create!(email: "no_participant@example.com", skip_password_validation: true)
 
     assert_no_difference("NewsletterSubscription.count") do
-      NewsletterSubscription.subscribe_from_participant(participant)
+      NewsletterSubscription.subscribe_user(user)
+    end
+  end
+
+  test "subscribe_user ignores a nil user" do
+    assert_no_difference("NewsletterSubscription.count") do
+      NewsletterSubscription.subscribe_user(nil)
     end
   end
 end
