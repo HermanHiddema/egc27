@@ -277,6 +277,13 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_match "Registration Received", response.body
     assert_match "Registration received", response.body
+    assert_match "Didn’t receive your email?", response.body
+    assert_select "form[action='#{resend_confirmation_participant_path(participant)}'][method='post']"
+    assert_select "input[type='email']", false,
+      "resend form must not ask for or expose any email address"
+    assert_select "input[name='user[email]']", false,
+      "resend form must not expose the participant email address"
+    assert_select "input[type='submit'][value='Resend confirmation email']"
 
     assert_equal "jane@example.org", participant.email
     assert_equal "player", participant.participant_type
@@ -284,6 +291,30 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, participant.weekend
     assert_equal false, participant.second_week
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
+  end
+
+  test "allows a participant with a duplicate EGD pin" do
+    assert_difference("Participant.count", 1) do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "duplicate-pin@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          club: "Utrecht",
+          rank: 27,
+          gender: "female",
+          image_use_consent: true,
+          egd_pin: participants(:one).egd_pin
+        }
+      }
+    end
+
+    participant = Participant.order(:id).last
+    assert_redirected_to participant_path(participant)
+    assert_equal participants(:one).egd_pin, participant.egd_pin
   end
 
   test "creates a user account when registering a new participant" do
@@ -476,5 +507,122 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     payload = JSON.parse(response.body)
     assert_equal [], payload
+  end
+
+  test "egd_registered reports a registered EGD pin with an alter url" do
+    get egd_registered_participants_path, params: { egd_pin: participants(:one).egd_pin }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_equal alter_registration_participants_path(egd_pin: participants(:one).egd_pin), payload["alter_url"]
+  end
+
+  test "egd_registered reports an unregistered EGD pin" do
+    get egd_registered_participants_path, params: { egd_pin: "99999999" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["alter_url"]
+  end
+
+  test "egd_registered treats a blank pin as unregistered" do
+    get egd_registered_participants_path, params: { egd_pin: "" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+  end
+
+  test "alter_registration sends confirmed users to sign in with a flash" do
+    assert users(:one).confirmed?, "fixture user should be confirmed"
+
+    get alter_registration_participants_path, params: { egd_pin: participants(:one).egd_pin }
+
+    assert_redirected_to new_user_session_path
+    assert_equal "Login to alter your registration", flash[:notice]
+  end
+
+  test "alter_registration redirects unconfirmed users to the confirmation resend page" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    get alter_registration_participants_path, params: { egd_pin: participants(:unconfirmed).egd_pin }
+
+    assert_redirected_to new_user_confirmation_path
+    assert_equal "Please confirm your email address to continue.", flash[:notice]
+  end
+
+  test "alter_registration uses the oldest matching participant" do
+    original_user = User.create!(email: "original@example.org", skip_password_validation: true)
+    original_user.update_column(:confirmed_at, nil)
+    later_user = User.create!(email: "later@example.org", skip_password_validation: true, confirmed_at: Time.current)
+
+    original_participant = Participant.create!(
+      first_name: "Original",
+      last_name: "Player",
+      email: "original@example.org",
+      age_group: "18-49",
+      country: "NL",
+      club: "Utrecht",
+      gender: "male",
+      image_use_consent: true,
+      user: original_user
+    )
+    later_participant = Participant.create!(
+      first_name: "Later",
+      last_name: "Player",
+      email: "later@example.org",
+      age_group: "18-49",
+      country: "DE",
+      club: "Berlin",
+      gender: "female",
+      image_use_consent: true,
+      user: later_user
+    )
+
+    original_participant.update_columns(egd_pin: "76543210", created_at: 2.days.ago)
+    later_participant.update_columns(egd_pin: "76543210", created_at: 1.day.ago)
+
+    get alter_registration_participants_path, params: { egd_pin: "76543210" }
+
+    assert_redirected_to new_user_confirmation_path
+    assert_equal "Please confirm your email address to continue.", flash[:notice]
+  end
+
+  test "alter_registration redirects to new registration for an unknown pin" do
+    get alter_registration_participants_path, params: { egd_pin: "99999999" }
+
+    assert_redirected_to new_participant_path
+  end
+
+  test "resend_confirmation resends the confirmation email for an unconfirmed account" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    assert_emails 1 do
+      post resend_confirmation_participant_path(participants(:unconfirmed))
+    end
+
+    assert_redirected_to participant_path(participants(:unconfirmed))
+    assert_equal "If your registration still needs confirming, we've sent a new confirmation email.", flash[:notice]
+  end
+
+  test "resend_confirmation does not send an email for a confirmed account" do
+    assert users(:one).confirmed?, "fixture user should be confirmed"
+
+    assert_emails 0 do
+      post resend_confirmation_participant_path(participants(:one))
+    end
+
+    assert_redirected_to participant_path(participants(:one))
+  end
+
+  test "resend_confirmation never exposes the participant email address" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    post resend_confirmation_participant_path(participants(:unconfirmed))
+    follow_redirect!
+
+    assert_no_match participants(:unconfirmed).email, response.body
   end
 end

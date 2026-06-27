@@ -1,9 +1,10 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :confirm]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :alter_registration, :confirm, :resend_confirmation]
   before_action :build_participant, only: [:create]
-  before_action :verify_turnstile, only: [:create]
+  before_action :set_participant, only: [:show, :resend_confirmation]
+  before_action :verify_turnstile, only: [:create, :resend_confirmation]
 
   def index
     participants = Participant.where.not(confirmed_at: nil)
@@ -32,15 +33,28 @@ class ParticipantsController < ApplicationController
   end
 
   def show
-    @participant = Participant.find_by!(uuid: params[:id])
+  end
+
+  # Resends the Devise confirmation email for the account that owns this
+  # participant, identified solely by the participant UUID so the email address
+  # is never exposed in the page. Always responds the same way regardless of
+  # whether an unconfirmed account exists, to avoid leaking registration state.
+  def resend_confirmation
+    user = @participant.user
+
+    if user && !user.confirmed?
+      user.registration_participant = @participant
+      user.send_confirmation_instructions
+    end
+
+    redirect_to participant_path(@participant),
+      notice: "If your registration still needs confirming, we've sent a new confirmation email."
   end
 
   def create
     ActiveRecord::Base.transaction do
+      @participant.user = find_or_create_user_for(@participant)
       @participant.save!
-      user = find_or_create_user_for(@participant)
-      # update_column intentionally skips callbacks/validations since the record is already saved
-      @participant.update_column(:user_id, user.id) if user
     end
 
     if @participant.user&.confirmed?
@@ -77,7 +91,50 @@ class ParticipantsController < ApplicationController
     render json: results
   end
 
+  # Checks whether an EGD entry (by PIN) is already present in the participant
+  # list so the registration form can warn against duplicate registrations.
+  def egd_registered
+    pin = params[:egd_pin].to_s.strip
+    registered = pin.present? && Participant.exists?(egd_pin: pin)
+
+    payload = { registered: registered }
+    payload[:alter_url] = alter_registration_participants_path(egd_pin: pin) if registered
+
+    render json: payload
+  end
+
+  # Entry point for someone who tried to register an EGD entry that already
+  # exists. Routes them to re-access the existing account without exposing the
+  # account email address on a public page.
+  def alter_registration
+    pin = params[:egd_pin].to_s.strip
+    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :asc, id: :asc).first : nil
+
+    if @participant.nil?
+      redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
+      return
+    end
+
+    user = @participant.user
+
+    if user && !user.confirmed?
+      redirect_to new_user_confirmation_path, notice: "Please confirm your email address to continue."
+    else
+      redirect_to new_user_session_path, notice: "Login to alter your registration"
+    end
+  end
+
   private
+
+  def set_participant
+    @participant = Participant.find_by!(uuid: params[:id])
+  end
+
+  # Re-render the participant page (which hosts the resend form) when the
+  # Turnstile check fails on resend_confirmation; other actions use :new.
+  def turnstile_failure_template
+    action_name == "resend_confirmation" ? :show : :new
+  end
 
   def permitted_sort
     %w[name country club rank rating].include?(params[:sort]) ? params[:sort] : "rank"

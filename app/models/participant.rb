@@ -12,7 +12,7 @@ class Participant < ApplicationRecord
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
-  belongs_to :user, optional: true
+  belongs_to :user
 
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
