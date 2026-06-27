@@ -160,4 +160,18 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal "new@example.com", new_subscription.email
     assert_equal false, new_subscription.subscribed
   end
+
+  test "update_email keeps the old subscription when the new address is invalid" do
+    subscription = NewsletterSubscription.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "old@example.com"
+    )
+
+    assert_nothing_raised do
+      NewsletterSubscription.update_email("old@example.com", "invalid-email")
+    end
+
+    assert_equal "old@example.com", subscription.reload.email
+  end
 end

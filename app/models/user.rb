@@ -66,7 +66,9 @@ class User < ApplicationRecord
 
   def propagate_email_change
     old_email, new_email = saved_change_to_email
-    participants.update_all(email: new_email, updated_at: Time.current)
-    NewsletterSubscription.update_email(old_email, new_email)
+    normalized_email = new_email.to_s.strip.downcase
+
+    participants.update_all(email: normalized_email, updated_at: Time.current)
+    NewsletterSubscription.update_email(old_email, normalized_email)
   end
 end

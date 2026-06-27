@@ -38,8 +38,13 @@ class NewsletterSubscription < ApplicationRecord
     subscription = find_by(email: old)
     return if subscription.nil?
 
-    subscription.update!(email: new)
-  rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid
+    if exists?(email: new)
+      subscription.destroy
+      return
+    end
+
+    subscription.update(email: new)
+  rescue ActiveRecord::RecordNotUnique
     subscription&.destroy
   end
 

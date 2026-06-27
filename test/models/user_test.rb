@@ -175,6 +175,32 @@ class UserTest < ActiveSupport::TestCase
     assert_equal "after@example.com", subscription.reload.email
   end
 
+  test "changing email normalizes participant and subscription emails" do
+    user = User.create!(email: "before2@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    participant = Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.skip_reconfirmation!
+    user.update!(email: "  AFter2@Example.com ")
+
+    assert_equal "after2@example.com", participant.reload.email
+    assert_equal "after2@example.com", subscription.reload.email
+  end
+
   test "changing email does not create a subscription when none exists" do
     user = User.create!(email: "nochange@example.com", skip_password_validation: true)
     user.update_column(:confirmed_at, Time.current)
