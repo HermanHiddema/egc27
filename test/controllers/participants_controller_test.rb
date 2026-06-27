@@ -278,9 +278,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Registration Received", response.body
     assert_match "Registration received", response.body
     assert_match "Didn’t receive your email?", response.body
-    assert_select "form[action='#{user_confirmation_path}'][method='post']"
-    assert_select "input[type='email'][name='user[email]']"
-    assert_select "input[name='user[email]'][value=?]", "jane@example.org", false,
+    assert_select "form[action='#{resend_confirmation_participant_path(participant)}'][method='post']"
+    assert_select "input[type='email']", false,
+      "resend form must not ask for or expose any email address"
+    assert_select "input[name='user[email]']", false,
       "resend form must not expose the participant email address"
     assert_select "input[type='submit'][value='Resend confirmation email']"
 
@@ -593,5 +594,35 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get alter_registration_participants_path, params: { egd_pin: "99999999" }
 
     assert_redirected_to new_participant_path
+  end
+
+  test "resend_confirmation resends the confirmation email for an unconfirmed account" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    assert_emails 1 do
+      post resend_confirmation_participant_path(participants(:unconfirmed))
+    end
+
+    assert_redirected_to participant_path(participants(:unconfirmed))
+    assert_equal "If your registration still needs confirming, we've sent a new confirmation email.", flash[:notice]
+  end
+
+  test "resend_confirmation does not send an email for a confirmed account" do
+    assert users(:one).confirmed?, "fixture user should be confirmed"
+
+    assert_emails 0 do
+      post resend_confirmation_participant_path(participants(:one))
+    end
+
+    assert_redirected_to participant_path(participants(:one))
+  end
+
+  test "resend_confirmation never exposes the participant email address" do
+    users(:dave).update_column(:confirmed_at, nil)
+
+    post resend_confirmation_participant_path(participants(:unconfirmed))
+    follow_redirect!
+
+    assert_no_match participants(:unconfirmed).email, response.body
   end
 end

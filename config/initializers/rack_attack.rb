@@ -11,7 +11,9 @@ class Rack::Attack
   # (e.g. .json) and an optional trailing slash so throttles cannot be bypassed.
   MAGIC_LINK_PATH    = %r{\A/users/magic_link(\.[^/]+)?/?\z}
   PARTICIPANTS_PATH  = %r{\A/participants(\.[^/]+)?/?\z}
+  EGD_REGISTERED_PATH = %r{\A/participants/egd_registered(\.[^/]+)?/?\z}
   ALTER_REGISTRATION_PATH = %r{\A/participants/alter_registration(\.[^/]+)?/?\z}
+  RESEND_CONFIRMATION_PATH = %r{\A/participants/[^/]+/resend_confirmation(\.[^/]+)?/?\z}
   PASSWORD_PATH      = %r{\A/users/password(\.[^/]+)?/?\z}
   CONFIRMATION_PATH  = %r{\A/users/confirmation(\.[^/]+)?/?\z}
   SIGN_IN_PATH       = %r{\A/users/sign_in(\.[^/]+)?/?\z}
@@ -38,12 +40,17 @@ class Rack::Attack
 
   # EGD registration lookups: limit by IP address (60 per minute)
   throttle("egd_registered/ip", limit: 60, period: 1.minute) do |req|
-    req.ip if req.path.match?(%r{\A/participants/egd_registered(\.[^/]+)?/?\z}) && req.get?
+    req.ip if req.path.match?(EGD_REGISTERED_PATH) && req.get?
   end
 
   # Alter-registration lookups: limit by IP address (20 per minute)
   throttle("alter_registration/ip", limit: 20, period: 1.minute) do |req|
     req.ip if req.path.match?(ALTER_REGISTRATION_PATH) && req.get?
+  end
+
+  # Confirmation email resend by participant UUID: limit by IP address (5 per minute)
+  throttle("resend_confirmation/ip", limit: 5, period: 1.minute) do |req|
+    req.ip if req.path.match?(RESEND_CONFIRMATION_PATH) && req.post?
   end
 
   # Password reset: limit by IP address (5 per minute)

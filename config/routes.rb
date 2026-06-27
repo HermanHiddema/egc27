@@ -77,6 +77,7 @@ Rails.application.routes.draw do
     end
     member do
       get :confirm
+      post :resend_confirmation
     end
     resource :payment, only: [:new, :create], controller: "payments"
   end
