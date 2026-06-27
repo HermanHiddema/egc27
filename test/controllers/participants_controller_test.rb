@@ -290,8 +290,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
-  test "does not create a participant with a duplicate EGD pin" do
-    assert_no_difference("Participant.count") do
+  test "allows a participant with a duplicate EGD pin" do
+    assert_difference("Participant.count", 1) do
       post participants_path, params: {
         participant: {
           first_name: "Jane",
@@ -309,8 +309,9 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_response :unprocessable_entity
-    assert_match "Egd pin has already been taken", response.body
+    participant = Participant.order(:id).last
+    assert_redirected_to participant_path(participant)
+    assert_equal participants(:one).egd_pin, participant.egd_pin
   end
 
   test "creates a user account when registering a new participant" do

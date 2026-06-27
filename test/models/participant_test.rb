@@ -16,6 +16,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "converts grade string to EGD grade_n integer" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Jane",
       last_name: "Doe",
       email: "jane@example.org",
@@ -36,6 +37,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "supports professional grades" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Ilja",
       last_name: "Shikshin",
       email: "ilja@example.org",
@@ -54,6 +56,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "validates age group must be one of the allowed values" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Eva",
       last_name: "Jansen",
       email: "eva@example.org",
@@ -72,6 +75,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "accepts all valid age group values" do
     Participant::AGE_GROUPS.each do |group|
       participant = Participant.new(
+        user: users(:one),
         first_name: "Eva",
         last_name: "Jansen",
         email: "eva@example.org",
@@ -89,6 +93,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "normalizes country to uppercase iso code" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Ana",
       last_name: "Silva",
       email: "ana@example.org",
@@ -106,6 +111,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "defaults participant type to player" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Lee",
       last_name: "Min",
       email: "lee@example.org",
@@ -123,6 +129,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "normalizes email" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Nora",
       last_name: "Berg",
       email: " Nora.Berg@Example.COM ",
@@ -140,16 +147,17 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
-  test "rejects a duplicate EGD pin" do
+  test "allows a duplicate EGD pin" do
     participant = participants(:one).dup
     participant.email = "different@example.org"
+    participant.user = users(:two)
 
-    assert_not participant.valid?
-    assert_includes participant.errors[:egd_pin], "has already been taken"
+    assert participant.valid?
   end
 
   test "club is optional" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -168,6 +176,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "normalizes phone to international digits format" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -186,6 +195,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "rejects clearly invalid phone" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -204,6 +214,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "implicitly accepts terms and privacy policy" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -234,6 +245,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "attendance option updates attendance periods" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -254,6 +266,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "rejects unknown attendance option" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -272,6 +285,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "requires explicit image consent choice" do
     participant = Participant.new(
+      user: users(:one),
       first_name: "Mia",
       last_name: "Rossi",
       email: "mia@example.org",
@@ -327,6 +341,7 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "assigns a uuid on creation" do
     participant = Participant.create!(
+      user: users(:one),
       first_name: "Uuid",
       last_name: "Tester",
       email: "uuid_tester@example.org",

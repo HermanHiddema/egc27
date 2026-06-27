@@ -37,10 +37,8 @@ class ParticipantsController < ApplicationController
 
   def create
     ActiveRecord::Base.transaction do
+      @participant.user = find_or_create_user_for(@participant)
       @participant.save!
-      user = find_or_create_user_for(@participant)
-      # update_column intentionally skips callbacks/validations since the record is already saved
-      @participant.update_column(:user_id, user.id) if user
     end
 
     if @participant.user&.confirmed?

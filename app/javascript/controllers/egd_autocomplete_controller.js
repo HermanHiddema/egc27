@@ -117,12 +117,17 @@ export default class extends Controller {
             }
 
             const data = await response.json()
+            const currentPin = String(this.egdPinTarget?.value || "").trim()
+            if (currentPin !== pin) return
+
             if (data && data.registered) {
                 this.showRegisteredNotice(data.alter_url)
             } else {
                 this.hideRegisteredNotice()
             }
         } catch (_error) {
+            const currentPin = String(this.egdPinTarget?.value || "").trim()
+            if (currentPin !== pin) return
             this.hideRegisteredNotice()
         }
     }

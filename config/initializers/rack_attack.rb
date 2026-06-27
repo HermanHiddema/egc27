@@ -36,6 +36,11 @@ class Rack::Attack
     req.ip if req.path.match?(PARTICIPANTS_PATH) && req.post?
   end
 
+  # EGD registration lookups: limit by IP address (60 per minute)
+  throttle("egd_registered/ip", limit: 60, period: 1.minute) do |req|
+    req.ip if req.path.match?(%r{\A/participants/egd_registered(\.[^/]+)?/?\z}) && req.get?
+  end
+
   # Alter-registration lookups: limit by IP address (20 per minute)
   throttle("alter_registration/ip", limit: 20, period: 1.minute) do |req|
     req.ip if req.path.match?(ALTER_REGISTRATION_PATH) && req.get?
