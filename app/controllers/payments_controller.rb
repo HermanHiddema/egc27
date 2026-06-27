@@ -84,6 +84,13 @@ class PaymentsController < ApplicationController
 
   private
 
+  # Mollie calls the webhook server-to-server, so it must not be subject to the
+  # browser version guard, which would otherwise reject the request with a 406
+  # and prevent the payment status (and confirmation email) from being updated.
+  def skip_browser_version_guard?
+    action_name == "webhook"
+  end
+
   def load_participant
     @participant = Participant.find_by!(uuid: params[:participant_id])
   end

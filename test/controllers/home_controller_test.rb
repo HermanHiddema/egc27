@@ -38,6 +38,8 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "home page shows recently registered participants" do
+    user = User.create!(email: "recent@example.org", skip_password_validation: true, confirmed_at: Time.current)
+
     11.times do |index|
       timestamp = 1.day.ago - index.minutes
       Participant.create!(
@@ -54,6 +56,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
         accepted_terms_and_conditions: true,
         accepted_privacy_policy: true,
         confirmed_at: timestamp,
+        user: user,
         created_at: timestamp,
         updated_at: timestamp
       )

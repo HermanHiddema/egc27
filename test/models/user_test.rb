@@ -138,6 +138,27 @@ class UserTest < ActiveSupport::TestCase
     assert subscription.subscribed
   end
 
+  test "destroying a user destroys linked participants" do
+    user = User.create!(email: "destroy_test@example.com", skip_password_validation: true)
+    participant = Participant.create!(
+      first_name: "Destroy",
+      last_name: "Me",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      club: "Test Club",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    assert_difference("Participant.count", -1) do
+      user.destroy
+    end
+
+    assert_not Participant.exists?(participant.id)
+  end
+
   test "after_confirmation does not subscribe a user without a participant" do
     user = User.create!(
       email: "no_participant_confirm@example.com",

@@ -9,6 +9,7 @@ one:
   club: Amsterdam Go Club
   rank: 27
   rating: 1789
+  egd_pin: "10000001"
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
@@ -64,6 +65,7 @@ unconfirmed:
   country: BE
   club: Utrecht
   rank: 27
+  egd_pin: "10000002"
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
