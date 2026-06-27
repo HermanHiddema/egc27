@@ -103,4 +103,38 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
       NewsletterSubscription.subscribe_user(nil)
     end
   end
+
+  test "update_email moves a subscription to the new address" do
+    subscription = NewsletterSubscription.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "old.address@example.com"
+    )
+
+    NewsletterSubscription.update_email("Old.Address@example.com", "New.Address@example.com")
+
+    assert_equal "new.address@example.com", subscription.reload.email
+  end
+
+  test "update_email is a no-op when no subscription matches the old address" do
+    assert_nothing_raised do
+      NewsletterSubscription.update_email("missing@example.com", "new@example.com")
+    end
+
+    assert_nil NewsletterSubscription.find_by(email: "new@example.com")
+  end
+
+  test "update_email ignores blank or unchanged addresses" do
+    subscription = NewsletterSubscription.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "stable@example.com"
+    )
+
+    NewsletterSubscription.update_email("stable@example.com", "")
+    NewsletterSubscription.update_email("", "new@example.com")
+    NewsletterSubscription.update_email("stable@example.com", "stable@example.com")
+
+    assert_equal "stable@example.com", subscription.reload.email
+  end
 end

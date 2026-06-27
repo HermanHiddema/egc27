@@ -30,6 +30,19 @@ class NewsletterSubscription < ApplicationRecord
     nil
   end
 
+  def self.update_email(old_email, new_email)
+    old = normalize_email(old_email)
+    new = normalize_email(new_email)
+    return if old.blank? || new.blank? || old == new
+
+    subscription = find_by(email: old)
+    return if subscription.nil?
+
+    subscription.update(email: new)
+  rescue ActiveRecord::RecordNotUnique
+    nil
+  end
+
   def unsubscribe!
     update!(subscribed: false)
   end
