@@ -137,4 +137,27 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
 
     assert_equal "stable@example.com", subscription.reload.email
   end
+
+  test "update_email removes the old subscription when the new address already has one" do
+    old_subscription = NewsletterSubscription.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "old@example.com"
+    )
+    new_subscription = NewsletterSubscription.create!(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "new@example.com",
+      subscribed: false
+    )
+
+    assert_no_difference("NewsletterSubscription.count") do
+      NewsletterSubscription.update_email("old@example.com", "new@example.com")
+    end
+
+    assert_nil NewsletterSubscription.find_by(id: old_subscription.id)
+    new_subscription.reload
+    assert_equal "new@example.com", new_subscription.email
+    assert_equal false, new_subscription.subscribed
+  end
 end
