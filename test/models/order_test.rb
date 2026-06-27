@@ -56,22 +56,15 @@ class OrderTest < ActiveSupport::TestCase
     assert_not orders(:cart_pass).paid?
   end
 
-  test "assigns a unique order number on create" do
+  test "order number is the id offset by 10000" do
     order = Order.create!(user: users(:one), description: "Item", amount_cents: 1000, status: "cart")
 
-    assert_match(/\AEGC-\d{4}-\d{6}\z/, order.order_number)
+    assert_equal order.id + 10_000, order.order_number
   end
 
-  test "order number is not overwritten when provided" do
-    order = Order.create!(user: users(:one), order_number: "EGC-2027-999999", description: "Item", amount_cents: 1000, status: "cart")
+  test "order number is nil before the record is persisted" do
+    order = Order.new(user: users(:one), description: "Item", amount_cents: 1000, status: "cart")
 
-    assert_equal "EGC-2027-999999", order.order_number
-  end
-
-  test "order number must be unique" do
-    duplicate = Order.new(user: users(:one), order_number: orders(:cart_pass).order_number, description: "Item", amount_cents: 1000, status: "cart")
-
-    assert_not duplicate.valid?
-    assert_includes duplicate.errors[:order_number], "has already been taken"
+    assert_nil order.order_number
   end
 end

@@ -164,14 +164,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_130200) do
     t.string "mollie_payment_id"
     t.bigint "orderable_id"
     t.string "orderable_type"
-    t.string "order_number", null: false
     t.datetime "paid_at"
     t.string "status", default: "cart", null: false
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.index ["checkout_reference"], name: "index_orders_on_checkout_reference"
     t.index ["mollie_payment_id"], name: "index_orders_on_mollie_payment_id"
-    t.index ["order_number"], name: "index_orders_on_order_number", unique: true
     t.index ["orderable_type", "orderable_id"], name: "index_orders_on_orderable"
     t.index ["status"], name: "index_orders_on_status"
     t.index ["user_id"], name: "index_orders_on_user_id"

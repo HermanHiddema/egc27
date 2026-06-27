@@ -1,6 +1,5 @@
 cart_pass:
   user: one
-  order_number: EGC-2027-000001
   description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
   amount_cents: 19000
   status: cart
@@ -9,7 +8,6 @@ cart_pass:
 
 cart_tshirt:
   user: one
-  order_number: EGC-2027-000002
   description: "EGC 2027 T-shirt (size L)"
   amount_cents: 2500
   status: cart
@@ -18,7 +16,6 @@ cart_tshirt:
 
 paid_order:
   user: one
-  order_number: EGC-2027-000003
   description: "EGC 2027 Bring & Buy ticket"
   amount_cents: 1000
   status: paid
@@ -29,7 +26,6 @@ paid_order:
 
 other_user_order:
   user: two
-  order_number: EGC-2027-000004
   description: "EGC 2027 T-shirt (size M)"
   amount_cents: 2500
   status: cart

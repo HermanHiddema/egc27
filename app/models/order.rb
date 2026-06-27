@@ -4,18 +4,16 @@ class Order < ApplicationRecord
   # be stored verbatim.
   STATUSES = %w[cart open pending authorized paid canceled expired failed].freeze
 
-  # Human-readable, unique reference printed on confirmations and used in support.
-  ORDER_NUMBER_PREFIX = "EGC".freeze
+  # Order numbers shown to users are derived from the sequential id, offset so the
+  # very first order starts at a friendlier-looking 10001.
+  ORDER_NUMBER_OFFSET = 10_000
 
   belongs_to :user
   belongs_to :orderable, polymorphic: true, optional: true
 
-  before_validation :assign_order_number, on: :create
-
   validates :description, presence: true
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :status, inclusion: { in: STATUSES }
-  validates :order_number, presence: true, uniqueness: true
 
   scope :paid, -> { where(status: "paid") }
   scope :unpaid, -> { where.not(status: "paid") }
@@ -35,21 +33,9 @@ class Order < ApplicationRecord
     "€ #{format('%.2f', amount_eur)}"
   end
 
-  private
+  def order_number
+    return if id.nil?
 
-  def assign_order_number
-    return if order_number.present?
-
-    loop do
-      candidate = self.class.generate_order_number
-      unless self.class.exists?(order_number: candidate)
-        self.order_number = candidate
-        break
-      end
-    end
-  end
-
-  def self.generate_order_number
-    "#{ORDER_NUMBER_PREFIX}-#{Time.current.year}-#{SecureRandom.random_number(1_000_000).to_s.rjust(6, '0')}"
+    id + ORDER_NUMBER_OFFSET
   end
 end

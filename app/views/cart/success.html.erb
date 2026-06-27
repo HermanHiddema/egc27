@@ -42,7 +42,7 @@
         <ul class="divide-y divide-gray-100">
           <% @orders.each do |order| %>
             <li class="flex items-center justify-between gap-4 py-2 text-sm">
-              <span class="text-neutral-700"><%= order.order_number %> — <%= order.description %></span>
+              <span class="text-neutral-700">#<%= order.order_number %> — <%= order.description %></span>
               <span class="font-semibold text-neutral-900 whitespace-nowrap"><%= order.amount_formatted %></span>
             </li>
           <% end %>
