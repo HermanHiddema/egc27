@@ -109,4 +109,25 @@ class UserTest < ActiveSupport::TestCase
 
     assert_not_nil participant.reload.confirmed_at
   end
+
+  test "destroying a user destroys linked participants" do
+    user = User.create!(email: "destroy_test@example.com", skip_password_validation: true)
+    participant = Participant.create!(
+      first_name: "Destroy",
+      last_name: "Me",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      club: "Test Club",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    assert_difference("Participant.count", -1) do
+      user.destroy
+    end
+
+    assert_not Participant.exists?(participant.id)
+  end
 end

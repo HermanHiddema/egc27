@@ -71,10 +71,13 @@ Rails.application.routes.draw do
   resources :participants, only: [:index, :new, :create, :show] do
     collection do
       get :egd_search
+      get :egd_registered
+      get :alter_registration
       get :mine
     end
     member do
       get :confirm
+      post :resend_confirmation
     end
     resource :payment, only: [:new, :create], controller: "payments"
   end

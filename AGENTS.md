@@ -66,3 +66,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
 - On mobile, the navigation bar toggles the menu as a whole (the full bar is the button) and uses a hamburger icon rather than a `Navigation` text label.
 - Cloudflare Turnstile is required on all publicly available submission forms, including Devise auth forms (login, forgot password, resend confirmation). Every public form must ALSO have Rack::Attack backend throttling (by IP, and by email where applicable). The two protections are complementary, not alternatives.
+- For confirmation-email resends tied to a known record (e.g. a participant), resend via a backend route keyed by the record UUID rather than asking for or rendering the email address; never expose a user's email in a publicly accessible page.

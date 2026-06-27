@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_27_130200) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_27_185510) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -205,7 +205,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_27_130200) do
     t.integer "rating"
     t.boolean "second_week", default: true, null: false
     t.datetime "updated_at", null: false
-    t.bigint "user_id"
+    t.bigint "user_id", null: false
     t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
     t.boolean "weekend", default: true, null: false
     t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
