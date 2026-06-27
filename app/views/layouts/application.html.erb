@@ -65,6 +65,7 @@
 
                 <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
                   <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to "Cart", cart_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>

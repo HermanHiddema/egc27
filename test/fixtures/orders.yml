@@ -1,0 +1,33 @@
+cart_pass:
+  user: one
+  description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
+  amount_cents: 19000
+  status: cart
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+cart_tshirt:
+  user: one
+  description: "EGC 2027 T-shirt (size L)"
+  amount_cents: 2500
+  status: cart
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+paid_order:
+  user: one
+  description: "EGC 2027 Bring & Buy ticket"
+  amount_cents: 1000
+  status: paid
+  mollie_payment_id: tr_order_paid
+  paid_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+other_user_order:
+  user: two
+  description: "EGC 2027 T-shirt (size M)"
+  amount_cents: 2500
+  status: cart
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
