@@ -55,3 +55,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - Prefer standard Rails resource/controller naming; avoid custom controller names like `*ManagementController`.
 - In the top bar, keep Newsletter and Register now CTAs green while reusing btn-primary for size and shape.
 - In the top bar stacked-button layout (< lg), shorten `Register now` to `Register`.
+- Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
+- On mobile, the navigation bar toggles the menu as a whole (the full bar is the button) and uses a hamburger icon rather than a `Navigation` text label.

@@ -170,6 +170,39 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_participant_path}'] span.hidden.lg\\:inline", text: "Register now"
   end
 
+  test "registration form marks mandatory fields with an asterisk" do
+    get new_participant_path
+
+    assert_response :success
+    assert_select "label[for='participant_first_name']", text: "First name *"
+    assert_select "label[for='participant_last_name']", text: "Last name *"
+    assert_select "label[for='participant_gender']", text: "Gender *"
+    assert_select "label[for='participant_age_group']", text: "Age group *"
+    assert_select "label[for='participant_country']", text: "Country *"
+    assert_select "label[for='participant_email']", text: "Email *"
+    assert_select "label[for='participant_participant_type']", text: "Participant type *"
+  end
+
+  test "registration agreement references only the Terms and Conditions" do
+    get new_participant_path
+
+    assert_response :success
+    assert_select "p.text-gray-800 a[href=?]", page_path("terms-and-conditions"), text: "Terms and Conditions"
+    assert_select "p.text-gray-800 a[href=?]", page_path("privacy"), count: 0
+    assert_no_match "Privacy Policy", css_select("p.text-gray-800").map(&:text).join(" ")
+  end
+
+  test "mobile navigation toggle uses a hamburger icon and no Navigation label" do
+    get participants_path
+
+    assert_response :success
+    assert_select "button[data-responsive-menu-target='toggle'][aria-controls='site-menu-panel']" do
+      assert_select "svg", count: 1
+      assert_select "span", text: "Menu"
+    end
+    assert_select "button[data-responsive-menu-target='toggle']", text: /Navigation/, count: 0
+  end
+
   test "registration form includes turnstile widget when site key is configured" do
     previous = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"

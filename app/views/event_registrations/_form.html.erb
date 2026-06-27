@@ -29,7 +29,7 @@
     <div class="flex gap-4 items-end">
       <div class="flex-1">
         <% if registrable_participants.many? %>
-          <%= form.label :participant_id, "Participant", class: "block text-sm font-medium text-gray-700 mb-2" %>
+          <%= form.label :participant_id, "Participant *", class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.select :participant_id,
               options_for_select(
                 registrable_participants.map { |participant| [[participant.first_name, participant.last_name].join(" "), participant.id] },
