@@ -51,7 +51,11 @@ class User < ApplicationRecord
   # Set to the participant when the account is auto-created during participant
   # registration. Used to send a tailored confirmation email for that flow
   # instead of the generic invitation email.
-  attr_accessor :registration_participant
+  attr_writer :registration_participant
+
+  def registration_participant
+    @registration_participant || participants.order(created_at: :asc, id: :asc).first
+  end
 
   def password_required?
     return false if skip_password_validation

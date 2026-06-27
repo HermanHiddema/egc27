@@ -545,6 +545,43 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Please confirm your email address to continue.", flash[:notice]
   end
 
+  test "alter_registration uses the oldest matching participant" do
+    original_user = User.create!(email: "original@example.org", skip_password_validation: true)
+    original_user.update_column(:confirmed_at, nil)
+    later_user = User.create!(email: "later@example.org", skip_password_validation: true, confirmed_at: Time.current)
+
+    original_participant = Participant.create!(
+      first_name: "Original",
+      last_name: "Player",
+      email: "original@example.org",
+      age_group: "18-49",
+      country: "NL",
+      club: "Utrecht",
+      gender: "male",
+      image_use_consent: true,
+      user: original_user
+    )
+    later_participant = Participant.create!(
+      first_name: "Later",
+      last_name: "Player",
+      email: "later@example.org",
+      age_group: "18-49",
+      country: "DE",
+      club: "Berlin",
+      gender: "female",
+      image_use_consent: true,
+      user: later_user
+    )
+
+    original_participant.update_columns(egd_pin: "76543210", created_at: 2.days.ago)
+    later_participant.update_columns(egd_pin: "76543210", created_at: 1.day.ago)
+
+    get alter_registration_participants_path, params: { egd_pin: "76543210" }
+
+    assert_redirected_to new_user_confirmation_path
+    assert_equal "Please confirm your email address to continue.", flash[:notice]
+  end
+
   test "alter_registration redirects to new registration for an unknown pin" do
     get alter_registration_participants_path, params: { egd_pin: "99999999" }
 

@@ -94,7 +94,7 @@ class ParticipantsController < ApplicationController
   # account email address on a public page.
   def alter_registration
     pin = params[:egd_pin].to_s.strip
-    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :desc).first : nil
+    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :asc, id: :asc).first : nil
 
     if @participant.nil?
       redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
