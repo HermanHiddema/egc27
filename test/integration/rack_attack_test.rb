@@ -104,6 +104,21 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles confirmation resend by participant UUID after limit" do
+    freeze_time do
+      participant = participants(:unconfirmed)
+
+      2.times do
+        post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+        assert_response :redirect
+      end
+
+      post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "throttles password reset requests by IP after limit" do
     freeze_time do
       5.times do |i|
