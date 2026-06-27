@@ -286,6 +286,49 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
+  test "subscribes a new participant to the newsletter on registration" do
+    assert_difference("NewsletterSubscription.count", 1) do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "newsletter_signup@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          gender: "female",
+          image_use_consent: false
+        }
+      }
+    end
+
+    subscription = NewsletterSubscription.find_by(email: "newsletter_signup@example.org")
+    assert_not_nil subscription
+    assert subscription.subscribed
+  end
+
+  test "does not duplicate or alter an existing newsletter subscription on registration" do
+    existing = newsletter_subscriptions(:inactive)
+
+    assert_no_difference("NewsletterSubscription.count") do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: existing.email,
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          gender: "female",
+          image_use_consent: false
+        }
+      }
+    end
+
+    existing.reload
+    assert_equal false, existing.subscribed
+  end
+
   test "creates a user account when registering a new participant" do
     assert_difference("User.count", 1) do
       assert_emails 1 do

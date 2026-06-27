@@ -43,6 +43,8 @@ class ParticipantsController < ApplicationController
       @participant.update_column(:user_id, user.id) if user
     end
 
+    NewsletterSubscription.subscribe_from_participant(@participant)
+
     if @participant.user&.confirmed?
       @participant.generate_confirmation_token!
       ParticipantMailer.participant_confirmation(@participant).deliver_later
