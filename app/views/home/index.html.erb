@@ -33,11 +33,12 @@
             <% @sponsors.each_with_index do |sponsor, index| %>
               <div data-sponsor-carousel-target="slide" class="<%= "hidden" unless index.zero? %>">
                 <% logo_source = main_image_representation(sponsor.logo, resize_to_limit: [256, 256]) || sponsor.logo %>
-                <% sponsor_logo = image_tag(logo_source, alt: "#{sponsor.name} logo", class: "mx-auto max-h-24 w-auto object-contain", loading: "lazy", decoding: "async") %>
+                <% sponsor_logo = image_tag(logo_source, alt: "#{sponsor.name} logo", class: "h-full w-full object-contain p-4", loading: "lazy", decoding: "async") %>
+                <% sponsor_logo_square = content_tag(:div, sponsor_logo, class: "relative mx-auto aspect-square w-full max-w-56 overflow-hidden") %>
                 <% if sponsor.website.present? %>
-                  <%= link_to sponsor_logo, sponsor.website, target: "_blank", rel: "noopener noreferrer" %>
+                  <%= link_to sponsor_logo_square, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "block" %>
                 <% else %>
-                  <%= sponsor_logo %>
+                  <%= sponsor_logo_square %>
                 <% end %>
                 <p class="mt-2 text-center text-sm text-neutral-700"><%= sponsor.name %></p>
               </div>
