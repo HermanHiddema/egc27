@@ -140,6 +140,14 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
+  test "rejects a duplicate EGD pin" do
+    participant = participants(:one).dup
+    participant.email = "different@example.org"
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:egd_pin], "has already been taken"
+  end
+
   test "club is optional" do
     participant = Participant.new(
       first_name: "Mia",

@@ -11,6 +11,7 @@ class Rack::Attack
   # (e.g. .json) and an optional trailing slash so throttles cannot be bypassed.
   MAGIC_LINK_PATH    = %r{\A/users/magic_link(\.[^/]+)?/?\z}
   PARTICIPANTS_PATH  = %r{\A/participants(\.[^/]+)?/?\z}
+  ALTER_REGISTRATION_PATH = %r{\A/participants/alter_registration(\.[^/]+)?/?\z}
   PASSWORD_PATH      = %r{\A/users/password(\.[^/]+)?/?\z}
   CONFIRMATION_PATH  = %r{\A/users/confirmation(\.[^/]+)?/?\z}
   SIGN_IN_PATH       = %r{\A/users/sign_in(\.[^/]+)?/?\z}
@@ -33,6 +34,11 @@ class Rack::Attack
   # Participant registration: limit by IP address (10 per minute)
   throttle("participants/ip", limit: 10, period: 1.minute) do |req|
     req.ip if req.path.match?(PARTICIPANTS_PATH) && req.post?
+  end
+
+  # Alter-registration lookups: limit by IP address (20 per minute)
+  throttle("alter_registration/ip", limit: 20, period: 1.minute) do |req|
+    req.ip if req.path.match?(ALTER_REGISTRATION_PATH) && req.get?
   end
 
   # Password reset: limit by IP address (5 per minute)

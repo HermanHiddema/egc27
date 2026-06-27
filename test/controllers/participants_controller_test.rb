@@ -286,6 +286,29 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
+  test "does not create a participant with a duplicate EGD pin" do
+    assert_no_difference("Participant.count") do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "duplicate-pin@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          club: "Utrecht",
+          rank: 27,
+          gender: "female",
+          image_use_consent: true,
+          egd_pin: participants(:one).egd_pin
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "Egd pin has already been taken", response.body
+  end
+
   test "creates a user account when registering a new participant" do
     assert_difference("User.count", 1) do
       assert_emails 1 do
@@ -513,17 +536,13 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Login to alter your registration", flash[:notice]
   end
 
-  test "alter_registration prompts unconfirmed users to confirm their email" do
+  test "alter_registration redirects unconfirmed users to the confirmation resend page" do
     users(:dave).update_column(:confirmed_at, nil)
 
     get alter_registration_participants_path, params: { egd_pin: participants(:unconfirmed).egd_pin }
 
-    assert_response :success
-    assert_match "Your registration is not yet confirmed", response.body
-    assert_select "form[action=?]", user_confirmation_path do
-      assert_select "input[name='user[email]'][value=?]", users(:dave).email
-      assert_select "input[type=submit][value='Resend my email confirmation']"
-    end
+    assert_redirected_to new_user_confirmation_path
+    assert_equal "Please confirm your email address to continue.", flash[:notice]
   end
 
   test "alter_registration redirects to new registration for an unknown pin" do

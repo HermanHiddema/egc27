@@ -78,6 +78,19 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles alter registration lookups by IP after limit" do
+    freeze_time do
+      20.times do
+        get alter_registration_participants_path, params: { egd_pin: participants(:one).egd_pin }, headers: { "REMOTE_ADDR" => "2.3.4.6" }
+        assert_response :redirect
+      end
+
+      get alter_registration_participants_path, params: { egd_pin: participants(:one).egd_pin }, headers: { "REMOTE_ADDR" => "2.3.4.6" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "throttles password reset requests by IP after limit" do
     freeze_time do
       5.times do |i|

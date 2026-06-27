@@ -90,8 +90,8 @@ class ParticipantsController < ApplicationController
   end
 
   # Entry point for someone who tried to register an EGD entry that already
-  # exists. Routes them to re-access the existing account: unconfirmed users are
-  # asked to confirm their email, confirmed users are sent to sign in.
+  # exists. Routes them to re-access the existing account without exposing the
+  # account email address on a public page.
   def alter_registration
     pin = params[:egd_pin].to_s.strip
     @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :desc).first : nil
@@ -104,8 +104,7 @@ class ParticipantsController < ApplicationController
     user = @participant.user
 
     if user && !user.confirmed?
-      @email = user.email
-      render :alter_registration
+      redirect_to new_user_confirmation_path, notice: "Please confirm your email address to continue."
     else
       redirect_to new_user_session_path, notice: "Login to alter your registration"
     end
