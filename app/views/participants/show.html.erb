@@ -54,14 +54,22 @@
           </p>
         </div>
       <% else %>
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p class="text-green-800 text-sm">
-            <strong>Your registration is confirmed.</strong>
-          </p>
-        </div>
-        <div>
-          <%= link_to "Proceed to Payment", new_participant_payment_path(@participant), class: "btn-primary" %>
-        </div>
+        <% if @participant.congress_pass_paid? %>
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p class="text-green-800 text-sm">
+              <strong>Your registration is confirmed and your congress pass is paid.</strong>
+            </p>
+          </div>
+        <% else %>
+          <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+            <p class="text-green-800 text-sm">
+              <strong>Your registration is confirmed.</strong>
+            </p>
+          </div>
+          <div>
+            <%= link_to "Proceed to Payment", new_participant_payment_path(@participant), class: "btn-primary" %>
+          </div>
+        <% end %>
       <% end %>
     </div>
   </div>

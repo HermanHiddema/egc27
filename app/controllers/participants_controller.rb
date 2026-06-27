@@ -41,6 +41,7 @@ class ParticipantsController < ApplicationController
       user = find_or_create_user_for(@participant)
       # update_column intentionally skips callbacks/validations since the record is already saved
       @participant.update_column(:user_id, user.id) if user
+      create_congress_pass_order(@participant, user)
     end
 
     if @participant.user&.confirmed?
@@ -147,5 +148,21 @@ class ParticipantsController < ApplicationController
 
   def build_participant
     @participant = Participant.new(participant_params)
+  end
+
+  # A player's congress pass is what they pay for to attend, so an order is created
+  # automatically at registration (at the current price) and linked to the participant
+  # via the polymorphic orderable so its paid status can be shown.
+  def create_congress_pass_order(participant, user)
+    return unless user
+    return unless participant.player?
+
+    pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group)
+    participant.orders.create!(
+      user: user,
+      description: pricing.description,
+      amount_cents: pricing.price_cents,
+      status: "cart"
+    )
   end
 end
