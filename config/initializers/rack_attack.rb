@@ -13,6 +13,8 @@ class Rack::Attack
   PARTICIPANTS_PATH  = %r{\A/participants(\.[^/]+)?/?\z}
   PASSWORD_PATH      = %r{\A/users/password(\.[^/]+)?/?\z}
   CONFIRMATION_PATH  = %r{\A/users/confirmation(\.[^/]+)?/?\z}
+  SIGN_IN_PATH       = %r{\A/users/sign_in(\.[^/]+)?/?\z}
+  NEWSLETTER_PATH    = %r{\A/newsletter_subscriptions(\.[^/]+)?/?\z}
 
   # Magic link requests: limit by IP address (10 per minute)
   throttle("magic_link/ip", limit: 10, period: 1.minute) do |req|
@@ -50,6 +52,26 @@ class Rack::Attack
   # Confirmation email resend: limit by IP address (5 per minute)
   throttle("confirmation/ip", limit: 5, period: 1.minute) do |req|
     req.ip if req.path.match?(CONFIRMATION_PATH) && req.post?
+  end
+
+  # Sign in attempts: limit by IP address (10 per minute)
+  throttle("login/ip", limit: 10, period: 1.minute) do |req|
+    req.ip if req.path.match?(SIGN_IN_PATH) && req.post?
+  end
+
+  # Sign in attempts: limit by email address (5 per 5 minutes) to slow down
+  # targeted credential-stuffing. Email is HMAC'd before use as a cache key to
+  # avoid persisting PII.
+  throttle("login/email", limit: 5, period: 5.minutes) do |req|
+    if req.path.match?(SIGN_IN_PATH) && req.post?
+      email = req.params.dig("user", "email").to_s.strip.downcase
+      OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, email) unless email.empty?
+    end
+  end
+
+  # Newsletter subscription: limit by IP address (10 per minute)
+  throttle("newsletter/ip", limit: 10, period: 1.minute) do |req|
+    req.ip if req.path.match?(NEWSLETTER_PATH) && req.post?
   end
 
   ### Response for throttled requests ###
