@@ -44,7 +44,9 @@ function scheduleWithAnimationFrame(callback) {
 export default class extends Controller {
   static targets = ["nav", "logo", "title"]
   static values = {
-    threshold: { type: Number, default: 24 }
+    threshold: { type: Number, default: 24 },
+    hysteresis: { type: Number, default: 16 },
+    transitionLockMs: { type: Number, default: 340 }
   }
 
   connect() {
@@ -53,10 +55,13 @@ export default class extends Controller {
     this.scheduledOnScroll = scheduleWithAnimationFrame(this.onScroll)
     this.onResize = this.onResize.bind(this)
     this.isMobile = window.innerWidth < LG_BREAKPOINT
+    this.isShrunk = null
+    this.lastScrollY = window.scrollY
+    this.lockedUntil = 0
     this.resizeTimer = null
     window.addEventListener("scroll", this.scheduledOnScroll, { passive: true })
     window.addEventListener("resize", this.onResize, { passive: true })
-    this.onScroll()
+    this.onScroll({ force: true })
   }
 
   disconnect() {
@@ -69,13 +74,50 @@ export default class extends Controller {
   onResize() {
     clearTimeout(this.resizeTimer)
     this.resizeTimer = setTimeout(() => {
+      const wasMobile = this.isMobile
       this.isMobile = window.innerWidth < LG_BREAKPOINT
-      this.onScroll()
+      this.onScroll({ force: wasMobile !== this.isMobile })
     }, RESIZE_DEBOUNCE_MS)
   }
 
-  onScroll() {
-    const isShrunk = window.scrollY > this.thresholdValue
+  onScroll({ force = false } = {}) {
+    const scrollY = window.scrollY
+    const now = performance.now()
+
+    if (!force && now < this.lockedUntil) {
+      this.lastScrollY = scrollY
+      return
+    }
+
+    const isScrollingUp = scrollY < this.lastScrollY
+    this.lastScrollY = scrollY
+
+    const isShrunk = this.nextShrinkState(scrollY, isScrollingUp)
+
+    if (!force && this.isShrunk === isShrunk) return
+
+    this.isShrunk = isShrunk
+    this.lockedUntil = now + this.transitionLockMsValue
+
+    this.applyShrinkState(isShrunk)
+  }
+
+  nextShrinkState(scrollY, isScrollingUp) {
+    if (this.isShrunk === null) {
+      return scrollY > this.thresholdValue
+    }
+
+    const shrinkAt = this.thresholdValue + this.hysteresisValue
+    const expandAt = Math.max(0, this.thresholdValue - this.hysteresisValue)
+
+    if (this.isShrunk) {
+      return !(isScrollingUp && scrollY <= expandAt)
+    }
+
+    return scrollY > shrinkAt
+  }
+
+  applyShrinkState(isShrunk) {
 
     if (this.isMobile) {
       this.navTarget.classList.toggle("h-64", !isShrunk)
