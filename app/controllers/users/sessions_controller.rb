@@ -3,9 +3,9 @@ module Users
     include TurnstileVerifiable
 
     # Prepend so the Turnstile check runs before Devise's own prepended
-    # authentication filters. Otherwise Warden would authenticate (and persist
-    # the session) before our :create-scoped before_action could halt the
-    # request, signing the user in despite a failed Turnstile check.
+    # authentication filters. Otherwise Warden could authenticate (and persist
+    # the session) before our :create before_action halts the request,
+    # signing the user in despite a failed Turnstile check.
     prepend_before_action :verify_turnstile, only: [:create]
     prepend_before_action :build_turnstile_resource, only: [:create]
 
