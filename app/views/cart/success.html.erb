@@ -36,6 +36,20 @@
       </div>
     <% end %>
 
+    <% if Array(@orders).any? %>
+      <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-6 text-left">
+        <p class="text-sm font-semibold text-neutral-900 mb-2">Order reference<%= "s" if @orders.size > 1 %></p>
+        <ul class="divide-y divide-gray-100">
+          <% @orders.each do |order| %>
+            <li class="flex items-center justify-between gap-4 py-2 text-sm">
+              <span class="text-neutral-700"><%= order.order_number %> — <%= order.description %></span>
+              <span class="font-semibold text-neutral-900 whitespace-nowrap"><%= order.amount_formatted %></span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
     <%= link_to "Back to cart", cart_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
   </div>
 </div>

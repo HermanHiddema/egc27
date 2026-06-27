@@ -3,6 +3,7 @@ class CreateOrders < ActiveRecord::Migration[8.1]
     create_table :orders do |t|
       t.references :user, null: false, foreign_key: true
       t.references :orderable, polymorphic: true
+      t.string :order_number, null: false
       t.string :description, null: false
       t.integer :amount_cents, null: false
       t.string :status, null: false, default: "cart"
@@ -14,6 +15,7 @@ class CreateOrders < ActiveRecord::Migration[8.1]
     end
 
     add_index :orders, :status
+    add_index :orders, :order_number, unique: true
     add_index :orders, :mollie_payment_id
     add_index :orders, :checkout_reference
   end
