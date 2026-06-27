@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     controllers: {
       sessions: "users/sessions",
       confirmations: "users/confirmations",
+      passwords: "users/passwords",
       magic_links: "devise/magic_links"
     }
 

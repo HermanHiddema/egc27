@@ -1,5 +1,10 @@
 module Users
   class ConfirmationsController < Devise::ConfirmationsController
+    include TurnstileVerifiable
+
+    before_action :build_turnstile_resource, only: [:create]
+    before_action :verify_turnstile, only: [:create]
+
     def show
       # Confirm the user via the token
       self.resource = resource_class.confirm_by_token(params[:confirmation_token])
@@ -15,6 +20,14 @@ module Users
         self.confirmation_token = params[:confirmation_token]
         render :new
       end
+    end
+
+    private
+
+    # Ensure a resource is available when the Turnstile check fails and re-renders
+    # the :new template before Devise has had a chance to assign one.
+    def build_turnstile_resource
+      self.resource ||= resource_class.new
     end
   end
 end

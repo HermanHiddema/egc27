@@ -122,4 +122,51 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       assert response.headers["Retry-After"].to_i.positive?
     end
   end
+
+  test "throttles sign in attempts by IP after limit" do
+    freeze_time do
+      10.times do |i|
+        post user_session_path, params: { user: { email: "user#{i}@example.com", password: "wrong" } }, headers: { "REMOTE_ADDR" => "6.7.8.9" }
+        assert_includes [200, 302, 401, 422], response.status
+      end
+
+      post user_session_path, params: { user: { email: "user10@example.com", password: "wrong" } }, headers: { "REMOTE_ADDR" => "6.7.8.9" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles sign in attempts by email after limit" do
+    freeze_time do
+      5.times do |i|
+        post user_session_path,
+          params: { user: { email: "victim@example.com", password: "wrong" } },
+          headers: { "REMOTE_ADDR" => "30.0.0.#{i + 1}" }
+        assert_includes [200, 302, 401, 422], response.status
+      end
+
+      post user_session_path,
+        params: { user: { email: "victim@example.com", password: "wrong" } },
+        headers: { "REMOTE_ADDR" => "30.0.0.99" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles newsletter subscriptions by IP after limit" do
+    params = {
+      newsletter_subscription: { first_name: "Jane", last_name: "Doe", email: "news@example.org" }
+    }
+
+    freeze_time do
+      10.times do
+        post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
 end

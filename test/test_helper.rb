@@ -24,5 +24,26 @@ module ActionDispatch
         user: { email: user.email, password: "password123" }
       }
     end
+
+    # Runs the block with Cloudflare Turnstile configured (both keys present) so
+    # that controllers including TurnstileVerifiable actually enforce the check.
+    def with_turnstile_configured
+      previous_secret = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+      previous_site = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
+      ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
+      ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
+      yield
+    ensure
+      if previous_secret.nil?
+        ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+      else
+        ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = previous_secret
+      end
+      if previous_site.nil?
+        ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+      else
+        ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = previous_site
+      end
+    end
   end
 end

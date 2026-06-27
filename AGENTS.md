@@ -39,6 +39,14 @@ This file defines project-specific guidance for AI coding agents working in this
 - If data format changes are required, include migration and model normalization.
 - Validate external API payloads defensively.
 
+## Bot Protection (Cloudflare Turnstile + Rack::Attack)
+- Every publicly available form that accepts anonymous submissions must have BOTH layers of protection:
+  1. Cloudflare Turnstile in the view (`render "shared/turnstile_widget"`) verified server-side via the `TurnstileVerifiable` concern (`before_action :verify_turnstile` on the submit action).
+  2. Rack::Attack throttling for the submit path in `config/initializers/rack_attack.rb` (throttle by IP, and by email where the form accepts an email address).
+- This currently covers: newsletter subscription, participant registration, magic-link sign-in, password sign-in (login), forgot-password, and resend-confirmation forms.
+- When a public form maps to a Devise controller, add Turnstile by subclassing the Devise controller under `app/controllers/users/`, including `TurnstileVerifiable`, and wiring it through `devise_for ... controllers:`. For the sign-in (sessions) controller use `prepend_before_action :verify_turnstile` so the check runs before Devise's own authentication filters — otherwise Warden authenticates and persists the session before the check can halt the request.
+- Add both protections to any new public form by default.
+
 ## Preference Update Rule (Important)
 When the user expresses a new coding/UI/process preference in chat:
 1. Apply the preference to the current task immediately.
@@ -55,3 +63,6 @@ When the user expresses a new coding/UI/process preference in chat:
 - Prefer standard Rails resource/controller naming; avoid custom controller names like `*ManagementController`.
 - In the top bar, keep Newsletter and Register now CTAs green while reusing btn-primary for size and shape.
 - In the top bar stacked-button layout (< lg), shorten `Register now` to `Register`.
+- Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
+- On mobile, the navigation bar toggles the menu as a whole (the full bar is the button) and uses a hamburger icon rather than a `Navigation` text label.
+- Cloudflare Turnstile is required on all publicly available submission forms, including Devise auth forms (login, forgot password, resend confirmation). Every public form must ALSO have Rack::Attack backend throttling (by IP, and by email where applicable). The two protections are complementary, not alternatives.
