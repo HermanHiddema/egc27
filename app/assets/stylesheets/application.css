@@ -94,6 +94,12 @@ trix-editor {
   margin-block: 0.25rem;
 }
 
+.rich-content a {
+  color: var(--brand-blue-600);
+  text-decoration: underline;
+  text-underline-offset: 0.125em;
+}
+
 .rich-content blockquote {
   border-left: 4px solid var(--brand-blue-300);
   margin-block: 1rem;
