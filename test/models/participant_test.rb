@@ -127,6 +127,54 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("player", participant.participant_type)
   end
 
+  test "validates EGD pin must be an 8 digit number" do
+    participant = Participant.new(
+      user: users(:one),
+      first_name: "Lee",
+      last_name: "Min",
+      email: "lee.pin@example.org",
+      age_group: "18-49",
+      country: "KR",
+      gender: "male",
+      club: "Seoul",
+      image_use_consent: true,
+      rank: "2 dan",
+      egd_pin: "1234"
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:egd_pin], "must be an 8 digit number"
+
+    participant.egd_pin = "12345678"
+    assert participant.valid?
+  end
+
+  test "validates rating must be between -1000 and 3000" do
+    participant = Participant.new(
+      user: users(:one),
+      first_name: "Lee",
+      last_name: "Min",
+      email: "lee.rating@example.org",
+      age_group: "18-49",
+      country: "KR",
+      gender: "male",
+      club: "Seoul",
+      image_use_consent: true,
+      rank: "2 dan",
+      rating: 3500
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:rating], "must be less than or equal to 3000"
+
+    participant.rating = -2000
+    assert_not participant.valid?
+    assert_includes participant.errors[:rating], "must be greater than or equal to -1000"
+
+    participant.rating = 2500
+    assert participant.valid?
+  end
+
   test "normalizes email" do
     participant = Participant.new(
       user: users(:one),

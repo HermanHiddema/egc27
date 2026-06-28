@@ -28,7 +28,12 @@ class Participant < ApplicationRecord
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }
-  validates :rating, numericality: { only_integer: true }, allow_nil: true
+  validates :rating, numericality: {
+    only_integer: true,
+    greater_than_or_equal_to: -1000,
+    less_than_or_equal_to: 3000
+  }, allow_nil: true
+  validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" }, allow_blank: true
   validates :rank, numericality: {
     only_integer: true,
     greater_than_or_equal_to: EgdGradeMapping::MIN_GRADE_N,
