@@ -28,4 +28,37 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_user_session_path
   end
+
+  test "a password reset link can only be used once" do
+    user = users(:one)
+    raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)
+    user.update!(reset_password_token: hashed_token, reset_password_sent_at: Time.current)
+
+    # First use: resets the password and consumes the token.
+    put user_password_path, params: {
+      user: {
+        reset_password_token: raw_token,
+        password: "newpassword123",
+        password_confirmation: "newpassword123"
+      }
+    }
+    assert_redirected_to root_path
+    assert_nil user.reload.reset_password_token
+
+    # Devise signs the user in after a successful reset; sign out so the reuse
+    # attempt is evaluated purely on the (now consumed) token.
+    delete destroy_user_session_path
+
+    # Second use: the same link no longer resets the password.
+    put user_password_path, params: {
+      user: {
+        reset_password_token: raw_token,
+        password: "anotherpassword123",
+        password_confirmation: "anotherpassword123"
+      }
+    }
+    assert_response :success
+    assert user.reload.valid_password?("newpassword123")
+    refute user.valid_password?("anotherpassword123")
+  end
 end
