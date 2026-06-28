@@ -21,14 +21,14 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal ["must be selected"], participant.errors[:age_group]
   end
 
-  test "does not add a user error when email is blank" do
+  test "requires a user" do
     participant = Participant.new
 
     assert_not participant.valid?
-    assert_empty participant.errors[:user]
+    assert_includes participant.errors[:user], "must exist"
   end
 
-  test "requires a user when email is present" do
+  test "requires a user even when other fields are present" do
     participant = Participant.new(
       first_name: "Eva",
       last_name: "Jansen",
@@ -41,7 +41,7 @@ class ParticipantTest < ActiveSupport::TestCase
     )
 
     assert_not participant.valid?
-    assert_includes participant.errors[:user], "can't be blank"
+    assert_includes participant.errors[:user], "must exist"
   end
 
   test "converts grade string to EGD grade_n integer" do
