@@ -24,6 +24,12 @@ class User < ApplicationRecord
     NewsletterSubscription.subscribe_user(self)
   end
 
+  # Invalidate the magic link after a successful sign-in so each link works
+  # exactly once. See MagicLink::SingleUseTokenizer.
+  def after_magic_link_authentication
+    update_column(:magic_link_token, nil) if magic_link_token.present?
+  end
+
   scope :ordered_by_name, -> { order(full_name: :asc) }
 
   def display_name

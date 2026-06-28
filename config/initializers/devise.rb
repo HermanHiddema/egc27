@@ -29,8 +29,10 @@ Devise.setup do |config|
   # Devise::Passwordless::Mailer instead of Devise::Mailer
   config.mailer = "Users::Mailer"
 
-  # Which algorithm to use for tokenizing magic links. See README for descriptions
-  config.passwordless_tokenizer = "SignedGlobalIDTokenizer"
+  # Which algorithm to use for tokenizing magic links. See README for descriptions.
+  # We use a custom tokenizer that wraps a signed GlobalID with a server-side
+  # tracked nonce so that each magic link can only be used once.
+  config.passwordless_tokenizer = "::MagicLink::SingleUseTokenizer"
 
   # Time period after a magic login link is sent out that it will be valid for.
   # config.passwordless_login_within = 20.minutes
