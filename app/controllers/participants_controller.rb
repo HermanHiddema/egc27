@@ -220,5 +220,6 @@ class ParticipantsController < ApplicationController
 
   def build_participant
     @participant = Participant.new(participant_params)
+    @participant.email = current_user.email if user_signed_in?
   end
 end

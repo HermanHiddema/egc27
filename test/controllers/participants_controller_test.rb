@@ -183,6 +183,46 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "label[for='participant_participant_type']", text: "Participant type *"
   end
 
+  test "registration form prefills and locks the email for signed in users" do
+    sign_in users(:one)
+
+    get new_participant_path
+
+    assert_response :success
+    assert_select "input#participant_email[readonly][value=?]", users(:one).email
+    assert_select "p.text-gray-500", text: "Log out to use a different email for this registration."
+    assert_select "p.text-gray-500", text: /multiple participants/, count: 0
+  end
+
+  test "registration form leaves the email editable for guests" do
+    get new_participant_path
+
+    assert_response :success
+    assert_select "input#participant_email:not([readonly])"
+    assert_select "p.text-gray-500", text: /multiple participants/
+  end
+
+  test "create forces the signed in user's email even if a different one is submitted" do
+    sign_in users(:one)
+
+    assert_difference "Participant.count", 1 do
+      post participants_path, params: {
+        participant: {
+          first_name: "Eve",
+          last_name: "Adams",
+          gender: "female",
+          age_group: "18-49",
+          country: "NL",
+          participant_type: "visitor",
+          image_use_consent: false,
+          email: "someone-else@example.org"
+        }
+      }
+    end
+
+    assert_equal users(:one).email, Participant.order(:created_at).last.email
+  end
+
   test "registration agreement references only the Terms and Conditions" do
     get new_participant_path
 
