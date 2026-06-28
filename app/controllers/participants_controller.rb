@@ -55,6 +55,7 @@ class ParticipantsController < ApplicationController
     ActiveRecord::Base.transaction do
       @participant.user = find_or_create_user_for(@participant)
       @participant.save!
+      create_congress_pass_order(@participant, @participant.user)
     end
 
     send_registration_confirmation_email(@participant)
@@ -221,5 +222,21 @@ class ParticipantsController < ApplicationController
   def build_participant
     @participant = Participant.new(participant_params)
     @participant.email = current_user.email if user_signed_in?
+  end
+
+  # A player's congress pass is what they pay for to attend, so an order is created
+  # automatically at registration (at the current price) and linked to the participant
+  # via the polymorphic orderable so its paid status can be shown.
+  def create_congress_pass_order(participant, user)
+    return unless user
+    return unless participant.player?
+
+    pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group)
+    participant.orders.create!(
+      user: user,
+      description: pricing.description,
+      amount_cents: pricing.price_cents,
+      status: "cart"
+    )
   end
 end

@@ -12,6 +12,7 @@ class Participant < ApplicationRecord
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
+  has_many :orders, as: :orderable, dependent: :destroy
   belongs_to :user
 
   attribute :image_use_consent, :boolean, default: nil
@@ -62,6 +63,14 @@ class Participant < ApplicationRecord
 
   def visitor?
     participant_type == "visitor"
+  end
+
+  def congress_pass_order
+    orders.order(created_at: :desc).first
+  end
+
+  def congress_pass_paid?
+    orders.paid.exists?
   end
 
   def generate_confirmation_token!

@@ -333,6 +333,52 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
+  test "creates a congress pass order for a registered player" do
+    assert_difference("Order.count", 1) do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "order_player@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          club: "Utrecht",
+          gender: "female",
+          image_use_consent: false,
+          attendance_option: "all_events"
+        }
+      }
+    end
+
+    participant = Participant.order(:id).last
+    order = participant.orders.sole
+    pricing = CongressPassPricing.new(attendance_option: "all_events", age_group: "18-49")
+
+    assert_equal participant.user, order.user
+    assert_equal pricing.price_cents, order.amount_cents
+    assert_equal pricing.description, order.description
+    assert_equal "cart", order.status
+  end
+
+  test "does not create a congress pass order for a registered visitor" do
+    assert_no_difference("Order.count") do
+      post participants_path, params: {
+        participant: {
+          first_name: "Vince",
+          last_name: "Visitor",
+          email: "order_visitor@example.org",
+          participant_type: "visitor",
+          age_group: "18-49",
+          country: "NL",
+          club: "Utrecht",
+          gender: "male",
+          image_use_consent: false
+        }
+      }
+    end
+  end
+
   test "allows a participant with a duplicate EGD pin" do
     assert_difference("Participant.count", 1) do
       post participants_path, params: {

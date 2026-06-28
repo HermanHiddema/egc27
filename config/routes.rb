@@ -101,5 +101,11 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#index", as: :dashboard
   resources :sponsors, except: [:show]
 
+  resource :cart, only: [:show], controller: "cart" do
+    post :checkout
+    get :success
+    post :webhook
+  end
+
   root "home#index"
 end

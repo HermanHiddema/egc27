@@ -1,0 +1,55 @@
+<div class="container-wide py-12">
+  <div class="max-w-xl mx-auto text-center">
+    <% paid = Array(@orders).all?(&:paid?) && Array(@orders).any? %>
+    <% pending = Array(@orders).any? { |o| o.status.in?(%w[open pending authorized]) } %>
+    <% if paid %>
+      <div class="bg-green-50 border border-green-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">✓</div>
+        <h1 class="text-3xl font-bold text-green-900 mb-2">Payment Successful!</h1>
+        <p class="text-green-700">
+          Thank you — your payment has been confirmed.
+        </p>
+      </div>
+    <% elsif pending %>
+      <div class="bg-brand-yellow-50 border border-brand-yellow-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">⏳</div>
+        <h1 class="text-3xl font-bold text-brand-yellow-900 mb-2">Payment Pending</h1>
+        <p class="text-brand-yellow-800">
+          Your payment is being processed. You will receive confirmation once it is complete.
+        </p>
+      </div>
+    <% elsif Array(@orders).any? %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-8 shadow-sm mb-6">
+        <div class="text-5xl mb-4">✗</div>
+        <h1 class="text-3xl font-bold text-red-900 mb-2">Payment Not Completed</h1>
+        <p class="text-red-700 mb-4">
+          Your payment was not completed. The items remain in your cart.
+        </p>
+        <%= link_to "Back to cart", cart_path, class: "btn-primary" %>
+      </div>
+    <% else %>
+      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm mb-6">
+        <h1 class="text-3xl font-bold mb-2">Return from Payment</h1>
+        <p class="text-neutral-600">
+          We are verifying your payment status. Please check back shortly.
+        </p>
+      </div>
+    <% end %>
+
+    <% if Array(@orders).any? %>
+      <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-6 text-left">
+        <p class="text-sm font-semibold text-neutral-900 mb-2">Order reference<%= "s" if @orders.size > 1 %></p>
+        <ul class="divide-y divide-gray-100">
+          <% @orders.each do |order| %>
+            <li class="flex items-center justify-between gap-4 py-2 text-sm">
+              <span class="text-neutral-700">#<%= order.order_number %> — <%= order.description %></span>
+              <span class="font-semibold text-neutral-900 whitespace-nowrap"><%= order.amount_formatted %></span>
+            </li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <%= link_to "Back to cart", cart_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
+  </div>
+</div>
