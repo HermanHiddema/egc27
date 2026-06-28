@@ -12,8 +12,9 @@ class ApplicationController < ActionController::Base
 
   protected
 
-  # After signing in, send users to their own registrations, which is the most
-  # useful landing spot. Applies to every sign-in path (password and magic link).
+  # After signing in, send users to their own registrations by default, which is the most
+  # useful landing spot. Still honors a stored return-to location when present (e.g. when
+  # authentication was required mid-flow).
   def after_sign_in_path_for(resource)
     stored_location_for(resource) || mine_participants_path
   end
