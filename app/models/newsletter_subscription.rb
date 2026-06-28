@@ -11,6 +11,43 @@ class NewsletterSubscription < ApplicationRecord
     email.to_s.strip.downcase
   end
 
+  def self.subscribe_user(user)
+    return if user.nil?
+
+    participant = user.registration_participant
+    return if participant.nil?
+
+    email = normalize_email(user.email)
+    return if email.blank?
+    return if exists?(email: email)
+
+    create(
+      first_name: participant.first_name,
+      last_name: participant.last_name,
+      email: email
+    )
+  rescue ActiveRecord::RecordNotUnique
+    nil
+  end
+
+  def self.update_email(old_email, new_email)
+    old = normalize_email(old_email)
+    new = normalize_email(new_email)
+    return if old.blank? || new.blank? || old == new
+
+    subscription = find_by(email: old)
+    return if subscription.nil?
+
+    if exists?(email: new)
+      subscription.destroy
+      return
+    end
+
+    subscription.update(email: new)
+  rescue ActiveRecord::RecordNotUnique
+    subscription&.destroy
+  end
+
   def unsubscribe!
     update!(subscribed: false)
   end
