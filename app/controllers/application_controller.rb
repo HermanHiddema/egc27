@@ -12,6 +12,13 @@ class ApplicationController < ActionController::Base
 
   protected
 
+  # After signing in, send users to their own registrations by default, which is the most
+  # useful landing spot. Still honors a stored return-to location when present (e.g. when
+  # authentication was required mid-flow).
+  def after_sign_in_path_for(resource)
+    stored_location_for(resource) || mine_participants_path
+  end
+
   # Browser version enforcement applies to interactive (browser) requests only.
   # Controllers serving machine-to-machine endpoints override this to opt out.
   def skip_browser_version_guard?
