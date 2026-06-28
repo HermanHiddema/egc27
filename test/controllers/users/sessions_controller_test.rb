@@ -23,6 +23,6 @@ class Users::SessionsControllerTest < ActionDispatch::IntegrationTest
   test "signs in successfully when turnstile is not configured" do
     post user_session_path, params: { user: { email: users(:one).email, password: "password123" } }
 
-    assert_redirected_to root_path
+    assert_redirected_to mine_participants_path
   end
 end
