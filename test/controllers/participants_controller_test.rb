@@ -505,6 +505,42 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at
   end
 
+  test "resends account confirmation when participant is linked to existing unconfirmed user" do
+    unconfirmed_user = User.create!(
+      email: "pending_account@example.org",
+      password: "password123",
+      role: "regular"
+    )
+    assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
+
+    assert_difference("User.count", 0) do
+      assert_emails 1 do
+        post participants_path, params: {
+          participant: {
+            first_name: "Pending",
+            last_name: "Account",
+            email: unconfirmed_user.email,
+            participant_type: "player",
+            age_group: "18-49",
+            country: "NL",
+            club: "Utrecht",
+            gender: "male",
+            image_use_consent: false
+          }
+        }
+      end
+    end
+
+    participant = Participant.order(:id).last
+    assert_equal unconfirmed_user, participant.user
+    assert_nil participant.confirmed_at
+
+    email = ActionMailer::Base.deliveries.last
+    assert_equal [unconfirmed_user.email], email.to
+    assert_equal "EGC 2027 – Confirm your account", email.subject
+    assert_match "Pending Account", email.body.decoded
+  end
+
   test "confirm action confirms participant with valid token" do
     participant = participants(:unconfirmed)
     assert_nil participant.confirmed_at
