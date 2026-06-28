@@ -308,6 +308,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_match "can&#39;t be blank", response.body
+    assert_match(/User\s+must exist/i, response.body)
   end
 
   test "creates participant without authentication" do
