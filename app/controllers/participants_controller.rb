@@ -57,10 +57,7 @@ class ParticipantsController < ApplicationController
       @participant.save!
     end
 
-    if @participant.user&.confirmed?
-      @participant.generate_confirmation_token!
-      ParticipantMailer.participant_confirmation(@participant).deliver_later
-    end
+    send_registration_confirmation_email(@participant)
 
     redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
   rescue ActiveRecord::RecordInvalid
@@ -126,6 +123,24 @@ class ParticipantsController < ApplicationController
   end
 
   private
+
+  # Sends the appropriate confirmation email after a participant registers.
+  # - Confirmed account: a per-participant confirmation email so the existing
+  #   account holder can confirm this specific registration.
+  # - Existing unconfirmed account: re-sends the Devise account confirmation
+  #   instructions (a newly created account already received them on save).
+  def send_registration_confirmation_email(participant)
+    user = participant.user
+    return unless user
+
+    if user.confirmed?
+      participant.generate_confirmation_token!
+      ParticipantMailer.participant_confirmation(participant).deliver_later
+    elsif !user.previously_new_record?
+      user.registration_participant = participant
+      user.send_confirmation_instructions
+    end
+  end
 
   def set_participant
     @participant = Participant.find_by!(uuid: params[:id])
@@ -205,5 +220,6 @@ class ParticipantsController < ApplicationController
 
   def build_participant
     @participant = Participant.new(participant_params)
+    @participant.email = current_user.email if user_signed_in?
   end
 end
