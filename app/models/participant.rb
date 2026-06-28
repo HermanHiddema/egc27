@@ -12,16 +12,18 @@ class Participant < ApplicationRecord
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
+  # The user is always derived from the email during registration, so a missing
+  # user can only result from a missing email. The association is marked optional
+  # here only to suppress the framework's "User must exist" error; user presence
+  # is instead validated conditionally below so that a missing email surfaces as
+  # the single root-cause error. The participants.user_id NOT NULL database
+  # constraint remains the backend safety net guaranteeing a user is always set.
   belongs_to :user, optional: true
 
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
 
   validates :first_name, :last_name, :email, :country, presence: true
-  # A user is always derived from the email, so only require it once the email
-  # is present. This keeps a missing email as the single root-cause error the
-  # registrant sees, while the participants.user_id NOT NULL constraint remains
-  # the backend safety net.
   validates :user, presence: true, if: -> { email.present? }
   validates :age_group, inclusion: { in: AGE_GROUPS, message: "must be selected" }
   validates :participant_type, inclusion: { in: PARTICIPANT_TYPES, message: "must be selected" }
