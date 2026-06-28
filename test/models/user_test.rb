@@ -110,6 +110,34 @@ class UserTest < ActiveSupport::TestCase
     assert_not_nil participant.reload.confirmed_at
   end
 
+  test "after_confirmation subscribes a user with a participant to the newsletter" do
+    user = User.create!(
+      email: "newsletter_confirm@example.com",
+      skip_password_validation: true
+    )
+    Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      club: "Test Club",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    user.update_column(:confirmed_at, Time.current)
+
+    assert_difference("NewsletterSubscription.count", 1) do
+      user.after_confirmation
+    end
+
+    subscription = NewsletterSubscription.find_by(email: user.email)
+    assert_not_nil subscription
+    assert subscription.subscribed
+  end
+
   test "destroying a user destroys linked participants" do
     user = User.create!(email: "destroy_test@example.com", skip_password_validation: true)
     participant = Participant.create!(
@@ -129,5 +157,132 @@ class UserTest < ActiveSupport::TestCase
     end
 
     assert_not Participant.exists?(participant.id)
+  end
+
+  test "after_confirmation does not subscribe a user without a participant" do
+    user = User.create!(
+      email: "no_participant_confirm@example.com",
+      skip_password_validation: true
+    )
+
+    assert_no_difference("NewsletterSubscription.count") do
+      user.after_confirmation
+    end
+  end
+
+  test "changing email updates the user's participants and newsletter subscription" do
+    user = User.create!(email: "before@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    participant = Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.skip_reconfirmation!
+    user.update!(email: "after@example.com")
+
+    assert_equal "after@example.com", participant.reload.email
+    assert_equal "after@example.com", subscription.reload.email
+  end
+
+  test "changing email normalizes participant and subscription emails" do
+    user = User.create!(email: "before2@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    participant = Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.skip_reconfirmation!
+    user.update!(email: "  AFter2@Example.com ")
+
+    assert_equal "after2@example.com", participant.reload.email
+    assert_equal "after2@example.com", subscription.reload.email
+  end
+
+  test "changing email does not create a subscription when none exists" do
+    user = User.create!(email: "nochange@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+
+    assert_no_difference("NewsletterSubscription.count") do
+      user.skip_reconfirmation!
+      user.update!(email: "nochange2@example.com")
+    end
+  end
+
+  test "changing email does not update newsletter subscription when user has no participants" do
+    user = User.create!(email: "nopart@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.skip_reconfirmation!
+    user.update!(email: "nopart2@example.com")
+
+    assert_equal "nopart@example.com", subscription.reload.email
+  end
+
+  test "confirming a reconfirmation propagates the new email" do
+    user = User.create!(email: "reconfirm_before@example.com", skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    participant = Participant.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "male",
+      image_use_consent: true,
+      user: user
+    )
+    subscription = NewsletterSubscription.create!(
+      first_name: "Test",
+      last_name: "Person",
+      email: user.email
+    )
+
+    user.update!(email: "reconfirm_after@example.com")
+    assert_equal "reconfirm_before@example.com", user.reload.email, "email change should be postponed until reconfirmation"
+
+    user.confirm
+
+    assert_equal "reconfirm_after@example.com", user.reload.email
+    assert_equal "reconfirm_after@example.com", participant.reload.email
+    assert_equal "reconfirm_after@example.com", subscription.reload.email
   end
 end

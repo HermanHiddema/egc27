@@ -11,6 +11,8 @@ class User < ApplicationRecord
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"
 
+  after_update :propagate_email_change, if: :saved_change_to_email?
+
   def after_confirmation
     super
     participants.each do |participant|
@@ -19,6 +21,7 @@ class User < ApplicationRecord
       participant.confirm!
       ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
     end
+    NewsletterSubscription.subscribe_user(self)
   end
 
   # Invalidate the magic link after a successful sign-in so each link works
@@ -64,5 +67,15 @@ class User < ApplicationRecord
     return false if skip_password_validation
 
     super
+  end
+
+  private
+
+  def propagate_email_change
+    old_email, new_email = saved_change_to_email
+    normalized_email = NewsletterSubscription.normalize_email(new_email)
+
+    participants.update_all(email: normalized_email, updated_at: Time.current)
+    NewsletterSubscription.update_email(old_email, normalized_email) if participants.exists?
   end
 end
