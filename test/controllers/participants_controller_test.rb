@@ -290,6 +290,27 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "create without email shows only the missing email error and no user error" do
+    assert_no_difference("Participant.count") do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          gender: "female",
+          image_use_consent: true
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "can&#39;t be blank", response.body
+    assert_no_match(/User\s+(must exist|can&#39;t be blank)/i, response.body)
+  end
+
   test "creates participant without authentication" do
     assert_difference("Participant.count", 1) do
       post participants_path, params: {

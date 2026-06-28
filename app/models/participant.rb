@@ -12,19 +12,20 @@ class Participant < ApplicationRecord
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
-  belongs_to :user
+  belongs_to :user, optional: true
 
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
 
   validates :first_name, :last_name, :email, :country, presence: true
-  validates :age_group, presence: true, inclusion: { in: AGE_GROUPS }
-  validates :participant_type, inclusion: { in: PARTICIPANT_TYPES }
-  validates :gender, inclusion: { in: GENDERS }
+  validates :user, presence: true, if: -> { email.present? }
+  validates :age_group, inclusion: { in: AGE_GROUPS, message: "must be selected" }
+  validates :participant_type, inclusion: { in: PARTICIPANT_TYPES, message: "must be selected" }
+  validates :gender, inclusion: { in: GENDERS, message: "must be selected" }
   validates :accepted_terms_and_conditions, inclusion: { in: [true], message: "must be accepted" }
   validates :accepted_privacy_policy, inclusion: { in: [true], message: "must be accepted" }
   validates :image_use_consent, inclusion: { in: [true, false], message: "must be selected" }
-  validates :attendance_option, inclusion: { in: ATTENDANCE_OPTIONS.keys }, allow_blank: true
+  validates :attendance_option, inclusion: { in: ATTENDANCE_OPTIONS.keys, message: "must be selected" }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }

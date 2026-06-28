@@ -10,8 +10,38 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:first_name], "can't be blank"
     assert_includes participant.errors[:last_name], "can't be blank"
     assert_includes participant.errors[:email], "can't be blank"
-    assert_includes participant.errors[:age_group], "can't be blank"
+    assert_includes participant.errors[:age_group], "must be selected"
     assert_includes participant.errors[:country], "can't be blank"
+  end
+
+  test "age group has a single must be selected error when blank" do
+    participant = Participant.new
+
+    assert_not participant.valid?
+    assert_equal ["must be selected"], participant.errors[:age_group]
+  end
+
+  test "does not add a user error when email is blank" do
+    participant = Participant.new
+
+    assert_not participant.valid?
+    assert_empty participant.errors[:user]
+  end
+
+  test "requires a user when email is present" do
+    participant = Participant.new(
+      first_name: "Eva",
+      last_name: "Jansen",
+      email: "eva@example.org",
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      image_use_consent: true,
+      rank: "1 dan"
+    )
+
+    assert_not participant.valid?
+    assert_includes participant.errors[:user], "can't be blank"
   end
 
   test "converts grade string to EGD grade_n integer" do
@@ -69,7 +99,7 @@ class ParticipantTest < ActiveSupport::TestCase
     )
 
     assert_not participant.valid?
-    assert_includes participant.errors[:age_group], "is not included in the list"
+    assert_includes participant.errors[:age_group], "must be selected"
   end
 
   test "accepts all valid age group values" do
@@ -328,7 +358,7 @@ class ParticipantTest < ActiveSupport::TestCase
     )
 
     assert_not participant.valid?
-    assert_includes participant.errors[:attendance_option], "is not included in the list"
+    assert_includes participant.errors[:attendance_option], "must be selected"
   end
 
   test "requires explicit image consent choice" do
