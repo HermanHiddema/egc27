@@ -42,7 +42,7 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
         password_confirmation: "newpassword123"
       }
     }
-    assert_redirected_to root_path
+    assert_redirected_to mine_participants_path
     assert_nil user.reload.reset_password_token
 
     # Devise signs the user in after a successful reset; sign out so the reuse

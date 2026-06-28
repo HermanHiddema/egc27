@@ -10,7 +10,7 @@ class MagicLinkSignInTest < ActionDispatch::IntegrationTest
 
     # First use: signs the user in and redirects to the app.
     get user_magic_link_path(user: { email: @user.email, token: token })
-    assert_redirected_to root_path
+    assert_redirected_to mine_participants_path
     follow_redirect!
     assert_response :success
     assert_nil @user.reload.magic_link_token
