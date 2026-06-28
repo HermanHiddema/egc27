@@ -74,6 +74,7 @@ class ParticipantsController < ApplicationController
     token = params[:token].to_s
     if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
+      NewsletterSubscription.subscribe_user(@participant.user)
       ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
       notice = "Your registration has been confirmed."
       if @participant.player?
