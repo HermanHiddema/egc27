@@ -23,7 +23,7 @@ class Participant < ApplicationRecord
   validates :gender, inclusion: { in: GENDERS }
   validates :accepted_terms_and_conditions, inclusion: { in: [true], message: "must be accepted" }
   validates :accepted_privacy_policy, inclusion: { in: [true], message: "must be accepted" }
-  validates :image_use_consent, inclusion: { in: [true, false] }
+  validates :image_use_consent, inclusion: { in: [true, false], message: "must be selected" }
   validates :attendance_option, inclusion: { in: ATTENDANCE_OPTIONS.keys }, allow_blank: true
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true

@@ -346,7 +346,7 @@ class ParticipantTest < ActiveSupport::TestCase
     )
 
     assert_not participant.valid?
-    assert_includes participant.errors[:image_use_consent], "is not included in the list"
+    assert_includes participant.errors[:image_use_consent], "must be selected"
   end
 
   test "generate_confirmation_token! retries on token collisions for legacy invalid records and updates timestamp" do
