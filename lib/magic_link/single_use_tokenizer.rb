@@ -40,9 +40,7 @@ module MagicLink
 
       stored = resource.magic_link_token
       raise Devise::Passwordless::InvalidTokenError if stored.blank?
-      unless ActiveSupport::SecurityUtils.secure_compare(stored, digest(nonce))
-        raise Devise::Passwordless::InvalidTokenError
-      end
+      raise Devise::Passwordless::InvalidTokenError unless ActiveSupport::SecurityUtils.secure_compare(stored, digest(nonce))
 
       [resource, {}]
     end
