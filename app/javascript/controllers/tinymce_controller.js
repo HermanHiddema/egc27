@@ -13,7 +13,11 @@ export default class extends Controller {
         }
     }
 
+    // Stop polling for the CDN script after roughly 10 seconds.
+    static MAX_INIT_ATTEMPTS = 100
+
     connect() {
+        this.initAttempts = 0
         this.initializeEditor()
     }
 
@@ -30,6 +34,12 @@ export default class extends Controller {
 
     initializeEditor() {
         if (!window.tinymce) {
+            this.initAttempts += 1
+            if (this.initAttempts >= this.constructor.MAX_INIT_ATTEMPTS) {
+                console.error("TinyMCE failed to load; falling back to a plain text area.")
+                return
+            }
+
             this.pollTimeout = setTimeout(() => this.initializeEditor(), 100)
             return
         }
