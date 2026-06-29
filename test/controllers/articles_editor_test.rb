@@ -5,12 +5,12 @@ class ArticlesEditorTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
   end
 
-  test "new article renders the Trix editor by default" do
+  test "new article renders the TinyMCE editor by default" do
     get new_article_path
 
     assert_response :success
-    assert_select "trix-editor"
-    assert_select "textarea[data-controller=?]", "tinymce", count: 0
+    assert_select "textarea[data-controller=?]", "tinymce"
+    assert_select "trix-editor", count: 0
   end
 
   test "new article renders the TinyMCE editor when requested via url param" do

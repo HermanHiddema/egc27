@@ -5,6 +5,8 @@ import { Controller } from "@hotwired/stimulus"
 // only includes on pages that render the editor. Because that script loads
 // asynchronously, we poll briefly for `window.tinymce` before init.
 export default class extends Controller {
+    static TINYMCE_SCRIPT_SRC = "/tinymce/js/tinymce/tinymce.min.js"
+
     static values = {
         plugins: { type: String, default: "lists link image table code autoresize" },
         toolbar: {
@@ -18,10 +20,37 @@ export default class extends Controller {
 
     connect() {
         this.initAttempts = 0
+        this.handleTurboRefresh = () => {
+            this.initAttempts = 0
+            this.initializeEditor()
+        }
+        this.handleTurboBeforeCache = () => {
+            if (window.tinymce) {
+                window.tinymce.remove(this.element)
+            }
+        }
+
+        document.addEventListener("turbo:load", this.handleTurboRefresh)
+        document.addEventListener("turbo:render", this.handleTurboRefresh)
+        document.addEventListener("turbo:morph", this.handleTurboRefresh)
+        document.addEventListener("turbo:before-cache", this.handleTurboBeforeCache)
+
         this.initializeEditor()
     }
 
     disconnect() {
+        if (this.handleTurboRefresh) {
+            document.removeEventListener("turbo:load", this.handleTurboRefresh)
+            document.removeEventListener("turbo:render", this.handleTurboRefresh)
+            document.removeEventListener("turbo:morph", this.handleTurboRefresh)
+            this.handleTurboRefresh = null
+        }
+
+        if (this.handleTurboBeforeCache) {
+            document.removeEventListener("turbo:before-cache", this.handleTurboBeforeCache)
+            this.handleTurboBeforeCache = null
+        }
+
         if (this.pollTimeout) {
             clearTimeout(this.pollTimeout)
             this.pollTimeout = null
@@ -32,8 +61,65 @@ export default class extends Controller {
         }
     }
 
+    get existingEditor() {
+        if (!window.tinymce) return null
+
+        if (this.element.id) {
+            const byId = window.tinymce.get(this.element.id)
+            if (byId) return byId
+        }
+
+        return (window.tinymce.editors || []).find((editor) => editor.targetElm === this.element) || null
+    }
+
+    static ensureTinymceLoaded() {
+        if (window.tinymce) {
+            return Promise.resolve(window.tinymce)
+        }
+
+        if (this.loaderPromise) {
+            return this.loaderPromise
+        }
+
+        this.loaderPromise = new Promise((resolve, reject) => {
+            const existingScript = document.querySelector(`script[src="${this.TINYMCE_SCRIPT_SRC}"]`)
+            if (existingScript) {
+                existingScript.addEventListener("load", () => resolve(window.tinymce), { once: true })
+                existingScript.addEventListener("error", () => reject(new Error("Failed to load TinyMCE script")), { once: true })
+                return
+            }
+
+            const script = document.createElement("script")
+            script.src = this.TINYMCE_SCRIPT_SRC
+            script.async = true
+            script.addEventListener("load", () => resolve(window.tinymce), { once: true })
+            script.addEventListener("error", () => reject(new Error("Failed to load TinyMCE script")), { once: true })
+            document.head.appendChild(script)
+        })
+
+        return this.loaderPromise
+    }
+
     initializeEditor() {
+        if (!this.element.isConnected) {
+            return
+        }
+
+        const existingEditor = this.existingEditor
+        if (existingEditor) {
+            const container = existingEditor.getContainer?.()
+            if (container && container.isConnected) {
+                return
+            }
+
+            existingEditor.remove()
+        }
+
         if (!window.tinymce) {
+            this.constructor.ensureTinymceLoaded().catch(() => {
+                // Fall through to polling and eventual graceful fallback.
+            })
+
             this.initAttempts += 1
             if (this.initAttempts >= this.constructor.MAX_INIT_ATTEMPTS) {
                 console.error("TinyMCE failed to load; falling back to a plain text area.")

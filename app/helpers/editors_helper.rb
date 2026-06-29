@@ -1,6 +1,6 @@
 module EditorsHelper
   SUPPORTED_EDITORS = %w[trix tinymce].freeze
-  DEFAULT_FALLBACK_EDITOR = "trix".freeze
+  DEFAULT_FALLBACK_EDITOR = "tinymce".freeze
 
   # Tags/attributes allowed when rendering stored HTML authored via TinyMCE.
   # Kept intentionally narrow (no scripts, styles or event handlers) to avoid
