@@ -27,6 +27,11 @@
       <script>function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
       <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=egc27TurnstileOnLoad&render=explicit" async defer></script>
     <% end %>
+
+    <%# Load TinyMCE only on pages that render the TinyMCE editor %>
+    <% if content_for?(:tinymce_script) %>
+      <script src="https://cdn.tiny.cloud/1/<%= ENV.fetch("TINYMCE_API_KEY", "no-api-key") %>/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+    <% end %>
   </head>
 
   <body class="min-h-screen flex flex-col bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">

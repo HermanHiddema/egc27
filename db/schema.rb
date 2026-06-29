@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_06_28_171108) do
+ActiveRecord::Schema[8.1].define(version: 2026_06_29_131110) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -54,6 +54,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_171108) do
   end
 
   create_table "articles", force: :cascade do |t|
+    t.text "content_html"
     t.datetime "created_at", null: false
     t.string "title"
     t.datetime "updated_at", null: false
@@ -157,6 +158,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_28_171108) do
   end
 
   create_table "pages", force: :cascade do |t|
+    t.text "content_html"
     t.datetime "created_at", null: false
     t.string "slug", null: false
     t.string "title", null: false

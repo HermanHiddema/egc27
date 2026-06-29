@@ -25,7 +25,11 @@
       <% if @article.main_image.attached? && @article.main_image.variable? %>
         <%= image_tag main_image_representation(@article.main_image, resize_to_limit: [ 800, 800 ]), alt: "#{@article.title} main image", class: "float-right w-full md:w-1/3 md:ml-6 mb-4 rounded-lg border border-gray-200 object-cover h-auto" %>
       <% end %>
-      <%= @article.content %>
+      <% if tinymce_editor? && @article.content_html.present? %>
+        <%= render_html_content(@article.content_html) %>
+      <% else %>
+        <%= @article.content %>
+      <% end %>
     </div>
   </article>
 </div>
