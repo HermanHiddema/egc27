@@ -31,7 +31,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "finds articles by title" do
-    get search_path, params: { q: "MyString" }
+    get search_path, params: { q: articles(:one).title }
 
     assert_response :success
     assert_select "a[href='#{article_path(articles(:one))}']", text: articles(:one).title
