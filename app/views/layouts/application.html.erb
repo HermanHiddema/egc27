@@ -19,7 +19,7 @@
     <link rel="apple-touch-icon" href="/icon.png">
 
     <%# Includes all stylesheet files in app/assets/stylesheets %>
-    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= stylesheet_link_tag "tailwind", "application", "data-turbo-track": "reload" %>
     <%= javascript_importmap_tags %>
 
     <%# Load Cloudflare Turnstile only on pages that render a widget %>
@@ -30,7 +30,7 @@
 
     <%# Load TinyMCE only on pages that render the TinyMCE editor %>
     <% if content_for?(:tinymce_script) %>
-      <script src="https://cdn.tiny.cloud/1/<%= ENV.fetch("TINYMCE_API_KEY", "no-api-key") %>/tinymce/7/tinymce.min.js" referrerpolicy="origin"></script>
+      <script src="/tinymce/js/tinymce/tinymce.min.js"></script>
     <% end %>
   </head>
 

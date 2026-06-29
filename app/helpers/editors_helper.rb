@@ -10,8 +10,9 @@ module EditorsHelper
     strong b em i u s sub sup
     ul ol li a img
     table thead tbody tfoot tr th td caption col colgroup
+    figure figcaption
   ].freeze
-  ALLOWED_HTML_ATTRIBUTES = %w[href src alt title target rel colspan rowspan scope].freeze
+  ALLOWED_HTML_ATTRIBUTES = %w[href src alt title target rel colspan rowspan scope class width height].freeze
 
   # Editor selected for the current request. Honours an explicit `?editor=`
   # URL param (when it names a supported editor) and otherwise falls back to
@@ -31,6 +32,14 @@ module EditorsHelper
 
   def tinymce_editor?
     current_editor == "tinymce"
+  end
+
+  # Prefer TinyMCE-native HTML when present; otherwise prefill from the
+  # ActionText body so switching editor modes still shows existing content.
+  def tinymce_content_value(record)
+    return "" unless record.respond_to?(:content_html)
+
+    record.content_html.presence || record.content&.body&.to_s.to_s
   end
 
   # Render stored HTML content (authored via TinyMCE) after sanitising it
