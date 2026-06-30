@@ -1,6 +1,16 @@
 import { Controller } from "@hotwired/stimulus"
 import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
+// Mirrors the server-side rating rules in EgdGradeMapping / Participant so the
+// read-only rating field can preview the locked value as the rank changes.
+const MIN_GRADE_N = 0
+const MAX_GRADE_N = 47
+const FIRST_KYU_GRADE_N = 29
+const FIRST_KYU_RATING = 2000
+const RATING_PER_GRADE = 100
+const MIN_RATING = -1000
+const MAX_RATING = 3000
+
 const ISO_COUNTRY_CODES = [
     "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
     "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS",
@@ -173,10 +183,10 @@ export default class extends Controller {
         if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return null
 
         const parsed = Number(gradeN)
-        if (Number.isNaN(parsed) || parsed < 0 || parsed > 47) return null
+        if (Number.isNaN(parsed) || parsed < MIN_GRADE_N || parsed > MAX_GRADE_N) return null
 
-        const rating = 2000 + (parsed - 29) * 100
-        return Math.min(3000, Math.max(-1000, rating))
+        const rating = FIRST_KYU_RATING + (parsed - FIRST_KYU_GRADE_N) * RATING_PER_GRADE
+        return Math.min(MAX_RATING, Math.max(MIN_RATING, rating))
     }
 
     countryInputBlur() {
@@ -447,7 +457,7 @@ export default class extends Controller {
         if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return ""
 
         const parsed = Number(gradeN)
-        if (Number.isNaN(parsed) || parsed < 0 || parsed > 47) return ""
+        if (Number.isNaN(parsed) || parsed < MIN_GRADE_N || parsed > MAX_GRADE_N) return ""
         if (parsed <= 29) return `${30 - parsed} kyu`
         if (parsed <= 38) return `${parsed - 29} dan`
         return `${parsed - 38} dan pro`
