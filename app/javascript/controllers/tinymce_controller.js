@@ -5,9 +5,8 @@ import { Controller } from "@hotwired/stimulus"
 // only includes on pages that render the editor. Because that script loads
 // asynchronously, we poll briefly for `window.tinymce` before init.
 export default class extends Controller {
-    static TINYMCE_SCRIPT_SRC = "/tinymce/js/tinymce/tinymce.min.js"
-
     static values = {
+        scriptUrl: String,
         plugins: { type: String, default: "lists link image table code autoresize quickbars" },
         toolbar: {
             type: String,
@@ -72,17 +71,18 @@ export default class extends Controller {
         return (window.tinymce.editors || []).find((editor) => editor.targetElm === this.element) || null
     }
 
-    static ensureTinymceLoaded() {
+    static ensureTinymceLoaded(scriptUrl) {
         if (window.tinymce) {
             return Promise.resolve(window.tinymce)
         }
 
-        if (this.loaderPromise) {
-            return this.loaderPromise
+        this.loaderPromises ||= new Map()
+        if (this.loaderPromises.has(scriptUrl)) {
+            return this.loaderPromises.get(scriptUrl)
         }
 
-        this.loaderPromise = new Promise((resolve, reject) => {
-            const existingScript = document.querySelector(`script[src="${this.TINYMCE_SCRIPT_SRC}"]`)
+        const loaderPromise = new Promise((resolve, reject) => {
+            const existingScript = document.querySelector(`script[src="${scriptUrl}"]`)
             if (existingScript) {
                 existingScript.addEventListener("load", () => resolve(window.tinymce), { once: true })
                 existingScript.addEventListener("error", () => reject(new Error("Failed to load TinyMCE script")), { once: true })
@@ -90,14 +90,15 @@ export default class extends Controller {
             }
 
             const script = document.createElement("script")
-            script.src = this.TINYMCE_SCRIPT_SRC
+            script.src = scriptUrl
             script.async = true
             script.addEventListener("load", () => resolve(window.tinymce), { once: true })
             script.addEventListener("error", () => reject(new Error("Failed to load TinyMCE script")), { once: true })
             document.head.appendChild(script)
         })
 
-        return this.loaderPromise
+        this.loaderPromises.set(scriptUrl, loaderPromise)
+        return loaderPromise
     }
 
     initializeEditor() {
@@ -116,7 +117,7 @@ export default class extends Controller {
         }
 
         if (!window.tinymce) {
-            this.constructor.ensureTinymceLoaded().catch(() => {
+            this.constructor.ensureTinymceLoaded(this.scriptUrlValue).catch(() => {
                 // Fall through to polling and eventual graceful fallback.
             })
 

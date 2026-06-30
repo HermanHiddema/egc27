@@ -1,6 +1,7 @@
 module EditorsHelper
   SUPPORTED_EDITORS = %w[trix tinymce].freeze
   DEFAULT_FALLBACK_EDITOR = "tinymce".freeze
+  TINYMCE_SCRIPT_PATH = "tinymce/js/tinymce/tinymce.min.js".freeze
 
   # Tags/attributes allowed when rendering stored HTML authored via TinyMCE.
   # Kept intentionally narrow (no scripts, styles or event handlers) to avoid
@@ -12,7 +13,7 @@ module EditorsHelper
     table thead tbody tfoot tr th td caption col colgroup
     figure figcaption
   ].freeze
-  ALLOWED_HTML_ATTRIBUTES = %w[href src alt title target rel colspan rowspan scope class width height].freeze
+  ALLOWED_HTML_ATTRIBUTES = %w[href src alt title rel colspan rowspan scope class width height].freeze
 
   # Editor selected for the current request. Honours an explicit `?editor=`
   # URL param (when it names a supported editor) and otherwise falls back to
@@ -32,6 +33,10 @@ module EditorsHelper
 
   def tinymce_editor?
     current_editor == "tinymce"
+  end
+
+  def tinymce_script_url
+    asset_path(TINYMCE_SCRIPT_PATH)
   end
 
   # Prefer TinyMCE-native HTML when present; otherwise prefill from the

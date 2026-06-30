@@ -37,4 +37,13 @@ class EditorsHelperTest < ActionView::TestCase
     assert_includes sanitized, "<figure"
     assert_includes sanitized, "image-style-align-left"
   end
+
+  test "render_html_content strips link target attributes" do
+    html = '<a href="https://example.com" target="_blank" rel="noopener">Example</a>'
+
+    sanitized = render_html_content(html)
+
+    assert_includes sanitized, 'rel="noopener"'
+    refute_includes sanitized, "target="
+  end
 end
