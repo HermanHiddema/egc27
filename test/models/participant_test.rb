@@ -44,7 +44,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:user], "can't be blank"
   end
 
-  test "converts grade string to EGD grade_n integer" do
+  test "derives rating from rank and ignores submitted rating without an EGD pin" do
     participant = Participant.new(
       user: users(:one),
       first_name: "Jane",
@@ -61,8 +61,68 @@ class ParticipantTest < ActiveSupport::TestCase
 
     assert participant.valid?
     assert_equal(27, participant.rank)
-    assert_equal(1789, participant.rating)
+    # 3 kyu (grade_n 27) -> 2000 + (27 - 29) * 100 = 1800, submitted 1789 ignored.
+    assert_equal(1800, participant.rating)
     assert_equal("3 kyu", participant.rank_grade)
+  end
+
+  test "keeps the EGD rating when an EGD pin is present" do
+    participant = Participant.new(
+      user: users(:one),
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "jane.egd@example.org",
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      club: "Utrecht",
+      rank: "3k",
+      image_use_consent: true,
+      egd_pin: "12345678",
+      rating: "1789"
+    )
+
+    assert participant.valid?
+    # EGD takes priority over the rank-derived rating.
+    assert_equal(1789, participant.rating)
+  end
+
+  test "falls back to the rank rating when an EGD pin has no rating" do
+    participant = Participant.new(
+      user: users(:one),
+      first_name: "Jane",
+      last_name: "Doe",
+      email: "jane.norating@example.org",
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      club: "Utrecht",
+      rank: "1 dan",
+      image_use_consent: true,
+      egd_pin: "12345678",
+      rating: ""
+    )
+
+    assert participant.valid?
+    # 1 dan (grade_n 30) -> 2000 + (30 - 29) * 100 = 2100.
+    assert_equal(2100, participant.rating)
+  end
+
+  test "leaves rating blank when neither an EGD rating nor a rank is present" do
+    participant = Participant.new(
+      user: users(:one),
+      first_name: "Nina",
+      last_name: "Visitor",
+      email: "nina@example.org",
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      image_use_consent: true,
+      rating: "1500"
+    )
+
+    assert participant.valid?
+    assert_nil participant.rating
   end
 
   test "supports professional grades" do
@@ -82,6 +142,8 @@ class ParticipantTest < ActiveSupport::TestCase
     assert participant.valid?
     assert_equal(42, participant.rank)
     assert_equal("4 dan pro", participant.rank_grade)
+    # Professional grades convert above the rating ceiling and are clamped.
+    assert_equal(Participant::MAX_RATING, participant.rating)
   end
 
   test "validates age group must be one of the allowed values" do
@@ -179,7 +241,7 @@ class ParticipantTest < ActiveSupport::TestCase
     assert participant.valid?
   end
 
-  test "validates rating must be between -1000 and 3000" do
+  test "clamps derived rating to the allowed range" do
     participant = Participant.new(
       user: users(:one),
       first_name: "Lee",
@@ -190,19 +252,19 @@ class ParticipantTest < ActiveSupport::TestCase
       gender: "male",
       club: "Seoul",
       image_use_consent: true,
-      rank: "2 dan",
-      rating: 3500
+      rank: "30 kyu"
     )
 
-    assert_not participant.valid?
-    assert_includes participant.errors[:rating], "must be less than or equal to 3000"
-
-    participant.rating = -2000
-    assert_not participant.valid?
-    assert_includes participant.errors[:rating], "must be greater than or equal to -1000"
-
-    participant.rating = 2500
     assert participant.valid?
+    # 30 kyu (grade_n 0) -> 2000 + (0 - 29) * 100 = -900, within range.
+    assert_equal(-900, participant.rating)
+    assert_operator participant.rating, :>=, Participant::MIN_RATING
+
+    # An out-of-range EGD rating is clamped rather than rejected.
+    participant.egd_pin = "12345678"
+    participant.rating = 9000
+    assert participant.valid?
+    assert_equal(Participant::MAX_RATING, participant.rating)
   end
 
   test "normalizes email" do
