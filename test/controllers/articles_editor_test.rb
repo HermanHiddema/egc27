@@ -44,6 +44,19 @@ class ArticlesEditorTest < ActionDispatch::IntegrationTest
     assert_redirected_to article_path(article)
   end
 
+  test "show article renders content_html when present without editor param" do
+    article = Article.create!(
+      title: "TinyMCE Preferred",
+      content_html: "<p>TinyMCE body</p>",
+      user: users(:admin)
+    )
+
+    get article_path(article)
+
+    assert_response :success
+    assert_includes response.body, "TinyMCE body"
+  end
+
   private
 
   def with_env(values)

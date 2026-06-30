@@ -39,7 +39,7 @@ module EditorsHelper
   def tinymce_content_value(record)
     return "" unless record.respond_to?(:content_html)
 
-    record.content_html.presence || record.content&.body&.to_s.to_s
+    record.content_html.presence || record.content&.body&.to_s
   end
 
   # Render stored HTML content (authored via TinyMCE) after sanitising it
