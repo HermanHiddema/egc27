@@ -125,6 +125,32 @@ trix-editor {
   max-width: 100%;
 }
 
+.rich-content figure.image figcaption {
+  text-align: center;
+}
+
+.rich-content figure.image:has(> img.img-align-left),
+.rich-content figure.image:has(> img.alignleft) {
+  float: left;
+  margin: 0.25rem 1rem 0.75rem 0;
+}
+
+.rich-content figure.image:has(> img.img-align-right),
+.rich-content figure.image:has(> img.alignright) {
+  float: right;
+  margin: 0.25rem 0 0.75rem 1rem;
+}
+
+.rich-content figure.image:has(> img.img-align-center) {
+  float: none;
+  margin: 0.75rem auto;
+}
+
+.rich-content figure.image:has(> img.img-align-none) {
+  float: none;
+  margin: 0.75rem 0;
+}
+
 .rich-content figure.image img {
   display: block;
 }

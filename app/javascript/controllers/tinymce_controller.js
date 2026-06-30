@@ -8,10 +8,10 @@ export default class extends Controller {
     static TINYMCE_SCRIPT_SRC = "/tinymce/js/tinymce/tinymce.min.js"
 
     static values = {
-        plugins: { type: String, default: "lists link image table code autoresize" },
+        plugins: { type: String, default: "lists link image table code autoresize quickbars" },
         toolbar: {
             type: String,
-            default: "undo redo | blocks | bold italic underline | bullist numlist | link image | code"
+            default: "undo redo | blocks | bold italic underline | bullist numlist | link image table | code"
         }
     }
 
@@ -138,6 +138,7 @@ export default class extends Controller {
             menubar: false,
             plugins: this.pluginsValue,
             toolbar: this.toolbarValue,
+            block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
             formats: {
                 alignleft: { selector: "img,figure.image", classes: "img-align-left" },
                 alignright: { selector: "img,figure.image", classes: "img-align-right" },
@@ -149,6 +150,13 @@ export default class extends Controller {
                 { title: "Align left", value: "img-align-left" },
                 { title: "Align right", value: "img-align-right" }
             ],
+            quickbars_image_toolbar: "alignleft aligncenter alignright | imageoptions",
+            image_description: true,
+            image_caption: true,
+            table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+            table_default_attributes: {
+                class: "tinymce-table"
+            },
             content_style: `
                 img.img-align-left, img.alignleft, figure.image.img-align-left, figure.image.image-style-align-left {
                     float: left;
@@ -162,6 +170,43 @@ export default class extends Controller {
 
                 figure.image {
                     max-width: 100%;
+                }
+
+                figure.image figcaption {
+                    text-align: center;
+                }
+
+                figure.image:has(> img.img-align-left),
+                figure.image:has(> img.alignleft) {
+                    float: left;
+                    margin: 0.25rem 1rem 0.75rem 0;
+                }
+
+                figure.image:has(> img.img-align-right),
+                figure.image:has(> img.alignright) {
+                    float: right;
+                    margin: 0.25rem 0 0.75rem 1rem;
+                }
+
+                figure.image:has(> img.img-align-center) {
+                    float: none;
+                    margin: 0.75rem auto;
+                }
+
+                figure.image:has(> img.img-align-none) {
+                    float: none;
+                    margin: 0.75rem 0;
+                }
+
+                table.tinymce-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                }
+
+                table.tinymce-table th,
+                table.tinymce-table td {
+                    border: 1px solid #cbd5e1;
+                    padding: 0.5rem;
                 }
             `,
             automatic_uploads: true,

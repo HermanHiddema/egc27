@@ -6,7 +6,7 @@ module EditorsHelper
   # Kept intentionally narrow (no scripts, styles or event handlers) to avoid
   # XSS, while still covering the formatting the editor toolbar can produce.
   ALLOWED_HTML_TAGS = %w[
-    p br hr h1 h2 h3 h4 h5 h6 blockquote pre code
+    p br hr h2 h3 h4 blockquote pre code
     strong b em i u s sub sup
     ul ol li a img
     table thead tbody tfoot tr th td caption col colgroup
