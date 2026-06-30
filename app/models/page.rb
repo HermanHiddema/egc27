@@ -6,7 +6,7 @@ class Page < ApplicationRecord
   has_one_attached :main_image
 
   validates :title, presence: true
-  validates :content, presence: true
+  validate :content_must_be_present
   validates :slug, presence: true, uniqueness: true
   validate :main_image_must_be_image
 
@@ -17,6 +17,12 @@ class Page < ApplicationRecord
   end
 
   private
+
+  def content_must_be_present
+    return if content.present? || content_html.present?
+
+    errors.add(:content, "can't be blank")
+  end
 
   def assign_slug
     base_slug = if slug.present?
