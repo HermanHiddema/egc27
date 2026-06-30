@@ -157,25 +157,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_131110) do
     t.datetime "updated_at", null: false
   end
 
-  create_table "orders", force: :cascade do |t|
-    t.integer "amount_cents", null: false
-    t.string "checkout_reference"
-    t.datetime "created_at", null: false
-    t.string "description", null: false
-    t.string "mollie_payment_id"
-    t.bigint "orderable_id"
-    t.string "orderable_type"
-    t.datetime "paid_at"
-    t.string "status", default: "cart", null: false
-    t.datetime "updated_at", null: false
-    t.bigint "user_id", null: false
-    t.index ["checkout_reference"], name: "index_orders_on_checkout_reference"
-    t.index ["mollie_payment_id"], name: "index_orders_on_mollie_payment_id"
-    t.index ["orderable_type", "orderable_id"], name: "index_orders_on_orderable"
-    t.index ["status"], name: "index_orders_on_status"
-    t.index ["user_id"], name: "index_orders_on_user_id"
-  end
-
   create_table "pages", force: :cascade do |t|
     t.text "content_html"
     t.datetime "created_at", null: false
@@ -281,7 +262,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_06_29_131110) do
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
-  add_foreign_key "orders", "users"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
 end
