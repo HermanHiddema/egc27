@@ -157,6 +157,28 @@ export default class extends Controller {
         this.syncCountryCodeFromInput(false)
     }
 
+    // The rating is locked: when a participant changes their rank manually we
+    // recompute the derived rating, unless an EGD pin already supplied one.
+    rankChanged() {
+        if (!this.hasRankTarget || !this.hasRatingTarget) return
+
+        const egdPin = String(this.hasEgdPinTarget ? this.egdPinTarget.value : "").trim()
+        if (egdPin) return
+
+        const rating = this.ratingForGradeN(this.rankTarget.value)
+        this.ratingTarget.value = rating === null ? "" : String(rating)
+    }
+
+    ratingForGradeN(gradeN) {
+        if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return null
+
+        const parsed = Number(gradeN)
+        if (Number.isNaN(parsed) || parsed < 0 || parsed > 47) return null
+
+        const rating = 2000 + (parsed - 29) * 100
+        return Math.min(3000, Math.max(-1000, rating))
+    }
+
     countryInputBlur() {
         this.syncCountryCodeFromInput(true)
     }
