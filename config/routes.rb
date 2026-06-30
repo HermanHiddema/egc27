@@ -98,6 +98,8 @@ Rails.application.routes.draw do
     resources :menu_items
   end
 
+  get "search", to: "search#index", as: :search
+
   get "dashboard", to: "dashboard#index", as: :dashboard
   resources :sponsors, except: [:show]
 

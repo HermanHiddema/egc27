@@ -18,6 +18,7 @@ class Rack::Attack
   CONFIRMATION_PATH        = %r{\A/users/confirmation(\.[^/]+)?/?\z}
   SIGN_IN_PATH             = %r{\A/users/sign_in(\.[^/]+)?/?\z}
   NEWSLETTER_PATH          = %r{\A/newsletter_subscriptions(\.[^/]+)?/?\z}
+  SEARCH_PATH              = %r{\A/search(\.[^/]+)?/?\z}
 
   # Magic link requests: limit by IP address (10 per minute)
   throttle("magic_link/ip", limit: 10, period: 1.minute) do |req|
@@ -92,6 +93,12 @@ class Rack::Attack
   # Newsletter subscription: limit by IP address (10 per minute)
   throttle("newsletter/ip", limit: 10, period: 1.minute) do |req|
     req.ip if req.path.match?(NEWSLETTER_PATH) && req.post?
+  end
+
+  # Site search: limit by IP address (30 per minute) to curb abuse of the
+  # public, query-driven endpoint.
+  throttle("search/ip", limit: 30, period: 1.minute) do |req|
+    req.ip if req.path.match?(SEARCH_PATH) && req.get?
   end
 
   ### Response for throttled requests ###
