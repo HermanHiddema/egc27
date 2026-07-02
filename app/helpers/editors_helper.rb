@@ -7,13 +7,18 @@ module EditorsHelper
   # Kept intentionally narrow (no scripts, styles or event handlers) to avoid
   # XSS, while still covering the formatting the editor toolbar can produce.
   ALLOWED_HTML_TAGS = %w[
-    p br hr h2 h3 h4 blockquote pre code
+    div span p br hr h1 h2 h3 h4 h5 h6 blockquote pre code
     strong b em i u s sub sup
     ul ol li a img
     table thead tbody tfoot tr th td caption col colgroup
     figure figcaption
   ].freeze
-  ALLOWED_HTML_ATTRIBUTES = %w[href src alt title rel colspan rowspan scope class width height].freeze
+  ALLOWED_HTML_ATTRIBUTES = %w[
+    href src alt title rel
+    colspan rowspan scope class width height
+    style align valign bgcolor bordercolor
+    border cellpadding cellspacing frame rules
+  ].freeze
 
   # Editor selected for the current request. Honours an explicit `?editor=`
   # URL param (when it names a supported editor) and otherwise falls back to
