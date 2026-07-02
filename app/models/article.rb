@@ -10,10 +10,16 @@ class Article < ApplicationRecord
   before_create :attach_placeholder_main_image
 
   validates :title, presence: true
-  validates :content, presence: true
+  validate :content_must_be_present
   validate :main_image_must_be_image
 
   private
+
+  def content_must_be_present
+    return if content.present? || content_html.present?
+
+    errors.add(:content, "can't be blank")
+  end
 
   def attach_placeholder_main_image
     return if main_image.attached?
