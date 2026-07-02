@@ -17,6 +17,19 @@ class ArticleTest < ActiveSupport::TestCase
     assert_includes article.errors[:main_image], "must be a PNG, JPEG, or WebP image"
   end
 
+  test "is valid with only content_html" do
+    article = Article.new(title: "Article", content_html: "<p>Details</p>", user: users(:admin))
+
+    assert article.valid?
+  end
+
+  test "requires content or content_html" do
+    article = Article.new(title: "Article", user: users(:admin))
+
+    assert_not article.valid?
+    assert_includes article.errors[:content], "can't be blank"
+  end
+
   test "attaches random placeholder main image when none is provided" do
     article = Article.create!(title: "Article", content: "Details", user: users(:admin))
 

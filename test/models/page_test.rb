@@ -31,4 +31,17 @@ class PageTest < ActiveSupport::TestCase
     assert_not page.valid?
     assert_includes page.errors[:main_image], "must be a PNG, JPEG, or WebP image"
   end
+
+  test "is valid with only content_html" do
+    page = Page.new(title: "Venue Information", content_html: "<p>Details</p>")
+
+    assert page.valid?
+  end
+
+  test "requires content or content_html" do
+    page = Page.new(title: "Venue Information")
+
+    assert_not page.valid?
+    assert_includes page.errors[:content], "can't be blank"
+  end
 end
