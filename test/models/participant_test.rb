@@ -142,8 +142,8 @@ class ParticipantTest < ActiveSupport::TestCase
     assert participant.valid?
     assert_equal(42, participant.rank)
     assert_equal("4 dan pro", participant.rank_grade)
-    # Professional grades convert above the rating ceiling and are clamped.
-    assert_equal(Participant::MAX_RATING, participant.rating)
+    # 1 dan pro is equivalent to 7 dan (2700); each further pro grade adds 30.
+    assert_equal(2790, participant.rating)
   end
 
   test "validates age group must be one of the allowed values" do

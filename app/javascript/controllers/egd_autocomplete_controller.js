@@ -8,6 +8,9 @@ const MAX_GRADE_N = 47
 const FIRST_KYU_GRADE_N = 29
 const FIRST_KYU_RATING = 2000
 const RATING_PER_GRADE = 100
+const FIRST_PRO_GRADE_N = 39
+const FIRST_PRO_RATING = 2700
+const RATING_PER_PRO_GRADE = 30
 const MIN_RATING = -1000
 const MAX_RATING = 3000
 
@@ -185,7 +188,9 @@ export default class extends Controller {
         const parsed = Number(gradeN)
         if (Number.isNaN(parsed) || parsed < MIN_GRADE_N || parsed > MAX_GRADE_N) return null
 
-        const rating = FIRST_KYU_RATING + (parsed - FIRST_KYU_GRADE_N) * RATING_PER_GRADE
+        const rating = parsed >= FIRST_PRO_GRADE_N
+            ? FIRST_PRO_RATING + (parsed - FIRST_PRO_GRADE_N) * RATING_PER_PRO_GRADE
+            : FIRST_KYU_RATING + (parsed - FIRST_KYU_GRADE_N) * RATING_PER_GRADE
         return Math.min(MAX_RATING, Math.max(MIN_RATING, rating))
     }
 

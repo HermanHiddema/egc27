@@ -17,6 +17,12 @@ class EgdGradeMappingTest < ActiveSupport::TestCase
     assert_equal 2100, EgdGradeMapping.rating_for(30)
   end
 
+  test "rating_for maps 1 dan pro to 7 dan and adds 30 per pro grade" do
+    assert_equal 2700, EgdGradeMapping.rating_for("1 dan pro")
+    assert_equal 2730, EgdGradeMapping.rating_for("2 dan pro")
+    assert_equal 2940, EgdGradeMapping.rating_for("9 dan pro")
+  end
+
   test "rating_for returns nil for blank or unknown grades" do
     assert_nil EgdGradeMapping.rating_for(nil)
     assert_nil EgdGradeMapping.rating_for("")
