@@ -22,8 +22,18 @@
     </div>
 
     <div>
-      <%= form.label :content, "Content *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-      <%= form.rich_textarea :content, class: "w-full rounded-lg border border-gray-300 bg-white" %>
+      <%= form.label(tinymce_editor? ? :content_html : :content, "Content *", class: "block text-sm font-medium text-gray-700 mb-2") %>
+      <% if tinymce_editor? %>
+        <% content_for :tinymce_script, "1" %>
+        <%= form.text_area :content_html,
+                           value: tinymce_content_value(page),
+                           rows: 18,
+                           data: { controller: "tinymce", tinymce_script_url_value: tinymce_script_url },
+                           class: "w-full rounded-lg border border-gray-300 bg-white" %>
+      <% else %>
+        <%= form.rich_textarea :content, class: "w-full rounded-lg border border-gray-300 bg-white" %>
+      <% end %>
+      <%= hidden_field_tag :editor, current_editor %>
     </div>
 
     <div>

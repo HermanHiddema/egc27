@@ -100,6 +100,10 @@ Rails.application.routes.draw do
 
   get "search", to: "search#index", as: :search
 
+  namespace :tinymce do
+    resources :images, only: [:create]
+  end
+
   get "dashboard", to: "dashboard#index", as: :dashboard
   resources :sponsors, except: [:show]
 

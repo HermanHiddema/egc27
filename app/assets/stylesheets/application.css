@@ -100,6 +100,67 @@ trix-editor {
   text-underline-offset: 0.125em;
 }
 
+.rich-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+.rich-content img.img-align-left,
+.rich-content img.alignleft,
+.rich-content figure.image.img-align-left,
+.rich-content figure.image.image-style-align-left {
+  float: left;
+  margin: 0.25rem 1rem 0.75rem 0;
+}
+
+.rich-content img.img-align-right,
+.rich-content img.alignright,
+.rich-content figure.image.img-align-right,
+.rich-content figure.image.image-style-align-right {
+  float: right;
+  margin: 0.25rem 0 0.75rem 1rem;
+}
+
+.rich-content figure.image {
+  max-width: 100%;
+}
+
+.rich-content figure.image figcaption {
+  text-align: center;
+}
+
+.rich-content figure.image:has(> img.img-align-left),
+.rich-content figure.image:has(> img.alignleft) {
+  float: left;
+  margin: 0.25rem 1rem 0.75rem 0;
+}
+
+.rich-content figure.image:has(> img.img-align-right),
+.rich-content figure.image:has(> img.alignright) {
+  float: right;
+  margin: 0.25rem 0 0.75rem 1rem;
+}
+
+.rich-content figure.image:has(> img.img-align-center) {
+  float: none;
+  margin: 0.75rem auto;
+}
+
+.rich-content figure.image:has(> img.img-align-none) {
+  float: none;
+  margin: 0.75rem 0;
+}
+
+.rich-content figure.image img {
+  display: block;
+}
+
+.rich-content::after {
+  content: "";
+  display: block;
+  clear: both;
+}
+
 .rich-content blockquote {
   border-left: 4px solid var(--brand-blue-300);
   margin-block: 1rem;

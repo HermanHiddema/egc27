@@ -53,6 +53,6 @@ class PagesController < ApplicationController
   end
 
   def page_params
-    params.require(:page).permit(:title, :content, :slug, :main_image, :remove_main_image)
+    params.require(:page).permit(:title, :content, :content_html, :slug, :main_image, :remove_main_image)
   end
 end
