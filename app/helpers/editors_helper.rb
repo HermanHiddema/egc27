@@ -36,7 +36,7 @@ module EditorsHelper
   end
 
   def tinymce_script_url
-    asset_path(TINYMCE_SCRIPT_PATH)
+    "/#{TINYMCE_SCRIPT_PATH}"
   end
 
   # Prefer TinyMCE-native HTML when present; otherwise prefill from the
