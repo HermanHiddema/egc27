@@ -1,83 +1,103 @@
 <% content_for :title, "Search" %>
 
 <div class="container-wide py-12">
-  <h1 class="text-4xl font-bold mb-8">Search</h1>
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold mb-2 text-brand-blue-900">Search</h1>
+    <p class="text-gray-600 mb-8">Find pages, news articles and sponsors across the site.</p>
 
-  <%= form_with url: search_path, method: :get, class: "mb-10" do |form| %>
-    <div class="flex gap-2">
-      <%= form.search_field :q,
-            value: @query,
-            placeholder: "Search pages, articles and sponsors...",
-            autofocus: true,
-            aria: { label: "Search query" },
-            class: "flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue-500" %>
-      <%= form.submit "Search", class: "btn-primary" %>
-    </div>
-  <% end %>
+    <%= form_with url: search_path, method: :get, class: "mb-12" do |form| %>
+      <div class="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-brand-blue-500 overflow-hidden">
+        <span class="pl-4 text-gray-400" aria-hidden="true">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+          </svg>
+        </span>
+        <%= form.search_field :q,
+              value: @query,
+              placeholder: "Search pages, news and sponsors...",
+              autofocus: true,
+              aria: { label: "Search query" },
+              class: "flex-1 min-w-0 px-3 py-3 text-gray-900 bg-transparent focus:outline-none" %>
+        <%= form.submit "Search", class: "btn-primary m-1.5 flex-none" %>
+      </div>
+    <% end %>
 
-  <% if @query.present? %>
-    <% results_count = @pages.size + @articles.size + @sponsors.size %>
+    <% if @query.present? %>
+      <% results_count = @pages.size + @articles.size + @sponsors.size %>
 
-    <% if results_count.zero? %>
-      <p class="text-xl text-neutral-500">No results found for "<%= @query %>".</p>
-    <% else %>
-      <p class="text-sm text-gray-600 mb-8">
-        <%= pluralize(results_count, "result") %> for "<%= @query %>"
-      </p>
+      <% if results_count.zero? %>
+        <div class="text-center py-16">
+          <svg class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+          </svg>
+          <p class="text-xl font-semibold text-gray-700">No results found</p>
+          <p class="text-gray-500 mt-1">We couldn't find anything for &ldquo;<%= @query %>&rdquo;. Try a different search.</p>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-500 mb-8">
+          <%= pluralize(results_count, "result") %> for &ldquo;<span class="font-semibold text-gray-700"><%= @query %></span>&rdquo;
+        </p>
 
-      <% if @pages.any? %>
-        <section class="mb-12">
-          <h2 class="text-2xl font-bold mb-4">Pages</h2>
-          <div class="space-y-4">
-            <% @pages.each do |page| %>
-              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 class="text-xl font-bold mb-1">
-                  <%= link_to page.title, page_path(page), class: "hover:text-brand-red-600 transition" %>
-                </h3>
-                <p class="text-sm text-gray-600">/<%= page.slug %></p>
-              </div>
-            <% end %>
-          </div>
-        </section>
-      <% end %>
-
-      <% if @articles.any? %>
-        <section class="mb-12">
-          <h2 class="text-2xl font-bold mb-4">News</h2>
-          <div class="space-y-4">
-            <% @articles.each do |article| %>
-              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 class="text-xl font-bold mb-1">
-                  <%= link_to article.title, article_path(article), class: "hover:text-brand-red-600 transition" %>
-                </h3>
-                <p class="text-sm text-gray-600"><%= article.created_at.strftime("%d %B %Y") %></p>
-              </div>
-            <% end %>
-          </div>
-        </section>
-      <% end %>
-
-      <% if @sponsors.any? %>
-        <section class="mb-12">
-          <h2 class="text-2xl font-bold mb-4">Sponsors</h2>
-          <div class="space-y-4">
-            <% @sponsors.each do |sponsor| %>
-              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-                <h3 class="text-xl font-bold mb-1">
-                  <% if sponsor.website.present? %>
-                    <%= link_to sponsor.name, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "hover:text-brand-red-600 transition" %>
-                  <% else %>
-                    <%= sponsor.name %>
-                  <% end %>
-                </h3>
-                <% if sponsor.description.present? %>
-                  <p class="text-sm text-gray-600"><%= truncate(sponsor.description, length: 160) %></p>
+        <% if @pages.any? %>
+          <section class="mb-10">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
+              Pages <span class="text-gray-400 font-normal">(<%= @pages.size %>)</span>
+            </h2>
+            <div class="space-y-3">
+              <% @pages.each do |page| %>
+                <%= link_to page_path(page), class: "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" do %>
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= page.title %></h3>
+                  <p class="text-sm text-gray-500 mt-1">/<%= page.slug %></p>
                 <% end %>
-              </div>
-            <% end %>
-          </div>
-        </section>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
+        <% if @articles.any? %>
+          <section class="mb-10">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
+              News <span class="text-gray-400 font-normal">(<%= @articles.size %>)</span>
+            </h2>
+            <div class="space-y-3">
+              <% @articles.each do |article| %>
+                <%= link_to article_path(article), class: "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" do %>
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= article.title %></h3>
+                  <p class="text-sm text-gray-500 mt-1"><%= article.created_at.strftime("%d %B %Y") %></p>
+                <% end %>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
+
+        <% if @sponsors.any? %>
+          <section class="mb-10">
+            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
+              Sponsors <span class="text-gray-400 font-normal">(<%= @sponsors.size %>)</span>
+            </h2>
+            <div class="space-y-3">
+              <% @sponsors.each do |sponsor| %>
+                <% sponsor_card_classes = "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" %>
+                <% if sponsor.website.present? %>
+                  <%= link_to sponsor.website, target: "_blank", rel: "noopener noreferrer", class: sponsor_card_classes do %>
+                    <h3 class="text-lg font-bold text-brand-blue-900"><%= sponsor.name %></h3>
+                    <% if sponsor.description.present? %>
+                      <p class="text-sm text-gray-600 mt-1"><%= truncate(sponsor.description, length: 160) %></p>
+                    <% end %>
+                  <% end %>
+                <% else %>
+                  <div class="<%= sponsor_card_classes %>">
+                    <h3 class="text-lg font-bold text-brand-blue-900"><%= sponsor.name %></h3>
+                    <% if sponsor.description.present? %>
+                      <p class="text-sm text-gray-600 mt-1"><%= truncate(sponsor.description, length: 160) %></p>
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          </section>
+        <% end %>
       <% end %>
     <% end %>
-  <% end %>
+  </div>
 </div>
