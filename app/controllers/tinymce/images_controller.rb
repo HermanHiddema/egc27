@@ -27,7 +27,7 @@ class Tinymce::ImagesController < ApplicationController
       content_type: file.content_type
     )
 
-    render json: { location: url_for(blob) }, status: :created
+    render json: { location: rails_blob_path(blob) }, status: :created
   end
 
   private
