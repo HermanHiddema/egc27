@@ -1,24 +1,59 @@
 <nav class="bg-brand-blue-600 sticky top-64 lg:top-48 z-40 border-b border-brand-blue-800 transition-all duration-300" data-controller="responsive-menu" data-header-shrink-menu-offset>
   <div class="container-wide px-4">
-    <button
-      type="button"
-      data-action="click->responsive-menu#togglePanel"
-      data-responsive-menu-target="toggle"
-      aria-controls="site-menu-panel"
-      aria-expanded="false"
-      aria-label="Toggle navigation menu"
-      class="flex h-12 w-full items-center justify-between text-white hover:text-brand-yellow-300 lg:hidden"
-    >
-      <span class="text-sm font-semibold uppercase tracking-wide text-brand-yellow-300">Menu</span>
-      <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-      </svg>
-    </button>
+    <div class="flex h-12 items-center lg:hidden">
+      <button
+        type="button"
+        data-action="click->responsive-menu#togglePanel"
+        data-responsive-menu-target="toggle"
+        aria-controls="site-menu-panel"
+        aria-expanded="false"
+        aria-label="Toggle navigation menu"
+        class="flex h-12 w-1/2 items-center gap-2 text-white hover:text-brand-yellow-300"
+      >
+        <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+        <span class="text-sm font-semibold uppercase tracking-wide text-brand-yellow-300">Menu</span>
+      </button>
+
+      <div class="relative flex h-12 w-1/2 items-center justify-end" data-controller="search-toggle">
+        <button type="button"
+                class="text-white hover:text-brand-yellow-300 transition-colors"
+                data-search-toggle-target="toggle"
+                data-action="search-toggle#toggle"
+                aria-haspopup="true"
+                aria-expanded="false"
+                aria-label="Search"
+                title="Search">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+          </svg>
+        </button>
+
+        <div data-search-toggle-target="panel"
+             class="hidden absolute right-0 top-10 z-50 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-lg shadow-lg border border-brand-yellow-800 p-3">
+          <%= form_with url: search_path, method: :get, class: "flex items-center gap-2" do |form| %>
+            <%= form.search_field :q,
+                  value: @query,
+                  placeholder: "Search pages, news and sponsors...",
+                  aria: { label: "Search" },
+                  data: { search_toggle_target: "input" },
+                  class: "flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue-500" %>
+            <button type="submit" class="btn-primary p-2 flex-none" aria-label="Search" title="Search">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+              </svg>
+            </button>
+          <% end %>
+        </div>
+      </div>
+    </div>
 
     <div id="site-menu-panel" data-responsive-menu-target="panel" class="lg:block">
       <% if menu.present? %>
         <%# Mobile navigation — hidden on desktop %>
         <div class="space-y-1 pb-3 lg:hidden">
+
           <% root_items.each do |root_item| %>
             <% children = root_item.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
 
@@ -126,6 +161,38 @@
               <%= link_to root_item.label, menu_item_destination(root_item), menu_item_link_options(root_item, "text-white hover:text-brand-yellow-300 text-sm font-medium transition-colors") %>
             <% end %>
           <% end %>
+
+          <div class="relative ml-auto" data-controller="search-toggle">
+            <button type="button"
+                    class="text-white hover:text-brand-yellow-300 transition-colors"
+                    data-search-toggle-target="toggle"
+                    data-action="search-toggle#toggle"
+                    aria-haspopup="true"
+                    aria-expanded="false"
+                    aria-label="Search"
+                    title="Search">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+              </svg>
+            </button>
+
+            <div data-search-toggle-target="panel"
+                 class="hidden absolute right-0 mt-2 z-50 w-72 bg-white rounded-lg shadow-lg border border-brand-yellow-800 p-3">
+              <%= form_with url: search_path, method: :get, class: "flex items-center gap-2" do |form| %>
+                <%= form.search_field :q,
+                      value: @query,
+                      placeholder: "Search pages, news and sponsors...",
+                      aria: { label: "Search" },
+                      data: { search_toggle_target: "input" },
+                      class: "flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue-500" %>
+                <button type="submit" class="btn-primary p-2 flex-none" aria-label="Search" title="Search">
+                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+                  </svg>
+                </button>
+              <% end %>
+            </div>
+          </div>
         </div>
       <% end %>
     </div>

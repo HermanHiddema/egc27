@@ -49,37 +49,6 @@
         </div>
 
         <div class="flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
-          <div class="relative" data-controller="search-toggle">
-            <button type="button"
-                    class="btn-primary p-2"
-                    data-search-toggle-target="toggle"
-                    data-action="search-toggle#toggle"
-                    aria-haspopup="true"
-                    aria-expanded="false"
-                    aria-label="Search"
-                    title="Search">
-              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
-              </svg>
-            </button>
-
-            <div data-search-toggle-target="panel"
-                 class="hidden absolute right-0 mt-2 z-50 w-72 bg-white rounded-lg shadow-lg border border-brand-yellow-800 p-3">
-              <%= form_with url: search_path, method: :get, class: "flex items-center gap-2" do |form| %>
-                <%= form.search_field :q,
-                      value: @query,
-                      placeholder: "Search pages, news and sponsors...",
-                      aria: { label: "Search" },
-                      data: { search_toggle_target: "input" },
-                      class: "flex-1 min-w-0 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-brand-blue-500" %>
-                <button type="submit" class="btn-primary p-2 flex-none" aria-label="Search" title="Search">
-                  <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
-                  </svg>
-                </button>
-              <% end %>
-            </div>
-          </div>
           <%= link_to "Newsletter", newsletter_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" %>
           <%= link_to new_participant_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" do %>
             <span class="lg:hidden">Register</span><span class="hidden lg:inline">Register now</span>
