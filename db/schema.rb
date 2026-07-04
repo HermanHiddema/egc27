@@ -176,7 +176,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_04_000000) do
     t.string "country", null: false
     t.datetime "created_at", null: false
     t.string "egd_pin"
-    t.string "email"
+    t.string "email", null: false
     t.string "first_name", null: false
     t.boolean "first_week", default: true, null: false
     t.string "gender"
