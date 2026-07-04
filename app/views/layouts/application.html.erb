@@ -52,7 +52,7 @@
           <%= form_with url: search_path, method: :get, class: "flex items-center" do |form| %>
             <div class="flex items-center bg-white rounded-lg overflow-hidden border border-brand-yellow-800">
               <%= form.search_field :q,
-                    value: (@query if defined?(@query)),
+                    value: @query,
                     placeholder: "Search...",
                     aria: { label: "Search" },
                     class: "w-32 lg:w-40 px-3 py-2 text-sm text-gray-900 focus:outline-none" %>

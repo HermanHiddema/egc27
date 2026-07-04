@@ -10,6 +10,6 @@ module RichTextSearchable
   # Plain-text content used for full-text indexing. Uses the TinyMCE-authored
   # HTML with markup stripped.
   def searchable_content
-    ApplicationController.helpers.strip_tags(content_html)
+    ApplicationController.helpers.strip_tags(content_html.to_s)
   end
 end
