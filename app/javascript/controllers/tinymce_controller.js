@@ -210,6 +210,7 @@ export default class extends Controller {
                     padding: 0.5rem;
                 }
             `,
+            convert_urls: false,
             automatic_uploads: true,
             paste_data_images: true,
             images_upload_handler: (blobInfo) => new Promise((resolve, reject) => {
