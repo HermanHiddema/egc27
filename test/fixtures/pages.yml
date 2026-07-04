@@ -1,7 +1,9 @@
 one:
   title: About EGC
   slug: about-egc
+  content_html: "<p>Information about the congress.</p>"
 
 two:
   title: Travel
   slug: travel
+  content_html: "<p>Travel information.</p>"
