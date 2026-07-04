@@ -20,14 +20,21 @@ export default class extends Controller {
         this.toggleTarget.focus()
       }
     }
+    this.focusOutHandler = (event) => {
+      if (!this.element.contains(event.relatedTarget)) {
+        this.close()
+      }
+    }
 
     document.addEventListener("click", this.documentClickHandler)
     this.element.addEventListener("keydown", this.keydownHandler)
+    this.element.addEventListener("focusout", this.focusOutHandler)
   }
 
   disconnect() {
     document.removeEventListener("click", this.documentClickHandler)
     this.element.removeEventListener("keydown", this.keydownHandler)
+    this.element.removeEventListener("focusout", this.focusOutHandler)
   }
 
   toggle(event) {
