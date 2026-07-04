@@ -64,6 +64,15 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     assert_select "h2", text: /Sponsors/
   end
 
+  test "matches stemmed variants using the english dictionary" do
+    get search_path, params: { q: "traveling" }
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:two))}']" do
+      assert_select "h3", text: "Travel"
+    end
+  end
+
   test "shows message when nothing matches" do
     get search_path, params: { q: "zzzznonexistentquery" }
 
