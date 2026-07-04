@@ -1,4 +1,6 @@
 class Sponsor < ApplicationRecord
+  include PgSearch::Model
+
   SOCIAL_MEDIA_PLATFORMS = {
     "x" => "X",
     "facebook" => "Facebook",
@@ -8,6 +10,8 @@ class Sponsor < ApplicationRecord
   }.freeze
 
   has_one_attached :logo
+
+  multisearchable against: [:name, :description]
 
   validates :name, presence: true
   validate :website_url_must_be_valid

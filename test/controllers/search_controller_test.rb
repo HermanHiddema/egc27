@@ -1,6 +1,12 @@
 require "test_helper"
 
 class SearchControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    # Fixtures are inserted directly and bypass the multisearchable callbacks,
+    # so rebuild the pg_search documents for the models we search over.
+    [Page, Article, Sponsor].each { |model| PgSearch::Multisearch.rebuild(model) }
+  end
+
   test "search page is accessible without authentication" do
     get search_path
 
@@ -35,6 +41,21 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{article_path(articles(:one))}']", text: articles(:one).title
+  end
+
+  test "finds sponsors by name" do
+    get search_path, params: { q: sponsors(:one).name }
+
+    assert_response :success
+    assert_select "h2", text: "Sponsors"
+    assert_select "a", text: sponsors(:one).name
+  end
+
+  test "finds sponsors by description" do
+    get search_path, params: { q: "sponsor description" }
+
+    assert_response :success
+    assert_select "h2", text: "Sponsors"
   end
 
   test "shows message when nothing matches" do

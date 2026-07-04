@@ -1,4 +1,6 @@
 class Article < ApplicationRecord
+  include PgSearch::Model
+
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
   PLACEHOLDER_MAIN_IMAGES_GLOB = Rails.root.join("app/assets/images/placeholders/*").freeze
   PLACEHOLDER_MAIN_IMAGE_PATHS = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].freeze
@@ -7,11 +9,19 @@ class Article < ApplicationRecord
   has_rich_text :content
   has_one_attached :main_image
 
+  multisearchable against: [:title, :searchable_content]
+
   before_create :attach_placeholder_main_image
 
   validates :title, presence: true
   validate :content_must_be_present
   validate :main_image_must_be_image
+
+  # Plain-text content used for full-text indexing. Prefers TinyMCE-authored
+  # HTML and falls back to the legacy Action Text body, with markup stripped.
+  def searchable_content
+    ActionController::Base.helpers.strip_tags(content_html.presence || content&.body&.to_s)
+  end
 
   private
 

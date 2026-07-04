@@ -1,9 +1,13 @@
 class Page < ApplicationRecord
+  include PgSearch::Model
+
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
 
   has_many :menu_items, dependent: :nullify, inverse_of: :page
   has_rich_text :content
   has_one_attached :main_image
+
+  multisearchable against: [:title, :searchable_content]
 
   validates :title, presence: true
   validate :content_must_be_present
@@ -14,6 +18,12 @@ class Page < ApplicationRecord
 
   def to_param
     slug
+  end
+
+  # Plain-text content used for full-text indexing. Prefers TinyMCE-authored
+  # HTML and falls back to the legacy Action Text body, with markup stripped.
+  def searchable_content
+    ActionController::Base.helpers.strip_tags(content_html.presence || content&.body&.to_s)
   end
 
   private

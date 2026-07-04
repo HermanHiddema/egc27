@@ -7,7 +7,7 @@
     <div class="flex gap-2">
       <%= form.search_field :q,
             value: @query,
-            placeholder: "Search pages and articles...",
+            placeholder: "Search pages, articles and sponsors...",
             autofocus: true,
             aria: { label: "Search query" },
             class: "flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-brand-blue-500" %>
@@ -16,7 +16,7 @@
   <% end %>
 
   <% if @query.present? %>
-    <% results_count = @pages.size + @articles.size %>
+    <% results_count = @pages.size + @articles.size + @sponsors.size %>
 
     <% if results_count.zero? %>
       <p class="text-xl text-neutral-500">No results found for "<%= @query %>".</p>
@@ -51,6 +51,28 @@
                   <%= link_to article.title, article_path(article), class: "hover:text-brand-red-600 transition" %>
                 </h3>
                 <p class="text-sm text-gray-600"><%= article.created_at.strftime("%d %B %Y") %></p>
+              </div>
+            <% end %>
+          </div>
+        </section>
+      <% end %>
+
+      <% if @sponsors.any? %>
+        <section class="mb-12">
+          <h2 class="text-2xl font-bold mb-4">Sponsors</h2>
+          <div class="space-y-4">
+            <% @sponsors.each do |sponsor| %>
+              <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+                <h3 class="text-xl font-bold mb-1">
+                  <% if sponsor.website.present? %>
+                    <%= link_to sponsor.name, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "hover:text-brand-red-600 transition" %>
+                  <% else %>
+                    <%= sponsor.name %>
+                  <% end %>
+                </h3>
+                <% if sponsor.description.present? %>
+                  <p class="text-sm text-gray-600"><%= truncate(sponsor.description, length: 160) %></p>
+                <% end %>
               </div>
             <% end %>
           </div>
