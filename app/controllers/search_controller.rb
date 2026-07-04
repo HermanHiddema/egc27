@@ -11,6 +11,7 @@ class SearchController < ApplicationController
         PgSearch.multisearch(@query)
           .where(searchable_type: SEARCHABLE_TYPES)
           .includes(:searchable)
+          .limit(50)
           .group_by(&:searchable_type)
       else
         {}
