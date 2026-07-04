@@ -16,14 +16,14 @@ class SearchController < ApplicationController
         {}
       end
 
-    @pages = records_for(grouped, "Page")
-    @articles = records_for(grouped, "Article")
-    @sponsors = records_for(grouped, "Sponsor")
+    @pages = searchable_records_for(grouped, "Page")
+    @articles = searchable_records_for(grouped, "Article")
+    @sponsors = searchable_records_for(grouped, "Sponsor")
   end
 
   private
 
-  def records_for(grouped, type)
+  def searchable_records_for(grouped, type)
     Array(grouped[type]).filter_map(&:searchable)
   end
 end
