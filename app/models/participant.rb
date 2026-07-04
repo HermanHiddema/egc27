@@ -12,6 +12,12 @@ class Participant < ApplicationRecord
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
+  # The user is always derived from the email during registration, so a missing
+  # user can only result from a missing email. The association is marked optional
+  # here only to suppress the framework's "User must exist" error; user presence
+  # is instead validated conditionally below so that a missing email surfaces as
+  # the single root-cause error. The participants.user_id NOT NULL database
+  # constraint remains the backend safety net guaranteeing a user is always set.
   belongs_to :user, optional: true
 
   attribute :image_use_consent, :boolean, default: nil
@@ -26,7 +32,7 @@ class Participant < ApplicationRecord
   validates :accepted_privacy_policy, inclusion: { in: [true], message: "must be accepted" }
   validates :image_use_consent, inclusion: { in: [true, false], message: "must be selected" }
   validates :attendance_option, inclusion: { in: ATTENDANCE_OPTIONS.keys, message: "must be selected" }, allow_blank: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_blank: true
+  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }
   validates :rating, numericality: {

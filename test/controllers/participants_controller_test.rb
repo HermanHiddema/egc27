@@ -290,7 +290,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "create without email shows only the missing email error and no user error" do
+  test "create without email fails and reports the missing email" do
     assert_no_difference("Participant.count") do
       post participants_path, params: {
         participant: {
