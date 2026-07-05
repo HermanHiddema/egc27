@@ -182,6 +182,16 @@ export default class extends Controller {
         this.ratingTarget.value = rating === null ? "" : String(rating)
     }
 
+    egdPinChanged() {
+        if (!this.hasEgdPinTarget) return
+
+        this.checkRegistration(this.egdPinTarget.value)
+
+        if (String(this.egdPinTarget.value).trim() === "") {
+            this.rankChanged()
+        }
+    }
+
     ratingForGradeN(gradeN) {
         if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return null
 

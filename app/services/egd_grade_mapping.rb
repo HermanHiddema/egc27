@@ -26,6 +26,7 @@ class EgdGradeMapping
     def rating_for(grade_n)
       value = grade_n_for(grade_n)
       return nil if value.nil?
+      return nil if value < MIN_GRADE_N || value > MAX_GRADE_N
 
       if value >= FIRST_PRO_GRADE_N
         FIRST_PRO_RATING + (value - FIRST_PRO_GRADE_N) * RATING_PER_PRO_GRADE

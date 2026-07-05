@@ -98,7 +98,7 @@
 
           <div>
             <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" }, inputmode: "numeric", autocomplete: "off" %>
+            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin", action: "input->egd-autocomplete#egdPinChanged" }, inputmode: "numeric", autocomplete: "off" %>
           </div>
         </div>
       </div>

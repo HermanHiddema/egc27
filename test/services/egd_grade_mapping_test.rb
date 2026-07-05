@@ -23,6 +23,11 @@ class EgdGradeMappingTest < ActiveSupport::TestCase
     assert_equal 2940, EgdGradeMapping.rating_for("9 dan pro")
   end
 
+  test "rating_for returns nil for out-of-range grade_n integers" do
+    assert_nil EgdGradeMapping.rating_for(-1)
+    assert_nil EgdGradeMapping.rating_for(EgdGradeMapping::MAX_GRADE_N + 1)
+  end
+
   test "rating_for returns nil for blank or unknown grades" do
     assert_nil EgdGradeMapping.rating_for(nil)
     assert_nil EgdGradeMapping.rating_for("")
