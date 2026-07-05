@@ -28,9 +28,9 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     # Shows email addresses
     assert_match "dave@example.org", response.body
     # Status badges for the three states
-    assert_match "Pending", response.body
-    assert_match "Confirmed", response.body
-    assert_match "Paid", response.body
+    assert_select "tbody tr td:nth-child(5) span", text: "Pending"
+    assert_select "tbody tr td:nth-child(5) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(5) span", text: "Paid"
     # Edit link
     assert_select "a[href='#{edit_admin_participant_path(participants(:one))}']", text: "Edit"
   end
@@ -41,6 +41,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[action='#{admin_participant_path(participants(:one))}']"
+    assert_select "input[name='participant[email]'][readonly]"
   end
 
   test "admin can update participant details" do
@@ -50,7 +51,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       participant: {
         first_name: "Alicia",
         last_name: "Smith",
-        email: "alice@example.org",
+        email: "updated@example.org",
         gender: "female",
         age_group: "18-49",
         country: "NL",
@@ -63,6 +64,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:one).reload
     assert_equal "Alicia", participant.first_name
     assert_equal "Rotterdam Go Club", participant.club
+    assert_equal "alice@example.org", participant.email
   end
 
   test "admin update with invalid data re-renders the edit form" do
