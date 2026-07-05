@@ -2,21 +2,28 @@
 # development, test). The code here should be executed at any point in every environment.
 # The data can then be loaded with the bin/rails db:seed command (or created alongside the database with db:setup).
 
-# Create or reset test user with properly hashed password
-user = User.find_or_initialize_by(email: "test@example.com")
-user.update!(
-  email: "test@example.com",
-  password: "password123",
-  password_confirmation: "password123",
-  full_name: "Test Admin",
-  role: "admin",
-  confirmed_at: Time.current,
-  confirmation_token: nil,
-  confirmation_sent_at: nil,
-  unconfirmed_email: nil
-)
+seed_updates_allowed = Rails.env.development? || Rails.env.test?
 
-puts "✓ Test admin user created: test@example.com / password123"
+user = nil
+if seed_updates_allowed
+  # Create or reset test user with properly hashed password
+  user = User.find_or_initialize_by(email: "test@example.com")
+  user.update!(
+    email: "test@example.com",
+    password: "password123",
+    password_confirmation: "password123",
+    full_name: "Test Admin",
+    role: "admin",
+    confirmed_at: Time.current,
+    confirmation_token: nil,
+    confirmation_sent_at: nil,
+    unconfirmed_email: nil
+  )
+
+  puts "✓ Test admin user created: test@example.com / password123"
+else
+  user = User.find_by(email: "test@example.com")
+end
 
 static_pages_path = Rails.root.join("db/static_pages.yml")
 seeded_pages = 0
@@ -34,13 +41,17 @@ if File.exist?(static_pages_path)
     next if slug.blank? || title.blank? || content.blank?
 
     page = Page.find_or_initialize_by(slug: slug)
+    should_save = page.new_record? || seed_updates_allowed
+    next unless should_save
+
     page.assign_attributes(
       title: title,
       content: content,
       content_html: "<p>#{ERB::Util.html_escape(content)}</p>"
     )
-    page.save! if page.new_record? || page.changed?
+    next unless page.new_record? || page.changed?
 
+    page.save!
     puts "✓ Page upserted: #{slug}"
     seeded_pages += 1
   end
@@ -57,12 +68,17 @@ legal_pages = [
 
 legal_pages.each do |legal_page|
   page = Page.find_or_initialize_by(slug: legal_page[:slug])
+  should_save = page.new_record? || seed_updates_allowed
+  next unless should_save
+
   page.assign_attributes(
     title: legal_page[:title],
     content: legal_page[:content],
     content_html: "<p>#{ERB::Util.html_escape(legal_page[:content])}</p>"
   )
-  page.save! if page.new_record? || page.changed?
+  next unless page.new_record? || page.changed?
+
+  page.save!
   puts "✓ Page upserted: #{legal_page[:slug]}"
 end
 
@@ -85,17 +101,27 @@ article_seeds = [
   }
 ]
 
+seeded_articles = 0
 article_seeds.each do |article_seed|
   article = Article.find_or_initialize_by(title: article_seed[:title])
+  should_save = article.new_record? || seed_updates_allowed
+  next unless should_save
+
+  article_user = user || User.where(role: "admin").first || User.first
+  next unless article_user
+
   article.assign_attributes(
-    user: user,
+    user: article_user,
     content: article_seed[:content],
     content_html: "<p>#{ERB::Util.html_escape(article_seed[:content])}</p>"
   )
-  article.save! if article.new_record? || article.changed?
+  next unless article.new_record? || article.changed?
+
+  article.save!
+  seeded_articles += 1
 end
 
-puts "✓ Seeded #{article_seeds.size} news articles"
+puts "✓ Seeded #{seeded_articles} news articles"
 
 sponsor_seeds = [
   {
@@ -129,27 +155,34 @@ sponsor_seeds = [
 
 placeholder_logo_paths = Dir[Rails.root.join("app/assets/images/placeholders/*").to_s]
 
+seeded_sponsors = 0
 sponsor_seeds.each_with_index do |sponsor_seed, index|
   sponsor = Sponsor.find_or_initialize_by(name: sponsor_seed[:name])
+  should_save = sponsor.new_record? || seed_updates_allowed
+  next unless should_save
+
   sponsor.assign_attributes(
     website: sponsor_seed[:website],
     description: sponsor_seed[:description],
     social_media_links: sponsor_seed[:social_media_links]
   )
-  sponsor.save! if sponsor.new_record? || sponsor.changed?
+  next unless sponsor.new_record? || sponsor.changed?
+
+  sponsor.save!
+  seeded_sponsors += 1
 
   next if sponsor.logo.attached?
   next if placeholder_logo_paths.empty?
 
   logo_path = placeholder_logo_paths[index % placeholder_logo_paths.size]
   sponsor.logo.attach(
-    io: File.open(logo_path),
+    io: StringIO.new(File.binread(logo_path)),
     filename: File.basename(logo_path),
     content_type: Marcel::MimeType.for(Pathname.new(logo_path))
   )
 end
 
-puts "✓ Seeded #{sponsor_seeds.size} sponsors"
+puts "✓ Seeded #{seeded_sponsors} sponsors"
 
 header_menu = Menu.find_or_initialize_by(location: "header")
 header_menu.name = "Header Navigation"
