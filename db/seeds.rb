@@ -93,7 +93,7 @@ article_seeds = [
   },
   {
     title: "Professional Program Preview",
-    content: "This year\'s pro program includes daily game reviews, evening lectures, and simultaneous games. Session topics and speakers will be announced in batches throughout spring."
+    content: "This year's pro program includes daily game reviews, evening lectures, and simultaneous games. Session topics and speakers will be announced in batches throughout spring."
   },
   {
     title: "Excursion Day Highlights",
