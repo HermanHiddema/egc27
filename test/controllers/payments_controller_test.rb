@@ -72,7 +72,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
 
     original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |_params| mollie_stub }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
 
     assert_difference("Payment.count", 1) do
       post participant_payment_path(participant)
@@ -88,7 +88,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |_params| raise Mollie::Exception, "boom" }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| raise Mollie::Exception, "boom" }
 
     post participant_payment_path(participant)
 
@@ -140,7 +140,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     original_get = Mollie::Payment.method(:get)
     original_create = Mollie::Payment.method(:create)
     Mollie::Payment.define_singleton_method(:get) { |_id| stale_mollie }
-    Mollie::Payment.define_singleton_method(:create) { |_params| new_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| new_mollie }
 
     assert_difference("Payment.count", 1) do
       post participant_payment_path(payment.participant)
