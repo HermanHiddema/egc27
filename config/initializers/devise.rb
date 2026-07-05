@@ -22,6 +22,16 @@ Devise.setup do |config|
 
   config.sign_out_via = :delete
 
+  # When using Devise with Hotwire/Turbo, form submissions are handled by Turbo,
+  # which only renders responses that redirect (3xx) or signal an error (4xx).
+  # Devise defaults to responding with :ok (200) on failures for backwards
+  # compatibility, which Turbo ignores silently - so a failed sign in would show
+  # no error message. Respond with :unprocessable_entity so Turbo renders the
+  # re-rendered form (including the "Invalid email or password." flash), and use
+  # :see_other for redirects after successful, non-GET actions.
+  config.responder.error_status = :unprocessable_entity
+  config.responder.redirect_status = :see_other
+
   # ==> Configuration for :magic_link_authenticatable
 
   # Need to use a custom Devise mailer in order to send magic links.
