@@ -4,7 +4,7 @@ module RichTextSearchable
   included do
     include PgSearch::Model
 
-    multisearchable against: { title: "A", searchable_content: "B" }
+    multisearchable against: [:title, :searchable_content]
   end
 
   # Plain-text content used for full-text indexing. Uses the TinyMCE-authored
