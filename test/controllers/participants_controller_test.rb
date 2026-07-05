@@ -105,6 +105,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_no_match "Proceed to Payment", response.body
     assert_match "Your registration is confirmed and paid.", response.body
+    assert_match "No further action is required.", response.body
   end
 
   test "show shows payment button for a confirmed but unpaid participant" do
@@ -115,6 +116,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "Proceed to Payment", response.body
+    assert_no_match "Your registration is confirmed and paid.", response.body
   end
 
   test "participants index supports country filter and shows filtered results with flags" do
