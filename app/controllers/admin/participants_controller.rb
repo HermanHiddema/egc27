@@ -92,14 +92,18 @@ class Admin::ParticipantsController < ApplicationController
     participants.order(*clauses, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
   end
 
-  # Registration status is derived, not a database column, so it is sorted in
-  # Ruby after loading. Pending < Confirmed < Paid, reversed for descending.
+  # Registration status is derived from DB columns, expressed as a SQL CASE so
+  # sorting stays at the database level. Pending < Confirmed < Paid.
   def status_sorted_participants(participants)
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2 }
-    sorted = participants
-      .sort_by { |participant| [order[participant.registration_status], participant.last_name.to_s.downcase, participant.first_name.to_s.downcase, participant.id] }
-
-    @direction == :desc ? sorted.reverse : sorted
+    table = Participant.arel_table
+    paid_subquery = Payment.completed.select(:participant_id).to_sql
+    dir = @direction == :desc ? "DESC" : "ASC"
+    status_order = Arel.sql(
+      "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
+      "WHEN participants.confirmed_at IS NOT NULL THEN 1 " \
+      "ELSE 0 END #{dir}"
+    )
+    participants.order(status_order, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
   end
 
   def ordered(column)
@@ -112,6 +116,6 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
+    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
   end
 end
