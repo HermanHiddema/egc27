@@ -81,7 +81,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://example.test/new-checkout"
     assert_equal "tr_new_attempt_123", participant.payments.order(created_at: :desc).first.mollie_payment_id
   ensure
-    Mollie::Payment.define_singleton_method(:create, original)
+    Mollie::Payment.define_singleton_method(:create, &original)
   end
 
   test "create keeps confirmed payment view state when mollie creation fails" do
@@ -96,7 +96,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Payment could not be started: boom", response.body
     assert_no_match "Please confirm your email address", response.body
   ensure
-    Mollie::Payment.define_singleton_method(:create, original)
+    Mollie::Payment.define_singleton_method(:create, &original)
   end
 
   test "create reuses the latest in-progress payment" do
@@ -112,7 +112,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to "https://example.test/mollie-checkout"
   ensure
-    Mollie::Payment.define_singleton_method(:get, original)
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   test "create starts a new payment attempt when previous mollie checkout is unavailable" do
@@ -132,8 +132,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://example.test/new-checkout"
     assert_equal "tr_new_attempt_123", payment.participant.payments.order(created_at: :desc).first.mollie_payment_id
   ensure
-    Mollie::Payment.define_singleton_method(:get, original_get)
-    Mollie::Payment.define_singleton_method(:create, original_create)
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
   end
 
   # success
@@ -162,7 +162,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Payment Pending", response.body
   ensure
-    Mollie::Payment.define_singleton_method(:get, original)
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   # webhook
@@ -174,7 +174,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
   ensure
-    Mollie::Payment.define_singleton_method(:get, original)
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   test "webhook updates payment status" do
@@ -189,7 +189,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal "paid", payment.reload.status
   ensure
-    Mollie::Payment.define_singleton_method(:get, original)
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   test "webhook is not blocked by the modern browser guard" do
@@ -212,6 +212,6 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :ok
     assert_equal "paid", payment.reload.status
   ensure
-    Mollie::Payment.define_singleton_method(:get, original)
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 end
