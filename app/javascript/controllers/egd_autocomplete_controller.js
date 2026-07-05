@@ -172,11 +172,15 @@ export default class extends Controller {
 
     // The rating is locked: when a participant changes their rank manually we
     // recompute the derived rating, unless an EGD pin already supplied one.
+    // Skip recompute only when both an EGD PIN and a non-blank EGD rating are
+    // present; if the PIN exists but no rating was filled in from EGD the server
+    // will still fall back to the rank-derived value, so keep them in sync.
     rankChanged() {
         if (!this.hasRankTarget || !this.hasRatingTarget) return
 
         const egdPin = String(this.hasEgdPinTarget ? this.egdPinTarget.value : "").trim()
-        if (egdPin) return
+        const currentRating = String(this.ratingTarget.value || "").trim()
+        if (egdPin && currentRating) return
 
         const rating = this.ratingForGradeN(this.rankTarget.value)
         this.ratingTarget.value = rating === null ? "" : String(rating)
@@ -185,9 +189,15 @@ export default class extends Controller {
     egdPinChanged() {
         if (!this.hasEgdPinTarget) return
 
-        this.checkRegistration(this.egdPinTarget.value)
+        const pin = String(this.egdPinTarget.value).trim()
 
-        if (String(this.egdPinTarget.value).trim() === "") {
+        // Only check registration when the PIN is blank (to hide the notice) or
+        // complete (8 digits), avoiding unnecessary requests while the user types.
+        if (!pin || /^\d{8}$/.test(pin)) {
+            this.checkRegistration(this.egdPinTarget.value)
+        }
+
+        if (pin === "") {
             this.rankChanged()
         }
     }
