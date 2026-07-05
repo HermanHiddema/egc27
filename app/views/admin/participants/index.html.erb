@@ -1,0 +1,46 @@
+<div class="container-wide py-12" data-controller="country-names">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Participants (Admin)</h1>
+    <p class="text-sm text-neutral-700"><strong><%= @participants.size %></strong> participant<%= "s" unless @participants.size == 1 %></p>
+  </div>
+
+  <% if @participants.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Email</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @participants.each do |participant| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.email %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type&.capitalize %></td>
+                <td class="px-4 py-3 text-sm">
+                  <% status = participant.registration_status %>
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= participant_status_badge_class(status) %>"><%= status %></span>
+                </td>
+                <td class="px-4 py-3 text-sm text-right">
+                  <%= link_to "Edit", edit_admin_participant_path(participant), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <p class="text-neutral-700">No participants have registered yet.</p>
+    </div>
+  <% end %>
+</div>

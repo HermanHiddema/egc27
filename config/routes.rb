@@ -107,5 +107,9 @@ Rails.application.routes.draw do
   get "dashboard", to: "dashboard#index", as: :dashboard
   resources :sponsors, except: [:show]
 
+  namespace :admin do
+    resources :participants, only: [:index, :edit, :update]
+  end
+
   root "home#index"
 end

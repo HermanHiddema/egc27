@@ -70,6 +70,25 @@ class Participant < ApplicationRecord
     participant_type == "player"
   end
 
+  # A participant is considered paid once any of their payments has completed.
+  # Uses the in-memory association when it is already loaded (e.g. eager loaded
+  # in the admin list) to avoid an extra query per participant.
+  def paid?
+    if payments.loaded?
+      payments.any?(&:paid?)
+    else
+      payments.completed.exists?
+    end
+  end
+
+  # High-level registration status used in the admin participant list.
+  def registration_status
+    return "Paid" if paid?
+    return "Confirmed" if confirmed?
+
+    "Pending"
+  end
+
   def visitor?
     participant_type == "visitor"
   end

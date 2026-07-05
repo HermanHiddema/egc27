@@ -501,4 +501,17 @@ class ParticipantTest < ActiveSupport::TestCase
 
     assert_equal participant.uuid, participant.to_param
   end
+
+  test "registration_status is Pending when not confirmed" do
+    assert_equal "Pending", participants(:unconfirmed).registration_status
+  end
+
+  test "registration_status is Confirmed when confirmed without a completed payment" do
+    assert_equal "Confirmed", participants(:one).registration_status
+  end
+
+  test "registration_status is Paid when a payment has completed" do
+    assert participants(:two).paid?
+    assert_equal "Paid", participants(:two).registration_status
+  end
 end

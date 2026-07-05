@@ -24,6 +24,7 @@ class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{users_path}']", text: "Users"
+    assert_select "a[href='#{admin_participants_path}']", text: "Participants"
     assert_select "a[href='#{notices_path}']", text: "Notices"
     assert_select "a[href='#{menus_path}']", text: "Menus"
     assert_select "a[href='#{sponsors_path}']", text: "Sponsors"
