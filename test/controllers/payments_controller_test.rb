@@ -67,6 +67,23 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to success_payments_path
   end
 
+  test "create starts a single payment when no in-progress payment exists" do
+    participant = participants(:three)
+    mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
+
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) { |_params| mollie_stub }
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to "https://example.test/new-checkout"
+    assert_equal "tr_new_attempt_123", participant.payments.order(created_at: :desc).first.mollie_payment_id
+  ensure
+    Mollie::Payment.define_singleton_method(:create, original)
+  end
+
   test "create keeps confirmed payment view state when mollie creation fails" do
     participant = participants(:three)
 

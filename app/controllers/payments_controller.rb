@@ -41,7 +41,9 @@ class PaymentsController < ApplicationController
       return redirect_to success_payments_path, notice: "Your registration has already been paid."
     end
 
-    if mollie_payment.nil? || mollie_payment.checkout_url.blank? || !retryable_mollie_status?(mollie_payment.status)
+    if mollie_payment.nil?
+      mollie_payment = create_mollie_payment_for(@payment)
+    elsif mollie_payment.checkout_url.blank? || !retryable_mollie_status?(mollie_payment.status)
       @payment = build_payment_for(@participant)
       created_payment = true
 
