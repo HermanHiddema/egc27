@@ -84,7 +84,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "create reuses the latest in-progress payment" do
     payment = payments(:open_payment)
-    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, checkout_url: "https://example.test/mollie-checkout")
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "open", checkout_url: "https://example.test/mollie-checkout")
 
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
@@ -96,6 +96,27 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://example.test/mollie-checkout"
   ensure
     Mollie::Payment.define_singleton_method(:get, original)
+  end
+
+  test "create starts a new payment attempt when previous mollie checkout is unavailable" do
+    payment = payments(:open_payment)
+    stale_mollie = OpenStruct.new(id: payment.mollie_payment_id, status: "failed", checkout_url: nil)
+    new_mollie = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| stale_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |_params| new_mollie }
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(payment.participant)
+    end
+
+    assert_redirected_to "https://example.test/new-checkout"
+    assert_equal "tr_new_attempt_123", payment.participant.payments.order(created_at: :desc).first.mollie_payment_id
+  ensure
+    Mollie::Payment.define_singleton_method(:get, original_get)
+    Mollie::Payment.define_singleton_method(:create, original_create)
   end
 
   # success
