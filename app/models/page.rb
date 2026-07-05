@@ -1,3 +1,18 @@
+# == Schema Information
+#
+# Table name: pages
+#
+#  id           :bigint           not null, primary key
+#  content_html :text
+#  slug         :string           not null
+#  title        :string           not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Indexes
+#
+#  index_pages_on_slug  (slug) UNIQUE
+#
 class Page < ApplicationRecord
   include RichTextSearchable
 

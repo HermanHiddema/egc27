@@ -1,3 +1,18 @@
+# == Schema Information
+#
+# Table name: event_groups
+#
+#  id         :bigint           not null, primary key
+#  color      :string
+#  key        :string           not null
+#  name       :string           not null
+#  created_at :datetime         not null
+#  updated_at :datetime         not null
+#
+# Indexes
+#
+#  index_event_groups_on_key  (key) UNIQUE
+#
 class EventGroup < ApplicationRecord
   has_many :calendar_events, dependent: :nullify
 

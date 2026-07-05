@@ -1,5 +1,30 @@
 require "test_helper"
 
+# == Schema Information
+#
+# Table name: calendar_events
+#
+#  id             :bigint           not null, primary key
+#  color          :string
+#  description    :text
+#  ends_at        :datetime         not null
+#  location       :string
+#  starts_at      :datetime         not null
+#  title          :string           not null
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  event_group_id :bigint
+#
+# Indexes
+#
+#  index_calendar_events_on_ends_at         (ends_at)
+#  index_calendar_events_on_event_group_id  (event_group_id)
+#  index_calendar_events_on_starts_at       (starts_at)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (event_group_id => event_groups.id)
+#
 class CalendarEventTest < ActiveSupport::TestCase
   test "is invalid when end time is before start time" do
     calendar_event = CalendarEvent.new(

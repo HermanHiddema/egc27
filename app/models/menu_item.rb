@@ -1,3 +1,32 @@
+# == Schema Information
+#
+# Table name: menu_items
+#
+#  id              :bigint           not null, primary key
+#  label           :string           not null
+#  open_in_new_tab :boolean          default(FALSE), not null
+#  position        :integer          default(0), not null
+#  url             :string
+#  visible         :boolean          default(TRUE), not null
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  menu_id         :bigint           not null
+#  page_id         :bigint
+#  parent_id       :bigint
+#
+# Indexes
+#
+#  index_menu_items_on_menu_id                             (menu_id)
+#  index_menu_items_on_menu_id_and_parent_id_and_position  (menu_id,parent_id,position)
+#  index_menu_items_on_page_id                             (page_id)
+#  index_menu_items_on_parent_id                           (parent_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (menu_id => menus.id)
+#  fk_rails_...  (page_id => pages.id)
+#  fk_rails_...  (parent_id => menu_items.id)
+#
 class MenuItem < ApplicationRecord
   belongs_to :menu
   belongs_to :parent, class_name: "MenuItem", optional: true, inverse_of: :children
