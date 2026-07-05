@@ -1,0 +1,99 @@
+<%= form_with model: [:admin, participant], url: admin_participant_path(participant), method: :patch do |form| %>
+  <% if participant.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h2 class="text-red-800 font-semibold mb-2">There were errors with this submission:</h2>
+      <ul class="text-red-700 list-disc list-inside">
+        <% participant.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div>
+      <%= form.label :first_name, "First name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :last_name, "Last name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :last_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :email, "Email *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.email_field :email, readonly: true, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50 text-gray-700", autocomplete: "off" %>
+    </div>
+
+    <div>
+      <%= form.label :phone, "Phone", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.telephone_field :phone, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", placeholder: "+31612345678" %>
+    </div>
+
+    <div>
+      <%= form.label :gender, "Gender *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], participant.gender), { prompt: "Select gender" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :age_group, "Age group *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :age_group, options_for_select([["0–11", "0-11"], ["12–17", "12-17"], ["18–49", "18-49"], ["50+", "50+"]], participant.age_group), { prompt: "Select age group" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :country, "Country (ISO alpha-2) *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :country, maxlength: 2, class: "w-full border border-gray-300 rounded-lg px-4 py-2 uppercase focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :participant_type, "Participant type *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :participant_type, options_for_select([["Player", "player"], ["Visitor", "visitor"]], participant.participant_type), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :club, "Club", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :club, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :rank, "Rank", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :rank, options_for_select([["None", ""]] + EgdGradeMapping.options_for_select, participant.rank), { prompt: "Select rank" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div>
+      <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", inputmode: "numeric", autocomplete: "off" %>
+    </div>
+
+    <div>
+      <%= form.label :rating, "Rating (EGD/GOR)", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.number_field :rating, readonly: true, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50 text-gray-700" %>
+      <p class="mt-1 text-xs text-gray-500">Calculated automatically from the EGD entry or rank.</p>
+    </div>
+
+    <div>
+      <%= form.label :attendance_option, "Attendance period", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :attendance_option, options_for_select([["All events", "all_events"], ["First week + weekend", "first_week_plus_weekend"], ["Weekend + second week", "weekend_plus_second_week"], ["Weekend only", "weekend_only"]], participant.attendance_option), { include_blank: "No change" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+    </div>
+
+    <div class="md:col-span-2">
+      <fieldset class="space-y-2">
+        <legend class="text-sm font-medium text-gray-900">Photo policy *</legend>
+        <label class="flex items-start gap-3 text-sm text-gray-800">
+          <%= form.radio_button :image_use_consent, true, class: "mt-1 h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+          <span>Consents to the use of images.</span>
+        </label>
+        <label class="flex items-start gap-3 text-sm text-gray-800">
+          <%= form.radio_button :image_use_consent, false, class: "mt-1 h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+          <span>Does not consent to the use of images.</span>
+        </label>
+      </fieldset>
+    </div>
+  </div>
+
+  <div class="flex gap-4 mt-6">
+    <%= form.submit "Save changes", class: "btn-primary" %>
+    <%= link_to "Cancel", admin_participants_path, class: "text-neutral-700 hover:text-neutral-900 transition self-center" %>
+  </div>
+<% end %>

@@ -132,4 +132,15 @@ module ApplicationHelper
 
     current_direction == :asc ? "↑" : "↓"
   end
+
+  # Tailwind classes for the coloured status badge shown in the admin
+  # participant list. Falls back to a neutral style for unknown statuses.
+  def participant_status_badge_class(status)
+    case status
+    when "Paid" then "bg-green-100 text-green-800"
+    when "Confirmed" then "bg-blue-100 text-blue-800"
+    when "Pending" then "bg-yellow-100 text-yellow-800"
+    else "bg-neutral-100 text-neutral-800"
+    end
+  end
 end
