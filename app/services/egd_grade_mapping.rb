@@ -5,9 +5,34 @@ class EgdGradeMapping
   MIN_GRADE_N = 0
   MAX_GRADE_N = 29 + MAX_DAN + MAX_PRO
 
+  # 1 kyu (grade_n 29) maps to a rating of 2000 and each grade step is worth
+  # 100 points, so 1 dan (grade_n 30) maps to 2100, 2 kyu to 1900, and so on.
+  FIRST_KYU_GRADE_N = 29
+  FIRST_KYU_RATING = 2000
+  RATING_PER_GRADE = 100
+
+  # Professional grades follow a separate scale: 1 dan pro is equivalent to
+  # 7 dan (rating 2700) and each subsequent pro grade adds 30 points.
+  LAST_DAN_GRADE_N = FIRST_KYU_GRADE_N + MAX_DAN
+  FIRST_PRO_GRADE_N = LAST_DAN_GRADE_N + 1
+  FIRST_PRO_RATING = FIRST_KYU_RATING + (7 * RATING_PER_GRADE)
+  RATING_PER_PRO_GRADE = 30
+
   class << self
     def options_for_select
       pro_options.reverse + dan_options.reverse + kyu_options.reverse
+    end
+
+    def rating_for(grade_n)
+      value = grade_n_for(grade_n)
+      return nil if value.nil?
+      return nil if value < MIN_GRADE_N || value > MAX_GRADE_N
+
+      if value >= FIRST_PRO_GRADE_N
+        FIRST_PRO_RATING + (value - FIRST_PRO_GRADE_N) * RATING_PER_PRO_GRADE
+      else
+        FIRST_KYU_RATING + (value - FIRST_KYU_GRADE_N) * RATING_PER_GRADE
+      end
     end
 
     def grade_for(grade_n)

@@ -157,6 +157,14 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td:nth-child(5)", text: /\A\s*\z/, count: 1
   end
 
+  test "participants index links ratings to EGD when a pin is present" do
+    get participants_path
+
+    assert_response :success
+    assert_select "a[href='https://europeangodatabase.eu/EGD/Player_Card.php?&key=10000001']", text: "1789"
+    assert_select "a[href*='Player_Card.php?&key=']", count: 1
+  end
+
   test "registration form is publicly accessible" do
     get new_participant_path
 

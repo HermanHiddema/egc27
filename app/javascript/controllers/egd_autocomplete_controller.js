@@ -1,6 +1,19 @@
 import { Controller } from "@hotwired/stimulus"
 import { COUNTRY_NAME_OVERRIDES } from "lib/country_names"
 
+// Mirrors the server-side rating rules in EgdGradeMapping / Participant so the
+// read-only rating field can preview the locked value as the rank changes.
+const MIN_GRADE_N = 0
+const MAX_GRADE_N = 47
+const FIRST_KYU_GRADE_N = 29
+const FIRST_KYU_RATING = 2000
+const RATING_PER_GRADE = 100
+const FIRST_PRO_GRADE_N = 39
+const FIRST_PRO_RATING = 2700
+const RATING_PER_PRO_GRADE = 30
+const MIN_RATING = -1000
+const MAX_RATING = 3000
+
 const ISO_COUNTRY_CODES = [
     "AD", "AE", "AF", "AG", "AI", "AL", "AM", "AO", "AQ", "AR", "AS", "AT", "AU", "AW", "AX", "AZ",
     "BA", "BB", "BD", "BE", "BF", "BG", "BH", "BI", "BJ", "BL", "BM", "BN", "BO", "BQ", "BR", "BS",
@@ -155,6 +168,85 @@ export default class extends Controller {
 
     countryInputChanged() {
         this.syncCountryCodeFromInput(false)
+    }
+
+    // The rating is locked: when a participant changes their rank manually we
+    // recompute the derived rating, unless an EGD pin already supplied one.
+    // Skip recompute only when both an EGD PIN and a non-blank EGD rating are
+    // present; if the PIN exists but no rating was filled in from EGD the server
+    // will still fall back to the rank-derived value, so keep them in sync.
+    rankChanged() {
+        if (!this.hasRankTarget || !this.hasRatingTarget) return
+
+        const egdPin = String(this.hasEgdPinTarget ? this.egdPinTarget.value : "").trim()
+        const currentRating = String(this.ratingTarget.value || "").trim()
+        if (egdPin && currentRating) return
+
+        const rating = this.ratingForGradeN(this.rankTarget.value)
+        this.ratingTarget.value = rating === null ? "" : String(rating)
+    }
+
+    async egdPinChanged() {
+        if (!this.hasEgdPinTarget) return
+
+        const pin = String(this.egdPinTarget.value).trim()
+
+        if (!pin) {
+            this.checkRegistration(pin)
+            this.rankChanged()
+            return
+        }
+
+        // A complete PIN should query EGD immediately so the form can be
+        // prefilled from the authoritative record.
+        if (/^\d{8}$/.test(pin)) {
+            const matched = await this.lookupByPin(pin)
+            if (!matched) {
+                this.checkRegistration(pin)
+            }
+        }
+    }
+
+    async lookupByPin(pin) {
+        if (!/^\d{8}$/.test(String(pin || "").trim())) return false
+
+        try {
+            const response = await fetch(this.buildPinUrl(pin), {
+                headers: {
+                    Accept: "application/json"
+                }
+            })
+
+            if (!response.ok) {
+                return false
+            }
+
+            const payload = await response.json()
+            const matches = this.normalizePayload(payload)
+            const currentPin = String(this.egdPinTarget?.value || "").trim()
+            if (currentPin !== pin) return false
+
+            if (matches.length === 1) {
+                this.applyMatch(matches[0])
+                return true
+            }
+
+            return false
+        } catch (_error) {
+            return false
+        }
+    }
+
+    ratingForGradeN(gradeN) {
+        if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return null
+
+        const parsed = Number(gradeN)
+        if (Number.isNaN(parsed) || parsed < MIN_GRADE_N || parsed > MAX_GRADE_N) return null
+
+        const rating = parsed >= FIRST_PRO_GRADE_N
+            ? FIRST_PRO_RATING + (parsed - FIRST_PRO_GRADE_N) * RATING_PER_PRO_GRADE
+            : FIRST_KYU_RATING + (parsed - FIRST_KYU_GRADE_N) * RATING_PER_GRADE
+        return Math.min(MAX_RATING, Math.max(MIN_RATING, rating))
     }
 
     countryInputBlur() {
@@ -425,7 +517,7 @@ export default class extends Controller {
         if (gradeN === null || gradeN === undefined || String(gradeN).trim() === "") return ""
 
         const parsed = Number(gradeN)
-        if (Number.isNaN(parsed) || parsed < 0 || parsed > 47) return ""
+        if (Number.isNaN(parsed) || parsed < MIN_GRADE_N || parsed > MAX_GRADE_N) return ""
         if (parsed <= 29) return `${30 - parsed} kyu`
         if (parsed <= 38) return `${parsed - 29} dan`
         return `${parsed - 38} dan pro`

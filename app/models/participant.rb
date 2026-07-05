@@ -9,6 +9,9 @@ class Participant < ApplicationRecord
     "weekend_only" => { first_week: false, weekend: true, second_week: false }
   }.freeze
 
+  MIN_RATING = -1000
+  MAX_RATING = 3000
+
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
@@ -37,8 +40,8 @@ class Participant < ApplicationRecord
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }
   validates :rating, numericality: {
     only_integer: true,
-    greater_than_or_equal_to: -1000,
-    less_than_or_equal_to: 3000
+    greater_than_or_equal_to: MIN_RATING,
+    less_than_or_equal_to: MAX_RATING
   }, allow_nil: true
   validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" }, allow_blank: true
   validates :rank, numericality: {
@@ -138,8 +141,28 @@ class Participant < ApplicationRecord
     self.rank = EgdGradeMapping.grade_n_for(source_value)
   end
 
+  # The rating is derived, never set directly by participants. An EGD pin that
+  # has resulted in a rating takes priority; otherwise the entered rank is
+  # converted to a rating. Runs after normalize_rank so the rank is already a
+  # grade_n integer.
   def normalize_rating
-    self.rating = normalize_integer(rating)
+    derived = egd_sourced_rating || EgdGradeMapping.rating_for(rank)
+    self.rating = clamp_rating(derived)
+  end
+
+  # A rating that originates from an EGD pin lookup. Only trusted when an EGD
+  # pin is present, so a submitted rating can never override the rank-derived
+  # value on its own.
+  def egd_sourced_rating
+    return nil if egd_pin.blank?
+
+    normalize_integer(rating)
+  end
+
+  def clamp_rating(value)
+    return nil if value.nil?
+
+    value.clamp(MIN_RATING, MAX_RATING)
   end
 
   def normalize_integer(value)

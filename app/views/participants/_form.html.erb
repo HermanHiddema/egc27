@@ -82,12 +82,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <%= form.label :rank, "Rank", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.select :rank, options_for_select([["None", ""]] + EgdGradeMapping.options_for_select, participant.rank), { prompt: "Select rank" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rank" } %>
+            <%= form.select :rank, options_for_select([["None", ""]] + EgdGradeMapping.options_for_select, participant.rank), { prompt: "Select rank" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rank", action: "change->egd-autocomplete#rankChanged" } %>
           </div>
 
           <div>
             <%= form.label :rating, "Rating (EGD/GOR)", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.number_field :rating, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rating" } %>
+            <%= form.number_field :rating, readonly: true, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50 text-gray-700 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rating" } %>
+            <p class="mt-1 text-sm text-gray-500">Calculated automatically from your EGD entry or rank and cannot be edited.</p>
           </div>
 
           <div>
@@ -97,7 +98,7 @@
 
           <div>
             <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
-            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin" }, inputmode: "numeric", autocomplete: "off" %>
+            <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin", action: "input->egd-autocomplete#egdPinChanged" }, inputmode: "numeric", autocomplete: "off" %>
           </div>
         </div>
       </div>
