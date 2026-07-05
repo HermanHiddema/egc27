@@ -130,6 +130,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to "https://example.test/new-checkout"
+    assert_equal "failed", payment.reload.status
     assert_equal "tr_new_attempt_123", payment.participant.payments.order(created_at: :desc).first.mollie_payment_id
   ensure
     Mollie::Payment.define_singleton_method(:get, &original_get)

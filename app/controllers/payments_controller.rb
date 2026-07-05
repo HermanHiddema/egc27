@@ -54,9 +54,9 @@ class PaymentsController < ApplicationController
       mollie_payment = create_mollie_payment_for(@payment)
     end
 
-    @payment.update!(mollie_payment_id: mollie_payment.id) if @payment.mollie_payment_id.blank?
-
     raise Mollie::Exception, "No checkout URL was returned by Mollie." if mollie_payment.checkout_url.blank?
+
+    @payment.update!(mollie_payment_id: mollie_payment.id) if @payment.mollie_payment_id.blank?
 
     redirect_to mollie_payment.checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
@@ -136,7 +136,7 @@ class PaymentsController < ApplicationController
       description: payment.description,
       redirect_url: success_payments_url(payment_id: payment.id),
       webhook_url: webhook_payments_url,
-      metadata: { payment_id: payment.id, participant_id: @participant.id }
+      metadata: { payment_id: payment.id, participant_id: payment.participant_id }
     )
   end
 
