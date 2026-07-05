@@ -53,7 +53,6 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     get search_path, params: { q: sponsors(:one).name }
 
     assert_response :success
-    assert_select "h2", text: /Sponsors/
     assert_select "h3", text: sponsors(:one).name
   end
 
@@ -61,7 +60,7 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     get search_path, params: { q: "sponsor description" }
 
     assert_response :success
-    assert_select "h2", text: /Sponsors/
+    assert_select "h3", text: sponsors(:one).name
   end
 
   test "matches stemmed variants using the english dictionary" do

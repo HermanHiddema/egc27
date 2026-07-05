@@ -23,9 +23,7 @@
     <% end %>
 
     <% if @query.present? %>
-      <% results_count = @pages.size + @articles.size + @sponsors.size %>
-
-      <% if results_count.zero? %>
+      <% if @results.empty? %>
         <div class="text-center py-16">
           <svg class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
@@ -35,68 +33,60 @@
         </div>
       <% else %>
         <p class="text-sm text-gray-500 mb-8">
-          <%= pluralize(results_count, "result") %> for &ldquo;<span class="font-semibold text-gray-700"><%= @query %></span>&rdquo;
+          <%= pluralize(@results.size, "result") %> for &ldquo;<span class="font-semibold text-gray-700"><%= @query %></span>&rdquo;
         </p>
 
-        <% if @pages.any? %>
-          <section class="mb-10">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
-              Pages <span class="text-gray-400 font-normal">(<%= @pages.size %>)</span>
-            </h2>
-            <div class="space-y-3">
-              <% @pages.each do |page| %>
-                <%= link_to page_path(page), class: "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" do %>
-                  <h3 class="text-lg font-bold text-brand-blue-900"><%= page.title %></h3>
-                  <p class="text-sm text-gray-500 mt-1">/<%= page.slug %></p>
-                <% end %>
-              <% end %>
-            </div>
-          </section>
-        <% end %>
+        <div class="space-y-3">
+          <% @results.each do |document| %>
+            <% record = document.searchable %>
+            <% next unless record %>
 
-        <% if @articles.any? %>
-          <section class="mb-10">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
-              News <span class="text-gray-400 font-normal">(<%= @articles.size %>)</span>
-            </h2>
-            <div class="space-y-3">
-              <% @articles.each do |article| %>
-                <%= link_to article_path(article), class: "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" do %>
-                  <h3 class="text-lg font-bold text-brand-blue-900"><%= article.title %></h3>
-                  <p class="text-sm text-gray-500 mt-1"><%= article.created_at.strftime("%d %B %Y") %></p>
-                <% end %>
-              <% end %>
-            </div>
-          </section>
-        <% end %>
+            <%
+              case document.searchable_type
+              when "Page"
+                result_title   = record.title
+                result_url     = page_path(record)
+                result_type    = "Page"
+                result_snippet = truncate(strip_tags(record.content_html.to_s), length: 160)
+              when "Article"
+                result_title   = record.title
+                result_url     = article_path(record)
+                result_type    = "News"
+                result_snippet = truncate(strip_tags(record.content_html.to_s), length: 160)
+              when "Sponsor"
+                result_title   = record.name
+                result_url     = record.website.presence
+                result_type    = "Sponsor"
+                result_snippet = truncate(record.description.to_s, length: 160)
+              end
+            %>
 
-        <% if @sponsors.any? %>
-          <section class="mb-10">
-            <h2 class="text-sm font-semibold uppercase tracking-wide text-brand-blue-700 mb-3">
-              Sponsors <span class="text-gray-400 font-normal">(<%= @sponsors.size %>)</span>
-            </h2>
-            <% sponsor_card_classes = "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" %>
-            <div class="space-y-3">
-              <% @sponsors.each do |sponsor| %>
-                <% if sponsor.website.present? %>
-                  <%= link_to sponsor.website, target: "_blank", rel: "noopener noreferrer", class: sponsor_card_classes do %>
-                    <h3 class="text-lg font-bold text-brand-blue-900"><%= sponsor.name %></h3>
-                    <% if sponsor.description.present? %>
-                      <p class="text-sm text-gray-600 mt-1"><%= truncate(sponsor.description, length: 160) %></p>
-                    <% end %>
-                  <% end %>
-                <% else %>
-                  <div class="<%= sponsor_card_classes %>">
-                    <h3 class="text-lg font-bold text-brand-blue-900"><%= sponsor.name %></h3>
-                    <% if sponsor.description.present? %>
-                      <p class="text-sm text-gray-600 mt-1"><%= truncate(sponsor.description, length: 160) %></p>
-                    <% end %>
-                  </div>
+            <% card_classes = "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" %>
+
+            <% if result_url %>
+              <% link_opts = document.searchable_type == "Sponsor" ? { target: "_blank", rel: "noopener noreferrer" } : {} %>
+              <%= link_to result_url, class: card_classes, **link_opts do %>
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= result_title %></h3>
+                  <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue-600 bg-brand-blue-50 px-2 py-0.5 rounded shrink-0"><%= result_type %></span>
+                </div>
+                <% if result_snippet.present? %>
+                  <p class="text-sm text-gray-600 mt-2 leading-relaxed"><%= result_snippet %></p>
                 <% end %>
               <% end %>
-            </div>
-          </section>
-        <% end %>
+            <% else %>
+              <div class="<%= card_classes %>">
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= result_title %></h3>
+                  <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue-600 bg-brand-blue-50 px-2 py-0.5 rounded shrink-0"><%= result_type %></span>
+                </div>
+                <% if result_snippet.present? %>
+                  <p class="text-sm text-gray-600 mt-2 leading-relaxed"><%= result_snippet %></p>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
       <% end %>
     <% end %>
   </div>

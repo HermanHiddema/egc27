@@ -11,7 +11,7 @@ class Sponsor < ApplicationRecord
 
   has_one_attached :logo
 
-  multisearchable against: [:name, :description]
+  multisearchable against: { name: "A", description: "B" }
 
   validates :name, presence: true
   validate :website_url_must_be_valid
