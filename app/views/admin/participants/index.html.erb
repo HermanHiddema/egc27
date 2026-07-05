@@ -4,17 +4,44 @@
     <p class="text-sm text-neutral-700"><strong><%= @participants.size %></strong> participant<%= "s" unless @participants.size == 1 %></p>
   </div>
 
+  <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+    <%= form_with url: admin_participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do %>
+      <div>
+        <label for="country" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Country</label>
+        <%= select_tag :country, options_for_select([["All countries", ""]] + @countries.map { |country| [country, country] }, @country_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { country_names_target: "select", action: "change->country-names#filter" } %>
+      </div>
+      <div>
+        <label for="status" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Status</label>
+        <%= select_tag :status, options_for_select([["All statuses", ""], ["Pending", "pending"], ["Confirmed", "confirmed"], ["Paid", "paid"]], @status_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900" %>
+      </div>
+      <%= hidden_field_tag :sort, @sort %>
+      <%= hidden_field_tag :direction, @direction %>
+      <%= submit_tag "Filter", class: "btn-primary" %>
+    <% end %>
+  </div>
+
   <% if @participants.any? %>
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Email</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+              <% filters = { country: @country_filter, status: @status_filter } %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Name #{sort_indicator("name", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "name", direction: next_sort_direction("name", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Email #{sort_indicator("email", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "email", direction: next_sort_direction("email", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Country #{sort_indicator("country", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "country", direction: next_sort_direction("country", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Type #{sort_indicator("type", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "type", direction: next_sort_direction("type", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Status #{sort_indicator("status", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "status", direction: next_sort_direction("status", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
             </tr>
           </thead>
@@ -40,7 +67,7 @@
     </div>
   <% else %>
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
-      <p class="text-neutral-700">No participants have registered yet.</p>
+      <p class="text-neutral-700">No participants match the selected filters.</p>
     </div>
   <% end %>
 </div>
