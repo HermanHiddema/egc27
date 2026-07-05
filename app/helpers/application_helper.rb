@@ -114,6 +114,13 @@ module ApplicationHelper
     safe_join([country_flag_image(code), code], " ")
   end
 
+  def egd_player_card_url(pin)
+    normalized_pin = pin.to_s.strip
+    return nil unless normalized_pin.match?(/\A\d{8}\z/)
+
+    "https://europeangodatabase.eu/EGD/Player_Card.php?&key=#{ERB::Util.url_encode(normalized_pin)}"
+  end
+
   def next_sort_direction(column, current_sort, current_direction)
     return :asc unless current_sort == column
 
