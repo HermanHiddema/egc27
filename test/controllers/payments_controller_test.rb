@@ -117,7 +117,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "create redirects to success when mollie already marks the payment as paid" do
     payment = payments(:open_payment)
-    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid", checkout_url: "https://example.test/paid-checkout")
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
 
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
