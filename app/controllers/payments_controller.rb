@@ -31,17 +31,30 @@ class PaymentsController < ApplicationController
       end
     end
 
-    mollie_payment = if @payment.mollie_payment_id.present?
-      Mollie::Payment.get(@payment.mollie_payment_id)
-    else
-      Mollie::Payment.create(
-        amount: { value: format("%.2f", @payment.amount_eur), currency: "EUR" },
-        description: @payment.description,
-        redirect_url: success_payments_url(payment_id: @payment.id),
-        webhook_url: webhook_payments_url,
-        metadata: { payment_id: @payment.id, participant_id: @participant.id }
-      )
+    mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
+
+    if mollie_payment&.status.present? && @payment.status != mollie_payment.status
+      @payment.update!(status: mollie_payment.status)
     end
+
+    if mollie_payment&.status == "paid"
+      return redirect_to success_payments_path, notice: "Your registration has already been paid."
+    end
+
+    if mollie_payment.nil?
+      mollie_payment = create_mollie_payment_for(@payment)
+    elsif mollie_payment.checkout_url.blank? || !retryable_mollie_status?(mollie_payment.status)
+      @payment = build_payment_for(@participant)
+      created_payment = true
+
+      unless @payment.save
+        render :new, status: :unprocessable_entity and return
+      end
+
+      mollie_payment = create_mollie_payment_for(@payment)
+    end
+
+    raise Mollie::Exception, "No checkout URL was returned by Mollie." if mollie_payment.checkout_url.blank?
 
     @payment.update!(mollie_payment_id: mollie_payment.id) if @payment.mollie_payment_id.blank?
 
@@ -115,5 +128,19 @@ class PaymentsController < ApplicationController
       description: pricing.description,
       status: "open"
     )
+  end
+
+  def create_mollie_payment_for(payment)
+    Mollie::Payment.create(
+      amount: { value: format("%.2f", payment.amount_eur), currency: "EUR" },
+      description: payment.description,
+      redirect_url: success_payments_url(payment_id: payment.id),
+      webhook_url: webhook_payments_url,
+      metadata: { payment_id: payment.id, participant_id: payment.participant_id }
+    )
+  end
+
+  def retryable_mollie_status?(status)
+    %w[open pending authorized].include?(status)
   end
 end
