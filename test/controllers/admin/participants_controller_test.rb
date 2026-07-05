@@ -51,7 +51,6 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       participant: {
         first_name: "Alicia",
         last_name: "Smith",
-        email: "updated@example.org",
         gender: "female",
         age_group: "18-49",
         country: "NL",
