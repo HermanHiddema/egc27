@@ -1,0 +1,73 @@
+<% content_for :title, "Search" %>
+
+<div class="container-wide py-12">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold mb-2 text-brand-blue-900">Search</h1>
+    <p class="text-gray-600 mb-8">Find pages, news articles and sponsors across the site.</p>
+
+    <%= form_with url: search_path, method: :get, class: "mb-12" do |form| %>
+      <div class="flex items-center bg-white rounded-xl shadow-sm border border-gray-200 focus-within:ring-2 focus-within:ring-brand-blue-500 overflow-hidden">
+        <span class="pl-4 text-gray-400" aria-hidden="true">
+          <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+          </svg>
+        </span>
+        <%= form.search_field :q,
+              value: @query,
+              placeholder: "Search pages, news and sponsors...",
+              autofocus: true,
+              aria: { label: "Search query" },
+              class: "flex-1 min-w-0 px-3 py-3 text-gray-900 bg-transparent focus:outline-none" %>
+        <%= form.submit "Search", class: "btn-primary m-1.5 flex-none" %>
+      </div>
+    <% end %>
+
+    <% if @query.present? %>
+      <% if @results.empty? %>
+        <div class="text-center py-16">
+          <svg class="h-12 w-12 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-4.35-4.35m1.35-5.4a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"></path>
+          </svg>
+          <p class="text-xl font-semibold text-gray-700">No results found</p>
+          <p class="text-gray-500 mt-1">We couldn't find anything for &ldquo;<%= @query %>&rdquo;. Try a different search.</p>
+        </div>
+      <% else %>
+        <p class="text-sm text-gray-500 mb-8">
+          <%= pluralize(@results.size, "result") %> for &ldquo;<span class="font-semibold text-gray-700"><%= @query %></span>&rdquo;
+        </p>
+
+        <div class="space-y-3">
+          <% @results.each do |document| %>
+            <% attrs = search_result_attributes(document) %>
+            <% next unless attrs %>
+
+            <% card_classes = "block bg-white border border-gray-200 rounded-lg p-5 shadow-sm hover:shadow-md hover:border-brand-blue-300 transition" %>
+
+            <% if attrs[:url] %>
+              <% link_opts = attrs[:external] ? { target: "_blank", rel: "noopener noreferrer" } : {} %>
+              <%= link_to attrs[:url], class: card_classes, **link_opts do %>
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= attrs[:title] %></h3>
+                  <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue-600 bg-brand-blue-50 px-2 py-0.5 rounded shrink-0"><%= attrs[:type_label] %></span>
+                </div>
+                <% if attrs[:snippet].present? %>
+                  <p class="text-sm text-gray-600 mt-2 leading-relaxed"><%= attrs[:snippet] %></p>
+                <% end %>
+              <% end %>
+            <% else %>
+              <div class="<%= card_classes %>">
+                <div class="flex items-start justify-between gap-3">
+                  <h3 class="text-lg font-bold text-brand-blue-900"><%= attrs[:title] %></h3>
+                  <span class="text-xs font-semibold uppercase tracking-wide text-brand-blue-600 bg-brand-blue-50 px-2 py-0.5 rounded shrink-0"><%= attrs[:type_label] %></span>
+                </div>
+                <% if attrs[:snippet].present? %>
+                  <p class="text-sm text-gray-600 mt-2 leading-relaxed"><%= attrs[:snippet] %></p>
+                <% end %>
+              </div>
+            <% end %>
+          <% end %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

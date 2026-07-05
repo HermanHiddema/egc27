@@ -1,4 +1,6 @@
 class Page < ApplicationRecord
+  include RichTextSearchable
+
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
 
   has_many :menu_items, dependent: :nullify, inverse_of: :page

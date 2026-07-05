@@ -33,6 +33,7 @@ if File.exist?(static_pages_path)
 
     page.title = title
     page.content = content
+    page.content_html = "<p>#{ERB::Util.html_escape(content)}</p>"
     page.save!
 
     puts "✓ Page created: #{slug}"
@@ -55,6 +56,7 @@ legal_pages.each do |legal_page|
 
   page.title = legal_page[:title]
   page.content = legal_page[:content]
+  page.content_html = "<p>#{ERB::Util.html_escape(legal_page[:content])}</p>"
   page.save!
   puts "✓ Page created: #{legal_page[:slug]}"
 end

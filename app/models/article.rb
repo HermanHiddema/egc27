@@ -1,4 +1,6 @@
 class Article < ApplicationRecord
+  include RichTextSearchable
+
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
   PLACEHOLDER_MAIN_IMAGES_GLOB = Rails.root.join("app/assets/images/placeholders/*").freeze
   PLACEHOLDER_MAIN_IMAGE_PATHS = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].freeze
