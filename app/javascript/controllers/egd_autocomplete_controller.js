@@ -186,19 +186,54 @@ export default class extends Controller {
         this.ratingTarget.value = rating === null ? "" : String(rating)
     }
 
-    egdPinChanged() {
+    async egdPinChanged() {
         if (!this.hasEgdPinTarget) return
 
         const pin = String(this.egdPinTarget.value).trim()
 
-        // Only check registration when the PIN is blank (to hide the notice) or
-        // complete (8 digits), avoiding unnecessary requests while the user types.
-        if (!pin || /^\d{8}$/.test(pin)) {
-            this.checkRegistration(this.egdPinTarget.value)
+        if (!pin) {
+            this.checkRegistration(pin)
+            this.rankChanged()
+            return
         }
 
-        if (pin === "") {
-            this.rankChanged()
+        // A complete PIN should query EGD immediately so the form can be
+        // prefilled from the authoritative record.
+        if (/^\d{8}$/.test(pin)) {
+            const matched = await this.lookupByPin(pin)
+            if (!matched) {
+                this.checkRegistration(pin)
+            }
+        }
+    }
+
+    async lookupByPin(pin) {
+        if (!/^\d{8}$/.test(String(pin || "").trim())) return false
+
+        try {
+            const response = await fetch(this.buildPinUrl(pin), {
+                headers: {
+                    Accept: "application/json"
+                }
+            })
+
+            if (!response.ok) {
+                return false
+            }
+
+            const payload = await response.json()
+            const matches = this.normalizePayload(payload)
+            const currentPin = String(this.egdPinTarget?.value || "").trim()
+            if (currentPin !== pin) return false
+
+            if (matches.length === 1) {
+                this.applyMatch(matches[0])
+                return true
+            }
+
+            return false
+        } catch (_error) {
+            return false
         }
     }
 
