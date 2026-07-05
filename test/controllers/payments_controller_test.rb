@@ -115,6 +115,23 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
+  test "create redirects to success when mollie already marks the payment as paid" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid", checkout_url: "https://example.test/paid-checkout")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(payment.participant)
+    end
+
+    assert_equal "paid", payment.reload.status
+    assert_redirected_to success_payments_path
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
   test "create starts a new payment attempt when previous mollie checkout is unavailable" do
     payment = payments(:open_payment)
     stale_mollie = OpenStruct.new(id: payment.mollie_payment_id, status: "failed", checkout_url: nil)
