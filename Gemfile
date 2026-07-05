@@ -73,12 +73,12 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
-
-  # Annotate models with database schema info [https://github.com/drwl/annotaterb]
-  gem "annotaterb", require: false
 end
 
 group :development do
+  # Annotate models with database schema info [https://github.com/drwl/annotaterb]
+  gem "annotaterb", require: false
+
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
 
