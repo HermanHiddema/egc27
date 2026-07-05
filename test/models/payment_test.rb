@@ -1,5 +1,29 @@
 require "test_helper"
 
+# == Schema Information
+#
+# Table name: payments
+#
+#  id                :bigint           not null, primary key
+#  amount_cents      :integer          not null
+#  confirmation_sent :boolean          default(FALSE), not null
+#  description       :string           not null
+#  status            :string           default("open"), not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  mollie_payment_id :string
+#  participant_id    :bigint           not null
+#
+# Indexes
+#
+#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
+#  index_payments_on_participant_id     (participant_id)
+#  index_payments_on_status             (status)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (participant_id => participants.id)
+#
 class PaymentTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
 

@@ -1,3 +1,15 @@
+# == Schema Information
+#
+# Table name: sponsors
+#
+#  id                 :bigint           not null, primary key
+#  description        :text
+#  name               :string           not null
+#  social_media_links :jsonb            not null
+#  website            :string
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#
 class Sponsor < ApplicationRecord
   include PgSearch::Model
 

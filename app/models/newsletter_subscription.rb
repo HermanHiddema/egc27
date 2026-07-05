@@ -1,3 +1,22 @@
+# == Schema Information
+#
+# Table name: newsletter_subscriptions
+#
+#  id                :bigint           not null, primary key
+#  email             :string           not null
+#  first_name        :string           not null
+#  last_name         :string           not null
+#  subscribed        :boolean          default(TRUE), not null
+#  unsubscribe_token :string           not null
+#  unsubscribed_at   :datetime
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#
+# Indexes
+#
+#  index_newsletter_subscriptions_on_email              (email) UNIQUE
+#  index_newsletter_subscriptions_on_unsubscribe_token  (unsubscribe_token) UNIQUE
+#
 class NewsletterSubscription < ApplicationRecord
   before_validation :normalize_fields
   before_validation :ensure_unsubscribe_token

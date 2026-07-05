@@ -76,6 +76,9 @@ group :development, :test do
 end
 
 group :development do
+  # Annotate models with database schema info [https://github.com/drwl/annotaterb]
+  gem "annotaterb", require: false
+
   # Use console on exceptions pages [https://github.com/rails/web-console]
   gem "web-console"
 

@@ -1,5 +1,20 @@
 require "test_helper"
 
+# == Schema Information
+#
+# Table name: pages
+#
+#  id           :bigint           not null, primary key
+#  content_html :text
+#  slug         :string           not null
+#  title        :string           not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#
+# Indexes
+#
+#  index_pages_on_slug  (slug) UNIQUE
+#
 class PageTest < ActiveSupport::TestCase
   def svg_upload
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
