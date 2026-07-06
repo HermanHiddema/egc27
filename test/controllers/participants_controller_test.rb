@@ -96,6 +96,29 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show hides payment button and shows paid message for a paid participant" do
+    participant = participants(:two)
+    assert participant.paid?, "fixture participant should be paid"
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_no_match "Proceed to Payment", response.body
+    assert_match "Your registration is confirmed and paid.", response.body
+    assert_match "No further action is required.", response.body
+  end
+
+  test "show shows payment button for a confirmed but unpaid participant" do
+    participant = participants(:one)
+    assert_not participant.paid?, "fixture participant should not be paid"
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_match "Proceed to Payment", response.body
+    assert_no_match "Your registration is confirmed and paid.", response.body
+  end
+
   test "participants index supports country filter and shows filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
