@@ -118,7 +118,7 @@ class UserTest < ActiveSupport::TestCase
     user.password_confirmation = "differentpassword123"
 
     refute user.valid?
-    assert_includes user.errors[:password_confirmation], "doesn't match Password"
+    assert user.errors.added?(:password_confirmation, :confirmation)
   end
 
   test "password_set? is false when no password has been stored" do
