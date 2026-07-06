@@ -68,6 +68,21 @@ class UsersAuthorizationTest < ActionDispatch::IntegrationTest
     assert users(:one).reload.valid_password?("newpassword123")
   end
 
+  test "admin cannot update password when confirmation does not match" do
+    sign_in users(:admin)
+
+    patch user_path(users(:one)), params: {
+      user: {
+        password: "newpassword123",
+        password_confirmation: "differentpassword123"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert users(:one).reload.valid_password?("password123")
+    assert_match "Password confirmation", response.body
+  end
+
   test "admin can change another user's role" do
     sign_in users(:admin)
     patch user_path(users(:one)), params: { user: { role: "editor" } }

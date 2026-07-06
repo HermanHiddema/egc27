@@ -111,6 +111,16 @@ class UserTest < ActiveSupport::TestCase
     assert user.valid?, "User without password should be valid: #{user.errors.full_messages}"
   end
 
+  test "password confirmation must match when setting a password" do
+    user = users(:one)
+
+    user.password = "newpassword123"
+    user.password_confirmation = "differentpassword123"
+
+    refute user.valid?
+    assert_includes user.errors[:password_confirmation], "doesn't match Password"
+  end
+
   test "password_set? is false when no password has been stored" do
     user = User.new(email: "passwordless@example.com", skip_password_validation: true)
 
