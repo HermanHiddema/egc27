@@ -88,6 +88,8 @@ class User < ApplicationRecord
   # Regular Devise registrations still require a password.
   attr_accessor :skip_password_validation
 
+  validates :password, confirmation: true, if: :password_present?
+
   attr_writer :registration_participant
 
   def registration_participant
@@ -98,6 +100,10 @@ class User < ApplicationRecord
     return false if skip_password_validation && password.blank?
 
     super
+  end
+
+  def password_present?
+    password.present?
   end
 
   private
