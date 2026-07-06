@@ -25,4 +25,22 @@ class Users::SessionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to mine_participants_path
   end
+
+  test "shows an error when the password is wrong" do
+    post user_session_path, params: { user: { email: users(:one).email, password: "wrong-password" } }
+
+    # Turbo only renders form responses that redirect or signal an error, so the
+    # failed sign in must respond with :unprocessable_entity for the message to appear.
+    assert_response :unprocessable_entity
+    assert_nil session["warden.user.user.key"]
+    assert_select "div.bg-red-50", text: /Invalid email or password/i
+  end
+
+  test "shows an error when the email does not exist" do
+    post user_session_path, params: { user: { email: "nobody@example.com", password: "whatever" } }
+
+    assert_response :unprocessable_entity
+    assert_nil session["warden.user.user.key"]
+    assert_select "div.bg-red-50", text: /Invalid email or password/i
+  end
 end

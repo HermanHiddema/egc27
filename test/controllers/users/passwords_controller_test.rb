@@ -49,7 +49,8 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
     # attempt is evaluated purely on the (now consumed) token.
     delete destroy_user_session_path
 
-    # Second use: the same link no longer resets the password.
+    # Second use: the same link no longer resets the password. The re-rendered
+    # form responds with :unprocessable_entity so Turbo shows the error.
     put user_password_path, params: {
       user: {
         reset_password_token: raw_token,
@@ -57,7 +58,7 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
         password_confirmation: "anotherpassword123"
       }
     }
-    assert_response :success
+    assert_response :unprocessable_entity
     assert user.reload.valid_password?("newpassword123")
     refute user.valid_password?("anotherpassword123")
   end
