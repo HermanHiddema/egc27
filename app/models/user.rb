@@ -95,9 +95,9 @@ class User < ApplicationRecord
   end
 
   def password_required?
-    return false if skip_password_validation
+    return false if skip_password_validation && password.blank?
 
-    super
+    !persisted? || !password.nil? || !password_confirmation.nil?
   end
 
   private
