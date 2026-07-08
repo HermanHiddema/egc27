@@ -61,6 +61,8 @@ class Payment < ApplicationRecord
     # Atomic check-and-set prevents duplicate emails under concurrent webhook/redirect updates.
     return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
-    ParticipantMailer.payment_confirmation(self).deliver_later
+    ParticipantMailer.payment_confirmation(self).deliver_now
+  rescue StandardError => e
+    Rails.logger.error("Failed to deliver payment confirmation for Payment #{id}: #{e.class}: #{e.message}")
   end
 end

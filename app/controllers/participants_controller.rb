@@ -72,7 +72,7 @@ class ParticipantsController < ApplicationController
     if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
       NewsletterSubscription.subscribe_user(@participant.user)
-      ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
+      deliver_registration_confirmation(@participant) if @participant.email.present?
       notice = "Your registration has been confirmed."
       if @participant.player?
         redirect_to new_participant_payment_path(@participant), notice: notice
@@ -135,11 +135,23 @@ class ParticipantsController < ApplicationController
 
     if user.confirmed?
       participant.generate_confirmation_token!
-      ParticipantMailer.participant_confirmation(participant).deliver_later
+      deliver_participant_confirmation(participant)
     elsif !user.previously_new_record?
       user.registration_participant = participant
       user.send_confirmation_instructions
     end
+  end
+
+  def deliver_registration_confirmation(participant)
+    ParticipantMailer.registration_confirmation(participant).deliver_now
+  rescue StandardError => e
+    Rails.logger.error("Failed to deliver registration confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
+  end
+
+  def deliver_participant_confirmation(participant)
+    ParticipantMailer.participant_confirmation(participant).deliver_now
+  rescue StandardError => e
+    Rails.logger.error("Failed to deliver participant confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
   end
 
   def set_participant

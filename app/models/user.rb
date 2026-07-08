@@ -50,7 +50,7 @@ class User < ApplicationRecord
       next if participant.confirmed?
 
       participant.confirm!
-      ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
+      deliver_registration_confirmation(participant) if participant.email.present?
     end
     NewsletterSubscription.subscribe_user(self)
   end
@@ -108,5 +108,11 @@ class User < ApplicationRecord
 
     participants.update_all(email: normalized_email, updated_at: Time.current)
     NewsletterSubscription.update_email(old_email, normalized_email) if participants.exists?
+  end
+
+  def deliver_registration_confirmation(participant)
+    ParticipantMailer.registration_confirmation(participant).deliver_now
+  rescue StandardError => e
+    Rails.logger.error("Failed to deliver registration confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
   end
 end
