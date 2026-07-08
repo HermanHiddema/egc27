@@ -1,7 +1,6 @@
 <%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, egd_autocomplete_registered_url_value: egd_registered_participants_path, phone_input_country_field_id_value: "participant_country" } do |form| %>
   <%= render "shared/form_errors", model: participant %>
 
-
   <div class="space-y-6">
     <div class="relative" data-action="focusout->egd-autocomplete#hide">
       <label for="egd-search" class="block text-sm font-medium text-gray-700 mb-2">Find In EGD By Last Name or PIN (optional)</label>
