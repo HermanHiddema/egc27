@@ -27,6 +27,7 @@ This file defines project-specific guidance for AI coding agents working in this
 - Keep form behavior accessible and resilient (keyboard and mouse friendly).
 - Avoid adding heavy dependencies when native browser APIs are sufficient.
 - Keep class naming and UI patterns consistent with existing forms.
+- Show validation errors inline on the specific field that failed: render `<%= field_error form, :attribute %>` right after each input, and render `<%= render "shared/form_errors", model: record %>` at the top of the form for base (non-field) errors only. Do not list per-attribute errors in a top summary. Invalid inputs are highlighted automatically via the `.field_with_errors` CSS in `app/assets/stylesheets/application.css`.
 
 ## Testing and Verification
 - Add or update tests whenever behavior changes.

@@ -1,14 +1,6 @@
 <%= form_with model: participant, data: { controller: "egd-autocomplete phone-input", egd_autocomplete_url_value: EgdLookupService::BY_DATA_URL, egd_autocomplete_pin_url_value: EgdLookupService::BY_PIN_URL, egd_autocomplete_registered_url_value: egd_registered_participants_path, phone_input_country_field_id_value: "participant_country" } do |form| %>
-  <% if participant.errors.any? %>
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
-      <ul class="text-red-700 list-disc list-inside">
-        <% participant.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render "shared/form_errors", model: participant %>
+
 
   <div class="space-y-6">
     <div class="relative" data-action="focusout->egd-autocomplete#hide">
@@ -42,22 +34,26 @@
           <div>
             <%= form.label :first_name, "First name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :first_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "firstName" } %>
+            <%= field_error form, :first_name %>
           </div>
 
           <div>
             <%= form.label :last_name, "Last name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :last_name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "lastName" } %>
+            <%= field_error form, :last_name %>
           </div>
 
           <div>
             <%= form.label :gender, "Gender *", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], participant.gender), { prompt: "Select gender" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+            <%= field_error form, :gender %>
           </div>
 
           <div>
             <%= form.label :age_group, "Age group *", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.select :age_group, options_for_select([["0–11", "0-11"], ["12–17", "12-17"], ["18–49", "18-49"], ["50+", "50+"]], participant.age_group), { prompt: "Select age group" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
             <p class="mt-1 text-xs text-gray-500">Your age on 24 July 2027, the first day of the congress.</p>
+            <%= field_error form, :age_group %>
           </div>
 
           <div>
@@ -73,6 +69,7 @@
               autocomplete="off"
             >
             <datalist id="iso-country-options" data-egd-autocomplete-target="countryDatalist"></datalist>
+            <%= field_error form, :country %>
           </div>
         </div>
       </div>
@@ -83,22 +80,26 @@
           <div>
             <%= form.label :rank, "Rank", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.select :rank, options_for_select([["None", ""]] + EgdGradeMapping.options_for_select, participant.rank), { prompt: "Select rank" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rank", action: "change->egd-autocomplete#rankChanged" } %>
+            <%= field_error form, :rank %>
           </div>
 
           <div>
             <%= form.label :rating, "Rating (EGD/GOR)", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.number_field :rating, readonly: true, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-gray-50 text-gray-700 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "rating" } %>
             <p class="mt-1 text-sm text-gray-500">Calculated automatically from your EGD entry or rank and cannot be edited.</p>
+            <%= field_error form, :rating %>
           </div>
 
           <div>
             <%= form.label :club, "Club", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :club, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "club" } %>
+            <%= field_error form, :club %>
           </div>
 
           <div>
             <%= form.label :egd_pin, "EGD PIN", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.text_field :egd_pin, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { egd_autocomplete_target: "egdPin", action: "input->egd-autocomplete#egdPinChanged" }, inputmode: "numeric", autocomplete: "off" %>
+            <%= field_error form, :egd_pin %>
           </div>
         </div>
       </div>
@@ -115,11 +116,13 @@
               <%= form.email_field :email, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", autocomplete: "email" %>
               <p class="mt-1 text-sm text-gray-500">You can use the same email address for multiple participants — they will all appear under your account.</p>
             <% end %>
+            <%= field_error form, :email %>
           </div>
 
           <div>
             <%= form.label :phone, "Phone", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.telephone_field :phone, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", placeholder: "+31 6 12345678", autocomplete: "tel", data: { phone_input_target: "input", action: "input->phone-input#format blur->phone-input#normalize countrychange->phone-input#countryChanged" } %>
+            <%= field_error form, :phone %>
           </div>
         </div>
       </div>
@@ -129,11 +132,13 @@
         <div>
           <%= form.label :participant_type, "Participant type *", class: "block text-sm font-medium text-gray-700 mb-2" %>
           <%= form.select :participant_type, options_for_select([["Player", "player"], ["Visitor", "visitor"]], participant.participant_type.presence || "player"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          <%= field_error form, :participant_type %>
         </div>
 
         <div class="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
           <%= form.label :attendance_option, "Attendance period", class: "block text-sm font-medium text-gray-900" %>
           <%= form.select :attendance_option, options_for_select([["All events", "all_events"], ["First week + weekend", "first_week_plus_weekend"], ["Weekend + second week", "weekend_plus_second_week"], ["Weekend only", "weekend_only"]], participant.attendance_option.presence || "all_events"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          <%= field_error form, :attendance_option %>
         </div>
       </div>
     </div>
@@ -155,6 +160,7 @@
           <span>I do not consent to the use of images in which I / my child can be recognized on the EGC website or social media.</span>
         </label>
       </fieldset>
+      <%= field_error form, :image_use_consent %>
     </div>
 
     <%= render "shared/turnstile_widget" %>

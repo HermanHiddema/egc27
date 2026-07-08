@@ -1,12 +1,5 @@
-<% if user_signed_in? && event_registration.errors.any? %>
-  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-    <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
-    <ul class="text-red-700 list-disc list-inside">
-      <% event_registration.errors.full_messages.each do |message| %>
-        <li><%= message %></li>
-      <% end %>
-    </ul>
-  </div>
+<% if user_signed_in? %>
+  <%= render "shared/form_errors", model: event_registration %>
 <% end %>
 
 <% if !user_signed_in? %>
@@ -45,6 +38,7 @@
             <p class="w-full border border-gray-200 rounded-lg px-4 py-2 bg-gray-50 text-gray-900"><%= [participant.first_name, participant.last_name].join(" ") %></p>
           </div>
         <% end %>
+        <%= field_error form, :participant_id %>
       </div>
       <div>
         <%= form.submit "Register", class: "btn-primary" %>

@@ -1,0 +1,18 @@
+<%# Top-of-form error banner. Per-attribute errors are shown inline on their
+    fields; this banner surfaces the overall prompt plus any base errors that
+    are not tied to a specific field. %>
+<% heading ||= "There were errors with your submission:" %>
+<% if model.errors.any? %>
+  <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+    <h2 class="text-red-800 font-semibold mb-2"><%= heading %></h2>
+    <% if model.errors[:base].any? %>
+      <ul class="text-red-700 list-disc list-inside">
+        <% model.errors[:base].each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-red-700">Please correct the highlighted fields below.</p>
+    <% end %>
+  </div>
+<% end %>

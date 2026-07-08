@@ -74,6 +74,23 @@
   width: 100%;
 }
 
+/* Highlight fields whose value failed validation. Rails wraps such inputs in
+   a `.field_with_errors` element via `field_error_proc`. `display: contents`
+   keeps the wrapper from affecting the surrounding form layout. */
+.field_with_errors {
+  display: contents;
+}
+
+.field_with_errors input,
+.field_with_errors select,
+.field_with_errors textarea {
+  border-color: var(--brand-red-600);
+}
+
+.field_with_errors label {
+  color: var(--brand-red-600);
+}
+
 trix-editor {
   min-height: 7.5rem;
 }

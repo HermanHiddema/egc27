@@ -13,6 +13,23 @@ module ApplicationHelper
     nil
   end
 
+  # Render an inline validation error message for a single attribute so the
+  # error appears directly on the field instead of only in a summary at the
+  # top of the form. Accepts either a form builder or a model instance.
+  def field_error(form_or_object, attribute)
+    object = form_or_object.respond_to?(:object) ? form_or_object.object : form_or_object
+    return unless object.respond_to?(:errors)
+
+    messages = object.errors[attribute]
+    return if messages.blank?
+
+    content_tag(
+      :p,
+      messages.to_sentence,
+      class: "mt-1 text-sm text-red-600"
+    )
+  end
+
   def menu_item_destination(menu_item)
     if menu_item.page&.slug == "participants"
       return participants_path

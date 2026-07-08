@@ -1,29 +1,23 @@
 <%= form_with model: sponsor do |form| %>
-  <% if sponsor.errors.any? %>
-    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
-      <ul class="text-red-700 list-disc list-inside">
-        <% sponsor.errors.full_messages.each do |message| %>
-          <li><%= message %></li>
-        <% end %>
-      </ul>
-    </div>
-  <% end %>
+  <%= render "shared/form_errors", model: sponsor %>
 
   <div class="space-y-6">
     <div>
       <%= form.label :name, "Name *", class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.text_field :name, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= field_error form, :name %>
     </div>
 
     <div>
       <%= form.label :website, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.url_field :website, placeholder: "https://example.org", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= field_error form, :website %>
     </div>
 
     <div>
       <%= form.label :description, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.text_area :description, rows: 5, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= field_error form, :description %>
     </div>
 
     <div>
@@ -45,6 +39,7 @@
     <div>
       <%= form.label :logo, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.file_field :logo, accept: "image/*", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= field_error form, :logo %>
       <% if sponsor.logo.attached? %>
         <p class="text-sm text-gray-600 mt-2">A logo is currently attached.</p>
       <% end %>
