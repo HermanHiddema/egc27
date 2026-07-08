@@ -35,7 +35,7 @@ require "test_helper"
 #  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
 #  index_participants_on_confirmed_at        (confirmed_at)
 #  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
+#  index_participants_on_egd_pin             (egd_pin) UNIQUE
 #  index_participants_on_email               (email)
 #  index_participants_on_gender              (gender)
 #  index_participants_on_participant_type    (participant_type)
@@ -336,12 +336,13 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
-  test "allows a duplicate EGD pin" do
+  test "rejects a duplicate EGD pin" do
     participant = participants(:one).dup
     participant.email = "different@example.org"
     participant.user = users(:two)
 
-    assert participant.valid?
+    assert_not participant.valid?
+    assert_includes participant.errors[:egd_pin], "is already registered"
   end
 
   test "club is optional" do

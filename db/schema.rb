@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_04_153700) do
+ActiveRecord::Schema[8.1].define(version: 2026_07_08_000000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -194,7 +194,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_04_153700) do
     t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
-    t.index ["egd_pin"], name: "index_participants_on_egd_pin"
+    t.index ["egd_pin"], name: "index_participants_on_egd_pin", unique: true
     t.index ["email"], name: "index_participants_on_email"
     t.index ["gender"], name: "index_participants_on_gender"
     t.index ["participant_type"], name: "index_participants_on_participant_type"

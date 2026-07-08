@@ -47,6 +47,10 @@ class ParticipantsDuplicateRegistrationTest < ApplicationSystemTestCase
       assert_text "That EGD Entry is already registered. Do you want to alter your registration?"
       link = find("a", text: "Click here to do that")
       assert_includes link[:href], "/participants/alter_registration?egd_pin=12345678"
+
+      assert_text "If you cannot get in, please contact us at info@egc2027.nl"
+      contact = find("a", text: "info@egc2027.nl")
+      assert_equal "mailto:info@egc2027.nl", contact[:href]
     end
   end
 end

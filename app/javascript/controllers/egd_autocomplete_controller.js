@@ -151,7 +151,9 @@ export default class extends Controller {
             : "Click here to do that"
 
         this.registeredNoticeTarget.innerHTML =
-            `That EGD Entry is already registered. Do you want to alter your registration? ${link}`
+            `That EGD Entry is already registered. Do you want to alter your registration? ${link} ` +
+            `If you cannot get in, please contact us at ` +
+            `<a href="mailto:info@egc2027.nl" class="font-semibold underline">info@egc2027.nl</a>.`
         this.registeredNoticeTarget.classList.remove("hidden")
     }
 

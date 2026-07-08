@@ -385,8 +385,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
-  test "allows a participant with a duplicate EGD pin" do
-    assert_difference("Participant.count", 1) do
+  test "rejects a participant with a duplicate EGD pin" do
+    assert_no_difference("Participant.count") do
       post participants_path, params: {
         participant: {
           first_name: "Jane",
@@ -404,9 +404,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    participant = Participant.order(:id).last
-    assert_redirected_to participant_path(participant)
-    assert_equal participants(:one).egd_pin, participant.egd_pin
+    assert_response :unprocessable_entity
   end
 
   test "does not subscribe to the newsletter at registration time" do
@@ -724,43 +722,6 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     users(:dave).update_column(:confirmed_at, nil)
 
     get alter_registration_participants_path, params: { egd_pin: participants(:unconfirmed).egd_pin }
-
-    assert_redirected_to new_user_confirmation_path
-    assert_equal "Please confirm your email address to continue.", flash[:notice]
-  end
-
-  test "alter_registration uses the oldest matching participant" do
-    original_user = User.create!(email: "original@example.org", skip_password_validation: true)
-    original_user.update_column(:confirmed_at, nil)
-    later_user = User.create!(email: "later@example.org", skip_password_validation: true, confirmed_at: Time.current)
-
-    original_participant = Participant.create!(
-      first_name: "Original",
-      last_name: "Player",
-      email: "original@example.org",
-      age_group: "18-49",
-      country: "NL",
-      club: "Utrecht",
-      gender: "male",
-      image_use_consent: true,
-      user: original_user
-    )
-    later_participant = Participant.create!(
-      first_name: "Later",
-      last_name: "Player",
-      email: "later@example.org",
-      age_group: "18-49",
-      country: "DE",
-      club: "Berlin",
-      gender: "female",
-      image_use_consent: true,
-      user: later_user
-    )
-
-    original_participant.update_columns(egd_pin: "76543210", created_at: 2.days.ago)
-    later_participant.update_columns(egd_pin: "76543210", created_at: 1.day.ago)
-
-    get alter_registration_participants_path, params: { egd_pin: "76543210" }
 
     assert_redirected_to new_user_confirmation_path
     assert_equal "Please confirm your email address to continue.", flash[:notice]
