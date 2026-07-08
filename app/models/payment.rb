@@ -62,5 +62,7 @@ class Payment < ApplicationRecord
     return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
     ParticipantMailer.payment_confirmation(self).deliver_now
+  rescue StandardError => e
+    Rails.logger.error("Failed to deliver payment confirmation for Payment #{id}: #{e.class}: #{e.message}")
   end
 end
