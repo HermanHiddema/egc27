@@ -50,7 +50,7 @@ class User < ApplicationRecord
       next if participant.confirmed?
 
       participant.confirm!
-      ParticipantMailer.registration_confirmation(participant).deliver_later if participant.email.present?
+      ParticipantMailer.registration_confirmation(participant).deliver_now if participant.email.present?
     end
     NewsletterSubscription.subscribe_user(self)
   end

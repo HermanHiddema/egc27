@@ -72,7 +72,7 @@ class ParticipantsController < ApplicationController
     if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
       NewsletterSubscription.subscribe_user(@participant.user)
-      ParticipantMailer.registration_confirmation(@participant).deliver_later if @participant.email.present?
+      ParticipantMailer.registration_confirmation(@participant).deliver_now if @participant.email.present?
       notice = "Your registration has been confirmed."
       if @participant.player?
         redirect_to new_participant_payment_path(@participant), notice: notice
@@ -135,7 +135,7 @@ class ParticipantsController < ApplicationController
 
     if user.confirmed?
       participant.generate_confirmation_token!
-      ParticipantMailer.participant_confirmation(participant).deliver_later
+      ParticipantMailer.participant_confirmation(participant).deliver_now
     elsif !user.previously_new_record?
       user.registration_participant = participant
       user.send_confirmation_instructions

@@ -221,7 +221,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " \
       "(KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36"
 
-    assert_enqueued_emails 1 do
+    assert_emails 1 do
       post webhook_payments_path,
         params: { id: payment.mollie_payment_id },
         headers: { "HTTP_USER_AGENT" => outdated_browser_user_agent }
