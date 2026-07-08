@@ -118,10 +118,12 @@ export default class extends Controller {
   }
 
   applyShrinkState(isShrunk) {
+    // On mobile the header is always rendered in its shrunk (compact) state.
+    const shrunk = this.isMobile ? true : isShrunk
 
     if (this.isMobile) {
-      this.navTarget.classList.toggle("h-64", !isShrunk)
-      this.navTarget.classList.toggle("h-48", isShrunk)
+      this.navTarget.classList.remove("h-64")
+      this.navTarget.classList.add("h-48")
       this.navTarget.classList.remove("lg:h-48", "lg:h-32")
     } else {
       this.navTarget.classList.toggle("lg:h-48", !isShrunk)
@@ -129,16 +131,16 @@ export default class extends Controller {
       this.navTarget.classList.remove("h-64", "h-48")
     }
 
-    this.logoTarget.classList.toggle("h-48", !isShrunk)
-    this.logoTarget.classList.toggle("h-32", isShrunk)
+    this.logoTarget.classList.toggle("h-48", !shrunk)
+    this.logoTarget.classList.toggle("h-32", shrunk)
 
-    this.titleTarget.classList.toggle("text-4xl", !isShrunk)
-    this.titleTarget.classList.toggle("text-3xl", isShrunk)
+    this.titleTarget.classList.toggle("text-4xl", !shrunk)
+    this.titleTarget.classList.toggle("text-3xl", shrunk)
 
     if (this.menuOffsetElement) {
       if (this.isMobile) {
-        this.menuOffsetElement.classList.toggle("top-64", !isShrunk)
-        this.menuOffsetElement.classList.toggle("top-48", isShrunk)
+        this.menuOffsetElement.classList.remove("top-64")
+        this.menuOffsetElement.classList.add("top-48")
         this.menuOffsetElement.classList.remove("lg:top-48", "lg:top-32")
       } else {
         this.menuOffsetElement.classList.toggle("lg:top-48", !isShrunk)
