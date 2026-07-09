@@ -34,14 +34,14 @@
     <% end %>
   </head>
 
-  <body class="min-h-screen flex flex-col bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
+  <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
-      <nav class="container-wide flex items-center justify-between h-64 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
+      <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
         <div class="flex items-center gap-2">
-          <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC 2027 Logo", class: "h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
-          <div>
-            <%= link_to root_path, class: "text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
+          <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC 2027 Logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
+          <div class="hidden lg:block">
+            <%= link_to root_path, class: "text-3xl lg:text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
 <span class="md:hidden">EGC 2027</span><span class="hidden md:inline">European Go Congress</span>
             <% end %>
             <p class="hidden md:block text-sm text-brand-yellow-300">'s Hertogenbosch, the Netherlands, 24 July - 8 August, 2027</p>
@@ -117,8 +117,8 @@
     <!-- Footer -->
     <footer class="bg-brand-blue-900 text-white">
       <div class="container-wide py-12">
-        <div class="border-t border-brand-blue-800 pt-8 flex justify-between items-center">
-          <div class="flex gap-4">
+        <div class="border-t border-brand-blue-800 pt-8 flex items-start justify-between gap-4">
+          <div class="grid grid-cols-2 gap-3 sm:flex sm:gap-4">
             <a href="https://www.facebook.com/share/189m4UBKsN/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Facebook">
               <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>

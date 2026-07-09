@@ -118,29 +118,35 @@ export default class extends Controller {
   }
 
   applyShrinkState(isShrunk) {
-
     if (this.isMobile) {
-      this.navTarget.classList.toggle("h-64", !isShrunk)
-      this.navTarget.classList.toggle("h-48", isShrunk)
-      this.navTarget.classList.remove("lg:h-48", "lg:h-32")
+      // On mobile the header is always rendered in its shrunk (compact) state.
+      this.navTarget.classList.add("h-48")
+      this.navTarget.classList.remove("h-64", "lg:h-48", "lg:h-32")
+
+      this.logoTarget.classList.add("h-32")
+      this.logoTarget.classList.remove("h-48", "lg:h-48", "lg:h-32")
+
+      this.titleTarget.classList.add("text-3xl")
+      this.titleTarget.classList.remove("text-4xl", "lg:text-4xl", "lg:text-3xl")
+
+      if (this.menuOffsetElement) {
+        this.menuOffsetElement.classList.add("top-48")
+        this.menuOffsetElement.classList.remove("top-64", "lg:top-48", "lg:top-32")
+      }
     } else {
       this.navTarget.classList.toggle("lg:h-48", !isShrunk)
       this.navTarget.classList.toggle("lg:h-32", isShrunk)
       this.navTarget.classList.remove("h-64", "h-48")
-    }
 
-    this.logoTarget.classList.toggle("h-48", !isShrunk)
-    this.logoTarget.classList.toggle("h-32", isShrunk)
+      this.logoTarget.classList.toggle("lg:h-48", !isShrunk)
+      this.logoTarget.classList.toggle("lg:h-32", isShrunk)
+      this.logoTarget.classList.remove("h-48", "h-32")
 
-    this.titleTarget.classList.toggle("text-4xl", !isShrunk)
-    this.titleTarget.classList.toggle("text-3xl", isShrunk)
+      this.titleTarget.classList.toggle("lg:text-4xl", !isShrunk)
+      this.titleTarget.classList.toggle("lg:text-3xl", isShrunk)
+      this.titleTarget.classList.remove("text-4xl", "text-3xl")
 
-    if (this.menuOffsetElement) {
-      if (this.isMobile) {
-        this.menuOffsetElement.classList.toggle("top-64", !isShrunk)
-        this.menuOffsetElement.classList.toggle("top-48", isShrunk)
-        this.menuOffsetElement.classList.remove("lg:top-48", "lg:top-32")
-      } else {
+      if (this.menuOffsetElement) {
         this.menuOffsetElement.classList.toggle("lg:top-48", !isShrunk)
         this.menuOffsetElement.classList.toggle("lg:top-32", isShrunk)
         this.menuOffsetElement.classList.remove("top-64", "top-48")
