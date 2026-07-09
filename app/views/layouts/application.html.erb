@@ -39,7 +39,7 @@
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
         <div class="flex items-center gap-2">
-          <%= link_to image_tag("EGC2027-logo-14C2.png", alt: "EGC 2027 Logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
+          <%= link_to image_tag("EGC-logo.svg", alt: "EGC 2027 Logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
           <div class="hidden lg:block">
             <%= link_to root_path, class: "text-3xl lg:text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
 <span class="md:hidden">EGC 2027</span><span class="hidden md:inline">European Go Congress</span>
