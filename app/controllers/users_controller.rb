@@ -4,7 +4,7 @@ class UsersController < ApplicationController
 
   # Roles that are highlighted by default (staff), since regular users are too
   # numerous to be useful in the default listing.
-  STAFF_ROLES = %w[admin editor].freeze
+  STAFF_ROLES = (User::ROLES - ["regular"]).freeze
 
   def index
     @role_filter = params[:role].presence_in(User::ROLES + ["all"])
