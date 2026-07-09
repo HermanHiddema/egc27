@@ -65,7 +65,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "re-subscribes an existing unsubscribed email" do
+  test "does not resubscribe an existing unsubscribed email on create" do
     subscription = newsletter_subscriptions(:inactive)
     original_token = subscription.unsubscribe_token
 
@@ -79,12 +79,26 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    assert_redirected_to newsletter_path
+    assert_response :unprocessable_entity
     subscription.reload
-    assert_equal "Bobby", subscription.first_name
-    assert_equal true, subscription.subscribed
-    assert_nil subscription.unsubscribed_at
-    assert_not_equal original_token, subscription.unsubscribe_token
+    assert_equal "Bob", subscription.first_name
+    assert_equal false, subscription.subscribed
+    assert_not_nil subscription.unsubscribed_at
+    assert_equal original_token, subscription.unsubscribe_token
+  end
+
+  test "does not resubscribe an existing subscribed email on create" do
+    assert_no_difference("NewsletterSubscription.count") do
+      post newsletter_subscriptions_path, params: {
+        newsletter_subscription: {
+          first_name: "Alice",
+          last_name: "Jones",
+          email: "Alice@example.com"
+        }
+      }
+    end
+
+    assert_response :unprocessable_entity
   end
 
   test "renders newsletter page with errors for invalid newsletter subscription" do
@@ -113,13 +127,48 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "unsubscribes a valid token after confirmation" do
     subscription = newsletter_subscriptions(:active)
 
-    delete destroy_unsubscribe_newsletter_path(subscription.unsubscribe_token)
+    assert_difference("ActionMailer::Base.deliveries.size", 1) do
+      delete destroy_unsubscribe_newsletter_path(subscription.unsubscribe_token)
+    end
 
     assert_redirected_to root_path
     assert_equal "You have been unsubscribed from the newsletter.", flash[:notice]
     subscription.reload
     assert_equal false, subscription.subscribed
     assert_not_nil subscription.unsubscribed_at
+
+    goodbye = ActionMailer::Base.deliveries.last
+    assert_equal [subscription.email], goodbye.to
+    assert_match resubscribe_newsletter_path(subscription.unsubscribe_token), goodbye.body.decoded
+  end
+
+  test "does not send another goodbye email when already unsubscribed" do
+    subscription = newsletter_subscriptions(:inactive)
+
+    assert_no_difference("ActionMailer::Base.deliveries.size") do
+      delete destroy_unsubscribe_newsletter_path(subscription.unsubscribe_token)
+    end
+
+    assert_redirected_to root_path
+  end
+
+  test "resubscribes a valid token" do
+    subscription = newsletter_subscriptions(:inactive)
+
+    get resubscribe_newsletter_path(subscription.unsubscribe_token)
+
+    assert_redirected_to newsletter_path
+    assert_equal "You have been resubscribed to the newsletter.", flash[:notice]
+    subscription.reload
+    assert_equal true, subscription.subscribed
+    assert_nil subscription.unsubscribed_at
+  end
+
+  test "rejects invalid resubscribe token" do
+    get resubscribe_newsletter_path("missing-token")
+
+    assert_redirected_to root_path
+    assert_equal "Invalid resubscribe link.", flash[:alert]
   end
 
   test "rejects invalid unsubscribe token in confirmation" do

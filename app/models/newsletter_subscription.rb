@@ -71,6 +71,10 @@ class NewsletterSubscription < ApplicationRecord
     update!(subscribed: false)
   end
 
+  def resubscribe!
+    update!(subscribed: true)
+  end
+
   private
 
   def normalize_fields

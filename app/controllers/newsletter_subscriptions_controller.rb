@@ -1,7 +1,7 @@
 class NewsletterSubscriptionsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy]
+  skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy, :resubscribe]
   before_action :prepare_newsletter_subscription, only: [:create]
   before_action :verify_turnstile, only: [:create]
   before_action :require_admin!, only: [:index, :edit, :update]
@@ -12,26 +12,12 @@ class NewsletterSubscriptionsController < ApplicationController
   end
 
   def create
-    email = NewsletterSubscription.normalize_email(newsletter_subscription_params[:email])
-    retried_create = false
+    @newsletter_subscription = NewsletterSubscription.new(newsletter_subscription_params)
 
-    begin
-      @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
-      @newsletter_subscription.assign_attributes(newsletter_subscription_params)
-      @newsletter_subscription.unsubscribe_token = nil if @newsletter_subscription.persisted? && !@newsletter_subscription.subscribed?
-      @newsletter_subscription.subscribed = true
-      @newsletter_subscription.unsubscribed_at = nil
-
-      if @newsletter_subscription.save
-        redirect_to newsletter_path, notice: "Thanks for subscribing to the newsletter."
-      else
-        render :new, status: :unprocessable_entity
-      end
-    rescue ActiveRecord::RecordNotUnique
-      raise if retried_create
-
-      retried_create = true
-      retry
+    if @newsletter_subscription.save
+      redirect_to newsletter_path, notice: "Thanks for subscribing to the newsletter."
+    else
+      render :new, status: :unprocessable_entity
     end
   end
 
@@ -48,8 +34,21 @@ class NewsletterSubscriptionsController < ApplicationController
 
     return redirect_to root_path, alert: "Invalid unsubscribe link." unless subscription
 
-    subscription.unsubscribe!
+    if subscription.subscribed?
+      subscription.unsubscribe!
+      NewsletterMailer.goodbye(subscription).deliver_now
+    end
+
     redirect_to root_path, notice: "You have been unsubscribed from the newsletter."
+  end
+
+  def resubscribe
+    subscription = NewsletterSubscription.find_by(unsubscribe_token: params[:token].to_s)
+
+    return redirect_to root_path, alert: "Invalid resubscribe link." unless subscription
+
+    subscription.resubscribe!
+    redirect_to newsletter_path, notice: "You have been resubscribed to the newsletter."
   end
 
   def index

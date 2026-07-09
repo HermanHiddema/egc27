@@ -1,0 +1,18 @@
+<p>Hello <%= @newsletter_subscription.first_name %>,</p>
+
+<p>
+  You have been unsubscribed from the European Go Congress 2027 newsletter and
+  will no longer receive any newsletter emails. We're sorry to see you go.
+</p>
+
+<p>
+  If you unsubscribed by mistake, or would like to receive our newsletter again
+  in the future, you can resubscribe using the link below:
+</p>
+
+<p><%= link_to "Resubscribe to the newsletter", @resubscribe_url %></p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>
