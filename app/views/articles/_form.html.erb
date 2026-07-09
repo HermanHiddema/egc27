@@ -17,12 +17,13 @@
                            rows: 18,
                            data: { controller: "tinymce", tinymce_script_url_value: tinymce_script_url },
                            class: "w-full rounded-lg border border-gray-300 bg-white" %>
+        <%= field_error form, :content_html %>
         <p class="text-sm text-gray-500 mt-2">Format content with the TinyMCE toolbar.</p>
       <% else %>
         <%= form.rich_textarea :content, class: "w-full rounded-lg border border-gray-300 bg-white" %>
+        <%= field_error form, :content %>
         <p class="text-sm text-gray-500 mt-2">Format content with the Trix toolbar.</p>
       <% end %>
-      <%= field_error form, tinymce_editor? ? :content_html : :content %>
       <%= hidden_field_tag :editor, current_editor %>
     </div>
 
