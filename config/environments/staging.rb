@@ -5,6 +5,11 @@
 require_relative "production"
 
 Rails.application.configure do
+  # Temporarily disable bot protection (Rack::Attack throttling and Cloudflare
+  # Turnstile) on staging to facilitate a pentest. Re-enable once the pentest is
+  # complete.
+  config.x.bot_protection_enabled = false
+
   # Deliver email through SMTP. Configure the server via smtp/* credentials
   # (bin/rails credentials:edit) or the matching SMTP_* environment variables.
   config.action_mailer.delivery_method = :smtp

@@ -1,4 +1,11 @@
 module ApplicationHelper
+  # Whether anonymous-form bot protection (Cloudflare Turnstile widget) should be
+  # active. Mirrors the shared switch used by Rack::Attack and the Turnstile
+  # verification service.
+  def bot_protection_enabled?
+    Rails.configuration.x.bot_protection_enabled == true || Rails.configuration.x.bot_protection_enabled.nil?
+  end
+
   # Check if user is signed in, safely handling cases where Devise mapping may not be available
   def safe_user_signed_in?
     defined?(current_user) && current_user.present?

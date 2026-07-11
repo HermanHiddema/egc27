@@ -210,4 +210,20 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       assert response.headers["Retry-After"].to_i.positive?
     end
   end
+
+  test "does not throttle when Rack::Attack is disabled" do
+    previous_enabled = Rack::Attack.enabled
+    Rack::Attack.enabled = false
+
+    freeze_time do
+      15.times do |i|
+        post user_magic_link_session_path,
+          params: { user: { email: "user#{i}@example.com" } },
+          headers: { "REMOTE_ADDR" => "9.9.9.9" }
+        assert_response :redirect
+      end
+    end
+  ensure
+    Rack::Attack.enabled = previous_enabled
+  end
 end
