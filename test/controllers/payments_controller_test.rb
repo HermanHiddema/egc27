@@ -183,6 +183,46 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
+  test "success offers to set a password when the signed-in user has none" do
+    payment = payments(:paid_payment)
+    users(:two).update_columns(encrypted_password: "")
+    devise_sign_in users(:two)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(payment_id: payment.id)
+    end
+
+    assert_response :success
+    assert_match "Payment Successful", response.body
+    assert_match "Set a password?", response.body
+    assert_select "a[href='#{edit_user_registration_path}']", text: "Set a password"
+    assert_select "form[action='#{skip_user_password_path}']"
+  end
+
+  test "success does not offer a password when the signed-in user already has one" do
+    payment = payments(:paid_payment)
+    assert users(:two).password_set?, "fixture user should already have a password"
+    sign_in users(:two)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(payment_id: payment.id)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
+  end
+
+  test "success does not offer a password to anonymous visitors" do
+    payment = payments(:paid_payment)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(payment_id: payment.id)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
+  end
+
   # webhook
   test "webhook returns ok on unknown mollie id" do
     original = Mollie::Payment.method(:get)
@@ -229,6 +269,19 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "paid", payment.reload.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  private
+
+  # Stubs Mollie::Payment.get so the success action can refresh the payment
+  # status without making a network call, returning the payment as paid.
+  def with_paid_mollie_stub(payment)
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+    yield
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end

@@ -481,7 +481,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Jane Doe", user.full_name
   end
 
-  test "sends the tailored confirmation email when registering a new participant" do
+  test "sends the participant confirmation email when registering a new participant" do
     post participants_path, params: {
       participant: {
         first_name: "Jane",
@@ -496,14 +496,16 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
+    participant = Participant.order(:id).last
     email = ActionMailer::Base.deliveries.last
     assert_not_nil email
     assert_equal ["tailored@example.org"], email.to
-    assert_equal "EGC 2027 – Confirm your account", email.subject
+    assert_equal "EGC 2027 – Please confirm your registration", email.subject
     body = email.body.decoded
     assert_match "Jane Doe", body
     assert_match "Utrecht", body
-    assert_match "magic link", body
+    confirmation_url = confirm_participant_url(participant, token: participant.reload.confirmation_token, host: "example.com")
+    assert_match confirmation_url, body
   end
 
   test "links participant to newly created user" do
@@ -597,7 +599,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at
   end
 
-  test "resends account confirmation when participant is linked to existing unconfirmed user" do
+  test "sends participant confirmation when registering under an existing unconfirmed user" do
     unconfirmed_user = User.create!(
       email: "pending_account@example.org",
       password: "password123",
@@ -626,10 +628,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = Participant.order(:id).last
     assert_equal unconfirmed_user, participant.user
     assert_nil participant.confirmed_at
+    assert_not_nil participant.confirmation_token, "confirmation token should be set"
 
     email = ActionMailer::Base.deliveries.last
     assert_equal [unconfirmed_user.email], email.to
-    assert_equal "EGC 2027 – Confirm your account", email.subject
+    assert_equal "EGC 2027 – Please confirm your registration", email.subject
     assert_match "Pending Account", email.body.decoded
   end
 
@@ -648,6 +651,44 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmation_token
     assert_redirected_to new_participant_payment_path(participant)
     assert_equal "EGC 2027 – Your registration is confirmed", emails.last.subject
+  end
+
+  test "confirm action confirms the owning user when it was not confirmed yet" do
+    user = User.create!(email: "to_confirm@example.org", skip_password_validation: true)
+    assert_not user.confirmed?, "user should start unconfirmed"
+
+    participant = Participant.create!(
+      first_name: "Uncon",
+      last_name: "Firmed",
+      email: user.email,
+      country: "NL",
+      club: "Utrecht",
+      rank: 27,
+      age_group: "18-49",
+      participant_type: "player",
+      gender: "male",
+      image_use_consent: true,
+      attendance_option: "weekend_only",
+      user: user
+    )
+    participant.generate_confirmation_token!
+
+    get confirm_participant_path(participant, token: participant.confirmation_token)
+
+    assert user.reload.confirmed?, "owning user should be confirmed after participant confirmation"
+    assert participant.reload.confirmed?
+    assert_redirected_to new_participant_payment_path(participant)
+  end
+
+  test "confirm action signs the user in so they can proceed to payment" do
+    participant = participants(:unconfirmed)
+
+    get confirm_participant_path(participant, token: participant.confirmation_token)
+
+    # The owning user (dave) has multiple participants, so an authenticated
+    # request to the members-only page renders instead of redirecting to login.
+    get mine_participants_path
+    assert_response :success
   end
 
   test "confirm action rejects invalid token" do

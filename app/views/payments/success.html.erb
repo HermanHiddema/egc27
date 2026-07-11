@@ -37,6 +37,22 @@
       </div>
     <% end %>
 
+    <% if @payment&.paid? && current_user && !current_user.password_set? %>
+      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6 text-left">
+        <h2 class="text-lg font-semibold mb-2">Set a password?</h2>
+        <p class="text-neutral-600 mb-4">
+          You don't have a password yet. Would you like to set one now so you can
+          sign in with your email and password? This is optional — you can always
+          sign in later by requesting a magic link to your email.
+        </p>
+        <div class="flex items-center gap-4">
+          <%= link_to "Set a password", edit_user_registration_path, class: "btn-primary" %>
+          <%= button_to "Maybe later", skip_user_password_path, method: :post,
+                class: "font-medium text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+        </div>
+      </div>
+    <% end %>
+
     <%= link_to "Back to registration", new_participant_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
   </div>
 </div>

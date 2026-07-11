@@ -35,17 +35,12 @@ class ParticipantsController < ApplicationController
   def show
   end
 
-  # Resends the Devise confirmation email for the account that owns this
-  # participant, identified solely by the participant UUID so the email address
-  # is never exposed in the page. Always responds the same way regardless of
-  # whether an unconfirmed account exists, to avoid leaking registration state.
+  # Resends the participant confirmation email for this registration, identified
+  # solely by the participant UUID so the email address is never exposed in the
+  # page. Always responds the same way regardless of whether the registration is
+  # still unconfirmed, to avoid leaking registration state.
   def resend_confirmation
-    user = @participant.user
-
-    if user && !user.confirmed?
-      user.registration_participant = @participant
-      user.send_confirmation_instructions
-    end
+    send_participant_confirmation_email(@participant) unless @participant.confirmed?
 
     redirect_to participant_path(@participant),
       notice: "If your registration still needs confirming, we've sent a new confirmation email."
@@ -57,7 +52,7 @@ class ParticipantsController < ApplicationController
       @participant.save!
     end
 
-    send_registration_confirmation_email(@participant)
+    send_participant_confirmation_email(@participant)
 
     redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
   rescue ActiveRecord::RecordInvalid
@@ -71,6 +66,7 @@ class ParticipantsController < ApplicationController
     token = params[:token].to_s
     if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
       @participant.confirm!
+      confirm_and_sign_in_user(@participant.user)
       NewsletterSubscription.subscribe_user(@participant.user)
       deliver_registration_confirmation(@participant) if @participant.email.present?
       notice = "Your registration has been confirmed."
@@ -124,22 +120,31 @@ class ParticipantsController < ApplicationController
 
   private
 
-  # Sends the appropriate confirmation email after a participant registers.
-  # - Confirmed account: a per-participant confirmation email so the existing
-  #   account holder can confirm this specific registration.
-  # - Existing unconfirmed account: re-sends the Devise account confirmation
-  #   instructions (a newly created account already received them on save).
-  def send_registration_confirmation_email(participant)
-    user = participant.user
+  # Sends the per-participant confirmation email for a registration. Every new
+  # registration receives this same email, whether the owning account is brand
+  # new, an existing unconfirmed account, or an existing confirmed account. The
+  # confirmation link confirms this specific registration (and, on confirmation,
+  # the owning user account too if it wasn't confirmed yet).
+  def send_participant_confirmation_email(participant)
+    return if participant.email.blank?
+
+    participant.generate_confirmation_token!
+    deliver_participant_confirmation(participant)
+  end
+
+  # Confirms the owning user account (if it wasn't already) when a participant
+  # registration is confirmed, then signs the user in so they can proceed to
+  # payment and optionally set a password afterwards. The account is confirmed
+  # directly rather than through Devise's #confirm to avoid re-triggering
+  # after_confirmation side effects that would duplicate the confirmation email.
+  def confirm_and_sign_in_user(user)
     return unless user
 
-    if user.confirmed?
-      participant.generate_confirmation_token!
-      deliver_participant_confirmation(participant)
-    elsif !user.previously_new_record?
-      user.registration_participant = participant
-      user.send_confirmation_instructions
+    unless user.confirmed?
+      user.update_columns(confirmed_at: Time.current, updated_at: Time.current)
     end
+
+    sign_in(user)
   end
 
   def deliver_registration_confirmation(participant)
@@ -222,6 +227,9 @@ class ParticipantsController < ApplicationController
       skip_password_validation: true
     )
     user.registration_participant = participant
+    # Registration confirmation is handled by the per-participant confirmation
+    # email, so suppress Devise's own on-create confirmation email.
+    user.skip_confirmation_notification!
     user.save!
     user
   end
