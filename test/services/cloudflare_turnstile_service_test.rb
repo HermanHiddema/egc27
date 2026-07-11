@@ -19,7 +19,7 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
 
     assert CloudflareTurnstileService.new.verify(token: nil)
   ensure
-    Net::HTTP.define_singleton_method(:start, original_start)
+    Net::HTTP.define_singleton_method(:start, &original_start)
     Rails.configuration.x.bot_protection_enabled = previous
     prev_secret_key ? ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = prev_secret_key : ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
     prev_site_key ? ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = prev_site_key : ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
