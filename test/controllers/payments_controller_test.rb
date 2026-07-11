@@ -214,7 +214,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "success offers to set a password when the signed-in user has none" do
     payment = payments(:paid_payment)
-    sign_in users(:no_password)
+    devise_sign_in users(:no_password)
 
     with_paid_mollie_stub(payment) do
       get success_payments_path(payment_id: payment.id)
