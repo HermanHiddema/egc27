@@ -13,13 +13,13 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
     # A blank token would normally fail verification, but it should be allowed
     # through when bot protection is disabled without any network call.
     original_start = Net::HTTP.method(:start)
-    Net::HTTP.define_singleton_method(:start) do |*|
+    Net::HTTP.define_singleton_method(:start) do |*_args|
       raise Minitest::Assertion, "expected no Turnstile verification network call when bot protection is disabled"
     end
 
     assert CloudflareTurnstileService.new.verify(token: nil)
   ensure
-    Net::HTTP.define_singleton_method(:start, original_start) if original_start
+    Net::HTTP.define_singleton_method(:start, original_start)
     Rails.configuration.x.bot_protection_enabled = previous
     prev_secret_key ? ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = prev_secret_key : ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
     prev_site_key ? ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = prev_site_key : ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
