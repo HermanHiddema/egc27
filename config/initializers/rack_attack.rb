@@ -6,7 +6,7 @@ Rack::Attack.cache.store = Rails.cache
 
 # Allow environments (e.g. staging during a pentest) to turn throttling off
 # entirely via the shared bot-protection switch.
-Rack::Attack.enabled = false unless Rails.application.config.x.bot_protection_enabled
+Rack::Attack.enabled = false if Rails.application.config.x.bot_protection_enabled == false
 
 class Rack::Attack
   ### Throttle public endpoints that trigger emails ###

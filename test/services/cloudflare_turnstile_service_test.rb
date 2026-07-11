@@ -30,4 +30,18 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
     ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
     ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
   end
+
+  test "rejects blank token when bot_protection_enabled is nil (fail-secure)" do
+    previous = Rails.configuration.x.bot_protection_enabled
+    Rails.configuration.x.bot_protection_enabled = nil
+
+    ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = "test-secret-key"
+    ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
+
+    assert_not CloudflareTurnstileService.new.verify(token: nil)
+  ensure
+    Rails.configuration.x.bot_protection_enabled = previous
+    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+  end
 end
