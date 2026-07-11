@@ -134,15 +134,16 @@ class ParticipantsController < ApplicationController
 
   # Confirms the owning user account (if it wasn't already) when a participant
   # registration is confirmed, then signs the user in so they can proceed to
-  # payment and optionally set a password afterwards. The account is confirmed
-  # directly rather than through Devise's #confirm to avoid re-triggering
-  # after_confirmation side effects that would duplicate the confirmation email.
+  # payment and optionally set a password afterwards. update_attribute is used
+  # to set confirmed_at directly, bypassing Devise's #confirm! to avoid
+  # invoking the after_confirmation hook that would re-confirm already-handled
+  # participants and send duplicate emails. The confirmed_at attribute has no
+  # model-level validations, so the implicit validation skip from
+  # update_attribute is harmless.
   def confirm_and_sign_in_user(user)
     return unless user
 
-    unless user.confirmed?
-      user.update_columns(confirmed_at: Time.current, updated_at: Time.current)
-    end
+    user.update_attribute(:confirmed_at, Time.current) unless user.confirmed?
 
     sign_in(user)
   end
