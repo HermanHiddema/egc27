@@ -675,7 +675,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     get confirm_participant_path(participant, token: participant.confirmation_token)
 
-    assert user.reload.confirmed?, "owning user should be confirmed after participant confirmation"
+    user.reload
+    assert user.confirmed?, "owning user should be confirmed after participant confirmation"
+    assert_nil user.confirmation_token, "confirmation_token should be cleared after confirmation"
+    assert_nil user.confirmation_sent_at, "confirmation_sent_at should be cleared after confirmation"
     assert participant.reload.confirmed?
     assert_redirected_to new_participant_payment_path(participant)
   end
