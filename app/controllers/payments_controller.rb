@@ -31,6 +31,12 @@ class PaymentsController < ApplicationController
       end
     end
 
+    if simulate_mollie_payment?
+      @payment.update!(status: params[:simulate_status], mollie_payment_id: nil)
+      return redirect_to success_payments_path(payment_id: @payment.id),
+        notice: "Simulated Mollie payment status: #{@payment.status}."
+    end
+
     mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
 
     if mollie_payment&.status.present? && @payment.status != mollie_payment.status
@@ -142,5 +148,9 @@ class PaymentsController < ApplicationController
 
   def retryable_mollie_status?(status)
     %w[open pending authorized].include?(status)
+  end
+
+  def simulate_mollie_payment?
+    Rails.application.config.x.payments.simulate_mollie && params[:simulate_status].in?(Payment::STATUSES)
   end
 end

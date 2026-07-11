@@ -60,6 +60,18 @@
             You will be redirected to Mollie's secure payment page.
             Supported methods: iDEAL, credit card, Bancontact, and more.
           </p>
+
+          <% if Rails.application.config.x.payments.simulate_mollie %>
+            <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
+              <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <%= button_to "Simulate paid", participant_payment_path(@participant), method: :post, params: { simulate_status: "paid" }, data: { turbo: false }, class: "btn-primary w-full" %>
+                <%= button_to "Simulate pending", participant_payment_path(@participant), method: :post, params: { simulate_status: "pending" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+                <%= button_to "Simulate failed", participant_payment_path(@participant), method: :post, params: { simulate_status: "failed" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+                <%= button_to "Simulate canceled", participant_payment_path(@participant), method: :post, params: { simulate_status: "canceled" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+              </div>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>

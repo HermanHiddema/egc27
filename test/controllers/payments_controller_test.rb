@@ -154,6 +154,35 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create, &original_create)
   end
 
+  test "create can simulate a paid Mollie status when enabled" do
+    participant = participants(:three)
+
+    with_mollie_simulation_enabled do
+      assert_difference("Payment.count", 1) do
+        post participant_payment_path(participant), params: { simulate_status: "paid" }
+      end
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+    assert_redirected_to success_payments_path(payment_id: payment.id)
+    assert_equal "paid", payment.status
+    assert_nil payment.mollie_payment_id
+  end
+
+  test "create can simulate failed status on an existing in-progress payment" do
+    payment = payments(:open_payment)
+
+    with_mollie_simulation_enabled do
+      assert_no_difference("Payment.count") do
+        post participant_payment_path(payment.participant), params: { simulate_status: "failed" }
+      end
+    end
+
+    assert_redirected_to success_payments_path(payment_id: payment.id)
+    assert_equal "failed", payment.reload.status
+    assert_nil payment.mollie_payment_id
+  end
+
   # success
   test "success renders page without payment_id" do
     get success_payments_path
@@ -284,5 +313,13 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  def with_mollie_simulation_enabled
+    original = Rails.application.config.x.payments.simulate_mollie
+    Rails.application.config.x.payments.simulate_mollie = true
+    yield
+  ensure
+    Rails.application.config.x.payments.simulate_mollie = original
   end
 end
