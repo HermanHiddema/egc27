@@ -222,7 +222,5 @@ class RackAttackTest < ActionDispatch::IntegrationTest
         assert_response :redirect
       end
     end
-  ensure
-    Rack::Attack.enabled = true
   end
 end

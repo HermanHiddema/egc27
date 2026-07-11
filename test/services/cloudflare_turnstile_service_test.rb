@@ -2,6 +2,8 @@ require "test_helper"
 
 class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
   test "skips verification and passes when bot protection is disabled" do
+    prev_secret_key = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+    prev_site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     previous = Rails.configuration.x.bot_protection_enabled
     Rails.configuration.x.bot_protection_enabled = false
 
@@ -13,11 +15,13 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
     assert CloudflareTurnstileService.new.verify(token: nil)
   ensure
     Rails.configuration.x.bot_protection_enabled = previous
-    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
-    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    prev_secret_key ? ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = prev_secret_key : ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    prev_site_key ? ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = prev_site_key : ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
   end
 
   test "rejects blank token when bot protection is enabled and keys are set" do
+    prev_secret_key = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+    prev_site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     previous = Rails.configuration.x.bot_protection_enabled
     Rails.configuration.x.bot_protection_enabled = true
 
@@ -27,11 +31,13 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
     assert_not CloudflareTurnstileService.new.verify(token: nil)
   ensure
     Rails.configuration.x.bot_protection_enabled = previous
-    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
-    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    prev_secret_key ? ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = prev_secret_key : ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    prev_site_key ? ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = prev_site_key : ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
   end
 
   test "rejects blank token when bot_protection_enabled is nil (fail-secure)" do
+    prev_secret_key = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
+    prev_site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     previous = Rails.configuration.x.bot_protection_enabled
     Rails.configuration.x.bot_protection_enabled = nil
 
@@ -41,7 +47,7 @@ class CloudflareTurnstileServiceTest < ActiveSupport::TestCase
     assert_not CloudflareTurnstileService.new.verify(token: nil)
   ensure
     Rails.configuration.x.bot_protection_enabled = previous
-    ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
-    ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
+    prev_secret_key ? ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"] = prev_secret_key : ENV.delete("CLOUDFLARE_TURNSTILE_SECRET_KEY")
+    prev_site_key ? ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = prev_site_key : ENV.delete("CLOUDFLARE_TURNSTILE_SITE_KEY")
   end
 end
