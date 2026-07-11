@@ -30,6 +30,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     get new_participant_payment_path(participant)
 
     assert_response :success
+    assert_match "This is your current price.", response.body
+    assert_match "If you pay after the current pricing period ends, the price will go up.", response.body
   end
 
   test "new shows paid state for participant with completed payment" do

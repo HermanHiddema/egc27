@@ -39,11 +39,11 @@
             <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
           </div>
           <% if @participant.age_group == "0-11" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. Price based on today's date.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
           <% elsif @participant.age_group == "12-17" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. Price based on today's date.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
           <% else %>
-            <p class="text-xs text-brand-blue-700 mt-1">Price based on today's date.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
           <% end %>
         </div>
 
