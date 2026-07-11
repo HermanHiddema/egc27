@@ -36,6 +36,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "This price is valid until #{valid_until.strftime('%-d %b %Y')}.", response.body
     assert_match "After that, the price will go up.", response.body
+    assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
   end
 
   test "new shows paid state for participant with completed payment" do
