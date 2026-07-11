@@ -26,12 +26,16 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
+    valid_until = CongressPassPricing.new(
+      attendance_option: participant.attendance_option,
+      age_group: participant.age_group
+    ).current_tier_valid_until
 
     get new_participant_payment_path(participant)
 
     assert_response :success
-    assert_match "This is your current price.", response.body
-    assert_match "If you pay after the current pricing period ends, the price will go up.", response.body
+    assert_match "This price is valid until #{valid_until.strftime('%-d %b %Y')}.", response.body
+    assert_match "After that, the price will go up.", response.body
   end
 
   test "new shows paid state for participant with completed payment" do

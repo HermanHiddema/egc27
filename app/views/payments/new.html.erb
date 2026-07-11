@@ -38,12 +38,22 @@
             <span class="text-brand-blue-900 font-medium">Congress Pass</span>
             <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
           </div>
+          <% price_valid_until = CongressPassPricing.new(
+               attendance_option: @participant.attendance_option,
+               age_group: @participant.age_group
+             ).current_tier_valid_until %>
+          <% price_validity_text =
+               if price_valid_until
+                 "This price is valid until #{price_valid_until.strftime('%-d %b %Y')}. After that, the price will go up."
+               else
+                 "This is the final pricing period."
+               end %>
           <% if @participant.age_group == "0-11" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. <%= price_validity_text %></p>
           <% elsif @participant.age_group == "12-17" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. <%= price_validity_text %></p>
           <% else %>
-            <p class="text-xs text-brand-blue-700 mt-1">This is your current price. If you pay after the current pricing period ends, the price will go up.</p>
+            <p class="text-xs text-brand-blue-700 mt-1"><%= price_validity_text %></p>
           <% end %>
         </div>
 
