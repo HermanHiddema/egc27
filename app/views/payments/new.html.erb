@@ -74,7 +74,7 @@
             If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.
           </p>
 
-          <% if Rails.application.config.x.payments.simulate_mollie %>
+          <% if Rails.application.config.x.payments.simulate_mollie && (Rails.env.development? || Rails.env.test?) %>
             <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
               <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">

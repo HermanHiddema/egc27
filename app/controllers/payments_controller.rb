@@ -151,6 +151,10 @@ class PaymentsController < ApplicationController
   end
 
   def simulate_mollie_payment?
-    Rails.application.config.x.payments.simulate_mollie && params[:simulate_status].in?(Payment::STATUSES)
+    mollie_simulation_enabled? && params[:simulate_status].in?(Payment::STATUSES)
+  end
+
+  def mollie_simulation_enabled?
+    Rails.application.config.x.payments.simulate_mollie && (Rails.env.development? || Rails.env.test?)
   end
 end

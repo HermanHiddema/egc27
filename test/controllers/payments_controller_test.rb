@@ -39,6 +39,19 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
   end
 
+  test "new hides Mollie simulation controls outside development and test environments" do
+    participant = participants(:one)
+
+    with_mollie_simulation_enabled do
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+        get new_participant_payment_path(participant)
+      end
+    end
+
+    assert_response :success
+    assert_no_match "Development: Simulate Mollie Response", response.body
+  end
+
   test "new shows paid state for participant with completed payment" do
     participant = participants(:two)
 
@@ -188,6 +201,26 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to success_payments_path(payment_id: payment.id)
     assert_equal "failed", payment.reload.status
     assert_nil payment.mollie_payment_id
+  end
+
+  test "create ignores simulate_status outside development and test environments" do
+    participant = participants(:three)
+    mollie_stub = OpenStruct.new(id: "tr_live_123", checkout_url: "https://example.test/live-checkout")
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
+
+    with_mollie_simulation_enabled do
+      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+        post participant_payment_path(participant), params: { simulate_status: "paid" }
+      end
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+    assert_redirected_to "https://example.test/live-checkout"
+    assert_equal "open", payment.status
+    assert_equal "tr_live_123", payment.mollie_payment_id
+  ensure
+    Mollie::Payment.define_singleton_method(:create, &original)
   end
 
   # success
