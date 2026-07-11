@@ -212,6 +212,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
   end
 
   test "does not throttle when Rack::Attack is disabled" do
+    previous_enabled = Rack::Attack.enabled
     Rack::Attack.enabled = false
 
     freeze_time do
@@ -222,5 +223,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
         assert_response :redirect
       end
     end
+  ensure
+    Rack::Attack.enabled = previous_enabled
   end
 end
