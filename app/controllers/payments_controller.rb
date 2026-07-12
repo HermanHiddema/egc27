@@ -11,6 +11,12 @@ class PaymentsController < ApplicationController
     return unless @confirmed
 
     @payment = @participant.payments.completed.order(created_at: :desc).first || build_payment_for(@participant)
+    @price_valid_until = CongressPassPricing.new(
+      attendance_option: @participant.attendance_option,
+      payment_date: (@payment.created_at&.to_date || Date.current),
+      age_group: @participant.age_group
+    ).current_tier_valid_until
+    @show_simulation_controls = mollie_simulation_enabled?
   end
 
   def create

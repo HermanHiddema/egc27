@@ -42,11 +42,6 @@
             <span class="text-brand-blue-900 font-medium">Congress Pass</span>
             <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
           </div>
-          <% price_valid_until = CongressPassPricing.new(
-               attendance_option: @participant.attendance_option,
-               payment_date: (@payment.created_at&.to_date || Date.current),
-               age_group: @participant.age_group
-             ).current_tier_valid_until %>
           <% if @participant.age_group == "0-11" %>
             <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied.</p>
           <% elsif @participant.age_group == "12-17" %>
@@ -59,8 +54,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
           </svg>
           <p class="text-sm text-brand-yellow-900">
-            <% if price_valid_until %>
-              This price is valid until <strong class="font-bold"><%= price_valid_until.strftime("%-d %b %Y") %></strong>.
+            <% if @price_valid_until %>
+              This price is valid until <strong class="font-bold"><%= @price_valid_until.strftime("%-d %b %Y") %></strong>.
               After that, the price will go up.
             <% else %>
               This is the final pricing period.
@@ -85,7 +80,7 @@
             If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.
           </p>
 
-          <% if Rails.application.config.x.payments.simulate_mollie && (Rails.env.development? || Rails.env.test?) %>
+          <% if @show_simulation_controls %>
             <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
               <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
