@@ -10,7 +10,7 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    @payment = @participant.payments.completed.order(created_at: :desc).first || build_payment_for(@participant)
+    @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
     @price_valid_until = CongressPassPricing.new(
       attendance_option: @participant.attendance_option,
       payment_date: (@payment.created_at&.to_date || Date.current),

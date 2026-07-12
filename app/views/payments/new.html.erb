@@ -49,7 +49,7 @@
           <% end %>
         </div>
 
-        <% if @price_valid_until %>
+        <% if @price_valid_until && !@payment.paid? %>
           <div class="flex items-start gap-3 bg-brand-yellow-50 border-2 border-brand-yellow-400 rounded-lg p-4 mb-6" role="alert">
             <svg class="w-6 h-6 text-brand-yellow-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />

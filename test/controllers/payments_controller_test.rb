@@ -39,8 +39,27 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
   end
 
+  test "new reuses an in-progress payment for pricing and display" do
+    participant = participants(:three)
+    payment = participant.payments.create!(
+      amount_cents: 12_345,
+      description: "Existing pending payment",
+      status: "pending",
+      created_at: Time.zone.local(2026, 8, 15),
+      updated_at: Time.zone.local(2026, 8, 15)
+    )
+
+    travel_to Time.zone.local(2026, 9, 10) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_match payment.description, response.body
+    assert_match "31 Aug 2026", response.body
+  end
+
   test "new does not show price validity notice in final pricing period" do
-    participant = participants(:one)
+    participant = participants(:three)
 
     travel_to Time.zone.local(2027, 6, 1) do
       get new_participant_payment_path(participant)
@@ -58,7 +77,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       participant: participant,
       amount_cents: 19_000,
       description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)",
-      status: "paid",
+      status: "pending",
       created_at: Time.zone.local(2026, 8, 15)
     )
 
@@ -91,6 +110,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "already been paid", response.body
+    assert_no_match "This price is valid until", response.body
   end
 
   # create
