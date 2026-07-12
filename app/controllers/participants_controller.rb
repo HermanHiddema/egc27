@@ -127,12 +127,18 @@ class ParticipantsController < ApplicationController
   # True when a signed-in (already confirmed) user is registering a participant
   # under their own account. The registration email is pre-filled and locked to
   # the current user's address, so the ownership is already verified and no
-  # separate email confirmation is required.
+  # separate email confirmation is required. The user_id match is the
+  # authoritative ownership check; the normalized email comparison is an extra
+  # guard consistent with how accounts are looked up during registration.
   def register_for_current_user?(participant)
     user_signed_in? &&
       current_user.confirmed? &&
       participant.user_id == current_user.id &&
-      participant.email.to_s.casecmp?(current_user.email.to_s)
+      normalize_email(participant.email) == normalize_email(current_user.email)
+  end
+
+  def normalize_email(email)
+    email.to_s.strip.downcase
   end
 
   # Where to send a participant once their registration is confirmed: players
