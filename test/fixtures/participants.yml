@@ -33,7 +33,7 @@
 #  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
 #  index_participants_on_confirmed_at        (confirmed_at)
 #  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
+#  index_participants_on_egd_pin             (egd_pin) UNIQUE
 #  index_participants_on_email               (email)
 #  index_participants_on_gender              (gender)
 #  index_participants_on_participant_type    (participant_type)

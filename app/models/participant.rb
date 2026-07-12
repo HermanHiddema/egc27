@@ -33,7 +33,7 @@
 #  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
 #  index_participants_on_confirmed_at        (confirmed_at)
 #  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
+#  index_participants_on_egd_pin             (egd_pin) UNIQUE
 #  index_participants_on_email               (email)
 #  index_participants_on_gender              (gender)
 #  index_participants_on_participant_type    (participant_type)
@@ -91,7 +91,8 @@ class Participant < ApplicationRecord
     greater_than_or_equal_to: MIN_RATING,
     less_than_or_equal_to: MAX_RATING
   }, allow_nil: true
-  validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" }, allow_blank: true
+  validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" },
+                      uniqueness: { message: "is already registered" }, allow_blank: true
   validates :rank, numericality: {
     only_integer: true,
     greater_than_or_equal_to: EgdGradeMapping::MIN_GRADE_N,
