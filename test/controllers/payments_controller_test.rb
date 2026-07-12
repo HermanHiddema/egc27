@@ -27,18 +27,28 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
-    valid_until = CongressPassPricing.new(
-      attendance_option: participant.attendance_option,
-      age_group: participant.age_group
-    ).current_tier_valid_until
 
-    get new_participant_payment_path(participant)
+    travel_to Time.zone.local(2026, 8, 1) do
+      get new_participant_payment_path(participant)
+    end
 
     assert_response :success
     assert_match "This price is valid until", response.body
-    assert_match valid_until.strftime("%-d %b %Y"), response.body
+    assert_match "31 Aug 2026", response.body
     assert_match "After that, the price will go up.", response.body
     assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
+  end
+
+  test "new does not show price validity notice in final pricing period" do
+    participant = participants(:one)
+
+    travel_to Time.zone.local(2027, 6, 1) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_no_match "This price is valid until", response.body
+    assert_no_match "After that, the price will go up.", response.body
   end
 
   test "new uses persisted payment date for price validity text" do

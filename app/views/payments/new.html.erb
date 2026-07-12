@@ -49,19 +49,17 @@
           <% end %>
         </div>
 
-        <div class="flex items-start gap-3 bg-brand-yellow-50 border-2 border-brand-yellow-400 rounded-lg p-4 mb-6" role="alert">
-          <svg class="w-6 h-6 text-brand-yellow-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
-          </svg>
-          <p class="text-sm text-brand-yellow-900">
-            <% if @price_valid_until %>
+        <% if @price_valid_until %>
+          <div class="flex items-start gap-3 bg-brand-yellow-50 border-2 border-brand-yellow-400 rounded-lg p-4 mb-6" role="alert">
+            <svg class="w-6 h-6 text-brand-yellow-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <p class="text-sm text-brand-yellow-900">
               This price is valid until <strong class="font-bold"><%= @price_valid_until.strftime("%-d %b %Y") %></strong>.
               After that, the price will go up.
-            <% else %>
-              This is the final pricing period.
-            <% end %>
-          </p>
-        </div>
+            </p>
+          </div>
+        <% end %>
 
         <% if @payment.paid? %>
           <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-4">
