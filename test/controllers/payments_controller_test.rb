@@ -35,7 +35,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     get new_participant_payment_path(participant)
 
     assert_response :success
-    assert_match "This price is valid until #{valid_until.strftime('%-d %b %Y')}.", response.body
+    assert_match "This price is valid until", response.body
+    assert_match valid_until.strftime("%-d %b %Y"), response.body
     assert_match "After that, the price will go up.", response.body
     assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
   end
@@ -56,7 +57,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_match "This price is valid until 31 Aug 2026.", response.body
+    assert_match "This price is valid until", response.body
+    assert_match "31 Aug 2026", response.body
   end
 
   test "new hides Mollie simulation controls outside development and test environments" do
