@@ -40,6 +40,7 @@
           </div>
           <% price_valid_until = CongressPassPricing.new(
                attendance_option: @participant.attendance_option,
+               payment_date: (@payment.created_at&.to_date || Date.current),
                age_group: @participant.age_group
              ).current_tier_valid_until %>
           <% price_validity_text =

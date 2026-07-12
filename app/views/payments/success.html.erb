@@ -37,7 +37,7 @@
       </div>
     <% end %>
 
-    <% if @payment&.paid? && current_user && !current_user.password_set? %>
+    <% if @payment&.paid? && current_user && !current_user.password_set? && @payment.participant.user_id == current_user.id %>
       <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6 text-left">
         <h2 class="text-lg font-semibold mb-2">Set a password?</h2>
         <p class="text-neutral-600 mb-4">

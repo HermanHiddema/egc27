@@ -39,6 +39,25 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
   end
 
+  test "new uses persisted payment date for price validity text" do
+    participant = participants(:one)
+    payment = payments(:open_payment)
+    payment.update!(
+      participant: participant,
+      amount_cents: 19_000,
+      description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)",
+      status: "open",
+      created_at: Time.zone.local(2026, 8, 15)
+    )
+
+    travel_to Time.zone.local(2026, 9, 10) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_match "This price is valid until 31 Aug 2026.", response.body
+  end
+
   test "new hides Mollie simulation controls outside development and test environments" do
     participant = participants(:one)
 
@@ -254,6 +273,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "success offers to set a password when the signed-in user has none" do
     payment = payments(:paid_payment)
+    payment.participant.update!(user: users(:no_password), email: users(:no_password).email)
     devise_sign_in users(:no_password)
 
     with_paid_mollie_stub(payment) do
@@ -265,6 +285,18 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Set a password?", response.body
     assert_select "a[href='#{edit_user_registration_path}']", text: "Set a password"
     assert_select "form[action='#{skip_user_password_path}']"
+  end
+
+  test "success does not offer a password when paid payment belongs to another user" do
+    payment = payments(:paid_payment)
+    devise_sign_in users(:no_password)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(payment_id: payment.id)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
   end
 
   test "success does not offer a password when the signed-in user already has one" do
