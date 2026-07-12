@@ -26,7 +26,7 @@
       <% else %>
         <%= form.rich_textarea :content, class: "w-full rounded-lg border border-gray-300 bg-white" %>
       <% end %>
-      <%= field_error form, tinymce_editor? ? :content_html : :content %>
+      <%= field_error form, :content %>
       <%= hidden_field_tag :editor, current_editor %>
     </div>
 
