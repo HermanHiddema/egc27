@@ -405,6 +405,6 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Rails.singleton_class.send(:define_method, :env) { ActiveSupport::EnvironmentInquirer.new(env_name) }
     yield
   ensure
-    Rails.singleton_class.send(:define_method, :env, original)
+    Rails.singleton_class.send(:define_method, :env, &original)
   end
 end
