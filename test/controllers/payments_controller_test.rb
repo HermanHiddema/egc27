@@ -3,6 +3,7 @@ require "ostruct"
 
 class PaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
+  include ActiveSupport::Testing::TimeHelpers
 
   # new
   test "new redirects visitors to participant page" do
@@ -46,7 +47,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       participant: participant,
       amount_cents: 19_000,
       description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)",
-      status: "open",
+      status: "paid",
       created_at: Time.zone.local(2026, 8, 15)
     )
 
@@ -62,7 +63,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:one)
 
     with_mollie_simulation_enabled do
-      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      with_rails_env("production") do
         get new_participant_payment_path(participant)
       end
     end
@@ -229,7 +230,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
 
     with_mollie_simulation_enabled do
-      Rails.stub(:env, ActiveSupport::StringInquirer.new("production")) do
+      with_rails_env("production") do
         post participant_payment_path(participant), params: { simulate_status: "paid" }
       end
     end
@@ -393,5 +394,15 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Rails.application.config.x.payments.simulate_mollie = original
+  end
+
+  # Temporarily switches Rails.env for the duration of the block so environment
+  # guards (e.g. the dev/test-only Mollie simulation path) can be exercised.
+  def with_rails_env(env_name)
+    original = Rails.env
+    Rails.env = env_name
+    yield
+  ensure
+    Rails.env = original
   end
 end

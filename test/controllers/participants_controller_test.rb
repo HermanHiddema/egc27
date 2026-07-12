@@ -254,6 +254,59 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal users(:one).email, Participant.order(:created_at).last.email
   end
 
+  test "signed in user registration is confirmed immediately without an email and goes to payment" do
+    sign_in users(:one)
+
+    assert_no_emails do
+      assert_difference "Participant.count", 1 do
+        post participants_path, params: {
+          participant: {
+            first_name: "Extra",
+            last_name: "Player",
+            gender: "female",
+            age_group: "18-49",
+            country: "NL",
+            club: "Amsterdam",
+            rank: 27,
+            participant_type: "player",
+            attendance_option: "weekend_only",
+            image_use_consent: false,
+            email: users(:one).email
+          }
+        }
+      end
+    end
+
+    participant = Participant.order(:created_at).last
+    assert_equal users(:one), participant.user
+    assert_not_nil participant.confirmed_at, "signed-in registration should be confirmed immediately"
+    assert_nil participant.confirmation_token, "confirmation token should be cleared on immediate confirmation"
+    assert_redirected_to new_participant_payment_path(participant)
+  end
+
+  test "signed in visitor registration is confirmed immediately and goes to the participant page" do
+    sign_in users(:one)
+
+    assert_no_emails do
+      post participants_path, params: {
+        participant: {
+          first_name: "Extra",
+          last_name: "Visitor",
+          gender: "female",
+          age_group: "18-49",
+          country: "NL",
+          participant_type: "visitor",
+          image_use_consent: false,
+          email: users(:one).email
+        }
+      }
+    end
+
+    participant = Participant.order(:created_at).last
+    assert_not_nil participant.confirmed_at
+    assert_redirected_to participant_path(participant)
+  end
+
   test "registration agreement references only the Terms and Conditions" do
     get new_participant_path
 

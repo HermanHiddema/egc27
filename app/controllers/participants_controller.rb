@@ -52,9 +52,17 @@ class ParticipantsController < ApplicationController
       @participant.save!
     end
 
-    send_participant_confirmation_email(@participant)
-
-    redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
+    if register_for_current_user?(@participant)
+      # The signed-in user is registering another participant under their own
+      # (already verified) account. The email is pre-filled and locked to their
+      # own address, so there is nothing to confirm by email: confirm the
+      # registration immediately and continue straight to the next step.
+      @participant.confirm!
+      redirect_to registration_next_step_path(@participant), notice: "Registration confirmed."
+    else
+      send_participant_confirmation_email(@participant)
+      redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
+    end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
   end
@@ -70,11 +78,7 @@ class ParticipantsController < ApplicationController
       NewsletterSubscription.subscribe_user(@participant.user)
       deliver_registration_confirmation(@participant) if @participant.email.present?
       notice = "Your registration has been confirmed."
-      if @participant.player?
-        redirect_to new_participant_payment_path(@participant), notice: notice
-      else
-        redirect_to participant_path(@participant), notice: notice
-      end
+      redirect_to registration_next_step_path(@participant), notice: notice
     else
       redirect_to root_path, alert: "Invalid or expired confirmation link."
     end
@@ -119,6 +123,27 @@ class ParticipantsController < ApplicationController
   end
 
   private
+
+  # True when a signed-in (already confirmed) user is registering a participant
+  # under their own account. The registration email is pre-filled and locked to
+  # the current user's address, so the ownership is already verified and no
+  # separate email confirmation is required.
+  def register_for_current_user?(participant)
+    user_signed_in? &&
+      current_user.confirmed? &&
+      participant.user_id == current_user.id &&
+      participant.email.to_s.casecmp?(current_user.email.to_s)
+  end
+
+  # Where to send a participant once their registration is confirmed: players
+  # continue to payment, visitors go to their registration page.
+  def registration_next_step_path(participant)
+    if participant.player?
+      new_participant_payment_path(participant)
+    else
+      participant_path(participant)
+    end
+  end
 
   # Sends the per-participant confirmation email for a registration. Every new
   # registration receives this same email, whether the owning account is brand
