@@ -411,7 +411,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   # Temporarily switches Rails.env for the duration of the block so environment
   # guards (e.g. the dev/test-only Mollie simulation path) can be exercised.
   def with_rails_env(env_name)
-    original = Rails.method(:env)
+    original = Rails.method(:env).to_proc
     Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new(env_name) }
     yield
   ensure
