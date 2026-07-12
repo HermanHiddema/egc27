@@ -60,6 +60,15 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal unsubscribed_at, subscription.reload.unsubscribed_at
   end
 
+  test "resubscribe marks an unsubscribed subscription as active" do
+    subscription = newsletter_subscriptions(:inactive)
+
+    subscription.resubscribe!
+
+    assert_equal true, subscription.subscribed
+    assert_nil subscription.unsubscribed_at
+  end
+
   test "subscribe_user adds a confirmed user's participant to the list" do
     user = User.create!(email: "Jane.New@Example.com", skip_password_validation: true)
     user.update_column(:confirmed_at, Time.current)
