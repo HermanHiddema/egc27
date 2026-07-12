@@ -16,6 +16,10 @@
         <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Participant Details</h2>
         <dl class="space-y-3 text-sm">
           <div class="flex justify-between">
+            <dt class="text-neutral-500 font-medium">Participant number</dt>
+            <dd class="text-neutral-900"><%= @participant.participant_number %></dd>
+          </div>
+          <div class="flex justify-between">
             <dt class="text-neutral-500 font-medium">Name</dt>
             <dd class="text-neutral-900"><%= "#{@participant.first_name} #{@participant.last_name}" %></dd>
           </div>

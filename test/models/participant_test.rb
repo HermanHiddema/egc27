@@ -62,6 +62,16 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:country], "can't be blank"
   end
 
+  test "participant number is the database id offset by 1000" do
+    participant = participants(:one)
+
+    assert_equal participant.id + 1000, participant.participant_number
+  end
+
+  test "participant number is nil for an unpersisted participant" do
+    assert_nil Participant.new.participant_number
+  end
+
   test "age group has a single must be selected error when blank" do
     participant = Participant.new
 
