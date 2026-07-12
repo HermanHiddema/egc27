@@ -289,6 +289,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "success does not offer a password when paid payment belongs to another user" do
     payment = payments(:paid_payment)
+    payment.participant.update!(user: users(:two), email: users(:two).email)
     devise_sign_in users(:no_password)
 
     with_paid_mollie_stub(payment) do
