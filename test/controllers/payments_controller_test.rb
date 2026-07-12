@@ -400,6 +400,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   # Temporarily switches Rails.env for the duration of the block so environment
   # guards (e.g. the dev/test-only Mollie simulation path) can be exercised.
+  # Uses Rails.stub (Minitest's built-in stub) to replace the Rails.env method
+  # for the duration of the block and automatically restore it afterwards.
   def with_rails_env(env_name)
     Rails.stub(:env, ActiveSupport::EnvironmentInquirer.new(env_name)) { yield }
   end
