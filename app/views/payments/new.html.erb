@@ -16,6 +16,10 @@
         <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Participant Details</h2>
         <dl class="space-y-3 text-sm">
           <div class="flex justify-between">
+            <dt class="text-neutral-500 font-medium">Participant number</dt>
+            <dd class="text-neutral-900"><%= @participant.participant_number %></dd>
+          </div>
+          <div class="flex justify-between">
             <dt class="text-neutral-500 font-medium">Name</dt>
             <dd class="text-neutral-900"><%= "#{@participant.first_name} #{@participant.last_name}" %></dd>
           </div>
@@ -39,13 +43,23 @@
             <span class="text-2xl font-bold text-brand-blue-900"><%= @payment.amount_formatted %></span>
           </div>
           <% if @participant.age_group == "0-11" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied. Price based on today's date.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (80%) applied.</p>
           <% elsif @participant.age_group == "12-17" %>
-            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied. Price based on today's date.</p>
-          <% else %>
-            <p class="text-xs text-brand-blue-700 mt-1">Price based on today's date.</p>
+            <p class="text-xs text-brand-blue-700 mt-1">Youth discount (50%) applied.</p>
           <% end %>
         </div>
+
+        <% if @price_valid_until && !@payment.paid? %>
+          <div class="flex items-start gap-3 bg-brand-yellow-50 border-2 border-brand-yellow-400 rounded-lg p-4 mb-6" role="alert">
+            <svg class="w-6 h-6 text-brand-yellow-700 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+            </svg>
+            <p class="text-sm text-brand-yellow-900">
+              This price is valid until <strong class="font-bold"><%= @price_valid_until.strftime("%-d %b %Y") %></strong>.
+              After that, the price will go up.
+            </p>
+          </div>
+        <% end %>
 
         <% if @payment.paid? %>
           <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4 mb-4">
@@ -60,6 +74,21 @@
             You will be redirected to Mollie's secure payment page.
             Supported methods: iDEAL, credit card, Bancontact, and more.
           </p>
+          <p class="text-xs text-neutral-500 mt-2 text-center">
+            If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.
+          </p>
+
+          <% if @show_simulation_controls %>
+            <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
+              <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <%= button_to "Simulate paid", participant_payment_path(@participant), method: :post, params: { simulate_status: "paid" }, data: { turbo: false }, class: "btn-primary w-full" %>
+                <%= button_to "Simulate pending", participant_payment_path(@participant), method: :post, params: { simulate_status: "pending" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+                <%= button_to "Simulate failed", participant_payment_path(@participant), method: :post, params: { simulate_status: "failed" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+                <%= button_to "Simulate canceled", participant_payment_path(@participant), method: :post, params: { simulate_status: "canceled" }, data: { turbo: false }, class: "btn-secondary w-full" %>
+              </div>
+            </div>
+          <% end %>
         <% end %>
       </div>
     </div>

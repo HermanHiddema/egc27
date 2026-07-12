@@ -28,6 +28,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <% filters = { country: @country_filter, status: @status_filter } %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Number</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Name #{sort_indicator("name", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "name", direction: next_sort_direction("name", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
               </th>
@@ -49,6 +50,7 @@
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @participants.each do |participant| %>
               <tr>
+                <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= participant.participant_number %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.email %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>

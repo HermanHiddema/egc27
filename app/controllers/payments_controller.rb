@@ -10,7 +10,13 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    @payment = @participant.payments.completed.order(created_at: :desc).first || build_payment_for(@participant)
+    @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
+    @price_valid_until = CongressPassPricing.new(
+      attendance_option: @participant.attendance_option,
+      payment_date: (@payment.created_at&.to_date || Date.current),
+      age_group: @participant.age_group
+    ).current_tier_valid_until
+    @show_simulation_controls = mollie_simulation_enabled?
   end
 
   def create
@@ -29,6 +35,12 @@ class PaymentsController < ApplicationController
       unless @payment.save
         render :new, status: :unprocessable_entity and return
       end
+    end
+
+    if simulate_mollie_payment?
+      @payment.update!(status: params[:simulate_status], mollie_payment_id: nil)
+      return redirect_to success_payments_path(payment_id: @payment.id),
+        notice: "Simulated Mollie payment status: #{@payment.status}."
     end
 
     mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
@@ -142,5 +154,13 @@ class PaymentsController < ApplicationController
 
   def retryable_mollie_status?(status)
     %w[open pending authorized].include?(status)
+  end
+
+  def simulate_mollie_payment?
+    mollie_simulation_enabled? && params[:simulate_status].in?(Payment::STATUSES)
+  end
+
+  def mollie_simulation_enabled?
+    Rails.application.config.x.payments.simulate_mollie && (Rails.env.development? || Rails.env.test?)
   end
 end

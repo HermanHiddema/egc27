@@ -27,10 +27,12 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Dave Pending", response.body
     # Shows email addresses
     assert_match "dave@example.org", response.body
-    # Status badges for the three states
-    assert_select "tbody tr td:nth-child(5) span", text: "Pending"
-    assert_select "tbody tr td:nth-child(5) span", text: "Confirmed"
-    assert_select "tbody tr td:nth-child(5) span", text: "Paid"
+    # Status badges for the three states (now the 6th column after the number)
+    assert_select "tbody tr td:nth-child(6) span", text: "Pending"
+    assert_select "tbody tr td:nth-child(6) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(6) span", text: "Paid"
+    # Participant number (database id offset by 1000) in the first column
+    assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
     assert_select "a[href='#{edit_admin_participant_path(participants(:one))}']", text: "Edit"
   end
