@@ -38,4 +38,21 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.sm\\:left-0"
     assert_select "div.sm\\:right-0"
   end
+
+  test "sponsors overview hides admin controls from anonymous visitors" do
+    get sponsors_path
+
+    assert_response :success
+    assert_select "a[href='#{new_sponsor_path}']", count: 0
+    assert_select "a[href='#{edit_sponsor_path(sponsors(:one))}']", count: 0
+  end
+
+  test "sponsors overview shows admin controls to admins" do
+    sign_in users(:admin)
+    get sponsors_path
+
+    assert_response :success
+    assert_select "a[href='#{new_sponsor_path}']", text: "New Sponsor"
+    assert_select "a[href='#{edit_sponsor_path(sponsors(:one))}']", text: "Edit"
+  end
 end
