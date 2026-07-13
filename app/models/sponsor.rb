@@ -21,6 +21,8 @@ class Sponsor < ApplicationRecord
     "youtube" => "YouTube"
   }.freeze
 
+  ALLOWED_LOGO_CONTENT_TYPES = %w[image/png image/jpeg image/webp image/svg+xml].freeze
+
   has_one_attached :logo
 
   multisearchable against: [:name, :description]
@@ -28,8 +30,16 @@ class Sponsor < ApplicationRecord
   validates :name, presence: true
   validate :website_url_must_be_valid
   validate :social_media_links_must_be_valid
+  validate :logo_must_be_supported_image
 
   private
+
+  def logo_must_be_supported_image
+    return unless logo.attached?
+    return if ALLOWED_LOGO_CONTENT_TYPES.include?(logo.blob.content_type.to_s)
+
+    errors.add(:logo, "must be a PNG, JPEG, WebP, or SVG image")
+  end
 
   def website_url_must_be_valid
     return if website.blank? || valid_http_url?(website)

@@ -66,4 +66,34 @@ class SponsorTest < ActiveSupport::TestCase
 
     assert_respond_to sponsor, :logo
   end
+
+  test "accepts svg logo" do
+    sponsor = Sponsor.new(name: "SVG Sponsor")
+    sponsor.logo.attach(
+      Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.svg"), "image/svg+xml")
+    )
+
+    assert sponsor.valid?
+  end
+
+  test "accepts png logo" do
+    sponsor = Sponsor.new(name: "PNG Sponsor")
+    sponsor.logo.attach(
+      Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
+    )
+
+    assert sponsor.valid?
+  end
+
+  test "rejects unsupported logo content type" do
+    sponsor = Sponsor.new(name: "Bad Logo")
+    sponsor.logo.attach(
+      io: StringIO.new("not an image"),
+      filename: "logo.txt",
+      content_type: "text/plain"
+    )
+
+    assert_not sponsor.valid?
+    assert_includes sponsor.errors[:logo], "must be a PNG, JPEG, WebP, or SVG image"
+  end
 end
