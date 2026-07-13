@@ -1,54 +1,64 @@
-<% sponsor_count = @sponsors.length %>
-
 <div class="container-wide py-12">
-  <div class="mb-6">
-    <%= link_to "← Back to Admin", dashboard_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  <div class="mb-8">
+    <h1 class="text-4xl font-bold">Our Sponsors</h1>
+    <p class="text-gray-600 mt-2">The organisations that make this event possible.</p>
   </div>
 
-  <div class="flex justify-between items-center mb-8">
-    <h1 class="text-4xl font-bold">Sponsors</h1>
-    <div class="flex items-center gap-4">
-      <p class="text-gray-600"><%= pluralize(sponsor_count, "sponsor") %></p>
-      <%= link_to "New Sponsor", new_sponsor_path, class: "btn-primary" %>
-    </div>
-  </div>
+  <div class="space-y-8">
+    <% @sponsors.each_with_index do |sponsor, index| %>
+      <div class="bg-white border border-gray-200 rounded-lg p-0 shadow-sm overflow-hidden">
+        <% has_logo = sponsor.logo.attached? %>
+        <% logo_on_left = index.even? %>
+        <% content_side_padding = if has_logo
+                                    logo_on_left ? "sm:pl-72" : "sm:pr-72"
+                                  else
+                                    ""
+                                  end %>
 
-  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-    <table class="w-full text-sm">
-      <thead class="bg-gray-50 border-b border-gray-200">
-        <tr>
-          <th class="px-6 py-3 text-left font-semibold text-gray-700">Name</th>
-          <th class="px-6 py-3 text-left font-semibold text-gray-700">Website</th>
-          <th class="px-6 py-3 text-left font-semibold text-gray-700">Logo</th>
-          <th class="px-6 py-3"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-gray-100">
-        <% @sponsors.each do |sponsor| %>
-          <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4"><%= sponsor.name %></td>
-            <td class="px-6 py-4 text-gray-600">
+        <div class="relative">
+          <% if has_logo %>
+            <% logo_side_class = logo_on_left ? "sm:left-0" : "sm:right-0" %>
+            <% logo_source = main_image_representation(sponsor.logo, resize_to_limit: [512, 512]) || sponsor.logo %>
+            <div class="relative w-full aspect-square sm:aspect-auto sm:w-64 sm:h-auto sm:absolute sm:top-0 sm:bottom-0 <%= logo_side_class %> bg-white flex items-center justify-center p-6">
+              <%= image_tag logo_source, alt: "#{sponsor.name} logo", class: "max-h-full max-w-full object-contain", loading: "lazy", decoding: "async" %>
+            </div>
+          <% end %>
+
+          <div class="p-6 <%= content_side_padding %>">
+            <h2 class="text-2xl font-bold mb-2"><%= sponsor.name %></h2>
+
+            <% if sponsor.description.present? %>
+              <p class="text-gray-700 mb-4 whitespace-pre-line"><%= sponsor.description %></p>
+            <% end %>
+
+            <div class="flex flex-wrap items-center gap-4">
               <% if sponsor.website.present? %>
-                <%= link_to sponsor.website, sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-              <% else %>
-                —
+                <%= link_to sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "inline-flex items-center gap-2 text-brand-blue-600 hover:text-brand-red-600 transition font-medium" do %>
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13.828 10.172a4 4 0 010 5.656l-3 3a4 4 0 01-5.656-5.656l1.5-1.5m8.484-1.344l1.5-1.5a4 4 0 00-5.656-5.656l-3 3a4 4 0 000 5.656" />
+                  </svg>
+                  Visit website
+                <% end %>
               <% end %>
-            </td>
-            <td class="px-6 py-4 text-gray-600"><%= sponsor.logo.attached? ? "Yes" : "No" %></td>
-            <td class="px-6 py-4 text-right">
-              <div class="inline-flex items-center gap-3">
-                <%= link_to "Edit", edit_sponsor_path(sponsor), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-                <%= button_to "Delete", sponsor_path(sponsor), method: :delete, data: { turbo_confirm: "Are you sure you want to delete this sponsor?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-              </div>
-            </td>
-          </tr>
-        <% end %>
-        <% if @sponsors.empty? %>
-          <tr>
-            <td colspan="4" class="px-6 py-8 text-center text-gray-500">No sponsors yet.</td>
-          </tr>
-        <% end %>
-      </tbody>
-    </table>
+
+              <% sponsor.social_media_links.each do |platform, url| %>
+                <% next if url.blank? %>
+                <% icon = sponsor_social_media_icon(platform) %>
+                <% next unless icon %>
+                <%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "text-gray-500 hover:text-brand-red-600 transition", aria: { label: "#{sponsor.name} on #{Sponsor::SOCIAL_MEDIA_PLATFORMS[platform] || platform.to_s.capitalize}" } do %>
+                  <%= icon %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
+    <% if @sponsors.empty? %>
+      <div class="text-center text-gray-500 py-12">
+        <p class="text-xl">No sponsors yet.</p>
+      </div>
+    <% end %>
   </div>
 </div>
