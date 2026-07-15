@@ -24,6 +24,20 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Thanks for subscribing to the newsletter.", flash[:notice]
   end
 
+  test "sends a welcome email when a subscription is created" do
+    assert_enqueued_email_with NewsletterMailer, :welcome, args: ->(args) {
+      args.first.email == "jane@example.com"
+    } do
+      post newsletter_subscriptions_path, params: {
+        newsletter_subscription: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "jane@example.com"
+        }
+      }
+    end
+  end
+
   test "newsletter page includes turnstile widget when site key is configured" do
     previous = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
