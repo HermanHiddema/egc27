@@ -50,8 +50,9 @@
                 <% sponsor.social_media_links.each do |platform, url| %>
                   <% next if url.blank? %>
                   <% icon = sponsor_social_media_icon(platform) %>
-                  <%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "text-gray-500 hover:text-brand-red-600 transition", aria: { label: "#{sponsor.name} on #{Sponsor::SOCIAL_MEDIA_PLATFORMS[platform.to_s] || platform.to_s.capitalize}" } do %>
-                    <%= icon || platform.to_s.capitalize %>
+                  <% platform_label = Sponsor::SOCIAL_MEDIA_PLATFORMS[platform.to_s] || platform.to_s.capitalize %>
+                  <%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "text-gray-500 hover:text-brand-red-600 transition", aria: { label: "#{sponsor.name} on #{platform_label}" } do %>
+                    <%= icon || platform_label %>
                   <% end %>
                 <% end %>
               </div>
