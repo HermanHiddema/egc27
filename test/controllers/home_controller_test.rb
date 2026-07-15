@@ -15,6 +15,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "a span.hidden.md\\:inline", text: "European Go Congress"
     assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 July - 8 August, 2027"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
+    assert_select "a[aria-label='WhatsApp'][href='https://chat.whatsapp.com/LPdN50HJlFaFvcaRVhmkPC']"
   end
 
   test "home page shows article main image in summaries when attached" do
