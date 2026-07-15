@@ -49,7 +49,7 @@
 
                 <% sponsor.social_media_links.each do |platform, url| %>
                   <% next if url.blank? %>
-                  <% icon = sponsor_social_media_icon(platform) %>
+                  <% icon = social_media_icon(platform) %>
                   <% next unless icon %>
                   <%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "text-gray-500 hover:text-brand-red-600 transition", aria: { label: "#{sponsor.name} on #{Sponsor::SOCIAL_MEDIA_PLATFORMS[platform] || platform.to_s.capitalize}" } do %>
                     <%= icon %>
