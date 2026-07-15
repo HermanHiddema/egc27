@@ -26,8 +26,9 @@
 
       <% if @sponsors.any? %>
         <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-          <div class="px-4 py-3 border-b border-gray-200 bg-neutral-50">
+          <div class="px-4 py-3 border-b border-gray-200 bg-neutral-50 flex items-center justify-between gap-2">
             <h2 class="text-sm font-semibold uppercase tracking-wide text-neutral-700">Our Sponsors</h2>
+            <%= link_to "View all", sponsors_path, class: "text-xs font-medium text-brand-blue-600 hover:text-brand-red-600 transition" %>
           </div>
           <div class="p-4" data-controller="sponsor-carousel">
             <% @sponsors.each_with_index do |sponsor, index| %>

@@ -83,6 +83,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div[data-controller='sponsor-carousel']"
     assert_select "h2", text: "Our Sponsors"
+    assert_select "a[href=?]", sponsors_path, text: "View all"
     assert_select "div[data-sponsor-carousel-target='slide']", count: 1
     assert_select "img[alt=?]", "#{with_logo.name} logo"
   end
