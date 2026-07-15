@@ -43,8 +43,8 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
     get sponsors_path
 
     assert_response :success
-    assert_select "a[href='#{new_sponsor_path}']", count: 0
-    assert_select "a[href='#{edit_sponsor_path(sponsors(:one))}']", count: 0
+    assert_select "a[href=?]", new_sponsor_path, count: 0
+    assert_select "a[href=?]", edit_sponsor_path(sponsors(:one)), count: 0
   end
 
   test "sponsors overview shows admin controls to admins" do
@@ -52,7 +52,7 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
     get sponsors_path
 
     assert_response :success
-    assert_select "a[href='#{new_sponsor_path}']", text: "New Sponsor"
-    assert_select "a[href='#{edit_sponsor_path(sponsors(:one))}']", text: "Edit"
+    assert_select "a[href=?]", new_sponsor_path, text: "New Sponsor"
+    assert_select "a[href=?]", edit_sponsor_path(sponsors(:one)), text: "Edit"
   end
 end
