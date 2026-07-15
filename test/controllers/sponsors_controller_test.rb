@@ -14,6 +14,7 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
 
   test "sponsors overview lists each sponsor with description and links" do
     sponsor = sponsors(:one)
+    sponsor.update!(social_media_links: sponsor.social_media_links.merge("mastodon" => "https://mastodon.social/@example"))
 
     get sponsors_path
 
@@ -24,6 +25,7 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
     sponsor.social_media_links.each_value do |url|
       assert_select "a[href=?]", url
     end
+    assert_select "a", text: "Mastodon"
   end
 
   test "sponsors overview alternates the logo side and renders attached logos" do
