@@ -98,6 +98,9 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_select "h2", text: "There were errors with your submission:"
+    # Errors are shown inline on the specific fields that failed validation.
+    assert_select "div.field_with_errors"
+    assert_select "p.text-red-600"
   end
 
   test "shows confirmation page for a valid unsubscribe token" do
