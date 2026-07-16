@@ -9,6 +9,10 @@
         <h2 class="text-lg font-semibold text-neutral-900 mb-4">Registration Details</h2>
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
+            <dt class="font-medium text-neutral-700">Participant number</dt>
+            <dd class="text-neutral-900"><%= @participant.participant_number %></dd>
+          </div>
+          <div>
             <dt class="font-medium text-neutral-700">Name</dt>
             <dd class="text-neutral-900"><%= "#{@participant.first_name} #{@participant.last_name}" %></dd>
           </div>

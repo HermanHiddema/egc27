@@ -110,6 +110,17 @@ class Participant < ApplicationRecord
     uuid
   end
 
+  # A short, memorable participant number shown to participants and admins.
+  # Derived from the database id with a fixed offset so the smallest numbers
+  # are still comfortably large.
+  PARTICIPANT_NUMBER_OFFSET = 1000
+
+  def participant_number
+    return unless id
+
+    id + PARTICIPANT_NUMBER_OFFSET
+  end
+
   def confirmed?
     confirmed_at.present?
   end

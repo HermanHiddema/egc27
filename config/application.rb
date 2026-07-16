@@ -19,6 +19,11 @@ module Egc27
     config.middleware.insert_after ActionDispatch::RemoteIp, Rack::Attack
     config.active_storage.variant_processor = :vips
 
+    # Master switch for anonymous-form bot protection (Rack::Attack throttling and
+    # Cloudflare Turnstile). Enabled by default; individual environments (e.g.
+    # staging) may disable it.
+    config.x.bot_protection_enabled = true
+
     # Configuration for the application, engines, and railties goes here.
     #
     # These settings can be overridden in specific environments using the files

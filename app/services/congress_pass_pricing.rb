@@ -46,6 +46,10 @@ class CongressPassPricing
     current_tier
   end
 
+  def current_tier_valid_until
+    current_tier_config.fetch(:until)
+  end
+
   def description
     "EGC 2027 Congress Pass – #{attendance_label}"
   end
@@ -62,7 +66,11 @@ class CongressPassPricing
 
   private
 
+  def current_tier_config
+    PRICE_TIERS.find { |t| t[:until].nil? || payment_date <= t[:until] }
+  end
+
   def current_tier
-    PRICE_TIERS.find { |t| t[:until].nil? || payment_date <= t[:until] }.fetch(:name)
+    current_tier_config.fetch(:name)
   end
 end
