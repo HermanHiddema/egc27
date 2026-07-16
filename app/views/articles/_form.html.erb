@@ -1,11 +1,19 @@
 <%= form_with model: article do |form| %>
-  <%= render "shared/form_errors", model: article %>
+  <% if article.errors.any? %>
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+      <ul class="text-red-700 list-disc list-inside">
+        <% article.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
 
   <div class="space-y-6">
     <div>
       <%= form.label :title, "Title *", class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.text_field :title, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-      <%= field_error form, :title %>
     </div>
 
     <div>
@@ -17,11 +25,9 @@
                            rows: 18,
                            data: { controller: "tinymce", tinymce_script_url_value: tinymce_script_url },
                            class: "w-full rounded-lg border border-gray-300 bg-white" %>
-        <%= field_error form, :content %>
         <p class="text-sm text-gray-500 mt-2">Format content with the TinyMCE toolbar.</p>
       <% else %>
         <%= form.rich_textarea :content, class: "w-full rounded-lg border border-gray-300 bg-white" %>
-        <%= field_error form, :content %>
         <p class="text-sm text-gray-500 mt-2">Format content with the Trix toolbar.</p>
       <% end %>
       <%= hidden_field_tag :editor, current_editor %>
@@ -30,7 +36,6 @@
     <div>
       <%= form.label :main_image, class: "block text-sm font-medium text-gray-700 mb-2" %>
       <%= form.file_field :main_image, accept: "image/png,image/jpeg,image/webp", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-      <%= field_error form, :main_image %>
       <% if article.main_image.attached? && article.main_image.variable? %>
         <div class="mt-3 relative inline-block" data-controller="remove-image">
           <%= image_tag main_image_representation(article.main_image, resize_to_limit: [ 96, 96 ]), alt: "#{article.title} main image", class: "h-24 w-auto rounded-lg border border-gray-200 transition-opacity", data: { "remove-image-target": "image" } %>
