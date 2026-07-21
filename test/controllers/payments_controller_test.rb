@@ -36,7 +36,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "This price is valid until", response.body
     assert_match "31 Aug 2026", response.body
     assert_match "After that, the price will go up.", response.body
-    assert_match "If none of the payment options offered by Mollie work for you, please contact us to discuss other payment options.", response.body
+    assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options\./
+    assert_select "a[href=?]", page_path("faq"), text: "FAQ"
   end
 
   test "new reuses an in-progress payment for pricing and display" do
