@@ -125,7 +125,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
 
     user = User.create!(email: existing.email.upcase, skip_password_validation: true)
     user.update_column(:confirmed_at, Time.current)
-    Participant.create!(
+    participant = Participant.create!(
       first_name: "Grace",
       last_name: "Hopper",
       email: user.email,
@@ -146,7 +146,16 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal existing, returned_subscription
     assert_equal "Grace", existing.first_name
     assert_equal "Hopper", existing.last_name
-  end
+
+    participant.update!(first_name: "Changed", last_name: "Name")
+
+    assert_no_difference("NewsletterSubscription.count") do
+      NewsletterSubscription.subscribe_user(user)
+    end
+
+    existing.reload
+    assert_equal "Grace", existing.first_name
+    assert_equal "Hopper", existing.last_name
 
   test "subscribe_user ignores users without a participant" do
     user = User.create!(email: "no_participant@example.com", skip_password_validation: true)
