@@ -40,7 +40,10 @@ class NewsletterSubscription < ApplicationRecord
     return if email.blank?
 
     existing = find_by(email: email)
-    return supplement_names(existing, participant) if existing
+    if existing
+      supplement_names(existing, participant)
+      return existing
+    end
 
     create(
       first_name: participant.first_name,

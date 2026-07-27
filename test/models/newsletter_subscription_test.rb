@@ -136,11 +136,14 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
       user: user
     )
 
+    returned_subscription = nil
+
     assert_no_difference("NewsletterSubscription.count") do
-      NewsletterSubscription.subscribe_user(user)
+      returned_subscription = NewsletterSubscription.subscribe_user(user)
     end
 
     existing.reload
+    assert_equal existing, returned_subscription
     assert_equal "Grace", existing.first_name
     assert_equal "Hopper", existing.last_name
   end
