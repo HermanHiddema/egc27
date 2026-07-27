@@ -6,8 +6,8 @@
 #
 #  id                :bigint           not null, primary key
 #  email             :string           not null
-#  first_name        :string           not null
-#  last_name         :string           not null
+#  first_name        :string
+#  last_name         :string
 #  subscribed        :boolean          default(TRUE), not null
 #  unsubscribe_token :string           not null
 #  unsubscribed_at   :datetime
