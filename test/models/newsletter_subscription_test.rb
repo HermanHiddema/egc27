@@ -156,6 +156,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     existing.reload
     assert_equal "Grace", existing.first_name
     assert_equal "Hopper", existing.last_name
+  end
 
   test "subscribe_user ignores users without a participant" do
     user = User.create!(email: "no_participant@example.com", skip_password_validation: true)
