@@ -4,8 +4,8 @@
 #
 #  id                :bigint           not null, primary key
 #  email             :string           not null
-#  first_name        :string           not null
-#  last_name         :string           not null
+#  first_name        :string
+#  last_name         :string
 #  subscribed        :boolean          default(TRUE), not null
 #  unsubscribe_token :string           not null
 #  unsubscribed_at   :datetime
@@ -22,7 +22,7 @@ class NewsletterSubscription < ApplicationRecord
   before_validation :ensure_unsubscribe_token
   before_save :sync_unsubscribed_at
 
-  validates :first_name, :last_name, :email, :unsubscribe_token, presence: true
+  validates :email, :unsubscribe_token, presence: true
   validates :email, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :subscribed, inclusion: { in: [true, false] }
 
@@ -38,7 +38,9 @@ class NewsletterSubscription < ApplicationRecord
 
     email = normalize_email(user.email)
     return if email.blank?
-    return if exists?(email: email)
+
+    existing = find_by(email: email)
+    return supplement_names(existing, participant) if existing
 
     create(
       first_name: participant.first_name,
@@ -47,6 +49,15 @@ class NewsletterSubscription < ApplicationRecord
     )
   rescue ActiveRecord::RecordNotUnique
     nil
+  end
+
+  def self.supplement_names(subscription, participant)
+    attributes = {}
+    attributes[:first_name] = participant.first_name if subscription.first_name.blank?
+    attributes[:last_name] = participant.last_name if subscription.last_name.blank?
+    return if attributes.empty?
+
+    subscription.update(attributes)
   end
 
   def self.update_email(old_email, new_email)
@@ -69,6 +80,10 @@ class NewsletterSubscription < ApplicationRecord
 
   def unsubscribe!
     update!(subscribed: false)
+  end
+
+  def full_name
+    [first_name, last_name].compact_blank.join(" ")
   end
 
   private
