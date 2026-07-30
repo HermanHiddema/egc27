@@ -71,7 +71,7 @@ All must pass before deploy.
 3. Root path logic: authenticated users → `HomeController#index`, unauthenticated → Devise sign-in page
 
 ### Browser Support
-- Only modern browsers (WebP, web push, CSS nesting, CSS :has support) due to `allow_browser versions: :modern` in ApplicationController
+- No browser version restriction is enforced; the app does not use `allow_browser`
 - Don't worry about IE11 compatibility
 
 ### Database
