@@ -385,7 +385,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
-  test "webhook is not blocked by the modern browser guard" do
+  test "webhook is not blocked for outdated browser user agents" do
     payment = payments(:open_payment)
     mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
 
