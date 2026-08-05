@@ -18,12 +18,18 @@ class CongressPassPricing
     "12-17" => 0.50
   }.freeze
 
-  attr_reader :attendance_option, :payment_date, :age_group
+  AGE_GROUP_LABELS = {
+    "0-11"  => "u12",
+    "12-17" => "u18"
+  }.freeze
 
-  def initialize(attendance_option:, payment_date: Date.current, age_group: nil)
+  attr_reader :attendance_option, :payment_date, :age_group, :participant_number
+
+  def initialize(attendance_option:, payment_date: Date.current, age_group: nil, participant_number: nil)
     @attendance_option = attendance_option
     @payment_date = payment_date
     @age_group = age_group
+    @participant_number = participant_number
   end
 
   def base_price_eur
@@ -51,14 +57,21 @@ class CongressPassPricing
   end
 
   def description
-    "EGC 2027 Congress Pass – #{attendance_label}"
+    parts = ["EGC 2027", attendance_label, age_group_label].compact
+    description = parts.join(" ")
+    description += " - #{participant_number}" if participant_number
+    description
+  end
+
+  def age_group_label
+    AGE_GROUP_LABELS[age_group]
   end
 
   def attendance_label
     case attendance_option
-    when "all_events"               then "Full (Week 1 + Weekend + Week 2)"
+    when "all_events"               then "All events"
     when "first_week_plus_weekend"  then "Week 1 + Weekend"
-    when "weekend_only"             then "Weekend only"
+    when "weekend_only"             then "Weekend Only"
     when "weekend_plus_second_week" then "Weekend + Week 2"
     else attendance_option
     end
