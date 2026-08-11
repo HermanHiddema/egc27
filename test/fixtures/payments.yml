@@ -6,6 +6,8 @@
 #  amount_cents      :integer          not null
 #  confirmation_sent :boolean          default(FALSE), not null
 #  description       :string           not null
+#  payment_method    :string           default("mollie"), not null
+#  reference         :string
 #  status            :string           default("open"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null

@@ -8,6 +8,8 @@ require "test_helper"
 #  amount_cents      :integer          not null
 #  confirmation_sent :boolean          default(FALSE), not null
 #  description       :string           not null
+#  payment_method    :string           default("mollie"), not null
+#  reference         :string
 #  status            :string           default("open"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -120,6 +122,54 @@ class PaymentTest < ActiveSupport::TestCase
     payment = payments(:paid_payment)
     assert_no_emails do
       payment.update!(status: "paid")
+    end
+  end
+
+  test "defaults to the mollie payment method" do
+    payment = Payment.new(participant: participants(:one))
+    assert_equal "mollie", payment.payment_method
+    assert_not payment.manual?
+  end
+
+  test "validates payment_method inclusion" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      payment_method: "bitcoin"
+    )
+    assert_not payment.valid?
+    assert payment.errors[:payment_method].any?
+  end
+
+  test "manual? is true for payments received outside mollie" do
+    payment = Payment.new(participant: participants(:one), payment_method: "cash")
+    assert payment.manual?
+    assert_equal "Bank transfer", Payment.new(payment_method: "bank_transfer").payment_method_label
+  end
+
+  test "sends payment confirmation email when created as paid" do
+    assert_emails 1 do
+      Payment.create!(
+        participant: participants(:one),
+        status: "paid",
+        amount_cents: 19_000,
+        description: "Cash at the venue",
+        payment_method: "cash"
+      )
+    end
+  end
+
+  test "does not send payment confirmation email when created as open" do
+    assert_no_emails do
+      Payment.create!(
+        participant: participants(:one),
+        status: "open",
+        amount_cents: 19_000,
+        description: "Bank transfer pending",
+        payment_method: "bank_transfer"
+      )
     end
   end
 end

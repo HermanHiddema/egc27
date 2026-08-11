@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_27_111000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_11_211214) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -211,6 +211,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111000) do
     t.string "description", null: false
     t.string "mollie_payment_id"
     t.bigint "participant_id", null: false
+    t.string "payment_method", default: "mollie", null: false
+    t.string "reference"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true

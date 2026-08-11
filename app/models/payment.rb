@@ -6,6 +6,8 @@
 #  amount_cents      :integer          not null
 #  confirmation_sent :boolean          default(FALSE), not null
 #  description       :string           not null
+#  payment_method    :string           default("mollie"), not null
+#  reference         :string
 #  status            :string           default("open"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -24,10 +26,15 @@
 #
 class Payment < ApplicationRecord
   STATUSES = %w[open canceled pending authorized expired failed paid].freeze
+  # Payments are normally handled by Mollie, but admins can also record payments
+  # that were received outside of Mollie (e.g. cash or bank transfer).
+  PAYMENT_METHODS = %w[mollie cash bank_transfer other].freeze
+  MANUAL_PAYMENT_METHODS = (PAYMENT_METHODS - ["mollie"]).freeze
 
   belongs_to :participant
 
   validates :status, inclusion: { in: STATUSES }
+  validates :payment_method, inclusion: { in: PAYMENT_METHODS }
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :description, presence: true
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
@@ -35,10 +42,20 @@ class Payment < ApplicationRecord
   scope :completed, -> { where(status: "paid") }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
 
-  after_update_commit :send_payment_confirmation, if: :became_paid?
+  # Payments recorded manually by an admin can be created directly as paid, so
+  # confirmations are sent both on create and on update.
+  after_commit :send_payment_confirmation, on: [:create, :update], if: :became_paid?
 
   def paid?
     status == "paid"
+  end
+
+  def manual?
+    payment_method != "mollie"
+  end
+
+  def payment_method_label
+    payment_method.humanize
   end
 
   def amount_eur
