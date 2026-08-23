@@ -12,7 +12,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:editor)
 
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:one)), params: {
+      post admin_participant_payments_path(participants(:three)), params: {
         payment: { amount_eur: "190.00", description: "Cash at the venue", payment_method: "cash", status: "paid" }
       }
     end
@@ -22,10 +22,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin can open the record payment form" do
     sign_in users(:admin)
-    get new_admin_participant_payment_path(participants(:one))
+    get new_admin_participant_payment_path(participants(:three))
 
     assert_response :success
-    assert_select "form[action='#{admin_participant_payments_path(participants(:one))}']"
+    assert_select "form[action='#{admin_participant_payments_path(participants(:three))}']"
     assert_select "select[name='payment[payment_method]'] option[value='cash']"
     assert_select "select[name='payment[payment_method]'] option[value='bank_transfer']"
     assert_select "select[name='payment[payment_method]'] option[value='pointofsale']"
@@ -38,7 +38,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin can record a manual payment" do
     sign_in users(:admin)
-    participant = participants(:one)
+    participant = participants(:three)
 
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
@@ -66,7 +66,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     assert_emails 1 do
-      post admin_participant_payments_path(participants(:one)), params: {
+      post admin_participant_payments_path(participants(:three)), params: {
         payment: {
           amount_eur: "190.00",
           description: "Bank transfer",
@@ -79,7 +79,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "recorded payments are always assigned the manual provider" do
     sign_in users(:admin)
-    participant = participants(:one)
+    participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
       payment: {
@@ -99,7 +99,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "recorded payments are always paid" do
     sign_in users(:admin)
-    participant = participants(:one)
+    participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
       payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", status: "open" }
@@ -112,7 +112,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:one)), params: {
+      post admin_participant_payments_path(participants(:three)), params: {
         payment: { amount_eur: "190.00", description: "Fake Mollie", payment_method: "ideal", status: "paid" }
       }
     end
@@ -124,7 +124,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:one)), params: {
+      post admin_participant_payments_path(participants(:three)), params: {
         payment: { amount_eur: "0", description: "", payment_method: "cash", status: "paid" }
       }
     end
@@ -134,13 +134,60 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "recorded payment makes the participant show as paid" do
     sign_in users(:admin)
-    participant = participants(:one)
+    participant = participants(:two)
 
     post admin_participant_payments_path(participant), params: {
       payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", status: "paid" }
     }
 
     assert_equal "Paid", participant.reload.registration_status
+  end
+
+  test "admin cannot record a payment for a visitor participant" do
+    sign_in users(:admin)
+    visitor = participants(:visitor_one)
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(visitor), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+      }
+    end
+
+    assert_redirected_to admin_participants_path
+  end
+
+  test "admin cannot open the payment form for a visitor participant" do
+    sign_in users(:admin)
+
+    get new_admin_participant_payment_path(participants(:visitor_one))
+
+    assert_redirected_to admin_participants_path
+  end
+
+  test "admin is blocked when participant has open mollie payment" do
+    sign_in users(:admin)
+    # participants(:one) already has an open_payment fixture (Mollie, status: open)
+    participant = participants(:one)
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(participant), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+      }
+    end
+
+    assert_redirected_to new_admin_participant_payment_path(participant)
+  end
+
+  test "non-numeric amount_eur re-renders the form with a validation error" do
+    sign_in users(:admin)
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(participants(:two)), params: {
+        payment: { amount_eur: "abc", description: "Cash", payment_method: "cash" }
+      }
+    end
+
+    assert_response :unprocessable_entity
   end
 
   # edit / update
