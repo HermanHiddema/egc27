@@ -34,7 +34,10 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def update
-    if @payment.update(payment_params)
+    @payment.assign_attributes(payment_params)
+    @payment.status = "paid"
+
+    if @payment.save
       redirect_to admin_participants_path, notice: "Payment was successfully updated."
     else
       render :edit, status: :unprocessable_entity
@@ -86,11 +89,7 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def payment_params
-    # The status can only be changed when correcting an existing payment; new
-    # payments are always recorded as paid.
-    attributes = [:amount_eur, :description, :payment_method, :reference]
-    attributes << :status if action_name == "update"
-    permitted = params.require(:payment).permit(*attributes)
+    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :reference)
     amount_eur = permitted.delete(:amount_eur)
     amount_cents = (amount_eur.to_s.tr(",", ".").to_d * 100).round
     permitted.merge(amount_cents: amount_cents)

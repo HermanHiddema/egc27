@@ -140,6 +140,7 @@ four:
   updated_at: <%= Time.current %>
 
 visitor_one:
+  user: one
   first_name: Victor
   last_name: Visitor
   email: victor@example.org

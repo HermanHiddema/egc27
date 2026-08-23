@@ -31,23 +31,11 @@
       <%= form.text_field :reference, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", placeholder: "Bank transaction reference, receipt number, …" %>
     </div>
 
-    <% if payment.persisted? %>
-      <div>
-        <%= form.label :status, "Status *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-        <%= form.select :status, options_for_select([["Paid", "paid"], ["Open", "open"]], payment.status), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
-      </div>
-    <% end %>
   </div>
 
-  <% if payment.persisted? %>
-    <p class="mt-4 text-xs text-gray-500">
-      Saving a payment with status “Paid” sends the participant a payment confirmation email.
-    </p>
-  <% else %>
-    <p class="mt-4 text-xs text-gray-500">
-      Payments are always recorded as paid, which sends the participant a payment confirmation email.
-    </p>
-  <% end %>
+  <p class="mt-4 text-xs text-gray-500">
+    Payments are always recorded as paid, which sends the participant a payment confirmation email.
+  </p>
 
   <div class="flex gap-4 mt-6">
     <%= form.submit submit_label, class: "btn-primary" %>

@@ -202,6 +202,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[action='#{admin_participant_payment_path(payment.participant, payment)}']"
     assert_select "input[name='payment[reference]'][value='#{payment.reference}']"
+    assert_select "select[name='payment[status]']", count: 0
   end
 
   test "admin can update a manual payment" do
@@ -269,6 +270,18 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :unprocessable_entity
     assert_equal 19_000, payment.reload.amount_cents
+  end
+
+  test "manual payment cannot be changed to open on update" do
+    sign_in users(:admin)
+    payment = payments(:manual_payment)
+
+    patch admin_participant_payment_path(payment.participant, payment), params: {
+      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", status: "open" }
+    }
+
+    assert_redirected_to admin_participants_path
+    assert payment.reload.paid?
   end
 
   test "payments of another participant cannot be edited through a mismatched participant" do

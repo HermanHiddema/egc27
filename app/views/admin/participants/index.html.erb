@@ -61,7 +61,9 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-right">
                   <%= link_to "Edit", edit_admin_participant_path(participant), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-                  <%= link_to "Add payment", new_admin_participant_payment_path(participant), class: "ml-3 text-brand-red-600 hover:text-brand-red-700 transition" %>
+                  <% if participant.player? %>
+                    <%= link_to "Add payment", new_admin_participant_payment_path(participant), class: "ml-3 text-brand-red-600 hover:text-brand-red-700 transition" %>
+                  <% end %>
                 </td>
               </tr>
             <% end %>
