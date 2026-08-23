@@ -92,11 +92,7 @@ class Admin::PaymentsController < ApplicationController
     attributes << :status if action_name == "update"
     permitted = params.require(:payment).permit(*attributes)
     amount_eur = permitted.delete(:amount_eur)
-    amount_cents = begin
-      (amount_eur.to_s.tr(",", ".").to_d * 100).round
-    rescue ArgumentError
-      nil
-    end
+    amount_cents = (amount_eur.to_s.tr(",", ".").to_d * 100).round
     permitted.merge(amount_cents: amount_cents)
   end
 end
