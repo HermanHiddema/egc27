@@ -146,6 +146,7 @@ visitor_one:
   age_group: 18-49
   gender: male
   country: NL
+  club: Utrecht
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: visitor
