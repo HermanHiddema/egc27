@@ -39,9 +39,15 @@
     <% end %>
   </div>
 
-  <p class="mt-4 text-xs text-gray-500">
-    <% unless payment.persisted? %>Payments are always recorded as paid. <% end %>Saving a payment with status “Paid” sends the participant a payment confirmation email.
-  </p>
+  <% if payment.persisted? %>
+    <p class="mt-4 text-xs text-gray-500">
+      Saving a payment with status “Paid” sends the participant a payment confirmation email.
+    </p>
+  <% else %>
+    <p class="mt-4 text-xs text-gray-500">
+      Payments are always recorded as paid, which sends the participant a payment confirmation email.
+    </p>
+  <% end %>
 
   <div class="flex gap-4 mt-6">
     <%= form.submit submit_label, class: "btn-primary" %>
