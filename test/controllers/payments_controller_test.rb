@@ -385,6 +385,44 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
+  test "webhook records the payment method reported by mollie" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      attributes: { "method" => "ideal" }
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    payment.reload
+    assert_equal "paid", payment.status
+    assert_equal "ideal", payment.payment_method
+    assert_equal "mollie", payment.provider
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook keeps the existing payment method when mollie reports none" do
+    payment = payments(:open_payment)
+    payment.update_columns(payment_method: "ideal")
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    assert_equal "ideal", payment.reload.payment_method
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
   test "webhook is not blocked for outdated browser user agents" do
     payment = payments(:open_payment)
     mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")

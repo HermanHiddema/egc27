@@ -109,7 +109,7 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :participants, only: [:index, :edit, :update] do
-      resources :payments, only: [:new, :create]
+      resources :payments, only: [:new, :create, :edit, :update]
     end
   end
 

@@ -46,7 +46,7 @@ class PaymentsController < ApplicationController
     mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
 
     if mollie_payment&.status.present? && @payment.status != mollie_payment.status
-      @payment.update!(status: mollie_payment.status)
+      sync_from_mollie(@payment, mollie_payment)
     end
 
     if mollie_payment&.status == "paid"
@@ -86,7 +86,7 @@ class PaymentsController < ApplicationController
     if @payment&.mollie_payment_id.present?
       begin
         mollie_payment = Mollie::Payment.get(@payment.mollie_payment_id)
-        @payment.update!(status: mollie_payment.status)
+        sync_from_mollie(@payment, mollie_payment)
       rescue Mollie::Exception => e
         Rails.logger.error "[Mollie] Error fetching payment status for #{@payment.mollie_payment_id}: #{e.message}"
       end
@@ -98,7 +98,7 @@ class PaymentsController < ApplicationController
     payment = Payment.find_by(mollie_payment_id: mollie_payment.id)
 
     if payment
-      payment.update!(status: mollie_payment.status)
+      sync_from_mollie(payment, mollie_payment)
     end
 
     head :ok
@@ -143,6 +143,24 @@ class PaymentsController < ApplicationController
       webhook_url: webhook_payments_url,
       metadata: { payment_id: payment.id, participant_id: payment.participant_id }
     )
+  end
+
+  # Mollie reports the method the payer actually used (ideal, creditcard, …)
+  # once it is known, which is recorded alongside the status.
+  def sync_from_mollie(payment, mollie_payment)
+    payment.update!(
+      status: mollie_payment.status,
+      payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
+    )
+  end
+
+  # Read from the raw Mollie attributes because `method` is also the name of a
+  # standard Ruby method, which makes the generated reader unreliable.
+  def mollie_payment_method(mollie_payment)
+    attributes = mollie_payment.try(:attributes)
+    return unless attributes.respond_to?(:[])
+
+    (attributes["method"] || attributes[:method]).presence
   end
 
   def retryable_mollie_status?(status)

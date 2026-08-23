@@ -8,7 +8,8 @@ require "test_helper"
 #  amount_cents      :integer          not null
 #  confirmation_sent :boolean          default(FALSE), not null
 #  description       :string           not null
-#  payment_method    :string           default("mollie"), not null
+#  payment_method    :string
+#  provider          :string           default("mollie"), not null
 #  reference         :string
 #  status            :string           default("open"), not null
 #  created_at        :datetime         not null
@@ -20,6 +21,7 @@ require "test_helper"
 #
 #  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
 #  index_payments_on_participant_id     (participant_id)
+#  index_payments_on_provider           (provider)
 #  index_payments_on_status             (status)
 #
 # Foreign Keys
@@ -125,28 +127,68 @@ class PaymentTest < ActiveSupport::TestCase
     end
   end
 
-  test "defaults to the mollie payment method" do
+  test "defaults to the mollie provider" do
     payment = Payment.new(participant: participants(:one))
-    assert_equal "mollie", payment.payment_method
+    assert_equal "mollie", payment.provider
     assert_not payment.manual?
   end
 
-  test "validates payment_method inclusion" do
+  test "validates provider inclusion" do
     payment = Payment.new(
       participant: participants(:one),
       status: "paid",
       amount_cents: 19_000,
       description: "Test",
+      provider: "paypal"
+    )
+    assert_not payment.valid?
+    assert payment.errors[:provider].any?
+  end
+
+  test "validates payment_method inclusion for manual payments" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "manual",
       payment_method: "bitcoin"
     )
     assert_not payment.valid?
     assert payment.errors[:payment_method].any?
   end
 
+  test "allows any payment method reported by mollie" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "mollie",
+      payment_method: "ideal"
+    )
+    assert payment.valid?
+  end
+
+  test "allows a blank payment method for mollie payments" do
+    assert payments(:open_payment).valid?
+    assert_nil payments(:open_payment).payment_method
+  end
+
   test "manual? is true for payments received outside mollie" do
-    payment = Payment.new(participant: participants(:one), payment_method: "cash")
-    assert payment.manual?
-    assert_equal "Bank transfer", Payment.new(payment_method: "bank_transfer").payment_method_label
+    assert payments(:manual_payment).manual?
+    assert_not payments(:paid_payment).manual?
+  end
+
+  test "manual scope returns manually recorded payments" do
+    assert_includes Payment.manual, payments(:manual_payment)
+    assert_not_includes Payment.manual, payments(:paid_payment)
+  end
+
+  test "labels humanize the provider and payment method" do
+    assert_equal "Manual", payments(:manual_payment).provider_label
+    assert_equal "Bank transfer", payments(:manual_payment).payment_method_label
+    assert_nil payments(:open_payment).payment_method_label
   end
 
   test "sends payment confirmation email when created as paid" do
@@ -156,6 +198,7 @@ class PaymentTest < ActiveSupport::TestCase
         status: "paid",
         amount_cents: 19_000,
         description: "Cash at the venue",
+        provider: "manual",
         payment_method: "cash"
       )
     end
@@ -168,6 +211,7 @@ class PaymentTest < ActiveSupport::TestCase
         status: "open",
         amount_cents: 19_000,
         description: "Bank transfer pending",
+        provider: "manual",
         payment_method: "bank_transfer"
       )
     end
