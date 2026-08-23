@@ -33,7 +33,10 @@ class Payment < ApplicationRecord
   PROVIDERS = %w[mollie manual].freeze
   # The method used to pay. Mollie reports its own methods (ideal, creditcard,
   # …), so only the methods available for manually recorded payments are listed.
-  MANUAL_PAYMENT_METHODS = %w[cash bank_transfer other].freeze
+  # "pointofsale" covers card payments taken in person at the congress desk.
+  MANUAL_PAYMENT_METHODS = %w[cash pointofsale bank_transfer other].freeze
+  # Labels for methods that do not read well when humanized.
+  PAYMENT_METHOD_LABELS = { "pointofsale" => "Point of sale" }.freeze
 
   belongs_to :participant
 
@@ -52,6 +55,12 @@ class Payment < ApplicationRecord
   # confirmations are sent both on create and on update.
   after_commit :send_payment_confirmation, on: [:create, :update], if: :became_paid?
 
+  def self.payment_method_label(payment_method)
+    return if payment_method.blank?
+
+    PAYMENT_METHOD_LABELS.fetch(payment_method) { payment_method.humanize }
+  end
+
   def paid?
     status == "paid"
   end
@@ -65,9 +74,7 @@ class Payment < ApplicationRecord
   end
 
   def payment_method_label
-    return if payment_method.blank?
-
-    payment_method.humanize
+    self.class.payment_method_label(payment_method)
   end
 
   def amount_eur

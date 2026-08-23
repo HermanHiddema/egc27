@@ -28,6 +28,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{admin_participant_payments_path(participants(:one))}']"
     assert_select "select[name='payment[payment_method]'] option[value='cash']"
     assert_select "select[name='payment[payment_method]'] option[value='bank_transfer']"
+    assert_select "select[name='payment[payment_method]'] option[value='pointofsale']"
     # The provider is always manual here, so it is not offered as a method.
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
