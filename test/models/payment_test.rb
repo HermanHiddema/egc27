@@ -190,12 +190,16 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "Bank transfer", payments(:manual_payment).payment_method_label
     assert_nil payments(:open_payment).payment_method_label
     assert_equal "Point of sale", Payment.payment_method_label("pointofsale")
+    assert_equal "PayPal", Payment.payment_method_label("paypal")
   end
 
-  test "accepts pointofsale as a manual payment method" do
+  test "accepts pointofsale and paypal as manual payment methods" do
     payment = payments(:manual_payment)
-    payment.payment_method = "pointofsale"
 
+    payment.payment_method = "pointofsale"
+    assert payment.valid?
+
+    payment.payment_method = "paypal"
     assert payment.valid?
   end
 

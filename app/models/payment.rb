@@ -34,9 +34,9 @@ class Payment < ApplicationRecord
   # The method used to pay. Mollie reports its own methods (ideal, creditcard,
   # …), so only the methods available for manually recorded payments are listed.
   # "pointofsale" covers card payments taken in person at the congress desk.
-  MANUAL_PAYMENT_METHODS = %w[cash pointofsale bank_transfer other].freeze
+  MANUAL_PAYMENT_METHODS = %w[cash pointofsale bank_transfer paypal other].freeze
   # Labels for methods that do not read well when humanized.
-  PAYMENT_METHOD_LABELS = { "pointofsale" => "Point of sale" }.freeze
+  PAYMENT_METHOD_LABELS = { "pointofsale" => "Point of sale", "paypal" => "PayPal" }.freeze
 
   belongs_to :participant
 

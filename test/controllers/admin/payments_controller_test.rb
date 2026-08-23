@@ -29,6 +29,9 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[payment_method]'] option[value='cash']"
     assert_select "select[name='payment[payment_method]'] option[value='bank_transfer']"
     assert_select "select[name='payment[payment_method]'] option[value='pointofsale']"
+    assert_select "select[name='payment[payment_method]'] option[value='paypal']"
+    # New payments are always recorded as paid, so the status is not offered.
+    assert_select "select[name='payment[status]']", count: 0
     # The provider is always manual here, so it is not offered as a method.
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
@@ -92,6 +95,17 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = participant.payments.order(:created_at).last
     assert_equal "manual", payment.provider
     assert_nil payment.mollie_payment_id
+  end
+
+  test "recorded payments are always paid" do
+    sign_in users(:admin)
+    participant = participants(:one)
+
+    post admin_participant_payments_path(participant), params: {
+      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", status: "open" }
+    }
+
+    assert participant.payments.order(:created_at).last.paid?
   end
 
   test "admin cannot record a payment with an unsupported method" do

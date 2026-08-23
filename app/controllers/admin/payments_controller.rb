@@ -10,9 +10,11 @@ class Admin::PaymentsController < ApplicationController
 
   def create
     @payment = @participant.payments.build(payment_params)
-    # Manually recorded payments never belong to a Mollie transaction.
+    # Manually recorded payments never belong to a Mollie transaction, and are
+    # only recorded once the money has actually been received.
     @payment.provider = "manual"
     @payment.mollie_payment_id = nil
+    @payment.status = "paid"
 
     if @payment.save
       redirect_to admin_participants_path, notice: "Payment was successfully recorded."
@@ -69,7 +71,11 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def payment_params
-    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :status, :reference)
+    # The status can only be changed when correcting an existing payment; new
+    # payments are always recorded as paid.
+    attributes = [:amount_eur, :description, :payment_method, :reference]
+    attributes << :status if action_name == "update"
+    permitted = params.require(:payment).permit(*attributes)
     amount_eur = permitted.delete(:amount_eur)
     permitted.merge(amount_cents: (amount_eur.to_s.tr(",", ".").to_d * 100).round)
   end
