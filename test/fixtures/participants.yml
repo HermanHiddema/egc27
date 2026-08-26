@@ -146,7 +146,7 @@ visitor_one:
   email: victor@example.org
   age_group: 18-49
   gender: male
-  country: BE
+  country: CH
   club: Utrecht
   rating: 1800
   accepted_terms_and_conditions: true
