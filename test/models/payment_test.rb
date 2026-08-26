@@ -175,6 +175,21 @@ class PaymentTest < ActiveSupport::TestCase
     assert_nil payments(:open_payment).payment_method
   end
 
+  test "disallows mollie payment id on manual payments" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "manual",
+      payment_method: "cash",
+      mollie_payment_id: "tr_manual"
+    )
+
+    assert_not payment.valid?
+    assert payment.errors[:mollie_payment_id].any?
+  end
+
   test "manual? is true for payments received outside mollie" do
     assert payments(:manual_payment).manual?
     assert_not payments(:paid_payment).manual?

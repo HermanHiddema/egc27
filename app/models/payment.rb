@@ -47,6 +47,7 @@ class Payment < ApplicationRecord
   validates :payment_method, inclusion: { in: MANUAL_PAYMENT_METHODS }, if: :manual?
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :description, presence: true
+  validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
 
   scope :completed, -> { where(status: "paid") }
