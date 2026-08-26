@@ -146,8 +146,9 @@ visitor_one:
   email: victor@example.org
   age_group: 18-49
   gender: male
-  country: NL
+  country: BE
   club: Utrecht
+  rating: 1800
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: visitor
