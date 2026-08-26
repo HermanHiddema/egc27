@@ -180,8 +180,6 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "non-numeric amount_eur re-renders the form with a validation error" do
     sign_in users(:admin)
-    # "abc".to_d returns 0.0, so amount_cents becomes 0 and fails the
-    # greater_than: 0 validation.
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participants(:two)), params: {
@@ -190,6 +188,8 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_entity
+    assert_select "input[name='payment[amount_eur]'][value='abc']"
+    assert_select "li", text: "Amount (EUR) is not a number"
   end
 
   # edit / update

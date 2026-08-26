@@ -13,7 +13,7 @@
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div>
       <%= form.label :amount_eur, "Amount (EUR) *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-      <%= form.number_field :amount_eur, value: format("%.2f", payment.amount_cents.to_i / 100.0), step: "0.01", min: "0.01", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= form.text_field :amount_eur, value: @amount_eur_input.presence || format("%.2f", payment.amount_cents.to_i / 100.0), inputmode: "decimal", class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
     </div>
 
     <div>
