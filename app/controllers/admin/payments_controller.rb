@@ -90,8 +90,12 @@ class Admin::PaymentsController < ApplicationController
 
   def payment_params
     permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :reference)
-    amount_eur = permitted.delete(:amount_eur)
-    amount_cents = (amount_eur.to_s.tr(",", ".").to_d * 100).round
+    amount_eur_str = permitted.delete(:amount_eur).to_s.tr(",", ".")
+    begin
+      amount_cents = (BigDecimal(amount_eur_str) * 100).round
+    rescue ArgumentError
+      amount_cents = nil
+    end
     permitted.merge(amount_cents: amount_cents)
   end
 end
