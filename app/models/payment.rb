@@ -38,6 +38,8 @@ class Payment < ApplicationRecord
   # Labels for methods that do not read well when humanized.
   PAYMENT_METHOD_LABELS = { "pointofsale" => "Point of sale", "paypal" => "PayPal" }.freeze
 
+  has_paper_trail
+
   belongs_to :participant
 
   validates :status, inclusion: { in: STATUSES }
