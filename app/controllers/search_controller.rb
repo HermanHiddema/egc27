@@ -25,8 +25,6 @@ class SearchController < ApplicationController
     return documents if current_user.present?
 
     restricted_pages = Page.where.not(access_level: :public).select(:id)
-    return documents unless Page.where.not(access_level: :public).exists?
-
     documents.where.not(searchable_type: "Page", searchable_id: restricted_pages)
   end
 end
