@@ -35,19 +35,39 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
     assert_select "a[href='#{edit_admin_participant_path(participants(:one))}']", text: "Edit"
-    # Payment action is shown for players only.
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Add payment"
+    # Payment action depends on existing payment provider.
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Add payment"
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
-  test "admin can open the edit form" do
+  test "admin can open the edit form when no payment exists" do
+    sign_in users(:admin)
+    get edit_admin_participant_path(participants(:three))
+
+    assert_response :success
+    assert_select "form[action='#{admin_participant_path(participants(:three))}']"
+    assert_select "input[name='participant[email]'][readonly]"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Record payment"
+  end
+
+  test "admin edit page for participant with mollie payment does not show payment link" do
     sign_in users(:admin)
     get edit_admin_participant_path(participants(:one))
 
     assert_response :success
-    assert_select "form[action='#{admin_participant_path(participants(:one))}']"
-    assert_select "input[name='participant[email]'][readonly]"
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Record payment"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
+  end
+
+  test "admin edit page for participant with manual payment shows edit payment link" do
+    sign_in users(:admin)
+    get edit_admin_participant_path(participants(:four))
+
+    assert_response :success
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
   end
 
   test "admin edit page for visitor does not show record payment link" do
