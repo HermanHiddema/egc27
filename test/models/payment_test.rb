@@ -4,25 +4,27 @@ require "test_helper"
 #
 # Table name: payments
 #
-#  id                :bigint           not null, primary key
-#  amount_cents      :integer          not null
-#  confirmation_sent :boolean          default(FALSE), not null
-#  description       :string           not null
-#  payment_method    :string
-#  provider          :string           default("mollie"), not null
-#  reference         :string
-#  status            :string           default("open"), not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  mollie_payment_id :string
-#  participant_id    :bigint           not null
+#  id                       :bigint           not null, primary key
+#  amount_cents             :integer          not null
+#  confirmation_sent        :boolean          default(FALSE), not null
+#  description              :string           not null
+#  payment_method           :string
+#  processed_in_bookkeeping :boolean          default(FALSE), not null
+#  provider                 :string           default("mollie"), not null
+#  reference                :string
+#  status                   :string           default("open"), not null
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  mollie_payment_id        :string
+#  participant_id           :bigint           not null
 #
 # Indexes
 #
-#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
-#  index_payments_on_participant_id     (participant_id)
-#  index_payments_on_provider           (provider)
-#  index_payments_on_status             (status)
+#  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
+#  index_payments_on_participant_id            (participant_id)
+#  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
+#  index_payments_on_provider                  (provider)
+#  index_payments_on_status                    (status)
 #
 # Foreign Keys
 #
@@ -96,6 +98,29 @@ class PaymentTest < ActiveSupport::TestCase
   test "pending_or_open scope returns open payments" do
     assert_includes Payment.pending_or_open, payments(:open_payment)
     assert_not_includes Payment.pending_or_open, payments(:paid_payment)
+  end
+
+  test "processed and unprocessed scopes filter on the bookkeeping flag" do
+    processed = payments(:manual_payment)
+    processed.update!(processed_in_bookkeeping: true)
+
+    assert_includes Payment.processed, processed
+    assert_not_includes Payment.processed, payments(:paid_payment)
+    assert_includes Payment.unprocessed, payments(:paid_payment)
+    assert_not_includes Payment.unprocessed, processed
+  end
+
+  test "payments are not processed in bookkeeping by default" do
+    payment = Payment.create!(
+      participant: participants(:one),
+      status: "open",
+      amount_cents: 19_000,
+      description: "Bank transfer pending",
+      provider: "manual",
+      payment_method: "bank_transfer"
+    )
+
+    assert_not payment.processed_in_bookkeeping?
   end
 
   test "sends payment confirmation email when status changes to paid" do

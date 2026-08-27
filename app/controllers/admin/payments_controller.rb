@@ -1,9 +1,32 @@
 class Admin::PaymentsController < ApplicationController
+  PROCESSED_FILTERS = %w[processed unprocessed].freeze
+
   before_action :require_admin!
-  before_action :set_participant
+  before_action :set_participant, except: [:index, :mark_processed]
   before_action :require_player_participant!, only: [:new, :create]
   before_action :set_payment, only: [:edit, :update]
   before_action :require_manual_payment, only: [:edit, :update]
+
+  # Overview of all completed payments, so an admin can process them in the
+  # bookkeeping and keep track of which ones still need processing.
+  def index
+    @processed_filter = permitted_processed_filter
+
+    payments = Payment.completed.includes(:participant)
+    payments = payments.processed if @processed_filter == "processed"
+    payments = payments.unprocessed if @processed_filter == "unprocessed"
+
+    @payments = payments.order(created_at: :desc, id: :desc)
+    @unprocessed_count = Payment.completed.unprocessed.count
+  end
+
+  def mark_processed
+    payment = Payment.completed.find(params[:id])
+    payment.update!(processed_in_bookkeeping: true)
+
+    redirect_to admin_payments_path(processed: permitted_processed_filter),
+      notice: "Payment was marked as processed in the bookkeeping."
+  end
 
   def new
     @payment = @participant.payments.build(default_payment_attributes)
@@ -46,6 +69,10 @@ class Admin::PaymentsController < ApplicationController
 
   private
 
+  def permitted_processed_filter
+    PROCESSED_FILTERS.include?(params[:processed]) ? params[:processed] : nil
+  end
+
   def set_participant
     @participant = Participant.find_by!(uuid: params[:participant_id])
   end
@@ -82,14 +109,15 @@ class Admin::PaymentsController < ApplicationController
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",
-      status: "paid"
+      status: "paid",
+      processed_in_bookkeeping: true
     }
   rescue KeyError
-    { provider: "manual", payment_method: "bank_transfer", status: "paid" }
+    { provider: "manual", payment_method: "bank_transfer", status: "paid", processed_in_bookkeeping: true }
   end
 
   def payment_params
-    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :reference)
+    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :reference, :processed_in_bookkeeping)
     amount_eur_input = permitted.delete(:amount_eur).to_s
     @amount_eur_input = amount_eur_input
     amount_eur_str = amount_eur_input.tr(",", ".")

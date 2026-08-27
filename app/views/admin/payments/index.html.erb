@@ -1,0 +1,70 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Payments (Admin)</h1>
+    <p class="text-sm text-neutral-700"><strong><%= @unprocessed_count %></strong> payment<%= "s" unless @unprocessed_count == 1 %> still to be processed</p>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+    <%= form_with url: admin_payments_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3", data: { controller: "auto-submit" } do %>
+      <div>
+        <label for="processed" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Bookkeeping</label>
+        <%= select_tag :processed, options_for_select([["All payments", ""], ["Processed", "processed"], ["Not processed", "unprocessed"]], @processed_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+      </div>
+      <noscript><%= submit_tag "Filter", class: "btn-primary" %></noscript>
+    <% end %>
+  </div>
+
+  <% if @payments.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Provider</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reference</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Bookkeeping</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @payments.each do |payment| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.created_at.strftime("%-d %b %Y") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                  <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= payment.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.provider_label %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.payment_method_label || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.reference.presence || payment.mollie_payment_id.presence || "—" %></td>
+                <td class="px-4 py-3 text-sm">
+                  <% if payment.processed_in_bookkeeping? %>
+                    <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Processed</span>
+                  <% else %>
+                    <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">Not processed</span>
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-sm text-right">
+                  <% unless payment.processed_in_bookkeeping? %>
+                    <%= button_to "Mark processed", mark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <p class="text-neutral-700">No payments match the selected filter.</p>
+    </div>
+  <% end %>
+</div>

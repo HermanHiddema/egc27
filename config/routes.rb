@@ -111,6 +111,11 @@ Rails.application.routes.draw do
     resources :participants, only: [:index, :edit, :update] do
       resources :payments, only: [:new, :create, :edit, :update]
     end
+    resources :payments, only: [:index] do
+      member do
+        patch :mark_processed
+      end
+    end
   end
 
   root "home#index"
