@@ -125,7 +125,7 @@ class Admin::ParticipantsController < ApplicationController
     return {} if participant_ids.empty?
 
     Payment
-      .select("DISTINCT ON (participant_id) payments.*")
+      .select(Arel.sql("DISTINCT ON (participant_id) payments.*"))
       .where(participant_id: participant_ids)
       .order(Arel.sql("participant_id, created_at DESC, id DESC"))
       .index_by(&:participant_id)
