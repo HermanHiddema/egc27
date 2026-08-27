@@ -12,7 +12,7 @@
         (<%= @participant.participant_number %>).
       </p>
 
-      <%= render "form", payment: @payment, url: admin_participant_payment_path(@participant, @payment), method: :patch, submit_label: "Save changes" %>
+      <%= render "form", payment: @payment, url: admin_participant_payment_path(@participant, @payment), method: :patch, submit_label: "Save changes", amount_eur_input: @amount_eur_input %>
     </div>
   </div>
 </div>

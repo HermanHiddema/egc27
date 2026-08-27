@@ -12,7 +12,7 @@
         (<%= @participant.participant_number %>).
       </p>
 
-      <%= render "form", payment: @payment, url: admin_participant_payments_path(@participant), method: :post, submit_label: "Record payment" %>
+      <%= render "form", payment: @payment, url: admin_participant_payments_path(@participant), method: :post, submit_label: "Record payment", amount_eur_input: @amount_eur_input %>
     </div>
 
     <% payments = @participant.payments.order(created_at: :desc) %>

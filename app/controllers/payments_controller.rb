@@ -45,7 +45,7 @@ class PaymentsController < ApplicationController
 
     mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
 
-    if mollie_payment&.status.present? && @payment.status != mollie_payment.status
+    if mollie_payment&.status.present?
       sync_from_mollie(@payment, mollie_payment)
     end
 
