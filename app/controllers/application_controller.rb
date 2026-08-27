@@ -56,5 +56,20 @@ class ApplicationController < ActionController::Base
         .includes(:page)
         .select { |item| item.visible_to?(current_user) }
     end
+
+    # The user menu is only rendered inside the account dropdown, so it is only
+    # loaded for signed-in users.
+    return unless user_signed_in?
+
+    @user_menu = Menu.active.find_by(location: "user")
+
+    if @user_menu.present?
+      @user_menu_root_items = @user_menu.menu_items
+        .visible
+        .roots
+        .ordered
+        .includes(:page)
+        .select { |item| item.visible_to?(current_user) }
+    end
   end
 end
