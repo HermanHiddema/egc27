@@ -363,12 +363,11 @@ end
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
 
 # Links added to this menu show up in the account dropdown for signed-in users.
+# No items are seeded, so existing ones are left untouched for admins to manage.
 user_menu = Menu.find_or_initialize_by(location: "user")
 user_menu.name = "User Menu"
 user_menu.active = true
 user_menu.save!
-
-user_menu.menu_items.destroy_all
 
 puts "✓ Seeded user menu with #{user_menu.menu_items.count} menu items"
 
