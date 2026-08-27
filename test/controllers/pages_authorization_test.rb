@@ -5,6 +5,65 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
   end
 
+  test "visitors can view public pages" do
+    get page_path(pages(:one))
+
+    assert_response :success
+  end
+
+  test "visitors are sent to sign in for pages that require authentication" do
+    get page_path(pages(:members_only))
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "signed-in users can view pages that require authentication" do
+    sign_in users(:one)
+    get page_path(pages(:members_only))
+
+    assert_response :success
+  end
+
+  test "pages index hides pages that require authentication from visitors" do
+    get pages_path
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:one))}']", count: 1
+    assert_select "a[href='#{page_path(pages(:members_only))}']", count: 0
+  end
+
+  test "pages index lists pages that require authentication for signed-in users" do
+    sign_in users(:one)
+    get pages_path
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:members_only))}']"
+  end
+
+  test "menus hide items linking to pages that require authentication" do
+    get pages_path
+
+    assert_response :success
+    assert_select "a", text: menu_items(:members_only_item).label, count: 0
+    assert_select "a", text: menu_items(:members_only_child).label, count: 0
+  end
+
+  test "menus show items linking to pages that require authentication once signed in" do
+    sign_in users(:one)
+    get pages_path
+
+    assert_response :success
+    assert_select "a", text: menu_items(:members_only_item).label
+  end
+
+  test "editor can set the access level of a page" do
+    sign_in users(:editor)
+
+    post pages_path, params: { page: { title: "Restricted", slug: "restricted", content: "Secret", access_level: "authenticated" } }
+
+    assert Page.find_by(slug: "restricted").access_level_authenticated?
+  end
+
   test "regular user cannot access new page" do
     sign_in users(:one)
     get new_page_path

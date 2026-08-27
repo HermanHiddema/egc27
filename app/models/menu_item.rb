@@ -52,6 +52,11 @@ class MenuItem < ApplicationRecord
   scope :roots, -> { where(parent_id: nil) }
   scope :ordered, -> { order(:position, :id) }
 
+  # Items linking to a non-public page are hidden from visitors who are not signed in.
+  def visible_to?(user)
+    visible? && (page.blank? || page.readable_by?(user))
+  end
+
   private
 
   def parent_belongs_to_same_menu

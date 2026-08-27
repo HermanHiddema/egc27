@@ -20,6 +20,9 @@
                 <%= link_to page.title, page_path(page), class: "hover:text-brand-red-600 transition" %>
               </h2>
               <p class="text-sm text-gray-600">/<%= page.slug %></p>
+              <% unless page.access_level_public? %>
+                <span class="inline-block mt-2 text-xs font-semibold uppercase tracking-wide text-brand-blue-800 bg-brand-blue-50 px-2 py-0.5 rounded">Signed-in users only</span>
+              <% end %>
             </div>
           </div>
 

@@ -22,6 +22,12 @@
     </div>
 
     <div>
+      <%= form.label :access_level, "Access *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+      <%= form.select :access_level, options_for_select([["Public", "public"], ["Signed-in users only", "authenticated"]], page.access_level.presence || "public"), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <p class="mt-1 text-sm text-gray-500">Pages for signed-in users only are hidden from menus, listings and search for visitors who are not signed in.</p>
+    </div>
+
+    <div>
       <%= form.label(tinymce_editor? ? :content_html : :content, "Content *", class: "block text-sm font-medium text-gray-700 mb-2") %>
       <% if tinymce_editor? %>
         <% content_for :tinymce_script, "1" %>

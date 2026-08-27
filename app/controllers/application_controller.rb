@@ -43,7 +43,7 @@ class ApplicationController < ActionController::Base
         .roots
         .ordered
         .includes(:page, children: [:page, { children: :page }])
-        .to_a
+        .select { |item| item.visible_to?(current_user) }
     end
 
     @footer_menu = Menu.active.find_by(location: "footer")
@@ -54,7 +54,7 @@ class ApplicationController < ActionController::Base
         .roots
         .ordered
         .includes(:page)
-        .to_a
+        .select { |item| item.visible_to?(current_user) }
     end
   end
 end
