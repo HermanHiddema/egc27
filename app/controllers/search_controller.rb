@@ -24,9 +24,9 @@ class SearchController < ApplicationController
     documents = PgSearch.multisearch(@query).where(searchable_type: SEARCHABLE_TYPES)
     return documents if current_user.present?
 
-    restricted_page_ids = Page.where.not(access_level: :public).ids
-    return documents if restricted_page_ids.empty?
+    restricted_pages = Page.where.not(access_level: :public).select(:id)
+    return documents unless Page.where.not(access_level: :public).exists?
 
-    documents.where.not(searchable_type: "Page", searchable_id: restricted_page_ids)
+    documents.where.not(searchable_type: "Page", searchable_id: restricted_pages)
   end
 end
