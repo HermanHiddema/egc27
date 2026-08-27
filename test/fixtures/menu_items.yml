@@ -68,3 +68,19 @@ members_only_child:
   position: 2
   visible: true
   open_in_new_tab: false
+
+user_dropdown_item:
+  menu: user_dropdown
+  label: Player Information
+  url: /player-information
+  position: 1
+  visible: true
+  open_in_new_tab: false
+
+user_dropdown_hidden_item:
+  menu: user_dropdown
+  label: Hidden User Link
+  url: /hidden-user-link
+  position: 2
+  visible: false
+  open_in_new_tab: false

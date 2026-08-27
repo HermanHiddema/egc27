@@ -362,6 +362,16 @@ end
 
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
 
+# Links added to this menu show up in the account dropdown for signed-in users.
+user_menu = Menu.find_or_initialize_by(location: "user")
+user_menu.name = "User Menu"
+user_menu.active = true
+user_menu.save!
+
+user_menu.menu_items.destroy_all
+
+puts "✓ Seeded user menu with #{user_menu.menu_items.count} menu items"
+
 calendar_event_seeds = [
   # Saturday 24th July
   { title: "Registration", starts_at: Time.zone.parse("2027-07-24 10:00"), ends_at: Time.zone.parse("2027-07-24 17:00"), color: "#b7b7b7" },

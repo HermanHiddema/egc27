@@ -76,6 +76,9 @@
                   <% if current_user.admin? %>
                     <%= link_to "Admin", dashboard_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
+                  <% (@user_menu_root_items || []).each do |user_menu_item| %>
+                    <%= link_to user_menu_item.label, menu_item_destination(user_menu_item), menu_item_link_options(user_menu_item, "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors") %>
+                  <% end %>
                   <%= button_to "Sign out",
                                 destroy_user_session_path,
                                 method: :delete,
