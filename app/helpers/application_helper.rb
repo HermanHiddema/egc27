@@ -30,6 +30,14 @@ module ApplicationHelper
     nil
   end
 
+  # Menu items that should be rendered for the current visitor, in menu order.
+  # Items pointing at a page the visitor may not read are left out.
+  def visible_menu_items(menu_items)
+    menu_items
+      .select { |item| item.visible_to?(safe_current_user) }
+      .sort_by { |item| [item.position, item.id] }
+  end
+
   def menu_item_destination(menu_item)
     if menu_item.page&.slug == "participants"
       return participants_path

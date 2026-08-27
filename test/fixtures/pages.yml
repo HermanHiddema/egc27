@@ -3,6 +3,7 @@
 # Table name: pages
 #
 #  id           :bigint           not null, primary key
+#  access_level :string           default("public"), not null
 #  content_html :text
 #  slug         :string           not null
 #  title        :string           not null
@@ -22,3 +23,9 @@ two:
   title: Travel
   slug: travel
   content_html: "<p>Travel information.</p>"
+
+members_only:
+  title: Members Area
+  slug: members-area
+  content_html: "<p>Only for signed in visitors.</p>"
+  access_level: authenticated

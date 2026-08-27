@@ -3,6 +3,7 @@
 # Table name: pages
 #
 #  id           :bigint           not null, primary key
+#  access_level :string           default("public"), not null
 #  content_html :text
 #  slug         :string           not null
 #  title        :string           not null
@@ -18,6 +19,9 @@ class Page < ApplicationRecord
 
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
 
+  # Public pages are readable by everyone, authenticated pages only by signed-in users.
+  enum :access_level, { public: "public", authenticated: "authenticated" }, prefix: :access_level
+
   has_many :menu_items, dependent: :nullify, inverse_of: :page
   has_rich_text :content
   has_one_attached :main_image
@@ -28,6 +32,12 @@ class Page < ApplicationRecord
   validate :main_image_must_be_image
 
   before_validation :assign_slug
+
+  scope :readable_by, ->(user) { user.present? ? all : where(access_level: :public) }
+
+  def readable_by?(user)
+    access_level_public? || user.present?
+  end
 
   def to_param
     slug

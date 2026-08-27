@@ -5,6 +5,7 @@ require "test_helper"
 # Table name: pages
 #
 #  id           :bigint           not null, primary key
+#  access_level :string           default("public"), not null
 #  content_html :text
 #  slug         :string           not null
 #  title        :string           not null
@@ -58,5 +59,26 @@ class PageTest < ActiveSupport::TestCase
 
     assert_not page.valid?
     assert_includes page.errors[:content], "can't be blank"
+  end
+
+  test "pages are public by default" do
+    page = Page.create!(title: "Venue Information", content: "Details")
+
+    assert page.access_level_public?
+    assert page.readable_by?(nil)
+  end
+
+  test "authenticated pages are only readable by signed-in users" do
+    page = pages(:members_only)
+
+    assert page.access_level_authenticated?
+    assert_not page.readable_by?(nil)
+    assert page.readable_by?(users(:one))
+  end
+
+  test "readable_by scope hides authenticated pages from visitors" do
+    assert_not_includes Page.readable_by(nil), pages(:members_only)
+    assert_includes Page.readable_by(nil), pages(:one)
+    assert_includes Page.readable_by(users(:one)), pages(:members_only)
   end
 end

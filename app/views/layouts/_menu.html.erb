@@ -55,7 +55,7 @@
         <div class="space-y-1 pb-3 lg:hidden">
 
           <% root_items.each do |root_item| %>
-            <% children = root_item.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+            <% children = visible_menu_items(root_item.children) %>
 
             <% if children.any? %>
               <details class="responsive-menu-details border-t border-brand-blue-500/40">
@@ -67,7 +67,7 @@
                 </summary>
                 <div class="responsive-menu-content pb-2 pl-4 pr-2">
                   <% children.each do |child| %>
-                    <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+                    <% grandchildren = visible_menu_items(child.children) %>
                     <% if grandchildren.any? %>
                       <details class="responsive-menu-details-sub border-l border-brand-blue-500/40 pl-3 py-1">
                         <summary class="responsive-menu-summary-sub list-none cursor-pointer py-1 text-sm text-brand-yellow-200 flex items-center justify-between">
@@ -100,7 +100,7 @@
         <%# Desktop navigation — hidden on mobile %>
         <div class="hidden h-12 items-center gap-8 lg:flex">
           <% root_items.each do |root_item| %>
-            <% children = root_item.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+            <% children = visible_menu_items(root_item.children) %>
 
             <% if children.any? %>
               <% dropdown_classes = ["relative"] %>
@@ -123,7 +123,7 @@
 
                 <div id="<%= "menu-item-#{root_item.id}" %>" data-dropdown-target="menu" class="<%= menu_classes.join(" ") %>">
                   <% children.each_with_index do |child, child_index| %>
-                    <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+                    <% grandchildren = visible_menu_items(child.children) %>
                     <% first_class = (child_index.zero? ? " first:rounded-t-md" : "") %>
                     <% last_class = (child_index == children.length - 1 ? " last:rounded-b-md" : "") %>
 
@@ -143,7 +143,7 @@
                 </div>
 
                 <% children.each do |child| %>
-                  <% grandchildren = child.children.select(&:visible?).sort_by { |item| [ item.position, item.id ] } %>
+                  <% grandchildren = visible_menu_items(child.children) %>
                   <% next if grandchildren.empty? %>
 
                   <% submenu_key = child.label.parameterize %>

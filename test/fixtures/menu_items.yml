@@ -51,3 +51,20 @@ schedule_child:
   position: 1
   visible: true
   open_in_new_tab: false
+
+members_only_item:
+  menu: primary
+  label: Members Area
+  page: members_only
+  position: 3
+  visible: true
+  open_in_new_tab: false
+
+members_only_child:
+  menu: primary
+  parent: schedule
+  label: Members Only Child
+  page: members_only
+  position: 2
+  visible: true
+  open_in_new_tab: false
