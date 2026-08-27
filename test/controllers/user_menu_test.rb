@@ -20,7 +20,8 @@ class UserMenuTest < ActionDispatch::IntegrationTest
   test "user menu items are not rendered for visitors" do
     get root_path
 
-    assert_redirected_to new_user_session_path
+    assert_response :success
+    assert_select "a[href='/player-information']", count: 0
   end
 
   test "user menu items are hidden when the menu is inactive" do
