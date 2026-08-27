@@ -8,11 +8,9 @@ class SearchController < ApplicationController
 
     @results =
       if @query.present?
-        PgSearch.multisearch(@query)
-          .where(searchable_type: SEARCHABLE_TYPES)
+        readable_documents
           .includes(:searchable)
           .limit(50)
-          .select { |document| readable_result?(document) }
       else
         []
       end
@@ -20,10 +18,15 @@ class SearchController < ApplicationController
 
   private
 
-  # Pages that require a sign-in are hidden from search results for visitors.
-  def readable_result?(document)
-    return true unless document.searchable_type == "Page"
+  # Pages that require a sign-in are excluded for visitors who are not signed in,
+  # so that the result limit is applied to readable documents only.
+  def readable_documents
+    documents = PgSearch.multisearch(@query).where(searchable_type: SEARCHABLE_TYPES)
+    return documents if current_user.present?
 
-    document.searchable&.readable_by?(current_user)
+    restricted_page_ids = Page.where.not(access_level: :public).ids
+    return documents if restricted_page_ids.empty?
+
+    documents.where.not(searchable_type: "Page", searchable_id: restricted_page_ids)
   end
 end
