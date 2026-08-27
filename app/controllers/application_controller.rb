@@ -59,7 +59,7 @@ class ApplicationController < ActionController::Base
 
     # The user menu is only rendered inside the account dropdown, so it is only
     # loaded for signed-in users.
-    return if current_user.blank?
+    return unless user_signed_in?
 
     @user_menu = Menu.active.find_by(location: "user")
 
