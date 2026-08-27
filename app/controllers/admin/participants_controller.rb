@@ -17,7 +17,8 @@ class Admin::ParticipantsController < ApplicationController
     participants = participants.where(country: @country_filter) if @country_filter.present?
     participants = filtered_by_status(participants, @status_filter) if @status_filter.present?
 
-    @participants = sorted_participants(participants)
+    @participants = sorted_participants(participants).to_a
+    @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
   end
 
   def edit
@@ -117,5 +118,16 @@ class Admin::ParticipantsController < ApplicationController
 
   def participant_params
     params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
+  end
+
+  def latest_payments_by_participant_id(participants)
+    participant_ids = participants.map(&:id)
+    return {} if participant_ids.empty?
+
+    Payment
+      .select("DISTINCT ON (participant_id) payments.*")
+      .where(participant_id: participant_ids)
+      .order(Arel.sql("participant_id, created_at DESC, id DESC"))
+      .index_by(&:participant_id)
   end
 end
