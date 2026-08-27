@@ -377,6 +377,16 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_not payment.reload.processed_in_bookkeeping?
   end
 
+  test "unmarking a payment as processed keeps the selected filter" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    payment.update!(processed_in_bookkeeping: true)
+
+    patch unmark_processed_admin_payment_path(payment, processed: "processed")
+
+    assert_redirected_to admin_payments_path(processed: "processed")
+  end
+
   test "editor cannot unmark a payment as processed" do
     sign_in users(:editor)
     payment = payments(:paid_payment)
