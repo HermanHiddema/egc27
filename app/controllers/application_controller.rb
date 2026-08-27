@@ -1,10 +1,13 @@
 class ApplicationController < ActionController::Base
+  include PaperTrail::Rails::Controller
+
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
 
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_navigation_menus
+  before_action :set_paper_trail_whodunnit
 
   protected
 

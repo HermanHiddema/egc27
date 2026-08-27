@@ -6,6 +6,9 @@
 #  amount_cents      :integer          not null
 #  confirmation_sent :boolean          default(FALSE), not null
 #  description       :string           not null
+#  payment_method    :string
+#  provider          :string           default("mollie"), not null
+#  reference         :string
 #  status            :string           default("open"), not null
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -16,6 +19,7 @@
 #
 #  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
 #  index_payments_on_participant_id     (participant_id)
+#  index_payments_on_provider           (provider)
 #  index_payments_on_status             (status)
 #
 # Foreign Keys
@@ -24,6 +28,7 @@
 #
 open_payment:
   participant: one
+  provider: mollie
   mollie_payment_id: tr_open123
   status: open
   amount_cents: 19000
@@ -33,9 +38,23 @@ open_payment:
 
 paid_payment:
   participant: two
+  provider: mollie
+  payment_method: ideal
   mollie_payment_id: tr_paid456
   status: paid
   amount_cents: 5000
   description: "EGC 2027 Congress Pass – Weekend only"
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+manual_payment:
+  participant: four
+  provider: manual
+  payment_method: bank_transfer
+  status: paid
+  amount_cents: 19000
+  description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
+  reference: "NL12 INGB 0001 2345 67"
+  confirmation_sent: true
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

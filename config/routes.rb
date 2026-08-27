@@ -108,7 +108,9 @@ Rails.application.routes.draw do
   resources :sponsors, except: [:show]
 
   namespace :admin do
-    resources :participants, only: [:index, :edit, :update]
+    resources :participants, only: [:index, :edit, :update] do
+      resources :payments, only: [:new, :create, :edit, :update]
+    end
   end
 
   root "home#index"

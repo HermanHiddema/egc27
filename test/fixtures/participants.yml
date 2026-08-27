@@ -138,3 +138,20 @@ four:
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+visitor_one:
+  user: one
+  first_name: Victor
+  last_name: Visitor
+  email: victor@example.org
+  age_group: 18-49
+  gender: male
+  country: CH
+  club: Utrecht
+  rating: 1800
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: visitor
+  confirmed_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>

@@ -1,0 +1,18 @@
+<div class="container-wide py-12">
+  <div class="max-w-3xl mx-auto">
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-bold">Edit Payment</h1>
+      <%= link_to "Back to list", admin_participants_path, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <p class="text-sm text-neutral-700 mb-6">
+        Edit the payment recorded outside of Mollie for
+        <strong><%= "#{@participant.first_name} #{@participant.last_name}" %></strong>
+        (<%= @participant.participant_number %>).
+      </p>
+
+      <%= render "form", payment: @payment, url: admin_participant_payment_path(@participant, @payment), method: :patch, submit_label: "Save changes", amount_eur_input: @amount_eur_input %>
+    </div>
+  </div>
+</div>

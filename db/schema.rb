@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_07_27_111000) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_26_190422) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -211,10 +211,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111000) do
     t.string "description", null: false
     t.string "mollie_payment_id"
     t.bigint "participant_id", null: false
+    t.string "payment_method"
+    t.string "provider", default: "mollie", null: false
+    t.string "reference"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
+    t.index ["provider"], name: "index_payments_on_provider"
     t.index ["status"], name: "index_payments_on_status"
   end
 
@@ -259,6 +263,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_07_27_111000) do
     t.index ["confirmation_token"], name: "index_users_on_confirmation_token", unique: true
     t.index ["email"], name: "index_users_on_email", unique: true
     t.index ["reset_password_token"], name: "index_users_on_reset_password_token", unique: true
+  end
+
+  create_table "versions", force: :cascade do |t|
+    t.datetime "created_at"
+    t.string "event", null: false
+    t.bigint "item_id", null: false
+    t.string "item_type", null: false
+    t.text "object"
+    t.text "object_changes"
+    t.string "whodunnit"
+    t.index ["item_type", "item_id"], name: "index_versions_on_item_type_and_item_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

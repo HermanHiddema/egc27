@@ -95,3 +95,5 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "paper_trail", "~> 17.0"
