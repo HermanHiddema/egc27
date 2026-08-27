@@ -2,7 +2,7 @@ class Admin::PaymentsController < ApplicationController
   PROCESSED_FILTERS = %w[processed unprocessed].freeze
 
   before_action :require_admin!
-  before_action :set_participant, except: [:index, :mark_processed]
+  before_action :set_participant, except: [:index, :mark_processed, :unmark_processed]
   before_action :require_player_participant!, only: [:new, :create]
   before_action :set_payment, only: [:edit, :update]
   before_action :require_manual_payment, only: [:edit, :update]
@@ -21,11 +21,13 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def mark_processed
-    payment = Payment.completed.find(params[:id])
-    payment.update!(processed_in_bookkeeping: true)
+    update_processed_in_bookkeeping(true, "Payment was marked as processed in the bookkeeping.")
+  end
 
-    redirect_to admin_payments_path(processed: permitted_processed_filter),
-      notice: "Payment was marked as processed in the bookkeeping."
+  # Marking a payment is a single click, so it must be reversible when an admin
+  # marks the wrong payment.
+  def unmark_processed
+    update_processed_in_bookkeeping(false, "Payment was marked as not processed in the bookkeeping.")
   end
 
   def new
@@ -68,6 +70,13 @@ class Admin::PaymentsController < ApplicationController
   end
 
   private
+
+  def update_processed_in_bookkeeping(processed, notice)
+    payment = Payment.completed.find(params[:id])
+    payment.update!(processed_in_bookkeeping: processed)
+
+    redirect_to admin_payments_path(processed: permitted_processed_filter), notice: notice
+  end
 
   def permitted_processed_filter
     PROCESSED_FILTERS.include?(params[:processed]) ? params[:processed] : nil

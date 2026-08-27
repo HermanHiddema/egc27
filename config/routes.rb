@@ -114,6 +114,7 @@ Rails.application.routes.draw do
     resources :payments, only: [:index] do
       member do
         patch :mark_processed
+        patch :unmark_processed
       end
     end
   end

@@ -366,6 +366,28 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to admin_payments_path(processed: "unprocessed")
   end
 
+  test "admin can mark a processed payment as not processed again" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    payment.update!(processed_in_bookkeeping: true)
+
+    patch unmark_processed_admin_payment_path(payment)
+
+    assert_redirected_to admin_payments_path
+    assert_not payment.reload.processed_in_bookkeeping?
+  end
+
+  test "editor cannot unmark a payment as processed" do
+    sign_in users(:editor)
+    payment = payments(:paid_payment)
+    payment.update!(processed_in_bookkeeping: true)
+
+    patch unmark_processed_admin_payment_path(payment)
+
+    assert_redirected_to root_path
+    assert payment.reload.processed_in_bookkeeping?
+  end
+
   test "editor cannot mark a payment as processed" do
     sign_in users(:editor)
     payment = payments(:paid_payment)

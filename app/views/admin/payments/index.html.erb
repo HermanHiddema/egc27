@@ -52,7 +52,9 @@
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-sm text-right">
-                  <% unless payment.processed_in_bookkeeping? %>
+                  <% if payment.processed_in_bookkeeping? %>
+                    <%= button_to "Mark not processed", unmark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                  <% else %>
                     <%= button_to "Mark processed", mark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
                   <% end %>
                 </td>
