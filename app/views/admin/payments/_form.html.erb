@@ -31,6 +31,13 @@
       <%= form.text_field :reference, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", placeholder: "Bank transaction reference, receipt number, …" %>
     </div>
 
+    <div class="md:col-span-2">
+      <%= form.label :processed_in_bookkeeping, class: "flex items-center gap-2 text-sm font-medium text-gray-700" do %>
+        <%= form.check_box :processed_in_bookkeeping, class: "h-4 w-4 rounded border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+        Processed in bookkeeping
+      <% end %>
+    </div>
+
   </div>
 
   <p class="mt-4 text-xs text-gray-500">
