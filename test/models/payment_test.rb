@@ -100,6 +100,30 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not_includes Payment.pending_or_open, payments(:paid_payment)
   end
 
+  test "unsuccessful? is true for payments that can never succeed anymore" do
+    payment = payments(:open_payment)
+
+    Payment::UNSUCCESSFUL_STATUSES.each do |status|
+      payment.update!(status: status)
+      assert payment.unsuccessful?, "expected #{status} to be unsuccessful"
+    end
+
+    %w[open pending authorized paid].each do |status|
+      payment.update!(status: status)
+      assert_not payment.unsuccessful?, "expected #{status} not to be unsuccessful"
+    end
+  end
+
+  test "unsuccessful and blocking scopes filter on the status" do
+    expired = payments(:open_payment)
+    expired.update!(status: "expired")
+
+    assert_includes Payment.unsuccessful, expired
+    assert_not_includes Payment.unsuccessful, payments(:paid_payment)
+    assert_includes Payment.blocking, payments(:paid_payment)
+    assert_not_includes Payment.blocking, expired
+  end
+
   test "processed and unprocessed scopes filter on the bookkeeping flag" do
     processed = payments(:manual_payment)
     processed.update!(processed_in_bookkeeping: true)
