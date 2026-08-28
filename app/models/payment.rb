@@ -30,6 +30,9 @@
 #
 class Payment < ApplicationRecord
   STATUSES = %w[open canceled pending authorized expired failed paid].freeze
+  # Payments in these statuses can never succeed anymore, so they do not stand
+  # in the way of recording a new (manual) payment.
+  UNSUCCESSFUL_STATUSES = %w[canceled expired failed].freeze
   # Payments are normally handled by Mollie, but admins can also record payments
   # that were received outside of Mollie (e.g. cash or bank transfer).
   PROVIDERS = %w[mollie manual].freeze
@@ -55,6 +58,8 @@ class Payment < ApplicationRecord
   scope :completed, -> { where(status: "paid") }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
+  scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
+  scope :blocking, -> { where.not(status: UNSUCCESSFUL_STATUSES) }
   scope :processed, -> { where(processed_in_bookkeeping: true) }
   scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
 
@@ -74,6 +79,10 @@ class Payment < ApplicationRecord
 
   def manual?
     provider == "manual"
+  end
+
+  def unsuccessful?
+    UNSUCCESSFUL_STATUSES.include?(status)
   end
 
   def provider_label

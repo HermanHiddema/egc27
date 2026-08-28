@@ -178,6 +178,21 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_admin_participant_payment_path(participant)
   end
 
+  test "admin can record a manual payment when the existing mollie payment expired" do
+    sign_in users(:admin)
+    participant = participants(:one)
+    payments(:open_payment).update!(status: "expired")
+
+    assert_difference "participant.payments.count", 1 do
+      post admin_participant_payments_path(participant), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+      }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert participant.reload.paid?
+  end
+
   test "non-numeric amount_eur re-renders the form with a validation error" do
     sign_in users(:admin)
 

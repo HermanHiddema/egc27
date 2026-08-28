@@ -140,6 +140,17 @@ class Participant < ApplicationRecord
     end
   end
 
+  # Payments that are canceled, expired or failed can never succeed anymore, so
+  # they do not block recording a manual payment. Uses the in-memory association
+  # when it is already loaded, like #paid?.
+  def blocking_payments?
+    if payments.loaded?
+      payments.any? { |payment| !payment.unsuccessful? }
+    else
+      payments.blocking.exists?
+    end
+  end
+
   # High-level registration status used in the admin participant list.
   def registration_status
     return "Paid" if paid?

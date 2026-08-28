@@ -43,6 +43,27 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
+  test "admin sees an add payment link when existing payments can never succeed" do
+    sign_in users(:admin)
+    payments(:open_payment).update!(status: "expired")
+
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Add payment"
+  end
+
+  test "admin sees an add payment link when the latest manual payment failed" do
+    sign_in users(:admin)
+    payments(:manual_payment).update!(status: "failed")
+
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:four))}']", text: "Add payment"
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", count: 0
+  end
+
   test "admin can open the edit form when no payment exists" do
     sign_in users(:admin)
     get edit_admin_participant_path(participants(:three))
@@ -68,6 +89,16 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
+  end
+
+  test "admin edit page for participant with only canceled payments shows record payment link" do
+    sign_in users(:admin)
+    payments(:open_payment).update!(status: "canceled")
+
+    get edit_admin_participant_path(participants(:one))
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Record payment"
   end
 
   test "admin edit page for visitor does not show record payment link" do

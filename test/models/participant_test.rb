@@ -572,4 +572,29 @@ class ParticipantTest < ActiveSupport::TestCase
     assert participants(:two).paid?
     assert_equal "Paid", participants(:two).registration_status
   end
+
+  test "blocking_payments? is true for an open payment" do
+    assert participants(:one).blocking_payments?
+  end
+
+  test "blocking_payments? is false without payments" do
+    assert_not participants(:three).blocking_payments?
+  end
+
+  test "blocking_payments? is false when all payments are unsuccessful" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "expired")
+
+    assert_not participant.reload.blocking_payments?
+  end
+
+  test "blocking_payments? uses the loaded association when available" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "failed")
+    participant.payments.load
+
+    assert_no_queries do
+      assert_not participant.blocking_payments?
+    end
+  end
 end
