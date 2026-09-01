@@ -108,7 +108,7 @@ Rails.application.routes.draw do
   resources :sponsors, except: [:show]
 
   namespace :admin do
-    resources :participants, only: [:index, :edit, :update] do
+    resources :participants, only: [:index, :edit, :update, :destroy] do
       resources :payments, only: [:new, :create, :edit, :update]
     end
     resources :payments, only: [:index] do

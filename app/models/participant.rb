@@ -151,6 +151,20 @@ class Participant < ApplicationRecord
     end
   end
 
+  # Admins may only delete participants that never paid successfully, so the
+  # financial administration always keeps a record of received payments.
+  def deletable?
+    !paid?
+  end
+
+  # Deleting the last participant of a user leaves an account behind that no
+  # longer has a registration, so admins are warned about that case.
+  def only_participant_for_user?
+    return false if user.blank?
+
+    user.participants.where.not(id: id).none?
+  end
+
   # High-level registration status used in the admin participant list.
   def registration_status
     return "Paid" if paid?

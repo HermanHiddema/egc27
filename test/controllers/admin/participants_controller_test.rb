@@ -224,4 +224,93 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Alice Smith", response.body
     assert_match "Dave Pending", response.body
   end
+  test "non-admins cannot delete participants" do
+    sign_in users(:editor)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:three))
+    end
+
+    assert_redirected_to root_path
+  end
+
+  test "admin can delete a participant without successful payments" do
+    sign_in users(:admin)
+
+    assert_difference "Participant.count", -1 do
+      delete admin_participant_path(participants(:three))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted.", flash[:notice]
+    assert_not Participant.exists?(participants(:three).id)
+    assert User.exists?(users(:one).id)
+  end
+
+  test "admin cannot delete a participant with a successful payment" do
+    sign_in users(:admin)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:two))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with a successful payment cannot be deleted.", flash[:alert]
+  end
+
+  test "admin can delete the last participant of a user together with the user" do
+    sign_in users(:admin)
+    participants(:four).destroy!
+    user_id = users(:dave).id
+
+    assert_difference ["Participant.count", "User.count"], -1 do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant and user account were successfully deleted.", flash[:notice]
+    assert_not User.exists?(user_id)
+  end
+
+  test "the user is kept when the delete user box is unchecked" do
+    sign_in users(:admin)
+    participants(:four).destroy!
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed))
+    end
+
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "the user is kept when other participants remain" do
+    sign_in users(:admin)
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "admin edit page offers deletion with a warning for the last participant of a user" do
+    sign_in users(:admin)
+    participants(:four).destroy!
+
+    get edit_admin_participant_path(participants(:unconfirmed))
+
+    assert_response :success
+    assert_select "form[action='#{admin_participant_path(participants(:unconfirmed))}'] input[name='delete_user']"
+    assert_match "last participant registered by", response.body
+  end
+
+  test "admin edit page hides deletion for participants with a successful payment" do
+    sign_in users(:admin)
+
+    get edit_admin_participant_path(participants(:two))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "cannot be deleted", response.body
+  end
 end

@@ -21,5 +21,30 @@
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
       <%= render "form", participant: @participant %>
     </div>
+
+    <div class="mt-8 bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <h2 class="text-2xl font-bold mb-4">Delete participant</h2>
+
+      <% if @participant.deletable? %>
+        <% last_participant = @participant.only_participant_for_user? %>
+        <%= form_with url: admin_participant_path(@participant), method: :delete, data: { turbo_confirm: "Are you sure you want to delete this participant? This cannot be undone." } do %>
+          <% if last_participant %>
+            <p class="text-sm text-neutral-700 mb-3">
+              This is the last participant registered by <strong><%= @participant.user.email %></strong>.
+              Deleting it leaves an account without any registrations.
+            </p>
+            <label class="flex items-center gap-2 text-sm text-neutral-900 mb-4">
+              <%= check_box_tag :delete_user, "1", false, class: "rounded border-neutral-300" %>
+              Also delete the user account
+            </label>
+          <% else %>
+            <p class="text-sm text-neutral-700 mb-4">This permanently removes the participant and their registration data.</p>
+          <% end %>
+          <%= submit_tag "Delete participant", class: "btn-primary", data: { turbo_submits_with: "Deleting…" } %>
+        <% end %>
+      <% else %>
+        <p class="text-sm text-neutral-700">This participant has a successful payment and cannot be deleted.</p>
+      <% end %>
+    </div>
   </div>
 </div>
