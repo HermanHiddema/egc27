@@ -58,8 +58,6 @@ class Admin::ParticipantsController < ApplicationController
       "Participant and user account were successfully deleted."
     elsif delete_user_requested && user.present? && last_participant_for_user && !eligible_for_account_delete
       "Participant was successfully deleted. The user account was kept."
-    elsif delete_user_requested && user.present? && user == current_user && last_participant_for_user
-      "Participant was successfully deleted. The user account was kept."
     else
       "Participant was successfully deleted."
     end
