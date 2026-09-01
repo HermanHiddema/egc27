@@ -609,6 +609,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "deletable? is true without payments" do
     assert participants(:three).deletable?
   end
+
   test "changes and deletions are recorded by paper trail" do
     participant = participants(:three)
 
