@@ -272,6 +272,34 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_not User.exists?(user_id)
   end
 
+  test "admin deleting their own last participant keeps the user account" do
+    sign_in users(:admin)
+    participant = Participant.create!(
+      user: users(:admin),
+      first_name: "Admin",
+      last_name: "Self",
+      email: "admin-self@example.com",
+      age_group: "18-49",
+      gender: "female",
+      country: "NL",
+      club: "Amsterdam Go Club",
+      rank: 27,
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      image_use_consent: false,
+      participant_type: "player",
+      confirmed_at: Time.current
+    )
+
+    assert_difference "Participant.count", -1 do
+      delete admin_participant_path(participant), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted. The user account was kept.", flash[:notice]
+    assert User.exists?(users(:admin).id)
+  end
+
   test "the user is kept when the delete user box is unchecked" do
     sign_in users(:admin)
     participants(:four).destroy!
@@ -302,6 +330,32 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[action='#{admin_participant_path(participants(:unconfirmed))}'] input[name='delete_user']"
     assert_match "last participant registered by", response.body
+  end
+
+  test "admin edit page hides the user-delete option for their own last participant" do
+    sign_in users(:admin)
+    participant = Participant.create!(
+      user: users(:admin),
+      first_name: "Own",
+      last_name: "Admin",
+      email: "admin-own@example.com",
+      age_group: "18-49",
+      gender: "female",
+      country: "DE",
+      club: "Berlin Go Club",
+      rank: 30,
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      image_use_consent: false,
+      participant_type: "player",
+      confirmed_at: Time.current
+    )
+
+    get edit_admin_participant_path(participant)
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "signed-in admin account", response.body
   end
 
   test "admin edit page hides deletion for participants with a successful payment" do
