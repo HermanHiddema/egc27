@@ -40,7 +40,7 @@ class Admin::ParticipantsController < ApplicationController
 
     user = @participant.user
     delete_user = ActiveModel::Type::Boolean.new.cast(params[:delete_user]) &&
-      @participant.only_participant_for_user? && user != current_user
+      user.present? && user != current_user && @participant.only_participant_for_user?
 
     ActiveRecord::Base.transaction do
       @participant.destroy!
