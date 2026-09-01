@@ -60,6 +60,8 @@ class Participant < ApplicationRecord
   MIN_RATING = -1000
   MAX_RATING = 3000
 
+  has_paper_trail
+
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
@@ -149,6 +151,23 @@ class Participant < ApplicationRecord
     else
       payments.blocking.exists?
     end
+  end
+
+  # Admins may only delete participants that never paid successfully and have
+  # no open/pending payment. A payment that is still in flight at a provider
+  # (e.g. Mollie) could complete after the participant and its payment records
+  # are gone, leaving the app with money received but nothing to reconcile it
+  # against, so deletion is blocked until that payment resolves.
+  def deletable?
+    !blocking_payments?
+  end
+
+  # Deleting the last participant of a user leaves an account behind that no
+  # longer has a registration, so admins are warned about that case.
+  def only_participant_for_user?
+    return false if user.blank?
+
+    user.participants.where.not(id: id).none?
   end
 
   # High-level registration status used in the admin participant list.

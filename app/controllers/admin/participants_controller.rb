@@ -3,7 +3,7 @@ class Admin::ParticipantsController < ApplicationController
   STATUS_FILTERS = %w[pending confirmed paid].freeze
 
   before_action :require_admin!
-  before_action :set_participant, only: [:edit, :update]
+  before_action :set_participant, only: [:edit, :update, :destroy]
 
   def index
     participants = Participant.includes(:payments)
@@ -30,6 +30,38 @@ class Admin::ParticipantsController < ApplicationController
     else
       render :edit, status: :unprocessable_entity
     end
+  end
+
+  def destroy
+    unless @participant.deletable?
+      alert = if @participant.paid?
+        "Participants with a successful payment cannot be deleted."
+      else
+        "Participants with an open or pending payment cannot be deleted."
+      end
+      redirect_to admin_participants_path, alert: alert
+      return
+    end
+
+    user = @participant.user
+    last_participant_for_user = @participant.only_participant_for_user?
+    delete_user_requested = ActiveModel::Type::Boolean.new.cast(params[:delete_user])
+    eligible_for_account_delete = user.present? && user != current_user && last_participant_for_user && user.account_deletable?
+    delete_user = delete_user_requested && eligible_for_account_delete
+
+    ActiveRecord::Base.transaction do
+      @participant.destroy!
+      user.destroy! if delete_user
+    end
+
+    notice = if delete_user
+      "Participant and user account were successfully deleted."
+    elsif delete_user_requested && user.present? && last_participant_for_user && !eligible_for_account_delete
+      "Participant was successfully deleted. The user account was kept."
+    else
+      "Participant was successfully deleted."
+    end
+    redirect_to admin_participants_path, notice: notice
   end
 
   private

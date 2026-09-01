@@ -79,6 +79,10 @@ class User < ApplicationRecord
     admin?
   end
 
+  def account_deletable?
+    regular? && articles.none? && events.none?
+  end
+
   def password_set?
     encrypted_password.present?
   end

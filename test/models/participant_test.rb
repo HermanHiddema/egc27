@@ -597,4 +597,28 @@ class ParticipantTest < ActiveSupport::TestCase
       assert_not participant.blocking_payments?
     end
   end
+
+  test "deletable? is false for a successful payment" do
+    assert_not participants(:two).deletable?
+  end
+
+  test "deletable? is false for an open payment" do
+    assert_not participants(:one).deletable?
+  end
+
+  test "deletable? is true without payments" do
+    assert participants(:three).deletable?
+  end
+
+  test "changes and deletions are recorded by paper trail" do
+    participant = participants(:three)
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id).count }, 1 do
+      participant.update!(club: "Rotterdam Go Club")
+    end
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id, event: "destroy").count }, 1 do
+      participant.destroy!
+    end
+  end
 end
