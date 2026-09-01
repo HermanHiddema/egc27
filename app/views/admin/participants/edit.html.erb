@@ -54,8 +54,10 @@
           <% end %>
           <%= submit_tag "Delete participant", class: "btn-primary", data: { turbo_submits_with: "Deleting…" } %>
         <% end %>
-      <% else %>
+      <% elsif @participant.paid? %>
         <p class="text-sm text-neutral-700">This participant has a successful payment and cannot be deleted.</p>
+      <% else %>
+        <p class="text-sm text-neutral-700">This participant has an open or pending payment and cannot be deleted until it resolves.</p>
       <% end %>
     </div>
   </div>

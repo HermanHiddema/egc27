@@ -153,10 +153,13 @@ class Participant < ApplicationRecord
     end
   end
 
-  # Admins may only delete participants that never paid successfully, so the
-  # financial administration always keeps a record of received payments.
+  # Admins may only delete participants that never paid successfully and have
+  # no open/pending payment. A payment that is still in flight at a provider
+  # (e.g. Mollie) could complete after the participant and its payment records
+  # are gone, leaving the app with money received but nothing to reconcile it
+  # against, so deletion is blocked until that payment resolves.
   def deletable?
-    !paid?
+    !blocking_payments?
   end
 
   # Deleting the last participant of a user leaves an account behind that no

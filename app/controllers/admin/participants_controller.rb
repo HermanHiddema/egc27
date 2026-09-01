@@ -34,7 +34,12 @@ class Admin::ParticipantsController < ApplicationController
 
   def destroy
     unless @participant.deletable?
-      redirect_to admin_participants_path, alert: "Participants with a successful payment cannot be deleted."
+      alert = if @participant.paid?
+        "Participants with a successful payment cannot be deleted."
+      else
+        "Participants with an open or pending payment cannot be deleted."
+      end
+      redirect_to admin_participants_path, alert: alert
       return
     end
 

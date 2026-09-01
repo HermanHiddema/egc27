@@ -258,6 +258,17 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Participants with a successful payment cannot be deleted.", flash[:alert]
   end
 
+  test "admin cannot delete a participant with an open payment" do
+    sign_in users(:admin)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:one))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with an open or pending payment cannot be deleted.", flash[:alert]
+  end
+
   test "admin can delete the last participant of a user together with the user" do
     sign_in users(:admin)
     participants(:four).destroy!
@@ -365,6 +376,16 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input[name='delete_user']", count: 0
-    assert_match "cannot be deleted", response.body
+    assert_match "successful payment", response.body
+  end
+
+  test "admin edit page hides deletion for participants with an open payment" do
+    sign_in users(:admin)
+
+    get edit_admin_participant_path(participants(:one))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "open or pending payment", response.body
   end
 end

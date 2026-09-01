@@ -597,6 +597,18 @@ class ParticipantTest < ActiveSupport::TestCase
       assert_not participant.blocking_payments?
     end
   end
+
+  test "deletable? is false for a successful payment" do
+    assert_not participants(:two).deletable?
+  end
+
+  test "deletable? is false for an open payment" do
+    assert_not participants(:one).deletable?
+  end
+
+  test "deletable? is true without payments" do
+    assert participants(:three).deletable?
+  end
   test "changes and deletions are recorded by paper trail" do
     participant = participants(:three)
 
