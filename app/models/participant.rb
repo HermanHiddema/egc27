@@ -60,6 +60,8 @@ class Participant < ApplicationRecord
   MIN_RATING = -1000
   MAX_RATING = 3000
 
+  has_paper_trail
+
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
