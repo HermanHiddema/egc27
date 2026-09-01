@@ -46,8 +46,8 @@ class Admin::ParticipantsController < ApplicationController
     user = @participant.user
     last_participant_for_user = @participant.only_participant_for_user?
     delete_user_requested = ActiveModel::Type::Boolean.new.cast(params[:delete_user])
-    delete_user = delete_user_requested &&
-      user.present? && user != current_user && last_participant_for_user
+    eligible_for_account_delete = user.present? && user != current_user && last_participant_for_user && user.account_deletable?
+    delete_user = delete_user_requested && eligible_for_account_delete
 
     ActiveRecord::Base.transaction do
       @participant.destroy!
@@ -56,6 +56,8 @@ class Admin::ParticipantsController < ApplicationController
 
     notice = if delete_user
       "Participant and user account were successfully deleted."
+    elsif delete_user_requested && user.present? && last_participant_for_user && !eligible_for_account_delete
+      "Participant was successfully deleted. The user account was kept."
     elsif delete_user_requested && user.present? && user == current_user && last_participant_for_user
       "Participant was successfully deleted. The user account was kept."
     else

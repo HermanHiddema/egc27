@@ -332,6 +332,32 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert User.exists?(users(:dave).id)
   end
 
+  test "the user is kept when they still have authored site content" do
+    sign_in users(:admin)
+    participants(:four).destroy!
+    Article.create!(title: "Article", content: "Details", user: users(:dave))
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted. The user account was kept.", flash[:notice]
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "admin edit page hides the user-delete option for a user with authored site content" do
+    sign_in users(:admin)
+    participants(:four).destroy!
+    Article.create!(title: "Article", content: "Details", user: users(:dave))
+
+    get edit_admin_participant_path(participants(:unconfirmed))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "not eligible for deletion", response.body
+  end
+
   test "admin edit page offers deletion with a warning for the last participant of a user" do
     sign_in users(:admin)
     participants(:four).destroy!
