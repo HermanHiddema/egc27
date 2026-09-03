@@ -53,7 +53,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700">
                   <% if participant.rating.present? && (egd_url = egd_player_card_url(participant.egd_pin)) %>
-                    <%= link_to participant.rating, egd_url, target: "_blank", rel: "noopener noreferrer", class: "text-brand-red-700 hover:underline" %>
+                    <%= link_to participant.rating, egd_url, target: "_blank", rel: "noopener noreferrer", class: "text-brand-red-700 underline hover:text-brand-red-900" %>
                   <% else %>
                     <%= participant.rating %>
                   <% end %>
