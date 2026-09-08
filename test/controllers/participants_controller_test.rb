@@ -184,7 +184,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get participants_path
 
     assert_response :success
-    assert_select "a[href='https://europeangodatabase.eu/EGD/Player_Card.php?&key=10000001']", text: "1789"
+    assert_select "a[href='https://europeangodatabase.eu/EGD/Player_Card.php?&key=10000001'][class~='underline']", text: "1789"
     assert_select "a[href*='Player_Card.php?&key=']", count: 1
   end
 

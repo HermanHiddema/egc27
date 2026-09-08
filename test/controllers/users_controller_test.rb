@@ -51,4 +51,13 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_includes emails, users(:editor).email
     assert_not_includes emails, users(:one).email
   end
+
+  test "admin edit page labels password confirmation clearly" do
+    sign_in users(:admin)
+
+    get edit_user_path(users(:one))
+
+    assert_response :success
+    assert_select "label[for='user_password_confirmation']", text: "New password confirmation"
+  end
 end
