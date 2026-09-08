@@ -25,6 +25,15 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Sign out"
   end
 
+  test "account edit page labels password confirmation clearly" do
+    sign_in users(:one)
+
+    get edit_user_registration_path
+
+    assert_response :success
+    assert_select "label[for='user_password_confirmation']", text: "New password confirmation"
+  end
+
   test "user can edit account page and update display name email and password" do
     sign_in users(:one)
 
