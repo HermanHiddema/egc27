@@ -93,7 +93,7 @@ All must pass before deploy.
 - `config/ci.rb` - Defines CI pipeline; update here if adding checks
 - `DESIGN_SYSTEM.md` - Brand colors, typography, component classes (Tailwind + CSS vars)
 - `Gemfile` - All dependencies; commit `Gemfile.lock` only after changes
-- `.ruby-version` - Currently Ruby 3.4.5; change if updating Ruby
+- `.ruby-version` - Currently Ruby 4.0.6; change if updating Ruby
 - `Dockerfile` - Production image build; no dev-only gems in bundle
 
 ## Quick Diagnostics

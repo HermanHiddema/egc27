@@ -10,6 +10,18 @@
 			"variantProcessor": "vips"
 		},
 		"ghcr.io/nlstn/devcontainer-features/psql:1": {}
+	},
+
+	// Ruby is managed by mise in the image, so tell the Ruby LSP to use it
+	// instead of guessing (guessing picks rbenv, which is not installed).
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"rubyLsp.rubyVersionManager": {
+					"identifier": "mise"
+				}
+			}
+		}
 	}
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
