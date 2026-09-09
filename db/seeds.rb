@@ -46,7 +46,6 @@ if File.exist?(static_pages_path)
 
     page.assign_attributes(
       title: title,
-      content: content,
       content_html: "<p>#{ERB::Util.html_escape(content)}</p>"
     )
     next unless page.new_record? || page.changed?
@@ -73,7 +72,6 @@ legal_pages.each do |legal_page|
 
   page.assign_attributes(
     title: legal_page[:title],
-    content: legal_page[:content],
     content_html: "<p>#{ERB::Util.html_escape(legal_page[:content])}</p>"
   )
   next unless page.new_record? || page.changed?
@@ -112,7 +110,6 @@ article_seeds.each do |article_seed|
 
   article.assign_attributes(
     user: article_user,
-    content: article_seed[:content],
     content_html: "<p>#{ERB::Util.html_escape(article_seed[:content])}</p>"
   )
   next unless article.new_record? || article.changed?

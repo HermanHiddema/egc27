@@ -50,7 +50,7 @@ class PagesController < ApplicationController
   private
 
   def set_page
-    @page = Page.with_attached_main_image.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
+    @page = Page.with_attached_main_image.find_by!(slug: params[:slug])
   end
 
   def require_page_access!
@@ -60,6 +60,6 @@ class PagesController < ApplicationController
   end
 
   def page_params
-    params.require(:page).permit(:title, :content, :content_html, :slug, :access_level, :main_image, :remove_main_image)
+    params.require(:page).permit(:title, :content_html, :slug, :access_level, :main_image, :remove_main_image)
   end
 end

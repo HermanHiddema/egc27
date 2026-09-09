@@ -29,28 +29,28 @@ class ArticleTest < ActiveSupport::TestCase
   end
 
   test "rejects svg main images" do
-    article = Article.new(title: "Article", content: "Details", user: users(:admin))
+    article = Article.new(title: "Article", content_html: "<p>Details</p>", user: users(:admin))
     article.main_image.attach(svg_upload)
 
     assert_not article.valid?
     assert_includes article.errors[:main_image], "must be a PNG, JPEG, or WebP image"
   end
 
-  test "is valid with only content_html" do
+  test "is valid with content_html" do
     article = Article.new(title: "Article", content_html: "<p>Details</p>", user: users(:admin))
 
     assert article.valid?
   end
 
-  test "requires content or content_html" do
+  test "requires content_html" do
     article = Article.new(title: "Article", user: users(:admin))
 
     assert_not article.valid?
-    assert_includes article.errors[:content], "can't be blank"
+    assert_includes article.errors[:content_html], "can't be blank"
   end
 
   test "attaches random placeholder main image when none is provided" do
-    article = Article.create!(title: "Article", content: "Details", user: users(:admin))
+    article = Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:admin))
 
     assert article.main_image.attached?
     assert_includes placeholder_filenames, article.main_image.filename.to_s

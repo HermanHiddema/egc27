@@ -21,8 +21,10 @@
 #
 one:
   title: MyString
+  content_html: "<p>MyText</p>"
   user: one
 
 two:
   title: MyString
+  content_html: "<p>MyText</p>"
   user: two

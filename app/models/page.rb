@@ -23,11 +23,10 @@ class Page < ApplicationRecord
   enum :access_level, { public: "public", authenticated: "authenticated" }, prefix: :access_level
 
   has_many :menu_items, dependent: :nullify, inverse_of: :page
-  has_rich_text :content
   has_one_attached :main_image
 
   validates :title, presence: true
-  validate :content_must_be_present
+  validates :content_html, presence: true
   validates :slug, presence: true, uniqueness: true
   validate :main_image_must_be_image
 
@@ -44,12 +43,6 @@ class Page < ApplicationRecord
   end
 
   private
-
-  def content_must_be_present
-    return if content.present? || content_html.present?
-
-    errors.add(:content, "can't be blank")
-  end
 
   def assign_slug
     base_slug = if slug.present?

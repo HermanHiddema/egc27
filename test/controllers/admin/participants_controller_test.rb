@@ -335,7 +335,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "the user is kept when they still have authored site content" do
     sign_in users(:admin)
     participants(:four).destroy!
-    Article.create!(title: "Article", content: "Details", user: users(:dave))
+    Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
 
     assert_no_difference "User.count" do
       delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
@@ -349,7 +349,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "admin edit page hides the user-delete option for a user with authored site content" do
     sign_in users(:admin)
     participants(:four).destroy!
-    Article.create!(title: "Article", content: "Details", user: users(:dave))
+    Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
 
     get edit_admin_participant_path(participants(:unconfirmed))
 

@@ -31,5 +31,9 @@ en:
   hello: "Hello world"
   activerecord:
     attributes:
+      article:
+        content_html: "Content"
+      page:
+        content_html: "Content"
       payment:
         amount_cents: "Amount (EUR)"
