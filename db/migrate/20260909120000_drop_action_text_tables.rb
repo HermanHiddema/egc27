@@ -45,14 +45,12 @@ class DropActionTextTables < ActiveRecord::Migration[8.1]
         next if rich_text.body.blank?
 
         record = find_record!(rich_text)
-        next if record.content_html == rich_text.body.to_s
+        next if record.content_html.present?
 
-        if record.content_html.blank? || rich_text_newer_or_equal?(rich_text, record)
-          record.update_columns(
-            content_html: rich_text.body.to_s,
-            updated_at: [record.updated_at, rich_text.updated_at].compact.max || Time.current
-          )
-        end
+        record.update_columns(
+          content_html: rich_text.body.to_s,
+          updated_at: [record.updated_at, rich_text.updated_at].compact.max || Time.current
+        )
       end
     end
   end
@@ -90,12 +88,6 @@ class DropActionTextTables < ActiveRecord::Migration[8.1]
       ActiveRecord::IrreversibleMigration,
       "Cannot migrate #{rich_text.record_type}##{rich_text.record_id} Action Text content"
     )
-  end
-
-  def rich_text_newer_or_equal?(rich_text, record)
-    return true if rich_text.updated_at.blank? || record.updated_at.blank?
-
-    rich_text.updated_at >= record.updated_at
   end
 
   def referenced_blob_ids_for(html)

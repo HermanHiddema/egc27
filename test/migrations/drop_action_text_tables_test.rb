@@ -30,10 +30,10 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     super
   end
 
-  test "copies newer Action Text content_html and rehomes referenced embeds" do
-    article = Article.create!(title: "Migration Article", content_html: "<p>Old</p>", user: users(:admin))
+  test "copies missing content_html from Action Text and rehomes referenced embeds" do
+    article = Article.create!(title: "Migration Article", content_html: "<p>Temp</p>", user: users(:admin))
     @article_ids << article.id
-    article.update_columns(updated_at: 1.day.ago)
+    article.update_columns(content_html: "", updated_at: 1.day.ago)
 
     blob = create_blob(filename: "embedded.png", body: "pngdata", content_type: "image/png")
     rich_text = create_rich_text(
@@ -58,6 +58,28 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
       record_type: "ActionText::RichText",
       record_id: rich_text.id,
       blob_id: blob.id
+    )
+  end
+
+  test "keeps existing TinyMCE content_html even when Action Text is newer" do
+    article = Article.create!(title: "Migration Article", content_html: "<p>TinyMCE wins</p>", user: users(:admin))
+    @article_ids << article.id
+    article.update_columns(updated_at: 1.day.ago)
+
+    rich_text = create_rich_text(
+      record_type: "Article",
+      record_id: article.id,
+      body: "<p>Newer Trix</p>",
+      created_at: 2.days.ago,
+      updated_at: Time.current
+    )
+
+    DropActionTextTables.new.migrate(:up)
+
+    assert_equal "<p>TinyMCE wins</p>", article.reload.content_html
+    assert_not ActiveStorage::Attachment.exists?(
+      record_type: "ActionText::RichText",
+      record_id: rich_text.id
     )
   end
 
