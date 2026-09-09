@@ -61,7 +61,7 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     )
   end
 
-  test "keeps existing TinyMCE content_html even when Action Text is newer" do
+  test "aborts when newer Action Text content would overwrite TinyMCE content_html" do
     article = Article.create!(title: "Migration Article", content_html: "<p>TinyMCE wins</p>", user: users(:admin))
     @article_ids << article.id
     article.update_columns(updated_at: 1.day.ago)
@@ -74,8 +74,11 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
       updated_at: Time.current
     )
 
-    DropActionTextTables.new.migrate(:up)
+    error = assert_raises(ActiveRecord::IrreversibleMigration) do
+      DropActionTextTables.new.migrate(:up)
+    end
 
+    assert_includes error.message, "newer rich text content differs from content_html"
     assert_equal "<p>TinyMCE wins</p>", article.reload.content_html
     assert_not ActiveStorage::Attachment.exists?(
       record_type: "ActionText::RichText",

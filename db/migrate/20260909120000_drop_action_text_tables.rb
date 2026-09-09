@@ -45,12 +45,20 @@ class DropActionTextTables < ActiveRecord::Migration[8.1]
         next if rich_text.body.blank?
 
         record = find_record!(rich_text)
-        next if record.content_html.present?
+        next if record.content_html == rich_text.body.to_s
 
-        record.update_columns(
-          content_html: rich_text.body.to_s,
-          updated_at: [record.updated_at, rich_text.updated_at].compact.max || Time.current
-        )
+        if record.content_html.blank?
+          record.update_columns(
+            content_html: rich_text.body.to_s,
+            updated_at: [record.updated_at, rich_text.updated_at].compact.max || Time.current
+          )
+          next
+        end
+
+        next if tinymce_content_authoritative?(record, rich_text)
+
+        raise ActiveRecord::IrreversibleMigration,
+          "Cannot drop Action Text for #{rich_text.record_type}##{rich_text.record_id}: newer rich text content differs from content_html"
       end
     end
   end
@@ -125,5 +133,12 @@ class DropActionTextTables < ActiveRecord::Migration[8.1]
     end
   rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
     nil
+  end
+
+  def tinymce_content_authoritative?(record, rich_text)
+    return false if record.updated_at.blank?
+    return true if rich_text.updated_at.blank?
+
+    record.updated_at >= rich_text.updated_at
   end
 end
