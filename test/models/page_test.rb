@@ -22,47 +22,47 @@ class PageTest < ActiveSupport::TestCase
   end
 
   test "generates slug from title when slug is blank" do
-    page = Page.create!(title: "Venue Information", content: "Details")
+    page = Page.create!(title: "Venue Information", content_html: "<p>Details</p>")
 
     assert_equal "venue-information", page.slug
   end
 
   test "adds numeric suffix when slug already exists" do
-    Page.create!(title: "Schedule", content: "A")
-    second_page = Page.create!(title: "Schedule", content: "B")
+    Page.create!(title: "Schedule", content_html: "<p>A</p>")
+    second_page = Page.create!(title: "Schedule", content_html: "<p>B</p>")
 
     assert_equal "schedule-2", second_page.slug
   end
 
   test "parameterizes manually entered slug" do
-    page = Page.create!(title: "Custom", content: "Text", slug: "My Custom Slug")
+    page = Page.create!(title: "Custom", content_html: "<p>Text</p>", slug: "My Custom Slug")
 
     assert_equal "my-custom-slug", page.slug
   end
 
   test "rejects svg main images" do
-    page = Page.new(title: "Venue Information", content: "Details")
+    page = Page.new(title: "Venue Information", content_html: "<p>Details</p>")
     page.main_image.attach(svg_upload)
 
     assert_not page.valid?
     assert_includes page.errors[:main_image], "must be a PNG, JPEG, or WebP image"
   end
 
-  test "is valid with only content_html" do
+  test "is valid with content_html" do
     page = Page.new(title: "Venue Information", content_html: "<p>Details</p>")
 
     assert page.valid?
   end
 
-  test "requires content or content_html" do
+  test "requires content_html" do
     page = Page.new(title: "Venue Information")
 
     assert_not page.valid?
-    assert_includes page.errors[:content], "can't be blank"
+    assert_includes page.errors[:content_html], "can't be blank"
   end
 
   test "pages are public by default" do
-    page = Page.create!(title: "Venue Information", content: "Details")
+    page = Page.create!(title: "Venue Information", content_html: "<p>Details</p>")
 
     assert page.access_level_public?
     assert page.readable_by?(nil)

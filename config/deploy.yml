@@ -54,8 +54,6 @@ env:
     # Log everything from Rails
     # RAILS_LOG_LEVEL: debug
 
-    # Default rich text editor for articles/pages ("trix" or "tinymce").
-    # DEFAULT_EDITOR: trix
 
     # Tiny Cloud API key used to load the TinyMCE editor from the CDN.
     # TINYMCE_API_KEY: your-tiny-cloud-api-key

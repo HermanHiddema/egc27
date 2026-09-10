@@ -14,7 +14,7 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
   test "regular user cannot create article" do
     sign_in users(:one)
     assert_no_difference "Article.count" do
-      post articles_path, params: { article: { title: "Test", content: "Content" } }
+      post articles_path, params: { article: { title: "Test", content_html: "<p>Content</p>" } }
     end
     assert_redirected_to root_path
   end
@@ -78,7 +78,7 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
   test "editor can create article" do
     sign_in users(:editor)
     assert_difference "Article.count", 1 do
-      post articles_path, params: { article: { title: "Test Article", content: "Some content" } }
+      post articles_path, params: { article: { title: "Test Article", content_html: "<p>Some content</p>" } }
     end
 
     assert Article.last.main_image.attached?
@@ -91,7 +91,7 @@ class ArticlesAuthorizationTest < ActionDispatch::IntegrationTest
       post articles_path, params: {
         article: {
           title: "Article with image",
-          content: "Some content",
+          content_html: "<p>Some content</p>",
           main_image: image_upload
         }
       }

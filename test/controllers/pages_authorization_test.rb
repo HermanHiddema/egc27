@@ -59,7 +59,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   test "editor can set the access level of a page" do
     sign_in users(:editor)
 
-    post pages_path, params: { page: { title: "Restricted", slug: "restricted", content: "Secret", access_level: "authenticated" } }
+    post pages_path, params: { page: { title: "Restricted", slug: "restricted", content_html: "<p>Secret</p>", access_level: "authenticated" } }
 
     assert Page.find_by(slug: "restricted").access_level_authenticated?
   end
@@ -73,7 +73,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   test "regular user cannot create page" do
     sign_in users(:one)
     assert_no_difference "Page.count" do
-      post pages_path, params: { page: { title: "Test", slug: "test", content: "Content" } }
+      post pages_path, params: { page: { title: "Test", slug: "test", content_html: "<p>Content</p>" } }
     end
     assert_redirected_to root_path
   end
@@ -142,7 +142,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   test "editor can create page" do
     sign_in users(:editor)
     assert_difference "Page.count", 1 do
-      post pages_path, params: { page: { title: "New Page", slug: "new-page", content: "Some content" } }
+      post pages_path, params: { page: { title: "New Page", slug: "new-page", content_html: "<p>Some content</p>" } }
     end
   end
 
@@ -154,7 +154,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
         page: {
           title: "Page with image",
           slug: "page-with-image",
-          content: "Some content",
+          content_html: "<p>Some content</p>",
           main_image: image_upload
         }
       }

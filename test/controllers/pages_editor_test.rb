@@ -5,15 +5,15 @@ class PagesEditorTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
   end
 
-  test "edit page renders TinyMCE editor and pre-fills from rich text content" do
-    page = Page.create!(title: "Editor Bridge", slug: "editor-bridge", content: "<p>Existing Trix body</p>")
+  test "edit page renders TinyMCE editor pre-filled with the stored html" do
+    page = Page.create!(title: "Editor Bridge", slug: "editor-bridge", content_html: "<p>Existing body</p>")
 
-    get edit_page_path(page, editor: "tinymce")
+    get edit_page_path(page)
 
     assert_response :success
     assert_select "textarea[data-controller=?]", "tinymce"
     assert_select "script[src*=?]", "tinymce"
-    assert_includes response.body, "Existing Trix body"
+    assert_includes response.body, "Existing body"
 
     document = Nokogiri::HTML(response.body)
 
@@ -22,11 +22,10 @@ class PagesEditorTest < ActionDispatch::IntegrationTest
                  document.at_css('textarea[data-controller="tinymce"]')["data-tinymce-script-url-value"]
   end
 
-  test "show page renders content_html when present without editor param" do
+  test "show page renders content_html" do
     page = Page.create!(
       title: "TinyMCE Preferred",
       slug: "tinymce-preferred",
-      content: "<p>ActionText body</p>",
       content_html: "<p>TinyMCE body</p>"
     )
 
@@ -34,6 +33,5 @@ class PagesEditorTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_includes response.body, "TinyMCE body"
-    assert_not_includes response.body, "ActionText body"
   end
 end
