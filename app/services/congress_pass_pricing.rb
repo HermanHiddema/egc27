@@ -58,9 +58,9 @@ class CongressPassPricing
 
   def description
     parts = ["EGC 2027", attendance_label, age_group_label].compact
-    description = parts.join(" ")
-    description += " - #{participant_number}" if participant_number
-    description
+    desc = parts.join(" ")
+    desc += " - #{participant_number}" if participant_number
+    desc
   end
 
   def age_group_label

@@ -76,7 +76,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment.update!(
       participant: participant,
       amount_cents: 19_000,
-      description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)",
+      description: "EGC 2027 All events",
       status: "pending",
       created_at: Time.zone.local(2026, 8, 15)
     )

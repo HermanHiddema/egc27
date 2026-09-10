@@ -4,7 +4,7 @@
 
 <p>
   <strong>Name:</strong> <%= @participant.first_name %> <%= @participant.last_name %><br>
-  <strong>Congress Pass:</strong> <%= @participant.attendance_option&.humanize %>
+  <strong>Congress Pass:</strong> <%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %>
 </p>
 
 <% if @participant.visitor? %>
