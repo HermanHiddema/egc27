@@ -414,4 +414,25 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "input[name='delete_user']", count: 0
     assert_match "open or pending payment", response.body
   end
+
+  test "admin can trigger an EGD synchronization" do
+    sign_in users(:admin)
+
+    assert_enqueued_with(job: EgdSyncJob) do
+      post sync_egd_admin_participants_path
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "EGD synchronization has been started.", flash[:notice]
+  end
+
+  test "regular user cannot trigger an EGD synchronization" do
+    sign_in users(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      post sync_egd_admin_participants_path
+    end
+
+    assert_redirected_to root_path
+  end
 end
