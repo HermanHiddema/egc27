@@ -38,7 +38,7 @@ class PaymentTest < ActiveSupport::TestCase
       participant: participants(:one),
       status: "open",
       amount_cents: 19_000,
-      description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
+      description: "EGC 2027 All events"
     )
     assert payment.valid?
   end

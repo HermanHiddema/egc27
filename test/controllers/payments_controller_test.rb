@@ -77,7 +77,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment.update!(
       participant: participant,
       amount_cents: 19_000,
-      description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)",
+      description: "EGC 2027 All events",
       status: "pending",
       created_at: Time.zone.local(2026, 8, 15)
     )
@@ -143,16 +143,24 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create starts a single payment when no in-progress payment exists" do
     participant = participants(:three)
     mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
+    mollie_create_params = nil
 
     original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
+    Mollie::Payment.define_singleton_method(:create) do |**params|
+      mollie_create_params = params
+      mollie_stub
+    end
 
     assert_difference("Payment.count", 1) do
       post participant_payment_path(participant)
     end
 
+    payment = participant.payments.order(created_at: :desc).first
+
     assert_redirected_to "https://example.test/new-checkout"
-    assert_equal "tr_new_attempt_123", participant.payments.order(created_at: :desc).first.mollie_payment_id
+    assert_equal "tr_new_attempt_123", payment.mollie_payment_id
+    assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
+    assert_equal payment.description, mollie_create_params[:description]
   ensure
     Mollie::Payment.define_singleton_method(:create, &original)
   end

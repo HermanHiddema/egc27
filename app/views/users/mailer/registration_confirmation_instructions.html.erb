@@ -20,7 +20,7 @@
   <% if @participant.rating.present? %>
     <strong>Rating:</strong> <%= @participant.rating %><br>
   <% end %>
-  <strong>Congress Pass:</strong> <%= @participant.attendance_option&.humanize || "—" %>
+  <strong>Congress Pass:</strong> <%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %>
 </p>
 
 <p>Please confirm your account and email address through the link below:</p>

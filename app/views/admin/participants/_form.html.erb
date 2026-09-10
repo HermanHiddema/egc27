@@ -74,7 +74,7 @@
 
     <div>
       <%= form.label :attendance_option, "Attendance period", class: "block text-sm font-medium text-gray-700 mb-2" %>
-      <%= form.select :attendance_option, options_for_select([["All events", "all_events"], ["First week + weekend", "first_week_plus_weekend"], ["Weekend + second week", "weekend_plus_second_week"], ["Weekend only", "weekend_only"]], participant.attendance_option), { include_blank: "No change" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+      <%= form.select :attendance_option, options_for_select([["All events", "all_events"], ["Week 1 + Weekend", "first_week_plus_weekend"], ["Weekend + Week 2", "weekend_plus_second_week"], ["Weekend Only", "weekend_only"]], participant.attendance_option), { include_blank: "No change" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
     </div>
 
     <div class="md:col-span-2">

@@ -40,7 +40,7 @@
           <% end %>
           <div>
             <dt class="font-medium text-neutral-700">Attendance</dt>
-            <dd class="text-neutral-900"><%= @participant.attendance_option&.humanize || "—" %></dd>
+            <dd class="text-neutral-900"><%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %></dd>
           </div>
         </dl>
       </div>
