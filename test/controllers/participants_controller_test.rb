@@ -119,6 +119,16 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Your registration is confirmed and paid.", response.body
   end
 
+  test "show uses normalized attendance labels" do
+    participant = participants(:two)
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_match "Weekend Only", response.body
+    assert_no_match "Weekend only", response.body
+  end
+
   test "participants index supports country filter and shows filtered results with flags" do
     get participants_path, params: { country: "NL" }
 
