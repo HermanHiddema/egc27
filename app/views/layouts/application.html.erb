@@ -74,7 +74,7 @@ DraGo's Summer Festival
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
-                  <% if current_user.admin? %>
+                  <% if current_user.can_edit? %>
                     <%= link_to "Admin", dashboard_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
                   <% (@user_menu_root_items || []).each do |user_menu_item| %>

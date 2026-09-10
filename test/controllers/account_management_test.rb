@@ -25,6 +25,14 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Sign out"
   end
 
+  test "editor sees admin link in username dropdown" do
+    sign_in users(:editor)
+
+    get root_path
+    assert_response :success
+    assert_select "a[href='#{dashboard_path}']", text: "Admin"
+  end
+
   test "account edit page labels password confirmation clearly" do
     sign_in users(:one)
 
