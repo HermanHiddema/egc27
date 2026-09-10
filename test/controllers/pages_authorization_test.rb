@@ -24,24 +24,37 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
-  test "pages index hides pages that require authentication from visitors" do
+  test "visitors are sent to sign in for the pages index" do
     get pages_path
 
-    assert_response :success
-    assert_select "a[href='#{page_path(pages(:one))}']", count: 1
-    assert_select "a[href='#{page_path(pages(:members_only))}']", count: 0
+    assert_redirected_to new_user_session_path
   end
 
-  test "pages index lists pages that require authentication for signed-in users" do
+  test "regular users cannot access the pages index" do
     sign_in users(:one)
     get pages_path
 
+    assert_redirected_to root_path
+  end
+
+  test "editors see every page on the pages index" do
+    sign_in users(:editor)
+    get pages_path
+
     assert_response :success
+    assert_select "a[href='#{page_path(pages(:one))}']"
     assert_select "a[href='#{page_path(pages(:members_only))}']"
   end
 
+  test "the public page view does not link to the pages index" do
+    get page_path(pages(:one))
+
+    assert_response :success
+    assert_select "a[href='#{pages_path}']", count: 0
+  end
+
   test "menus hide items linking to pages that require authentication" do
-    get pages_path
+    get page_path(pages(:one))
 
     assert_response :success
     assert_select "a", text: menu_items(:members_only_item).label, count: 0
@@ -50,7 +63,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "menus show items linking to pages that require authentication once signed in" do
     sign_in users(:one)
-    get pages_path
+    get page_path(pages(:one))
 
     assert_response :success
     assert_select "a", text: menu_items(:members_only_item).label
@@ -93,12 +106,6 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "regular user does not see page management buttons" do
     sign_in users(:one)
-
-    get pages_path
-    assert_response :success
-    assert_select "a", text: "New Page", count: 0
-    assert_select "a", text: "Edit", count: 0
-    assert_select "button", text: "Delete", count: 0
 
     get page_path(pages(:one))
     assert_response :success
@@ -163,14 +170,10 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert Page.last.main_image.attached?
   end
 
-  test "page summaries and detail show main image when attached" do
+  test "page detail shows main image when attached" do
     sign_in users(:one)
     page = pages(:one)
     page.main_image.attach(image_upload)
-
-    get pages_path
-    assert_response :success
-    assert_select "img[alt=?]", "#{page.title} main image"
 
     get page_path(page)
     assert_response :success
