@@ -6,47 +6,50 @@
     <% end %>
   </div>
 
-  <div class="space-y-6">
-    <% @pages.each do |page| %>
-      <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-        <div class="flex items-start justify-between gap-4">
-          <div class="flex items-start gap-4">
-            <% if page.main_image.attached? && page.main_image.variable? %>
-              <%= image_tag main_image_representation(page.main_image, resize_to_limit: [96, 96]), alt: "#{page.title} main image", class: "h-24 w-24 object-cover rounded-lg border border-gray-200 shrink-0" %>
+  <% if @pages.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Title</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Slug</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Access</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @pages.each do |page| %>
+              <tr>
+                <td class="px-4 py-2 text-sm font-medium text-neutral-900">
+                  <%= link_to page.title, page_path(page), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                </td>
+                <td class="px-4 py-2 text-sm text-neutral-700">/<%= page.slug %></td>
+                <td class="px-4 py-2 text-sm text-neutral-700">
+                  <%= page.access_level_public? ? "Public" : "Signed-in users only" %>
+                </td>
+                <td class="px-4 py-2 text-sm">
+                  <div class="flex justify-end items-center gap-4">
+                    <%= link_to "Edit", edit_page_path(page), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                    <% if current_user&.can_delete? %>
+                      <%= button_to "Delete", page_path(page), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
             <% end %>
-
-            <div>
-              <h2 class="text-2xl font-bold mb-2">
-                <%= link_to page.title, page_path(page), class: "hover:text-brand-red-600 transition" %>
-              </h2>
-              <p class="text-sm text-gray-600">/<%= page.slug %></p>
-              <% unless page.access_level_public? %>
-                <span class="inline-block mt-2 text-xs font-semibold uppercase tracking-wide text-brand-blue-800 bg-brand-blue-50 px-2 py-0.5 rounded">Signed-in users only</span>
-              <% end %>
-            </div>
-          </div>
-
-          <% if current_user&.can_edit? %>
-            <div class="flex gap-4 shrink-0">
-              <%= link_to "Edit", edit_page_path(page), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-              <% if current_user&.can_delete? %>
-                <%= button_to "Delete", page_path(page), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-              <% end %>
-            </div>
-          <% end %>
-        </div>
+          </tbody>
+        </table>
       </div>
-    <% end %>
-
-    <% if @pages.empty? %>
-      <div class="text-center text-gray-500 py-12">
-        <p class="text-xl">No pages yet.</p>
-        <% if current_user&.can_create? %>
-          <p class="mt-4">
-            <%= link_to "Create the first page", new_page_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-          </p>
-        <% end %>
-      </div>
-    <% end %>
-  </div>
+    </div>
+  <% else %>
+    <div class="text-center text-gray-500 py-12">
+      <p class="text-xl">No pages yet.</p>
+      <% if current_user&.can_create? %>
+        <p class="mt-4">
+          <%= link_to "Create the first page", new_page_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </p>
+      <% end %>
+    </div>
+  <% end %>
 </div>

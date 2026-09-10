@@ -1,13 +1,13 @@
 class PagesController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:index, :show]
+  skip_before_action :authenticate_user!, only: [:show]
   before_action :require_creator!, only: [:new, :create]
-  before_action :require_editor!, only: [:edit, :update]
+  before_action :require_editor!, only: [:index, :edit, :update]
   before_action :require_admin!, only: [:destroy]
   before_action :set_page, only: [:show, :edit, :update, :destroy]
   before_action :require_page_access!, only: [:show]
 
   def index
-    @pages = Page.readable_by(current_user).with_attached_main_image.order(:title)
+    @pages = Page.order(:title)
   end
 
   def show
