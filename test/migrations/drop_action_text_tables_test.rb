@@ -16,13 +16,12 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     @blob_ids = []
 
     ActiveRecord::Base.connection.drop_table(:action_text_rich_texts, if_exists: true)
-    DropActionTextTables.new.migrate(:down)
+    create_action_text_rich_texts_table
     LegacyRichText.reset_column_information
   end
 
   def teardown
     ActiveStorage::Attachment.where(record_type: "ActionText::RichText").delete_all
-    ActiveStorage::Attachment.where(name: "content_html_embeds").delete_all
     ActiveStorage::Blob.where(id: @blob_ids).find_each(&:purge)
     Article.where(id: @article_ids).delete_all
     Page.where(id: @page_ids).delete_all
@@ -30,30 +29,18 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     super
   end
 
-  test "copies missing content_html from Action Text and rehomes referenced embeds" do
-    article = Article.create!(title: "Migration Article", content_html: "<p>Temp</p>", user: users(:admin))
+  test "removes Action Text attachments without changing article content_html" do
+    article = Article.create!(title: "Migration Article", content_html: "<p>TinyMCE wins</p>", user: users(:admin))
     @article_ids << article.id
-    article.update_columns(content_html: "", updated_at: 1.day.ago)
 
     blob = create_blob(filename: "embedded.png", body: "pngdata", content_type: "image/png")
-    rich_text = create_rich_text(
-      record_type: "Article",
-      record_id: article.id,
-      body: %(<p>New</p><img src="/rails/active_storage/blobs/redirect/#{blob.signed_id}/embedded.png">),
-      created_at: 2.days.ago,
-      updated_at: Time.current
-    )
+    rich_text = create_rich_text(record_type: "Article", record_id: article.id, body: "<p>Trix content</p>")
     create_legacy_attachment(rich_text_id: rich_text.id, blob_id: blob.id)
 
     DropActionTextTables.new.migrate(:up)
 
-    assert_equal rich_text.body, article.reload.content_html
-    assert ActiveStorage::Attachment.exists?(
-      record_type: "Article",
-      record_id: article.id,
-      name: "content_html_embeds",
-      blob_id: blob.id
-    )
+    assert_equal "<p>TinyMCE wins</p>", article.reload.content_html
+    assert_not ActiveRecord::Base.connection.data_source_exists?("action_text_rich_texts")
     assert_not ActiveStorage::Attachment.exists?(
       record_type: "ActionText::RichText",
       record_id: rich_text.id,
@@ -61,63 +48,36 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     )
   end
 
-  test "aborts when newer Action Text content would overwrite TinyMCE content_html" do
-    article = Article.create!(title: "Migration Article", content_html: "<p>TinyMCE wins</p>", user: users(:admin))
-    @article_ids << article.id
-    article.update_columns(updated_at: 1.day.ago)
+  test "does not backfill blank content_html from Action Text" do
+    page = Page.create!(title: "Migration Page", content_html: "<p>Temp</p>")
+    @page_ids << page.id
+    page.update_columns(content_html: "")
 
-    rich_text = create_rich_text(
-      record_type: "Article",
-      record_id: article.id,
-      body: "<p>Newer Trix</p>",
-      created_at: 2.days.ago,
-      updated_at: Time.current
-    )
+    rich_text = create_rich_text(record_type: "Page", record_id: page.id, body: "<p>Trix only</p>")
 
-    error = assert_raises(ActiveRecord::IrreversibleMigration) do
-      DropActionTextTables.new.migrate(:up)
-    end
+    DropActionTextTables.new.migrate(:up)
 
-    assert_includes error.message, "newer rich text content differs from content_html"
-    assert_equal "<p>TinyMCE wins</p>", article.reload.content_html
+    assert_equal "", page.reload.content_html
+    assert_not ActiveRecord::Base.connection.data_source_exists?("action_text_rich_texts")
     assert_not ActiveStorage::Attachment.exists?(
       record_type: "ActionText::RichText",
       record_id: rich_text.id
     )
   end
 
-  test "keeps newer TinyMCE content_html and removes obsolete legacy embeds" do
-    page = Page.create!(title: "Migration Page", content_html: "<p>TinyMCE wins</p>")
-    @page_ids << page.id
-    page.update_columns(updated_at: Time.current)
-
-    blob = create_blob(filename: "obsolete.png", body: "pngdata", content_type: "image/png")
-    rich_text = create_rich_text(
-      record_type: "Page",
-      record_id: page.id,
-      body: "<p>Older Trix</p>",
-      created_at: 2.days.ago,
-      updated_at: 1.day.ago
-    )
-    create_legacy_attachment(rich_text_id: rich_text.id, blob_id: blob.id)
-
-    DropActionTextTables.new.migrate(:up)
-
-    assert_equal "<p>TinyMCE wins</p>", page.reload.content_html
-    assert_not ActiveStorage::Attachment.exists?(
-      record_type: "Page",
-      record_id: page.id,
-      name: "content_html_embeds",
-      blob_id: blob.id
-    )
-    assert_not ActiveStorage::Attachment.exists?(
-      record_type: "ActionText::RichText",
-      record_id: rich_text.id,
-      blob_id: blob.id
-    )
-  end
-
   private
+
+  def create_action_text_rich_texts_table
+    ActiveRecord::Base.connection.create_table(:action_text_rich_texts) do |t|
+      t.string :name, null: false
+      t.text :body
+      t.references :record, null: false, polymorphic: true, index: false
+
+      t.timestamps
+
+      t.index [:record_type, :record_id, :name], name: "index_action_text_rich_texts_uniqueness", unique: true
+    end
+  end
 
   def create_blob(filename:, body:, content_type:)
     blob = ActiveStorage::Blob.create_and_upload!(
@@ -129,25 +89,22 @@ class DropActionTextTablesTest < ActiveSupport::TestCase
     blob
   end
 
-  def create_rich_text(record_type:, record_id:, body:, created_at:, updated_at:)
+  def create_rich_text(record_type:, record_id:, body:)
     LegacyRichText.create!(
       record_type: record_type,
       record_id: record_id,
       name: "content",
-      body: body,
-      created_at: created_at,
-      updated_at: updated_at
+      body: body
     )
   end
 
   def create_legacy_attachment(rich_text_id:, blob_id:)
-    timestamp = Time.current
     ActiveStorage::Attachment.insert_all!([{
       name: "embeds",
       record_type: "ActionText::RichText",
       record_id: rich_text_id,
       blob_id: blob_id,
-      created_at: timestamp
+      created_at: Time.current
     }])
   end
 end
