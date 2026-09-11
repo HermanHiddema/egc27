@@ -9,16 +9,16 @@ class EgdSyncJobTest < ActiveSupport::TestCase
       @queries = []
     end
 
-    def search(query:)
-      @queries << query
-      @results_by_pin.fetch(query, [])
+    def find_by_pin(pin:)
+      @queries << pin
+      @results_by_pin[pin]
     end
   end
 
   test "updates rank and rating for participants with a valid egd pin" do
     participant = participants(:one)
     lookup = FakeLookup.new(
-      participant.egd_pin => [{ egd_pin: participant.egd_pin, playing_strength: 32, rating: 2255 }]
+      participant.egd_pin => { egd_pin: participant.egd_pin, playing_strength: 32, rating: 2255 }
     )
 
     with_stubbed_lookup(lookup) do
@@ -64,7 +64,7 @@ class EgdSyncJobTest < ActiveSupport::TestCase
     participant = participants(:one)
     rank = participant.rank
     lookup = FakeLookup.new(
-      participant.egd_pin => [{ egd_pin: "99999999", playing_strength: 35, rating: 2500 }]
+      participant.egd_pin => { egd_pin: "99999999", playing_strength: 35, rating: 2500 }
     )
 
     with_stubbed_lookup(lookup) do

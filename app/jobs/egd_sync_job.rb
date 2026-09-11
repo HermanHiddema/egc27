@@ -20,10 +20,10 @@ class EgdSyncJob < ApplicationJob
 
   def sync(participant, lookup)
     pin = participant.egd_pin.to_s.strip
-    return false unless pin.match?(/\A\d{8}\z/)
-
-    entry = lookup.search(query: pin).find { |row| row[:egd_pin].to_s == pin }
+    entry = lookup.find_by_pin(pin: pin)
     return false if entry.blank?
+    # The API resolves a PIN exactly, but a mismatched answer is never applied.
+    return false unless entry[:egd_pin].to_s == pin
 
     rank = entry[:playing_strength]
     rating = entry[:rating]
