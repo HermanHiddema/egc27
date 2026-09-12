@@ -72,6 +72,7 @@ Rails.application.routes.draw do
     collection do
       get :egd_search
       get :egd_registered
+      post :email_registered
       get :alter_registration
       get :mine
     end

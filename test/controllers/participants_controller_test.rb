@@ -240,7 +240,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input#participant_email:not([readonly])"
-    assert_select "p.text-gray-500", text: /multiple participants/
+    assert_select "div.md\\:col-span-2 p.text-gray-500", text: /multiple participants/
+    assert_select "div.md\\:col-span-2 [data-egd-autocomplete-target='existingAccountNotice']"
   end
 
   test "create forces the signed in user's email even if a different one is submitted" do
@@ -592,55 +593,54 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal user, participant.user
   end
 
-  test "links participant to existing user when email matches" do
+  test "links participant to existing user when the owner is signed in" do
     existing_user = users(:one)
+    sign_in existing_user
 
     assert_difference("User.count", 0) do
-      assert_emails 1 do
-        post participants_path, params: {
-          participant: {
-            first_name: "Test",
-            last_name: "User",
-            email: existing_user.email,
-            participant_type: "player",
-            age_group: "18-49",
-            country: "NL",
-            club: "Utrecht",
-            gender: "female",
-            image_use_consent: false
-          }
-        }
-      end
-    end
-
-    participant = Participant.order(:id).last
-    assert_equal existing_user, participant.user
-    assert_nil participant.confirmed_at, "participant linked to confirmed user should not be auto-confirmed"
-  end
-
-  test "sends confirmation email when participant is linked to already-confirmed user" do
-    existing_user = users(:one)
-    assert existing_user.confirmed?, "fixture user should be confirmed"
-
-    assert_emails 1 do
       post participants_path, params: {
         participant: {
-          first_name: "Auto",
-          last_name: "Confirmed",
+          first_name: "Test",
+          last_name: "User",
           email: existing_user.email,
           participant_type: "player",
           age_group: "18-49",
           country: "NL",
           club: "Utrecht",
-          gender: "male",
-          image_use_consent: true
+          gender: "female",
+          image_use_consent: false
         }
       }
     end
 
     participant = Participant.order(:id).last
-    assert_nil participant.confirmed_at, "participant should not be auto-confirmed"
-    assert_not_nil participant.confirmation_token, "confirmation token should be set"
+    assert_equal existing_user, participant.user
+  end
+
+  test "refuses a guest registration with an existing confirmed account email" do
+    existing_user = users(:one)
+    assert existing_user.confirmed?, "fixture user should be confirmed"
+
+    assert_no_difference("Participant.count") do
+      assert_emails 0 do
+        post participants_path, params: {
+          participant: {
+            first_name: "Auto",
+            last_name: "Confirmed",
+            email: existing_user.email,
+            participant_type: "player",
+            age_group: "18-49",
+            country: "NL",
+            club: "Utrecht",
+            gender: "male",
+            image_use_consent: true
+          }
+        }
+      end
+    end
+
+    assert_redirected_to new_user_session_path
+    assert_match "log in first", flash[:alert]
   end
 
   test "does not confirm participant when user is unconfirmed" do
@@ -662,7 +662,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at
   end
 
-  test "sends participant confirmation when registering under an existing unconfirmed user" do
+  test "refuses a guest registration with an existing unconfirmed account email" do
     unconfirmed_user = User.create!(
       email: "pending_account@example.org",
       password: "password123",
@@ -670,8 +670,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     )
     assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
 
-    assert_difference("User.count", 0) do
-      assert_emails 1 do
+    assert_no_difference("Participant.count") do
+      assert_emails 0 do
         post participants_path, params: {
           participant: {
             first_name: "Pending",
@@ -688,15 +688,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    participant = Participant.order(:id).last
-    assert_equal unconfirmed_user, participant.user
-    assert_nil participant.confirmed_at
-    assert_not_nil participant.confirmation_token, "confirmation token should be set"
-
-    email = ActionMailer::Base.deliveries.last
-    assert_equal [unconfirmed_user.email], email.to
-    assert_equal "EGC 2027 – Please confirm your registration", email.subject
-    assert_match "Pending Account", email.body.decoded
+    assert_redirected_to new_user_confirmation_path
+    assert_match "confirm your email address", flash[:alert]
+    assert_match "confirmation email was sent", flash[:alert]
+    assert_match "check your spam folder", flash[:alert]
   end
 
   test "confirm action confirms participant with valid token" do
@@ -816,6 +811,65 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     payload = JSON.parse(response.body)
     assert_equal false, payload["registered"]
+  end
+
+  test "email_registered reports an existing confirmed account email with a sign in url" do
+    post email_registered_participants_path, params: { email: users(:one).email }, as: :json
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_match "log in first", payload["message"]
+    assert_equal new_user_session_path, payload["action_url"]
+    assert_equal "Log in first", payload["action_label"]
+  end
+
+  test "email_registered does not require turnstile verification" do
+    with_turnstile_configured do
+      post email_registered_participants_path, params: { email: users(:one).email }, as: :json
+    end
+
+    assert_response :success
+  end
+
+  test "email_registered reports an existing unconfirmed account email with a confirmation url" do
+    unconfirmed_user = User.create!(
+      email: "pending_lookup@example.org",
+      password: "password123",
+      role: "regular"
+    )
+    assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
+
+    post email_registered_participants_path, params: { email: unconfirmed_user.email }, as: :json
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_match "confirm your email address", payload["message"]
+    assert_match "confirmation email was sent", payload["message"]
+    assert_match "check your spam folder", payload["message"]
+    assert_equal new_user_confirmation_path, payload["action_url"]
+    assert_equal "Resend confirmation instructions", payload["action_label"]
+  end
+
+  test "email_registered treats a blank or unknown email as available" do
+    post email_registered_participants_path, params: { email: "" }, as: :json
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["action_url"]
+
+    post email_registered_participants_path, params: { email: "available@example.org" }, as: :json
+
+    assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["action_url"]
   end
 
   test "alter_registration sends confirmed users to sign in with a flash" do

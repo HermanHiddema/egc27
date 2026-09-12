@@ -17,7 +17,7 @@ require "test_helper"
 #  first_name                    :string           not null
 #  first_week                    :boolean          default(TRUE), not null
 #  gender                        :string
-#  image_use_consent             :boolean          default(NULL), not null
+#  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
 #  participant_type              :string           default("player"), not null
 #  phone                         :string

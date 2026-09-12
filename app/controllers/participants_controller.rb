@@ -1,10 +1,11 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :alter_registration, :confirm, :resend_confirmation]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration, :confirm, :resend_confirmation]
   before_action :build_participant, only: [:create]
   before_action :set_participant, only: [:show, :resend_confirmation]
   before_action :verify_turnstile, only: [:create, :resend_confirmation]
+  before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index
     participants = Participant.where.not(confirmed_at: nil)
@@ -101,6 +102,15 @@ class ParticipantsController < ApplicationController
     render json: payload
   end
 
+  # Checks whether the entered registration email already belongs to an account
+  # so the public form can warn guests before they submit the full registration.
+  def email_registered
+    user = existing_user_for_email(params[:email])
+
+    response.set_header("Cache-Control", "no-store")
+    render json: email_registered_payload_for(user)
+  end
+
   # Entry point for someone who tried to register an EGD entry that already
   # exists. Routes them to re-access the existing account without exposing the
   # account email address on a public page.
@@ -137,8 +147,52 @@ class ParticipantsController < ApplicationController
       normalize_email(participant.email) == normalize_email(current_user.email)
   end
 
+  # An email address that already has an account may only be used for further
+  # registrations by the owner of that account, so guests registering with such
+  # an address are refused and asked to sign in first. Runs after the Turnstile
+  # check so the response can't be used to probe for existing accounts.
+  def refuse_registration_for_existing_account
+    return if user_signed_in?
+
+    user = existing_user_for_email(@participant.email)
+    return if user.nil?
+
+    redirect_to existing_account_action_url_for(user),
+      alert: existing_account_alert_for(user)
+  end
+
   def normalize_email(email)
     email.to_s.strip.downcase
+  end
+
+  def existing_user_for_email(email)
+    normalized_email = normalize_email(email)
+    return if normalized_email.blank?
+
+    User.find_by(email: normalized_email)
+  end
+
+  def existing_account_alert_for(user)
+    if user.confirmed?
+      "An account with that email address already exists. Please log in first to register another participant."
+    else
+      "That email address is already registered, and a confirmation email was sent. Please open that email and confirm your email address to continue. If you cannot find the email, make sure to check your spam folder."
+    end
+  end
+
+  def existing_account_action_url_for(user)
+    user.confirmed? ? new_user_session_path : new_user_confirmation_path
+  end
+
+  def email_registered_payload_for(user)
+    return { registered: false } if user.nil?
+
+    {
+      registered: true,
+      message: existing_account_alert_for(user),
+      action_url: existing_account_action_url_for(user),
+      action_label: user.confirmed? ? "Log in first" : "Resend confirmation instructions"
+    }
   end
 
   # Where to send a participant once their registration is confirmed: players
