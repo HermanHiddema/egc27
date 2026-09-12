@@ -690,8 +690,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to new_user_confirmation_path
     assert_match "confirm your email address", flash[:alert]
-    assert_match "already sent a confirmation email", flash[:alert]
-    assert_match "spam folder", flash[:alert]
+    assert_match "confirmation email was sent", flash[:alert]
+    assert_match "check your spam folder", flash[:alert]
   end
 
   test "confirm action confirms participant with valid token" do
@@ -840,8 +840,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     payload = JSON.parse(response.body)
     assert_equal true, payload["registered"]
     assert_match "confirm your email address", payload["message"]
-    assert_match "already sent a confirmation email", payload["message"]
-    assert_match "spam folder", payload["message"]
+    assert_match "confirmation email was sent", payload["message"]
+    assert_match "check your spam folder", payload["message"]
     assert_equal new_user_confirmation_path, payload["action_url"]
     assert_equal "Resend confirmation instructions", payload["action_label"]
   end

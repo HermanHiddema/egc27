@@ -176,7 +176,7 @@ class ParticipantsController < ApplicationController
     if user.confirmed?
       "An account with that email address already exists. Please log in first to register another participant."
     else
-      "An account with that email address already exists. Please confirm your email address to continue. We already sent a confirmation email; check your inbox and spam folder."
+      "That email address is already registered, and a confirmation email was sent. Please open that email and confirm your email address to continue. If you cannot find the email, make sure to check your spam folder."
     end
   end
 
