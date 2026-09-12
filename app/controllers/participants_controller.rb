@@ -156,7 +156,7 @@ class ParticipantsController < ApplicationController
         alert: "An account with that email address already exists. Please log in first to register another participant."
     else
       redirect_to new_user_confirmation_path,
-        notice: "An account with that email address already exists. Please confirm your email address to continue."
+        alert: "An account with that email address already exists. Please confirm your email address to continue."
     end
   end
 
