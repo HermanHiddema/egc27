@@ -203,6 +203,7 @@ class PaymentsController < ApplicationController
     return unless existing&.mollie_payment_id.present?
 
     sync_from_mollie(existing, Mollie::Payment.get(existing.mollie_payment_id))
+    @participant.association(:payments).reset
   rescue Mollie::Exception => e
     Rails.logger.error "[Mollie] Error refreshing paid payment #{existing.mollie_payment_id}: #{e.message}"
   end
