@@ -206,7 +206,6 @@ export default class extends Controller {
             if (!response.ok) {
                 const currentEmail = this.normalizedEmail()
                 if (currentEmail !== email) return
-                this.hideExistingAccountNotice()
                 return
             }
 
