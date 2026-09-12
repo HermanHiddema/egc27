@@ -402,13 +402,13 @@ export default class extends Controller {
         )
 
         const items = matches.map(({ code, name }) => `
-            <button type="button" id="${this.countryOptionIdFor(code)}" role="option" aria-selected="false" data-country-code="${code}" data-action="egd-autocomplete#chooseCountry" class="block w-full text-left px-4 py-2 text-sm text-neutral-900 hover:bg-gray-50">
+            <button type="button" id="${this.countryOptionIdFor(code)}" role="option" aria-selected="false" tabindex="-1" data-country-code="${code}" data-action="egd-autocomplete#chooseCountry" class="block w-full text-left px-4 py-2 text-sm text-neutral-900 hover:bg-gray-50">
               ${this.escapeHtml(name)} (${code})
             </button>
         `)
 
         items.push(`
-            <button type="button" id="${this.countryOptionIdFor("clear")}" role="option" aria-selected="false" data-action="egd-autocomplete#clearCountry" class="block w-full text-left px-4 py-2 text-sm font-medium text-neutral-600 border-t border-gray-200 hover:bg-gray-50">
+            <button type="button" id="${this.countryOptionIdFor("clear")}" role="option" aria-selected="false" tabindex="-1" data-action="egd-autocomplete#clearCountry" class="block w-full text-left px-4 py-2 text-sm font-medium text-neutral-600 border-t border-gray-200 hover:bg-gray-50">
               Clear
             </button>
         `)
@@ -450,8 +450,8 @@ export default class extends Controller {
         this.countryCodeTarget.value = ""
         this.countryInputTarget.value = ""
         this.updateCountryClear()
-        this.hideCountryOptions()
         this.countryInputTarget.focus()
+        this.hideCountryOptions()
     }
 
     countryKeydown(event) {
