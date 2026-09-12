@@ -10,6 +10,8 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
+    refresh_latest_completed_payment
+
     @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
     @price_valid_until = CongressPassPricing.new(
       attendance_option: @participant.attendance_option,
@@ -23,14 +25,8 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     created_payment = false
 
+    refresh_latest_completed_payment
     existing = @participant.payments.completed.order(created_at: :desc).first
-    if existing&.mollie_payment_id.present?
-      begin
-        sync_from_mollie(existing, Mollie::Payment.get(existing.mollie_payment_id))
-      rescue Mollie::Exception => e
-        Rails.logger.error "[Mollie] Error refreshing paid payment #{existing.mollie_payment_id}: #{e.message}"
-      end
-    end
     return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing&.paid?
 
     @payment = @participant.payments.pending_or_open.order(created_at: :desc).first
@@ -195,6 +191,15 @@ class PaymentsController < ApplicationController
 
   def retryable_mollie_status?(status)
     %w[open pending authorized].include?(status)
+  end
+
+  def refresh_latest_completed_payment
+    existing = @participant.payments.completed.order(created_at: :desc).first
+    return unless existing&.mollie_payment_id.present?
+
+    sync_from_mollie(existing, Mollie::Payment.get(existing.mollie_payment_id))
+  rescue Mollie::Exception => e
+    Rails.logger.error "[Mollie] Error refreshing paid payment #{existing.mollie_payment_id}: #{e.message}"
   end
 
   def simulate_mollie_payment?

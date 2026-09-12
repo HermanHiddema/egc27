@@ -107,11 +107,35 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "new shows paid state for participant with completed payment" do
     participant = participants(:two)
 
-    get new_participant_payment_path(participant)
+    with_paid_mollie_stub(payments(:paid_payment)) do
+      get new_participant_payment_path(participant)
+    end
 
     assert_response :success
     assert_match "already been paid", response.body
     assert_no_match "This price is valid until", response.body
+  end
+
+  test "new allows retry when local paid payment is remotely refunded" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
+
+    get new_participant_payment_path(participant)
+
+    assert_response :success
+    assert_equal "refunded", paid_payment.reload.status
+    assert_no_match "already been paid", response.body
+    assert_select "form[action='#{participant_payment_path(participant)}']"
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   # create
@@ -135,7 +159,9 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to success page when payment already completed" do
     participant = participants(:two)
 
-    post participant_payment_path(participant)
+    with_paid_mollie_stub(payments(:paid_payment)) do
+      post participant_payment_path(participant)
+    end
 
     assert_redirected_to success_payments_path
   end
@@ -162,6 +188,41 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://example.test/retry-checkout"
     assert_equal "refunded", paid_payment.reload.status
     assert_equal "open", participant.payments.order(created_at: :desc).first.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create keeps existing successful registration when another payment remains paid" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Manual fallback payment",
+      provider: "manual",
+      payment_method: "bank_transfer",
+      status: "paid",
+      created_at: paid_payment.created_at - 1.day,
+      updated_at: paid_payment.updated_at - 1.day
+    )
+    refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+    )
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| flunk("should not create a new payment") }
+
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to success_payments_path
+    assert_equal "refunded", paid_payment.reload.status
+    assert_equal 1, participant.payments.completed.count
   ensure
     Mollie::Payment.define_singleton_method(:get, &original_get)
     Mollie::Payment.define_singleton_method(:create, &original_create)
