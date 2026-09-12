@@ -241,8 +241,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       provider: "manual",
       payment_method: "bank_transfer",
       status: "paid",
-      created_at: paid_payment.created_at - 1.day,
-      updated_at: paid_payment.updated_at - 1.day
+      created_at: paid_payment.created_at + 1.day,
+      updated_at: paid_payment.updated_at + 1.day
     )
     refunded_mollie = OpenStruct.new(
       id: paid_payment.mollie_payment_id,

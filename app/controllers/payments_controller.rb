@@ -200,7 +200,7 @@ class PaymentsController < ApplicationController
 
   def refresh_completed_payments_until_paid
     @participant.payments.completed.order(created_at: :desc).each do |payment|
-      break if payment.mollie_payment_id.blank?
+      next if payment.mollie_payment_id.blank?
 
       sync_from_mollie(payment, Mollie::Payment.get(payment.mollie_payment_id))
       break if payment.paid?
