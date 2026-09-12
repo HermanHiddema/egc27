@@ -164,6 +164,39 @@ class Participant < ApplicationRecord
     end
   end
 
+  # The most recent payment that completed successfully, if any.
+  def paid_payment
+    payments.completed.order(created_at: :desc).first
+  end
+
+  # The most recent payment that is still in progress at the provider, if any.
+  def pending_payment
+    payments.pending_or_open.order(created_at: :desc).first
+  end
+
+  # The payment to show on the payment page: a completed payment, an in-progress
+  # payment, or an unsaved payment for the current price.
+  def current_payment
+    paid_payment || pending_payment || Payment.build_for(self)
+  end
+
+  # Mollie keeps a refunded payment as "paid", so payments that are paid here
+  # are refreshed from Mollie until one of them is still paid there. Errors are
+  # logged instead of raised, so an unreachable Mollie does not block the
+  # payment page.
+  def refresh_paid_payments!
+    payments.completed.order(created_at: :desc).each do |payment|
+      next if payment.mollie_payment_id.blank?
+
+      payment.refresh_from_mollie!
+      break if payment.paid?
+    end
+
+    association(:payments).reset
+  rescue Mollie::Exception => e
+    Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{id}: #{e.message}"
+  end
+
   # Payments that are canceled, expired, failed or refunded can never succeed
   # anymore, so they do not block recording a manual payment. Uses the in-memory
   # association when it is already loaded, like #paid?.

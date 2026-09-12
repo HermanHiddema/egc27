@@ -1,4 +1,6 @@
 class PaymentsController < ApplicationController
+  ALREADY_PAID_NOTICE = "Your registration has already been paid.".freeze
+
   skip_before_action :authenticate_user!, only: [:new, :create, :success, :webhook]
   skip_before_action :verify_authenticity_token, only: [:webhook]
 
@@ -10,99 +12,57 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    refresh_completed_payments_until_paid
+    @participant.refresh_paid_payments!
 
-    @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
-    @price_valid_until = CongressPassPricing.new(
-      attendance_option: @participant.attendance_option,
-      payment_date: (@payment.created_at&.to_date || Date.current),
-      age_group: @participant.age_group
-    ).current_tier_valid_until
+    @payment = @participant.current_payment
+    @price_valid_until = @payment.price_valid_until
     @show_simulation_controls = mollie_simulation_enabled?
   end
 
   def create
     @confirmed = @participant.confirmed?
-    created_payment = false
 
-    refresh_completed_payments_until_paid
-    existing = @participant.payments.completed.order(created_at: :desc).first
-    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing&.paid?
+    @participant.refresh_paid_payments!
+    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @participant.paid_payment.present?
 
-    @payment = @participant.payments.pending_or_open.order(created_at: :desc).first
-
-    unless @payment
-      @payment = build_payment_for(@participant)
-      created_payment = true
-
-      unless @payment.save
-        render :new, status: :unprocessable_entity and return
-      end
-    end
+    @payment = @participant.pending_payment || start_new_payment_attempt
 
     if simulate_mollie_payment?
-      @payment.update!(status: params[:simulate_status], mollie_payment_id: nil)
+      @payment.simulate_mollie_status!(params[:simulate_status])
       return redirect_to success_payments_path(payment_id: @payment.id),
         notice: "Simulated Mollie payment status: #{@payment.status}."
     end
 
-    mollie_payment = @payment.mollie_payment_id.present? ? Mollie::Payment.get(@payment.mollie_payment_id) : nil
+    checkout_url = @payment.resume_mollie_checkout!
+    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
 
-    if mollie_payment&.status.present?
-      sync_from_mollie(@payment, mollie_payment)
+    if checkout_url.blank?
+      # A Mollie payment that cannot be completed anymore is replaced by a new
+      # payment attempt, because Mollie owns the state of its own payments.
+      @payment = start_new_payment_attempt if @payment.mollie_payment_id.present?
+      checkout_url = @payment.start_mollie_checkout!(
+        redirect_url: success_payments_url(payment_id: @payment.id),
+        webhook_url: webhook_payments_url
+      )
     end
 
-    if @payment.paid?
-      return redirect_to success_payments_path, notice: "Your registration has already been paid."
-    end
-
-    if mollie_payment.nil?
-      mollie_payment = create_mollie_payment_for(@payment)
-    elsif mollie_payment.checkout_url.blank? || !retryable_mollie_status?(mollie_payment.status)
-      @payment = build_payment_for(@participant)
-      created_payment = true
-
-      unless @payment.save
-        render :new, status: :unprocessable_entity and return
-      end
-
-      mollie_payment = create_mollie_payment_for(@payment)
-    end
-
-    raise Mollie::Exception, "No checkout URL was returned by Mollie." if mollie_payment.checkout_url.blank?
-
-    @payment.update!(mollie_payment_id: mollie_payment.id) if @payment.mollie_payment_id.blank?
-
-    redirect_to mollie_payment.checkout_url, allow_other_host: true
+    redirect_to checkout_url, allow_other_host: true
+  rescue ActiveRecord::RecordInvalid => e
+    @payment = e.record
+    render :new, status: :unprocessable_entity
   rescue Mollie::Exception => e
-    if created_payment && @payment&.persisted? && @payment.mollie_payment_id.blank?
-      @payment.destroy
-      @payment = build_payment_for(@participant)
-    end
+    discard_unstarted_payment_attempt
     flash.now[:alert] = "Payment could not be started: #{e.message}"
     render :new, status: :unprocessable_entity
   end
 
   def success
     @payment = Payment.find_by(id: params[:payment_id])
-
-    if @payment&.mollie_payment_id.present?
-      begin
-        mollie_payment = Mollie::Payment.get(@payment.mollie_payment_id)
-        sync_from_mollie(@payment, mollie_payment)
-      rescue Mollie::Exception => e
-        Rails.logger.error "[Mollie] Error fetching payment status for #{@payment.mollie_payment_id}: #{e.message}"
-      end
-    end
+    @payment&.refresh_from_mollie
   end
 
   def webhook
-    mollie_payment = Mollie::Payment.get(params[:id])
-    payment = Payment.find_by(mollie_payment_id: mollie_payment.id)
-
-    if payment
-      sync_from_mollie(payment, mollie_payment)
-    end
+    Payment.sync_from_mollie_webhook(params[:id])
 
     head :ok
   rescue Mollie::Exception => e
@@ -129,86 +89,22 @@ class PaymentsController < ApplicationController
     end
   end
 
-  def build_payment_for(participant)
-    pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group, participant_number: participant.participant_number)
-    participant.payments.build(
-      amount_cents: pricing.price_cents,
-      description: pricing.description,
-      status: "open"
-    )
-  end
-
-  def create_mollie_payment_for(payment)
-    Mollie::Payment.create(
-      amount: { value: format("%.2f", payment.amount_eur), currency: "EUR" },
-      description: payment.description,
-      redirect_url: success_payments_url(payment_id: payment.id),
-      webhook_url: webhook_payments_url,
-      metadata: { payment_id: payment.id, participant_id: payment.participant_id }
-    )
-  end
-
-  # Mollie reports the method the payer actually used (ideal, creditcard, …)
-  # once it is known, which is recorded alongside the status.
-  def sync_from_mollie(payment, mollie_payment)
-    payment.update!(
-      status: mollie_status(mollie_payment),
-      payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
-    )
-  end
-
-  # A refunded payment keeps the "paid" status at Mollie, which only reports the
-  # refunded amount separately, so refunds are mapped onto our own "refunded"
-  # status.
-  def mollie_status(mollie_payment)
-    return "refunded" if mollie_refunded?(mollie_payment)
-
-    mollie_payment.status
-  end
-
-  def mollie_refunded?(mollie_payment)
-    refunded_amount = mollie_amount_value(mollie_payment.try(:amount_refunded))
-    refunded_amount&.positive?
-  end
-
-  def mollie_amount_value(amount)
-    return if amount.blank?
-
-    value = if amount.respond_to?(:value)
-      amount.value
-    elsif amount.respond_to?(:[])
-      amount["value"] || amount[:value]
+  def start_new_payment_attempt
+    Payment.build_for(@participant).tap do |payment|
+      payment.save!
+      @started_payment_attempt = payment
     end
-
-    return if value.blank?
-
-    BigDecimal(value.to_s)
   end
 
-  # Read from the raw Mollie attributes because `method` is also the name of a
-  # standard Ruby method, which makes the generated reader unreliable.
-  def mollie_payment_method(mollie_payment)
-    attributes = mollie_payment.try(:attributes)
-    return unless attributes.respond_to?(:[])
+  # A payment attempt created in this request that never reached Mollie leaves
+  # no trace there, so it is removed again and replaced by a fresh unsaved
+  # payment for the retry offered on the page.
+  def discard_unstarted_payment_attempt
+    return unless @started_payment_attempt&.persisted?
+    return if @started_payment_attempt.mollie_payment_id.present?
 
-    (attributes["method"] || attributes[:method]).presence
-  end
-
-  def retryable_mollie_status?(status)
-    %w[open pending authorized].include?(status)
-  end
-
-  def refresh_completed_payments_until_paid
-    @participant.payments.completed.order(created_at: :desc).each do |payment|
-      next if payment.mollie_payment_id.blank?
-
-      sync_from_mollie(payment, Mollie::Payment.get(payment.mollie_payment_id))
-      break if payment.paid?
-    end
-
-    @participant.association(:payments).reset
-  rescue Mollie::Exception => e
-    Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{@participant.id}: #{e.message}"
+    @started_payment_attempt.destroy
+    @payment = Payment.build_for(@participant) if @payment == @started_payment_attempt
   end
 
   def simulate_mollie_payment?
