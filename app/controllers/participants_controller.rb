@@ -5,6 +5,7 @@ class ParticipantsController < ApplicationController
   before_action :build_participant, only: [:create]
   before_action :set_participant, only: [:show, :resend_confirmation]
   before_action :verify_turnstile, only: [:create, :resend_confirmation]
+  before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index
     participants = Participant.where.not(confirmed_at: nil)
@@ -135,6 +136,28 @@ class ParticipantsController < ApplicationController
       current_user.confirmed? &&
       participant.user_id == current_user.id &&
       normalize_email(participant.email) == normalize_email(current_user.email)
+  end
+
+  # An email address that already has an account may only be used for further
+  # registrations by the owner of that account, so guests registering with such
+  # an address are refused and asked to sign in first. Runs after the Turnstile
+  # check so the response can't be used to probe for existing accounts.
+  def refuse_registration_for_existing_account
+    return if user_signed_in?
+
+    email = normalize_email(@participant.email)
+    return if email.blank?
+
+    user = User.find_by(email: email)
+    return if user.nil?
+
+    if user.confirmed?
+      redirect_to new_user_session_path,
+        alert: "An account with that email address already exists. Please log in first to register another participant."
+    else
+      redirect_to new_user_confirmation_path,
+        notice: "An account with that email address already exists. Please confirm your email address to continue."
+    end
   end
 
   def normalize_email(email)
