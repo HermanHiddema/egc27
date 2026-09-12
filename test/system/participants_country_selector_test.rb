@@ -1,6 +1,16 @@
 require "application_system_test_case"
 
 class ParticipantsCountrySelectorTest < ApplicationSystemTestCase
+  test "country label is associated with the country combobox" do
+    visit new_participant_path
+
+    country_input = find("[data-egd-autocomplete-target='countryInput']")
+    country_label = find("label", text: "Country *")
+
+    assert_equal "participant_country_display", country_input[:id]
+    assert_equal "participant_country_display", country_label[:for]
+  end
+
   test "country can be picked and cleared with the clear button" do
     visit new_participant_path
 
@@ -67,5 +77,26 @@ class ParticipantsCountrySelectorTest < ApplicationSystemTestCase
 
     assert_nil country_input["aria-activedescendant"]
     assert_equal "false", first_option["aria-selected"]
+  end
+
+  test "keyboard clear keeps the next dropdown opening available" do
+    visit new_participant_path
+
+    country_input = find("[data-egd-autocomplete-target='countryInput']")
+    country_input.fill_in with: "Belgium"
+    find("[data-egd-autocomplete-target='countryOptions'] button", text: "Belgium (BE)").click
+
+    country_input.click
+    country_input.send_keys(:arrow_up)
+    country_input.send_keys(:enter)
+
+    assert_equal "", find("#participant_country", visible: false).value
+    assert_equal "", country_input.value
+    assert_equal "false", country_input["aria-expanded"]
+
+    country_input.send_keys(:arrow_down)
+
+    assert_equal "true", country_input["aria-expanded"]
+    refute_nil country_input["aria-activedescendant"]
   end
 end

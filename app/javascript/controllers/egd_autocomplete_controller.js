@@ -455,8 +455,10 @@ export default class extends Controller {
         this.countryCodeTarget.value = ""
         this.countryInputTarget.value = ""
         this.updateCountryClear()
-        this.suppressCountryOptionsOnce = true
-        this.countryInputTarget.focus()
+        if (document.activeElement !== this.countryInputTarget) {
+            this.suppressCountryOptionsOnce = true
+            this.countryInputTarget.focus()
+        }
         this.hideCountryOptions()
     }
 

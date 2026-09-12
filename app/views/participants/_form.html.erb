@@ -61,10 +61,11 @@
           </div>
 
           <div>
-            <%= form.label :country, "Country *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.label :country, "Country *", for: "participant_country_display", class: "block text-sm font-medium text-gray-700 mb-2" %>
             <%= form.hidden_field :country, data: { egd_autocomplete_target: "countryCode" } %>
             <div class="relative" data-action="focusout->egd-autocomplete#countryFocusOut">
               <input
+                id="participant_country_display"
                 type="text"
                 class="w-full border border-gray-300 rounded-lg pl-4 pr-10 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600"
                 placeholder="Start typing country name or code"
