@@ -219,7 +219,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "label[for='participant_last_name']", text: "Last name *"
     assert_select "label[for='participant_gender']", text: "Gender *"
     assert_select "label[for='participant_age_group']", text: "Age group *"
-    assert_select "label[for='participant_country']", text: "Country *"
+    assert_select "label[for='participant_country_display']", text: "Country *"
     assert_select "label[for='participant_email']", text: "Email *"
     assert_select "label[for='participant_participant_type']", text: "Participant type *"
   end

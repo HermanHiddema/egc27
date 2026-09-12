@@ -41,7 +41,8 @@ export default class extends Controller {
         "lastName",
         "countryInput",
         "countryCode",
-        "countryDatalist",
+        "countryOptions",
+        "countryClear",
         "club",
         "rank",
         "rating",
@@ -62,6 +63,9 @@ export default class extends Controller {
         this.matches = []
         this.searchTimeout = null
         this.emailCheckTimeout = null
+        this.countries = []
+        this.countryHighlightIndex = -1
+        this.suppressCountryOptionsOnce = false
         this.countryByCode = new Map()
         this.codeByCountryName = new Map()
         this.initializeCountryAutocomplete()
@@ -240,6 +244,8 @@ export default class extends Controller {
 
     countryInputChanged() {
         this.syncCountryCodeFromInput(false)
+        this.updateCountryClear()
+        this.renderCountryOptions(this.countryInputTarget.value)
     }
 
     // The rating is locked: when a participant changes their rank manually we
@@ -321,8 +327,12 @@ export default class extends Controller {
         return Math.min(MAX_RATING, Math.max(MIN_RATING, rating))
     }
 
-    countryInputBlur() {
+    countryFocusOut(event) {
+        if (event.relatedTarget && event.currentTarget.contains(event.relatedTarget)) return
+
+        this.hideCountryOptions()
         this.syncCountryCodeFromInput(true)
+        this.updateCountryClear()
     }
 
     async performSearch(query) {
@@ -427,12 +437,12 @@ export default class extends Controller {
     }
 
     initializeCountryAutocomplete() {
-        if (!this.hasCountryInputTarget || !this.hasCountryCodeTarget || !this.hasCountryDatalistTarget) return
+        if (!this.hasCountryInputTarget || !this.hasCountryCodeTarget || !this.hasCountryOptionsTarget) return
 
         const codes = this.isoCountryCodes()
         const displayNames = new Intl.DisplayNames(["en"], { type: "region" })
 
-        const countries = codes
+        this.countries = codes
             .map((code) => {
                 const name = COUNTRY_NAME_OVERRIDES[code] || displayNames.of(code)
                 return { code, name: name || code }
@@ -442,17 +452,171 @@ export default class extends Controller {
         this.countryByCode.clear()
         this.codeByCountryName.clear()
 
-        const options = countries.map(({ code, name }) => {
+        this.countries.forEach(({ code, name }) => {
             this.countryByCode.set(code, name)
             this.codeByCountryName.set(name.toLowerCase(), code)
-            return `<option value="${this.escapeHtml(name)} (${code})"></option>`
         })
-
-        this.countryDatalistTarget.innerHTML = options.join("")
 
         if (this.countryCodeTarget.value) {
             this.applyCountryCode(this.countryCodeTarget.value)
         }
+
+        this.updateCountryClear()
+    }
+
+    // The dropdown is rendered by hand (instead of a native datalist) so it can
+    // offer an explicit "Clear" entry next to the matching countries.
+    renderCountryOptions(query) {
+        if (!this.hasCountryOptionsTarget) return
+
+        const normalizedQuery = String(query || "").trim().toLowerCase()
+        const matches = this.countries.filter(({ code, name }) =>
+            `${name} (${code})`.toLowerCase().includes(normalizedQuery)
+        )
+
+        const items = matches.map(({ code, name }) => `
+            <button type="button" id="${this.countryOptionIdFor(code)}" role="option" aria-selected="false" tabindex="-1" data-country-code="${code}" data-action="egd-autocomplete#chooseCountry" class="block w-full text-left px-4 py-2 text-sm text-neutral-900 hover:bg-gray-50">
+              ${this.escapeHtml(name)} (${code})
+            </button>
+        `)
+
+        items.push(`
+            <button type="button" id="${this.countryOptionIdFor("clear")}" role="option" aria-selected="false" tabindex="-1" data-action="egd-autocomplete#clearCountry" class="block w-full text-left px-4 py-2 text-sm font-medium text-neutral-600 border-t border-gray-200 hover:bg-gray-50">
+              Clear
+            </button>
+        `)
+
+        this.countryOptionsTarget.innerHTML = items.join("")
+        this.countryOptionsTarget.classList.remove("hidden")
+        this.countryInputTarget.setAttribute("aria-expanded", "true")
+        this.clearCountryHighlight()
+    }
+
+    showCountryOptions() {
+        if (!this.hasCountryOptionsTarget) return
+        if (this.suppressCountryOptionsOnce) {
+            this.suppressCountryOptionsOnce = false
+            return
+        }
+
+        const inputValue = String(this.countryInputTarget.value || "")
+        const selectedDisplay = this.countryDisplayFor(this.countryCodeTarget.value)
+
+        this.renderCountryOptions(inputValue === selectedDisplay ? "" : inputValue)
+    }
+
+    hideCountryOptions() {
+        if (!this.hasCountryOptionsTarget) return
+
+        this.countryOptionsTarget.classList.add("hidden")
+        this.countryInputTarget.setAttribute("aria-expanded", "false")
+        this.clearCountryHighlight()
+    }
+
+    chooseCountry(event) {
+        event.preventDefault()
+
+        this.applyCountryCode(event.currentTarget.dataset.countryCode)
+        this.countryInputTarget.focus()
+        this.hideCountryOptions()
+    }
+
+    clearCountry(event) {
+        event.preventDefault()
+
+        this.countryCodeTarget.value = ""
+        this.countryInputTarget.value = ""
+        this.updateCountryClear()
+        if (document.activeElement !== this.countryInputTarget) {
+            this.suppressCountryOptionsOnce = true
+            this.countryInputTarget.focus()
+        }
+        this.hideCountryOptions()
+    }
+
+    countryKeydown(event) {
+        if (event.key === "Escape") {
+            this.hideCountryOptions()
+            return
+        }
+
+        if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault()
+
+            if (this.countryOptionsTarget.classList.contains("hidden")) {
+                this.showCountryOptions()
+            }
+
+            this.moveCountryHighlight(event.key === "ArrowDown" ? 1 : -1)
+            return
+        }
+
+        if (event.key === "Enter") {
+            const highlighted = this.countryOptionElements()[this.countryHighlightIndex]
+            if (!highlighted || this.countryOptionsTarget.classList.contains("hidden")) return
+
+            event.preventDefault()
+            highlighted.click()
+        }
+    }
+
+    countryOptionElements() {
+        if (!this.hasCountryOptionsTarget) return []
+
+        return Array.from(this.countryOptionsTarget.querySelectorAll("button"))
+    }
+
+    moveCountryHighlight(step) {
+        const options = this.countryOptionElements()
+        if (options.length === 0) return
+
+        if (this.countryHighlightIndex === -1) {
+            this.countryHighlightIndex = step > 0 ? 0 : options.length - 1
+        } else {
+            const nextIndex = this.countryHighlightIndex + step
+            this.countryHighlightIndex = (nextIndex + options.length) % options.length
+        }
+
+        this.syncCountryHighlight(options)
+        options[this.countryHighlightIndex].scrollIntoView({ block: "nearest" })
+    }
+
+    clearCountryHighlight() {
+        this.countryHighlightIndex = -1
+        this.syncCountryHighlight()
+    }
+
+    syncCountryHighlight(options = this.countryOptionElements()) {
+        const activeOption = options[this.countryHighlightIndex]
+
+        options.forEach((option, index) => {
+            const selected = index === this.countryHighlightIndex
+            option.classList.toggle("bg-gray-100", selected)
+            option.setAttribute("aria-selected", selected ? "true" : "false")
+        })
+
+        if (activeOption) {
+            this.countryInputTarget.setAttribute("aria-activedescendant", activeOption.id)
+        } else {
+            this.countryInputTarget.removeAttribute("aria-activedescendant")
+        }
+    }
+
+    countryOptionIdFor(value) {
+        return `participant-country-option-${value}`
+    }
+
+    countryDisplayFor(value) {
+        const code = String(value || "").trim().toUpperCase()
+        const name = this.countryByCode.get(code)
+        return name ? `${name} (${code})` : ""
+    }
+
+    updateCountryClear() {
+        if (!this.hasCountryClearTarget) return
+
+        const hasValue = String(this.countryInputTarget.value || "").trim() !== ""
+        this.countryClearTarget.classList.toggle("hidden", !hasValue)
     }
 
     isoCountryCodes() {
@@ -461,21 +625,17 @@ export default class extends Controller {
 
     applyCountryCode(value) {
         const code = String(value || "").trim().toUpperCase()
-        if (!code) {
-            this.countryCodeTarget.value = ""
-            this.countryInputTarget.value = ""
-            return
-        }
+        const name = code ? this.countryByCode.get(code) : null
 
-        const name = this.countryByCode.get(code)
         if (!name) {
             this.countryCodeTarget.value = ""
             this.countryInputTarget.value = ""
-            return
+        } else {
+            this.countryCodeTarget.value = code
+            this.countryInputTarget.value = `${name} (${code})`
         }
 
-        this.countryCodeTarget.value = code
-        this.countryInputTarget.value = `${name} (${code})`
+        this.updateCountryClear()
     }
 
     syncCountryCodeFromInput(normalizeDisplay) {
