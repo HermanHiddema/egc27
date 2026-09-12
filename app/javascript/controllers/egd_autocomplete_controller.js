@@ -206,6 +206,7 @@ export default class extends Controller {
                     "cf-turnstile-response": turnstileToken
                 })
             })
+            if (turnstileToken) this.resetTurnstileWidget()
 
             if (!response.ok) {
                 const currentEmail = this.normalizedEmail()
@@ -245,6 +246,16 @@ export default class extends Controller {
 
         this.existingAccountNoticeTarget.innerHTML = ""
         this.existingAccountNoticeTarget.classList.add("hidden")
+    }
+
+    resetTurnstileWidget() {
+        if (typeof window.turnstile === "undefined") return
+
+        const turnstileElement = document.querySelector(".cf-turnstile")
+        const widgetId = turnstileElement?.dataset?.turnstileWidgetId
+        if (!widgetId) return
+
+        window.turnstile.reset(widgetId)
     }
 
     hide() {
