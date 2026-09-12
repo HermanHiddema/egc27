@@ -240,7 +240,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "input#participant_email:not([readonly])"
-    assert_select "p.text-gray-500", text: /multiple participants/
+    assert_select "div.md\\:col-span-2 p.text-gray-500", text: /multiple participants/
+    assert_select "div.md\\:col-span-2 [data-egd-autocomplete-target='existingAccountNotice']"
   end
 
   test "create forces the signed in user's email even if a different one is submitted" do
