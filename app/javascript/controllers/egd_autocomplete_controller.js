@@ -450,8 +450,8 @@ export default class extends Controller {
         this.countryCodeTarget.value = ""
         this.countryInputTarget.value = ""
         this.updateCountryClear()
-        this.countryInputTarget.focus()
         this.hideCountryOptions()
+        this.countryInputTarget.focus()
     }
 
     countryKeydown(event) {
