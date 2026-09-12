@@ -208,7 +208,7 @@ class PaymentsController < ApplicationController
 
     @participant.association(:payments).reset
   rescue Mollie::Exception => e
-    Rails.logger.error "[Mollie] Error refreshing paid payment #{payment&.mollie_payment_id}: #{e.message}"
+    Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{@participant.id}: #{e.message}"
   end
 
   def simulate_mollie_payment?
