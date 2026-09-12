@@ -61,6 +61,7 @@ export default class extends Controller {
         this.searchTimeout = null
         this.countries = []
         this.countryHighlightIndex = -1
+        this.suppressCountryOptionsOnce = false
         this.countryByCode = new Map()
         this.codeByCountryName = new Map()
         this.initializeCountryAutocomplete()
@@ -421,6 +422,10 @@ export default class extends Controller {
 
     showCountryOptions() {
         if (!this.hasCountryOptionsTarget) return
+        if (this.suppressCountryOptionsOnce) {
+            this.suppressCountryOptionsOnce = false
+            return
+        }
 
         const inputValue = String(this.countryInputTarget.value || "")
         const selectedDisplay = this.countryDisplayFor(this.countryCodeTarget.value)
@@ -450,6 +455,7 @@ export default class extends Controller {
         this.countryCodeTarget.value = ""
         this.countryInputTarget.value = ""
         this.updateCountryClear()
+        this.suppressCountryOptionsOnce = true
         this.countryInputTarget.focus()
         this.hideCountryOptions()
     }

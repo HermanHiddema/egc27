@@ -14,7 +14,8 @@ class ParticipantsCountrySelectorTest < ApplicationSystemTestCase
     find("[data-egd-autocomplete-target='countryClear']").click
 
     assert_equal "", find("#participant_country", visible: false).value
-    assert_equal "", find("[data-egd-autocomplete-target='countryInput']").value
+    assert_equal "", country_input.value
+    assert_equal "false", country_input["aria-expanded"]
   end
 
   test "country can be cleared from the dropdown" do
