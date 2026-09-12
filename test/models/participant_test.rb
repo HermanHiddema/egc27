@@ -641,6 +641,13 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_not participants(:one).deletable?
   end
 
+  test "deletable? is false for a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not participant.reload.deletable?
+  end
+
   test "deletable? is true without payments" do
     assert participants(:three).deletable?
   end

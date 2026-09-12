@@ -60,6 +60,8 @@
         <% end %>
       <% elsif @participant.paid? %>
         <p class="text-sm text-neutral-700">This participant has a successful payment and cannot be deleted.</p>
+      <% elsif @participant.refunded? %>
+        <p class="text-sm text-neutral-700">This participant has refunded payments and cannot be deleted.</p>
       <% else %>
         <p class="text-sm text-neutral-700">This participant has an open or pending payment and cannot be deleted until it resolves.</p>
       <% end %>

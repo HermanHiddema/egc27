@@ -36,6 +36,8 @@ class Admin::ParticipantsController < ApplicationController
     unless @participant.deletable?
       alert = if @participant.paid?
         "Participants with a successful payment cannot be deleted."
+      elsif @participant.refunded?
+        "Participants with refunded payments cannot be deleted."
       else
         "Participants with an open or pending payment cannot be deleted."
       end
