@@ -109,6 +109,9 @@ Rails.application.routes.draw do
 
   namespace :admin do
     resources :participants, only: [:index, :edit, :update, :destroy] do
+      collection do
+        post :sync_egd
+      end
       resources :payments, only: [:new, :create, :edit, :update]
     end
     resources :payments, only: [:index] do

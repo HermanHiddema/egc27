@@ -1,83 +1,107 @@
 require "net/http"
 require "json"
 
+# Backend connector for the European Go Database GraphQL API (version 2026.02).
+# See doc/EGD_GRAPHQL_API_AGENT_REFERENCE.md for the schema this client targets.
+#
+# Every request is a POST of a named GraphQL operation with variables, and is
+# authenticated with a personal access token read from EGD_API_TOKEN. Without a
+# token the service degrades gracefully to empty results instead of raising, so
+# a missing configuration never breaks registration.
 class EgdLookupService
-  BY_DATA_URL = ENV.fetch("EGD_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByData.php")
-  BY_PIN_URL = ENV.fetch("EGD_PIN_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByPIN.php")
+  API_URL = ENV.fetch("EGD_API_URL", "https://europeangodatabase.eu/api/v2026.02/graphql")
 
+  # Legacy REST endpoints of the old EGD API. They are no longer used by this
+  # service and only remain because the browser-side autocomplete controller
+  # still queries EGD directly through them (see participants/_form.html.erb).
+  BY_DATA_URL = ENV.fetch("EGD_LEGACY_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByData.php")
+  BY_PIN_URL = ENV.fetch("EGD_LEGACY_PIN_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByPIN.php")
+
+  # The API caps `limit` at 100; a search box only needs the first few hits.
   MAX_RESULTS = 10
+  MIN_SEARCH_LENGTH = 2
+  PIN_FORMAT = /\A\d{8}\z/
+  USER_AGENT = "EGC27/participant-registration"
+  OPEN_TIMEOUT = 5
+  READ_TIMEOUT = 10
 
+  PLAYER_FIELDS = "pin firstName lastName countryCode club grade rating"
+
+  PLAYER_BY_PIN_QUERY = <<~GRAPHQL.freeze
+    query PlayerByPin($pin: Int!) {
+      player(pin: $pin) { #{PLAYER_FIELDS} }
+    }
+  GRAPHQL
+
+  PLAYERS_SEARCH_QUERY = <<~GRAPHQL.freeze
+    query SearchPlayers($search: String!, $pagination: PaginationInput!) {
+      playersSearch(search: $search, pagination: $pagination) {
+        data { #{PLAYER_FIELDS} }
+      }
+    }
+  GRAPHQL
+
+  # Free-text search used by the registration form. An 8 digit query is treated
+  # as a PIN and resolved through the single-player query, which is exact.
   def search(query:)
     raw = query.to_s.strip
-    if pin_query?(raw)
-      row = fetch_by_pin(pin: raw)
-      return normalize([row].compact)
-    end
+    return [] if raw.blank?
+    return [find_by_pin(pin: raw)].compact if raw.match?(PIN_FORMAT)
 
-    filters = parse_query(query)
-    return [] if filters[:lastname].blank?
-    return [] if filters[:lastname].delete_prefix("@").length < 2
+    # The old REST API used a leading "@" to request a starts-with match; the
+    # GraphQL search is typo tolerant, so the marker is only stripped.
+    term = raw.delete_prefix("@").strip
+    return [] if term.length < MIN_SEARCH_LENGTH
 
-    rows = fetch_by_data(filters: filters)
-    normalize(rows).first(MAX_RESULTS)
-  rescue StandardError => e
-    Rails.logger.warn("EGD lookup failed: #{e.class}: #{e.message}")
-    []
+    data = execute(
+      query: PLAYERS_SEARCH_QUERY,
+      operation_name: "SearchPlayers",
+      variables: { search: term, pagination: { page: 1, limit: MAX_RESULTS } }
+    )
+
+    normalize(data&.dig("playersSearch", "data")).first(MAX_RESULTS)
+  end
+
+  # Resolves a single player by PIN. Returns nil when the PIN is malformed, the
+  # player is unknown, or the lookup failed.
+  def find_by_pin(pin:)
+    normalized = pin.to_s.strip
+    return nil unless normalized.match?(PIN_FORMAT)
+
+    data = execute(
+      query: PLAYER_BY_PIN_QUERY,
+      operation_name: "PlayerByPin",
+      variables: { pin: normalized.to_i }
+    )
+
+    normalize([data&.dig("player")]).first
   end
 
   private
 
-  def pin_query?(value)
-    value.to_s.match?(/\A\d{8}\z/)
-  end
+  # Returns the GraphQL "data" object, or nil when the request could not be
+  # completed. GraphQL reports application errors with an HTTP success status,
+  # so both the status and the "errors" member are inspected.
+  def execute(query:, operation_name:, variables:)
+    token = ENV["EGD_API_TOKEN"].presence
+    if token.nil?
+      Rails.logger.warn("EGD lookup skipped: EGD_API_TOKEN is not configured")
+      return nil
+    end
 
-  def parse_query(query)
-    raw = query.to_s.strip
-    return { lastname: nil, name: nil } if raw.blank?
+    uri = URI(API_URL)
+    request = Net::HTTP::Post.new(uri)
+    request["Authorization"] = "Bearer #{token}"
+    request["Content-Type"] = "application/json"
+    request["Accept"] = "application/json"
+    request["User-Agent"] = USER_AGENT
+    request.body = JSON.generate(query: query, operationName: operation_name, variables: variables)
 
-    parts = raw.split(/\s+/).reject(&:blank?)
-    return { lastname: with_starts_with_prefix(raw), name: nil } if parts.length == 1
-
-    {
-      lastname: with_starts_with_prefix(parts.last),
-      name: parts[0...-1].join(" ")
-    }
-  end
-
-  def with_starts_with_prefix(value)
-    normalized = value.to_s.strip
-    return normalized if normalized.blank? || normalized.start_with?("@")
-
-    "@#{normalized}"
-  end
-
-  def fetch_by_data(filters:)
-    params = { "lastname" => filters[:lastname] }
-    params["name"] = filters[:name] if filters[:name].present?
-    body = fetch_json(url: BY_DATA_URL, params: params)
-    extract_rows_from_json(body)
-  end
-
-  def fetch_by_pin(pin:)
-    body = fetch_json(url: BY_PIN_URL, params: { "pin" => pin })
-    rows = extract_rows_from_json(body)
-    rows.first
-  end
-
-  def fetch_json(url:, params:)
-    uri = URI(url)
-    existing_params = URI.decode_www_form(uri.query.to_s)
-    uri.query = URI.encode_www_form(existing_params + params.to_a)
-
-    request = Net::HTTP::Get.new(uri)
-    request["User-Agent"] = "EGC27/participant-registration"
-    request["Accept"] = "application/json, text/plain, */*"
-
-    Rails.logger.info("EGD request host=#{uri.host} path=#{uri.path}")
+    Rails.logger.info("EGD request host=#{uri.host} path=#{uri.path} operation=#{operation_name}")
 
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
-      http.open_timeout = 5
-      http.read_timeout = 10
+      http.open_timeout = OPEN_TIMEOUT
+      http.read_timeout = READ_TIMEOUT
       http.request(request)
     end
 
@@ -86,107 +110,71 @@ class EgdLookupService
         "EGD lookup non-success " \
         "status=#{response.code} " \
         "host=#{uri.host} " \
-        "path=#{uri.path}"
+        "path=#{uri.path} " \
+        "operation=#{operation_name}"
       )
       return nil
     end
 
-    response.body
+    parse_body(response.body, operation_name: operation_name)
   rescue StandardError => e
-    Rails.logger.warn(
-      "EGD HTTP exception class=#{e.class} host=#{uri&.host} path=#{uri&.path}"
-    )
+    # The token lives in a header, so nothing request specific is logged here.
+    Rails.logger.warn("EGD request failed class=#{e.class} operation=#{operation_name}")
     nil
   end
 
-  def extract_rows_from_json(body)
-    return [] if body.blank?
+  def parse_body(body, operation_name:)
+    return nil if body.blank?
 
     parsed = JSON.parse(body)
-    return parsed if parsed.is_a?(Array)
+    return nil unless parsed.is_a?(Hash)
 
-    if parsed.is_a?(Hash)
-      return parsed["players"] if parsed["players"].is_a?(Array)
-
-      array_key = parsed.keys.find { |key| parsed[key].is_a?(Array) }
-      return parsed[array_key] if array_key.present?
-
-      return [parsed]
+    errors = Array(parsed["errors"]).filter_map { |error| error.is_a?(Hash) ? error["message"] : error }
+    if errors.any?
+      Rails.logger.warn("EGD GraphQL errors operation=#{operation_name} messages=#{errors.join("; ")}")
     end
 
-    []
+    data = parsed["data"]
+    data.is_a?(Hash) ? data : nil
+  rescue JSON::ParserError
+    Rails.logger.warn("EGD response was not valid JSON operation=#{operation_name}")
+    nil
   end
 
+  # Maps EGD players onto the shape the registration form and the sync job use.
   def normalize(rows)
-    seen = {}
+    Array(rows).filter_map do |row|
+      next unless row.is_a?(Hash)
 
-    rows.filter_map do |row|
-      first_name, last_name = extract_names(row)
-      grade_n_value = extract_grade_n(row)
-      normalized = {
+      first_name = presence_of(row["firstName"])
+      last_name = presence_of(row["lastName"])
+      next if first_name.nil? && last_name.nil?
+
+      grade = presence_of(row["grade"])
+      grade_n = EgdGradeMapping.grade_n_for(grade)
+
+      {
         first_name: first_name,
         last_name: last_name,
-        country: value_for(row, %w[country country_code countrycode]).presence,
-        club: value_for(row, %w[city town club club_city]).presence,
-        playing_strength: grade_n_value,
-        playing_strength_label: extract_grade_label(row, grade_n_value),
-        rating: extract_rating(row),
-        egd_pin: value_for(row, %w[pin_player egd_pin pin id]).presence
+        country: presence_of(row["countryCode"]),
+        club: presence_of(row["club"]),
+        playing_strength: grade_n,
+        playing_strength_label: grade || EgdGradeMapping.grade_for(grade_n),
+        rating: integer_or_nil(row["rating"]),
+        egd_pin: presence_of(row["pin"])
       }
-
-      next if normalized[:first_name].blank? && normalized[:last_name].blank?
-
-      key = [normalized[:egd_pin], normalized[:first_name], normalized[:last_name]].join("|")
-      next if seen[key]
-
-      seen[key] = true
-      normalized
     end
   end
 
-  def extract_grade_n(row)
-    grade_n_value = value_for(row, %w[grade_n graden rank_n playing_strength_n strength_n])
-    grade_value = value_for(row, %w[grade rank playing_strength strength])
-    EgdGradeMapping.grade_n_for(grade_n_value.presence || grade_value)
+  def presence_of(value)
+    value.to_s.strip.presence
   end
 
-  def extract_grade_label(row, grade_n)
-    value_for(row, %w[grade rank playing_strength strength]).presence || EgdGradeMapping.grade_for(grade_n)
-  end
+  def integer_or_nil(value)
+    return nil if value.blank?
 
-  def extract_rating(row)
-    raw = value_for(row, %w[rating gor elo])
-    return nil if raw.blank?
-
-    Integer(raw)
+    Integer(value)
   rescue ArgumentError, TypeError
     nil
-  end
-
-  def extract_names(row)
-    first = value_for(row, %w[first_name firstname given_name givenname name]).presence
-    last = value_for(row, %w[last_name lastname surname family_name]).presence
-
-    if last.blank? && first&.include?(",")
-      parts = first.split(",", 2).map(&:strip)
-      last = parts[0]
-      first = parts[1]
-    end
-
-    [first, last]
-  end
-
-  def value_for(row, keys)
-    normalized = row.to_h.transform_keys { |key| normalize_header(key) }
-    keys.each do |key|
-      value = normalized[key]
-      return value.to_s.strip if value.present?
-    end
-
-    nil
-  end
-
-  def normalize_header(value)
-    value.to_s.strip.downcase.gsub(/[^a-z0-9]+/, "_")
   end
 end

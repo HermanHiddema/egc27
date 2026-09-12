@@ -16,6 +16,7 @@ class Rack::Attack
   MAGIC_LINK_PATH          = %r{\A/users/magic_link(\.[^/]+)?/?\z}
   PARTICIPANTS_PATH        = %r{\A/participants(\.[^/]+)?/?\z}
   EGD_REGISTERED_PATH      = %r{\A/participants/egd_registered(\.[^/]+)?/?\z}
+  EGD_SEARCH_PATH          = %r{\A/participants/egd_search(\.[^/]+)?/?\z}
   ALTER_REGISTRATION_PATH  = %r{\A/participants/alter_registration(\.[^/]+)?/?\z}
   RESEND_CONFIRMATION_PATH = %r{\A/participants/(?<uuid>[^/]+)/resend_confirmation(\.[^/]+)?/?\z}
   PASSWORD_PATH            = %r{\A/users/password(\.[^/]+)?/?\z}
@@ -46,6 +47,13 @@ class Rack::Attack
   # EGD registration lookups: limit by IP address (60 per minute)
   throttle("egd_registered/ip", limit: 60, period: 1.minute) do |req|
     req.ip if req.path.match?(EGD_REGISTERED_PATH) && req.get?
+  end
+
+  # EGD player searches: limit by IP address (30 per minute). This public
+  # endpoint proxies queries to the European Go Database with our API token, so
+  # it is throttled to keep anonymous traffic from exhausting that credential.
+  throttle("egd_search/ip", limit: 30, period: 1.minute) do |req|
+    req.ip if req.path.match?(EGD_SEARCH_PATH) && req.get?
   end
 
   # Alter-registration lookups: limit by IP address (20 per minute)

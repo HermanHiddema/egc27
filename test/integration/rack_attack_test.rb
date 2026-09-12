@@ -104,6 +104,19 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles egd player searches by IP after limit" do
+    freeze_time do
+      30.times do
+        get egd_search_participants_path, params: { q: "a" }, headers: { "REMOTE_ADDR" => "2.3.4.8" }
+        assert_response :success
+      end
+
+      get egd_search_participants_path, params: { q: "a" }, headers: { "REMOTE_ADDR" => "2.3.4.8" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "throttles confirmation resend by participant UUID after limit" do
     freeze_time do
       participant = participants(:unconfirmed)
