@@ -161,18 +161,14 @@ class PaymentsController < ApplicationController
   # refunded amount separately, so refunds are mapped onto our own "refunded"
   # status.
   def mollie_status(payment, mollie_payment)
-    return "refunded" if mollie_refunded?(payment, mollie_payment)
+    return "refunded" if mollie_refunded?(mollie_payment)
 
     mollie_payment.status
   end
 
-  # Only a full refund should reopen checkout. Partial refunds keep the original
-  # payment valid and therefore remain paid.
-  def mollie_refunded?(payment, mollie_payment)
+  def mollie_refunded?(mollie_payment)
     refunded_amount = mollie_amount_value(mollie_payment.try(:amount_refunded))
-    return false unless refunded_amount&.positive?
-
-    refunded_amount >= BigDecimal(payment.amount_cents.to_s) / 100
+    refunded_amount&.positive?
   end
 
   def mollie_amount_value(amount)
