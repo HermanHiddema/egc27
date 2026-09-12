@@ -810,6 +810,51 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, payload["registered"]
   end
 
+  test "email_registered reports an existing confirmed account email with a sign in url" do
+    get email_registered_participants_path, params: { email: users(:one).email }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_match "log in first", payload["message"]
+    assert_equal new_user_session_path, payload["action_url"]
+    assert_equal "Log in first", payload["action_label"]
+  end
+
+  test "email_registered reports an existing unconfirmed account email with a confirmation url" do
+    unconfirmed_user = User.create!(
+      email: "pending_lookup@example.org",
+      password: "password123",
+      role: "regular"
+    )
+    assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
+
+    get email_registered_participants_path, params: { email: unconfirmed_user.email }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal true, payload["registered"]
+    assert_match "confirm your email address", payload["message"]
+    assert_equal new_user_confirmation_path, payload["action_url"]
+    assert_equal "Resend confirmation instructions", payload["action_label"]
+  end
+
+  test "email_registered treats a blank or unknown email as available" do
+    get email_registered_participants_path, params: { email: "" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["action_url"]
+
+    get email_registered_participants_path, params: { email: "available@example.org" }
+
+    assert_response :success
+    payload = JSON.parse(response.body)
+    assert_equal false, payload["registered"]
+    assert_nil payload["action_url"]
+  end
+
   test "alter_registration sends confirmed users to sign in with a flash" do
     assert users(:one).confirmed?, "fixture user should be confirmed"
 

@@ -46,18 +46,22 @@ export default class extends Controller {
         "rank",
         "rating",
         "egdPin",
-        "registeredNotice"
+        "registeredNotice",
+        "email",
+        "existingAccountNotice"
     ]
 
     static values = {
         url: String,
         pinUrl: String,
-        registeredUrl: String
+        registeredUrl: String,
+        emailRegisteredUrl: String
     }
 
     connect() {
         this.matches = []
         this.searchTimeout = null
+        this.emailCheckTimeout = null
         this.countryByCode = new Map()
         this.codeByCountryName = new Map()
         this.initializeCountryAutocomplete()
@@ -160,6 +164,74 @@ export default class extends Controller {
 
         this.registeredNoticeTarget.innerHTML = ""
         this.registeredNoticeTarget.classList.add("hidden")
+    }
+
+    emailChanged() {
+        if (!this.hasEmailTarget) return
+
+        if (this.emailCheckTimeout) {
+            clearTimeout(this.emailCheckTimeout)
+        }
+
+        const email = this.normalizedEmail()
+        if (!email || !this.emailTarget.checkValidity()) {
+            this.hideExistingAccountNotice()
+            return
+        }
+
+        this.emailCheckTimeout = setTimeout(() => this.checkExistingAccount(email), 250)
+    }
+
+    async checkExistingAccount(email) {
+        if (!this.hasExistingAccountNoticeTarget || !this.hasEmailRegisteredUrlValue) return
+
+        try {
+            const url = new URL(this.emailRegisteredUrlValue, window.location.origin)
+            url.searchParams.set("email", email)
+
+            const response = await fetch(url.toString(), {
+                headers: {
+                    Accept: "application/json"
+                }
+            })
+
+            if (!response.ok) {
+                this.hideExistingAccountNotice()
+                return
+            }
+
+            const data = await response.json()
+            const currentEmail = this.normalizedEmail()
+            if (currentEmail !== email) return
+
+            if (data && data.registered) {
+                this.showExistingAccountNotice(data)
+            } else {
+                this.hideExistingAccountNotice()
+            }
+        } catch (_error) {
+            const currentEmail = this.normalizedEmail()
+            if (currentEmail !== email) return
+            this.hideExistingAccountNotice()
+        }
+    }
+
+    showExistingAccountNotice(data) {
+        if (!this.hasExistingAccountNoticeTarget) return
+
+        const action = data.action_url && data.action_label
+            ? ` <a href="${this.escapeHtml(data.action_url)}" class="font-semibold underline">${this.escapeHtml(data.action_label)}</a>`
+            : ""
+
+        this.existingAccountNoticeTarget.innerHTML = `${this.escapeHtml(data.message)}${action}`
+        this.existingAccountNoticeTarget.classList.remove("hidden")
+    }
+
+    hideExistingAccountNotice() {
+        if (!this.hasExistingAccountNoticeTarget) return
+
+        this.existingAccountNoticeTarget.innerHTML = ""
+        this.existingAccountNoticeTarget.classList.add("hidden")
     }
 
     hide() {
@@ -525,6 +597,12 @@ export default class extends Controller {
 
     normalizeSpaces(value) {
         return String(value || "").replaceAll("_", " ")
+    }
+
+    normalizedEmail() {
+        if (!this.hasEmailTarget) return ""
+
+        return String(this.emailTarget.value || "").trim().toLowerCase()
     }
 
     escapeHtml(value) {
