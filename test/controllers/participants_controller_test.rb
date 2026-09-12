@@ -688,7 +688,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to new_user_confirmation_path
-    assert_match "confirm your email address", flash[:notice]
+    assert_match "confirm your email address", flash[:alert]
   end
 
   test "confirm action confirms participant with valid token" do
