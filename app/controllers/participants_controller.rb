@@ -107,6 +107,7 @@ class ParticipantsController < ApplicationController
   def email_registered
     user = existing_user_for_email(params[:email])
 
+    response.set_header("Cache-Control", "no-store")
     render json: email_registered_payload_for(user)
   end
 

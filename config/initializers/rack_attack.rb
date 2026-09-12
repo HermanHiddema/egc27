@@ -51,7 +51,7 @@ class Rack::Attack
 
   # Email registration lookups: limit by IP address (60 per minute)
   throttle("email_registered/ip", limit: 60, period: 1.minute) do |req|
-    req.ip if req.path.match?(EMAIL_REGISTERED_PATH) && req.get?
+    req.ip if req.path.match?(EMAIL_REGISTERED_PATH) && req.post?
   end
 
   # Alter-registration lookups: limit by IP address (20 per minute)

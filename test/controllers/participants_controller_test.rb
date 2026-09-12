@@ -812,9 +812,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email_registered reports an existing confirmed account email with a sign in url" do
-    get email_registered_participants_path, params: { email: users(:one).email }
+    post email_registered_participants_path, params: { email: users(:one).email }, as: :json
 
     assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
     payload = JSON.parse(response.body)
     assert_equal true, payload["registered"]
     assert_match "log in first", payload["message"]
@@ -830,9 +831,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     )
     assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
 
-    get email_registered_participants_path, params: { email: unconfirmed_user.email }
+    post email_registered_participants_path, params: { email: unconfirmed_user.email }, as: :json
 
     assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
     payload = JSON.parse(response.body)
     assert_equal true, payload["registered"]
     assert_match "confirm your email address", payload["message"]
@@ -841,16 +843,18 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "email_registered treats a blank or unknown email as available" do
-    get email_registered_participants_path, params: { email: "" }
+    post email_registered_participants_path, params: { email: "" }, as: :json
 
     assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
     payload = JSON.parse(response.body)
     assert_equal false, payload["registered"]
     assert_nil payload["action_url"]
 
-    get email_registered_participants_path, params: { email: "available@example.org" }
+    post email_registered_participants_path, params: { email: "available@example.org" }, as: :json
 
     assert_response :success
+    assert_equal "no-store", response.headers["Cache-Control"]
     payload = JSON.parse(response.body)
     assert_equal false, payload["registered"]
     assert_nil payload["action_url"]

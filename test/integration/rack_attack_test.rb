@@ -107,11 +107,11 @@ class RackAttackTest < ActionDispatch::IntegrationTest
   test "throttles email registration lookups by IP after limit" do
     freeze_time do
       60.times do
-        get email_registered_participants_path, params: { email: users(:one).email }, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+        post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
         assert_response :success
       end
 
-      get email_registered_participants_path, params: { email: users(:one).email }, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+      post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
     end

@@ -190,16 +190,22 @@ export default class extends Controller {
         if (!this.hasExistingAccountNoticeTarget || !this.hasEmailRegisteredUrlValue) return
 
         try {
-            const url = new URL(this.emailRegisteredUrlValue, window.location.origin)
-            url.searchParams.set("email", email)
+            const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+            const headers = {
+                Accept: "application/json",
+                "Content-Type": "application/json"
+            }
+            if (csrfToken) headers["X-CSRF-Token"] = csrfToken
 
-            const response = await fetch(url.toString(), {
-                headers: {
-                    Accept: "application/json"
-                }
+            const response = await fetch(this.emailRegisteredUrlValue, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({ email })
             })
 
             if (!response.ok) {
+                const currentEmail = this.normalizedEmail()
+                if (currentEmail !== email) return
                 this.hideExistingAccountNotice()
                 return
             }
