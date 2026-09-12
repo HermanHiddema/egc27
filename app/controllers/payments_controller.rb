@@ -152,7 +152,7 @@ class PaymentsController < ApplicationController
   # once it is known, which is recorded alongside the status.
   def sync_from_mollie(payment, mollie_payment)
     payment.update!(
-      status: mollie_status(mollie_payment),
+      status: mollie_status(payment, mollie_payment),
       payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
     )
   end
@@ -160,24 +160,33 @@ class PaymentsController < ApplicationController
   # A refunded payment keeps the "paid" status at Mollie, which only reports the
   # refunded amount separately, so refunds are mapped onto our own "refunded"
   # status.
-  def mollie_status(mollie_payment)
-    return "refunded" if mollie_refunded?(mollie_payment)
+  def mollie_status(payment, mollie_payment)
+    return "refunded" if mollie_refunded?(payment, mollie_payment)
 
     mollie_payment.status
   end
 
-  # Any refunded amount (full or partial) marks the payment as refunded.
-  def mollie_refunded?(mollie_payment)
-    amount_refunded = mollie_payment.try(:amount_refunded)
-    return false if amount_refunded.blank?
+  # Only a full refund should reopen checkout. Partial refunds keep the original
+  # payment valid and therefore remain paid.
+  def mollie_refunded?(payment, mollie_payment)
+    refunded_amount = mollie_amount_value(mollie_payment.try(:amount_refunded))
+    return false unless refunded_amount&.positive?
 
-    value = if amount_refunded.respond_to?(:value)
-      amount_refunded.value
-    elsif amount_refunded.respond_to?(:[])
-      amount_refunded["value"] || amount_refunded[:value]
+    refunded_amount >= BigDecimal(payment.amount_cents.to_s) / 100
+  end
+
+  def mollie_amount_value(amount)
+    return if amount.blank?
+
+    value = if amount.respond_to?(:value)
+      amount.value
+    elsif amount.respond_to?(:[])
+      amount["value"] || amount[:value]
     end
 
-    value.to_f.positive?
+    return if value.blank?
+
+    BigDecimal(value.to_s)
   end
 
   # Read from the raw Mollie attributes because `method` is also the name of a

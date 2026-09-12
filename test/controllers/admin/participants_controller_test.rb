@@ -234,10 +234,30 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
-    statuses = css_select("tbody tr td:nth-child(5)").map { |td| td.text.strip }
+    statuses = css_select("tbody tr td:nth-child(6)").map { |td| td.text.strip }
     assert_includes statuses, "Refund"
     order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
+  end
+
+  test "admin status sort keeps repaid participants in paid state" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Manual replacement payment",
+      provider: "manual",
+      payment_method: "bank_transfer",
+      status: "paid"
+    )
+    sign_in users(:admin)
+
+    get admin_participants_path(sort: "status", direction: "asc")
+
+    assert_response :success
+    bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
+    assert_not_nil bob_row
+    assert_includes bob_row.css("td")[5].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do

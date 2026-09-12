@@ -134,7 +134,7 @@ class Admin::ParticipantsController < ApplicationController
   def status_sorted_participants(participants)
     table = Participant.arel_table
     paid_subquery = Payment.completed.select(:participant_id).to_sql
-    refunded_subquery = Payment.refunded.select(:participant_id).to_sql
+    refunded_subquery = Payment.refunded.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id).to_sql
     dir = @direction == :desc ? "DESC" : "ASC"
     status_order = Arel.sql(
       "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \

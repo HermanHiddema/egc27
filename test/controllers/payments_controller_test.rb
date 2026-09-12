@@ -122,7 +122,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     refunded_mollie = OpenStruct.new(
       id: paid_payment.mollie_payment_id,
       status: "paid",
-      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
     )
 
     original = Mollie::Payment.method(:get)
@@ -172,7 +172,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     refunded_mollie = OpenStruct.new(
       id: paid_payment.mollie_payment_id,
       status: "paid",
-      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
     )
     retry_mollie = OpenStruct.new(id: "tr_retry_123", checkout_url: "https://example.test/retry-checkout")
 
@@ -208,7 +208,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     refunded_mollie = OpenStruct.new(
       id: paid_payment.mollie_payment_id,
       status: "paid",
-      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
     )
 
     original_get = Mollie::Payment.method(:get)
@@ -223,6 +223,31 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to success_payments_path
     assert_equal "refunded", paid_payment.reload.status
     assert_equal 1, participant.payments.completed.count
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create keeps a partially refunded payment as paid" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    partially_refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+    )
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| partially_refunded_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| flunk("should not create a new payment") }
+
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to success_payments_path
+    assert_equal "paid", paid_payment.reload.status
   ensure
     Mollie::Payment.define_singleton_method(:get, &original_get)
     Mollie::Payment.define_singleton_method(:create, &original_create)
