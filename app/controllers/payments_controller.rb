@@ -24,7 +24,14 @@ class PaymentsController < ApplicationController
     created_payment = false
 
     existing = @participant.payments.completed.order(created_at: :desc).first
-    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
+    if existing&.mollie_payment_id.present?
+      begin
+        sync_from_mollie(existing, Mollie::Payment.get(existing.mollie_payment_id))
+      rescue Mollie::Exception => e
+        Rails.logger.error "[Mollie] Error refreshing paid payment #{existing.mollie_payment_id}: #{e.message}"
+      end
+    end
+    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing&.paid?
 
     @payment = @participant.payments.pending_or_open.order(created_at: :desc).first
 
