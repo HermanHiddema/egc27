@@ -196,6 +196,44 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
+  test "admin can filter by status refunded" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "refunded")
+
+    assert_response :success
+    # Bob's payment was refunded
+    assert_match "Bob Jones", response.body
+    assert_match "Refund", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+  end
+
+  test "refunded participants are excluded from the confirmed filter" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "confirmed")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
+  test "refunded participants are excluded from the pending filter" do
+    participants(:unconfirmed).payments.create!(
+      provider: "manual",
+      payment_method: "bank_transfer",
+      status: "refunded",
+      amount_cents: 5_000,
+      description: "Refunded manual payment"
+    )
+    sign_in users(:admin)
+    get admin_participants_path(status: "pending")
+
+    assert_response :success
+    assert_no_match "Dave Pending", response.body
+  end
+
   test "admin can sort by email ascending" do
     sign_in users(:admin)
     get admin_participants_path(sort: "email", direction: "asc")
@@ -206,13 +244,35 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
+    participants(:two).payments.update_all(status: "refunded")
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
-    statuses = css_select("tbody tr td:nth-child(5)").map { |td| td.text.strip }
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2 }
+    statuses = css_select("tbody tr td:nth-child(6)").map { |td| td.text.strip }
+    assert_includes statuses, "Refund"
+    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
+  end
+
+  test "admin status sort keeps repaid participants in paid state" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Manual replacement payment",
+      provider: "manual",
+      payment_method: "bank_transfer",
+      status: "paid"
+    )
+    sign_in users(:admin)
+
+    get admin_participants_path(sort: "status", direction: "asc")
+
+    assert_response :success
+    bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
+    assert_not_nil bob_row
+    assert_includes bob_row.css("td")[5].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do
@@ -267,6 +327,18 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     assert_equal "Participants with an open or pending payment cannot be deleted.", flash[:alert]
+  end
+
+  test "admin cannot delete a participant with refunded payments" do
+    sign_in users(:admin)
+    participants(:two).payments.update_all(status: "refunded")
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:two))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with refunded payments cannot be deleted.", flash[:alert]
   end
 
   test "admin can delete the last participant of a user together with the user" do
@@ -413,5 +485,16 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "input[name='delete_user']", count: 0
     assert_match "open or pending payment", response.body
+  end
+
+  test "admin edit page hides deletion for participants with refunded payments" do
+    sign_in users(:admin)
+    participants(:two).payments.update_all(status: "refunded")
+
+    get edit_admin_participant_path(participants(:two))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "refunded payments", response.body
   end
 end

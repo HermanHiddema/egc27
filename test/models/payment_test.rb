@@ -114,6 +114,18 @@ class PaymentTest < ActiveSupport::TestCase
     end
   end
 
+  test "refunded payment is no longer paid and does not block a new payment" do
+    payment = payments(:paid_payment)
+    payment.update!(status: "refunded")
+
+    assert payment.refunded?
+    assert_not payment.paid?
+    assert payment.unsuccessful?
+    assert_includes Payment.refunded, payment
+    assert_not_includes Payment.completed, payment
+    assert_not_includes Payment.blocking, payment
+  end
+
   test "unsuccessful and blocking scopes filter on the status" do
     expired = payments(:open_payment)
     expired.update!(status: "expired")

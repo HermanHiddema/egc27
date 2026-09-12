@@ -1,6 +1,6 @@
 class Admin::ParticipantsController < ApplicationController
   SORT_COLUMNS = %w[name email country club type rank rating status].freeze
-  STATUS_FILTERS = %w[pending confirmed paid].freeze
+  STATUS_FILTERS = %w[pending confirmed paid refunded].freeze
 
   before_action :require_admin!
   before_action :set_participant, only: [:edit, :update, :destroy]
@@ -36,6 +36,8 @@ class Admin::ParticipantsController < ApplicationController
     unless @participant.deletable?
       alert = if @participant.paid?
         "Participants with a successful payment cannot be deleted."
+      elsif @participant.refunded?
+        "Participants with refunded payments cannot be deleted."
       else
         "Participants with an open or pending payment cannot be deleted."
       end
@@ -83,17 +85,21 @@ class Admin::ParticipantsController < ApplicationController
 
   # Restricts the list to participants whose derived registration_status matches
   # the requested filter, mirroring the Participant#registration_status logic:
-  # Paid takes precedence over Confirmed, which takes precedence over Pending.
+  # Paid takes precedence over Refund, which takes precedence over Confirmed,
+  # which takes precedence over Pending.
   def filtered_by_status(participants, status)
     paid_ids = Payment.completed.select(:participant_id)
+    refunded_ids = Payment.refunded.where.not(participant_id: paid_ids).select(:participant_id)
 
     case status
     when "paid"
       participants.where(id: paid_ids)
+    when "refunded"
+      participants.where(id: refunded_ids)
     when "confirmed"
-      participants.where.not(confirmed_at: nil).where.not(id: paid_ids)
+      participants.where.not(confirmed_at: nil).where.not(id: paid_ids).where.not(id: refunded_ids)
     when "pending"
-      participants.where(confirmed_at: nil).where.not(id: paid_ids)
+      participants.where(confirmed_at: nil).where.not(id: paid_ids).where.not(id: refunded_ids)
     else
       participants
     end
@@ -126,13 +132,15 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   # Registration status is derived from DB columns, expressed as a SQL CASE so
-  # sorting stays at the database level. Pending < Confirmed < Paid.
+  # sorting stays at the database level. Pending < Confirmed < Paid < Refund.
   def status_sorted_participants(participants)
     table = Participant.arel_table
     paid_subquery = Payment.completed.select(:participant_id).to_sql
+    refunded_subquery = Payment.refunded.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id).to_sql
     dir = @direction == :desc ? "DESC" : "ASC"
     status_order = Arel.sql(
       "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
+      "WHEN participants.id IN (#{refunded_subquery}) THEN 3 " \
       "WHEN participants.confirmed_at IS NOT NULL THEN 1 " \
       "ELSE 0 END #{dir}"
     )

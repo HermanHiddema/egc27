@@ -172,6 +172,7 @@ module ApplicationHelper
     when "Paid" then "bg-green-100 text-green-800"
     when "Confirmed" then "bg-blue-100 text-blue-800"
     when "Pending" then "bg-yellow-100 text-yellow-800"
+    when "Refund" then "bg-red-100 text-red-800"
     else "bg-neutral-100 text-neutral-800"
     end
   end

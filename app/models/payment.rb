@@ -29,10 +29,16 @@
 #  fk_rails_...  (participant_id => participants.id)
 #
 class Payment < ApplicationRecord
-  STATUSES = %w[open canceled pending authorized expired failed paid].freeze
+  # "refunded" is not reported by Mollie as a payment status (Mollie keeps a
+  # refunded payment as "paid" and reports the refunded amount separately), but
+  # is recorded as a status of our own so refunds are visible everywhere a
+  # payment status is used.
+  STATUSES = %w[open canceled pending authorized expired failed paid refunded].freeze
   # Payments in these statuses can never succeed anymore, so they do not stand
-  # in the way of recording a new (manual) payment.
-  UNSUCCESSFUL_STATUSES = %w[canceled expired failed].freeze
+  # in the way of recording a new (manual) payment. A refunded payment is
+  # included because the money was returned to the payer, so the participant may
+  # pay again.
+  UNSUCCESSFUL_STATUSES = %w[canceled expired failed refunded].freeze
   # Payments are normally handled by Mollie, but admins can also record payments
   # that were received outside of Mollie (e.g. cash or bank transfer).
   PROVIDERS = %w[mollie manual].freeze
@@ -56,6 +62,7 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
 
   scope :completed, -> { where(status: "paid") }
+  scope :refunded, -> { where(status: "refunded") }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
   scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
@@ -75,6 +82,10 @@ class Payment < ApplicationRecord
 
   def paid?
     status == "paid"
+  end
+
+  def refunded?
+    status == "refunded"
   end
 
   def manual?
