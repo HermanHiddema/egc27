@@ -193,6 +193,45 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create, &original_create)
   end
 
+  test "create retries payment when consecutive local paid Mollie payments are remotely refunded" do
+    participant = participants(:two)
+    newer_paid_payment = payments(:paid_payment)
+    older_paid_payment = participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Older Mollie payment",
+      provider: "mollie",
+      payment_method: "ideal",
+      mollie_payment_id: "tr_paid_older",
+      status: "paid",
+      created_at: newer_paid_payment.created_at - 1.day,
+      updated_at: newer_paid_payment.updated_at - 1.day
+    )
+    retry_mollie = OpenStruct.new(id: "tr_retry_multi_123", checkout_url: "https://example.test/retry-multi-checkout")
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) do |id|
+      OpenStruct.new(
+        id: id,
+        status: "paid",
+        amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+      )
+    end
+    Mollie::Payment.define_singleton_method(:create) { |**_params| retry_mollie }
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to "https://example.test/retry-multi-checkout"
+    assert_equal "refunded", newer_paid_payment.reload.status
+    assert_equal "refunded", older_paid_payment.reload.status
+    assert_equal "open", participant.payments.order(created_at: :desc).first.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
   test "create keeps existing successful registration when another payment remains paid" do
     participant = participants(:two)
     paid_payment = payments(:paid_payment)

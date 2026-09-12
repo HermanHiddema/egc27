@@ -10,7 +10,7 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    refresh_latest_completed_payment
+    refresh_completed_payments_until_paid
 
     @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
     @price_valid_until = CongressPassPricing.new(
@@ -25,7 +25,7 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     created_payment = false
 
-    refresh_latest_completed_payment
+    refresh_completed_payments_until_paid
     existing = @participant.payments.completed.order(created_at: :desc).first
     return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing&.paid?
 
@@ -198,14 +198,17 @@ class PaymentsController < ApplicationController
     %w[open pending authorized].include?(status)
   end
 
-  def refresh_latest_completed_payment
-    existing = @participant.payments.completed.order(created_at: :desc).first
-    return unless existing&.mollie_payment_id.present?
+  def refresh_completed_payments_until_paid
+    @participant.payments.completed.order(created_at: :desc).each do |payment|
+      break if payment.mollie_payment_id.blank?
 
-    sync_from_mollie(existing, Mollie::Payment.get(existing.mollie_payment_id))
+      sync_from_mollie(payment, Mollie::Payment.get(payment.mollie_payment_id))
+      break if payment.paid?
+    end
+
     @participant.association(:payments).reset
   rescue Mollie::Exception => e
-    Rails.logger.error "[Mollie] Error refreshing paid payment #{existing.mollie_payment_id}: #{e.message}"
+    Rails.logger.error "[Mollie] Error refreshing paid payment #{payment&.mollie_payment_id}: #{e.message}"
   end
 
   def simulate_mollie_payment?
