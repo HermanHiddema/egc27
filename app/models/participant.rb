@@ -152,8 +152,8 @@ class Participant < ApplicationRecord
   end
 
   # A participant is considered refunded once one of their payments was refunded
-  # and no other payment succeeded afterwards. Uses the in-memory association
-  # when it is already loaded, like #paid?.
+  # and no other payment remains paid. Uses the in-memory association when it is
+  # already loaded, like #paid?.
   def refunded?
     return false if paid?
 

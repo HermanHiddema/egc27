@@ -219,6 +219,21 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob Jones", response.body
   end
 
+  test "refunded participants are excluded from the pending filter" do
+    participants(:unconfirmed).payments.create!(
+      provider: "manual",
+      payment_method: "bank_transfer",
+      status: "refunded",
+      amount_cents: 5_000,
+      description: "Refunded manual payment"
+    )
+    sign_in users(:admin)
+    get admin_participants_path(status: "pending")
+
+    assert_response :success
+    assert_no_match "Dave Pending", response.body
+  end
+
   test "admin can sort by email ascending" do
     sign_in users(:admin)
     get admin_participants_path(sort: "email", direction: "asc")
