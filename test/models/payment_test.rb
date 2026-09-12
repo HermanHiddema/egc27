@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 # == Schema Information
 #
@@ -32,6 +33,7 @@ require "test_helper"
 #
 class PaymentTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
+  include ActiveSupport::Testing::TimeHelpers
 
   test "valid payment with required attributes" do
     payment = Payment.new(
@@ -303,5 +305,166 @@ class PaymentTest < ActiveSupport::TestCase
         payment_method: "bank_transfer"
       )
     end
+  end
+  # Mollie integration
+  test "build_for builds an unsaved open payment for the current price" do
+    participant = participants(:three)
+
+    payment = nil
+    travel_to(Time.zone.local(2026, 8, 1)) { payment = Payment.build_for(participant) }
+
+    assert_not payment.persisted?
+    assert_equal "open", payment.status
+    assert_equal participant, payment.participant
+    assert_equal 19_000, payment.amount_cents
+    assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
+  end
+
+  test "price_valid_until uses the date the payment was created" do
+    payment = payments(:open_payment)
+    payment.update!(created_at: Time.zone.local(2026, 8, 15))
+
+    travel_to Time.zone.local(2026, 9, 10) do
+      assert_equal Date.new(2026, 8, 31), payment.price_valid_until
+    end
+  end
+
+  test "sync_from_mollie! records the status and reported payment method" do
+    payment = payments(:open_payment)
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: { "method" => "ideal" }))
+
+    payment.reload
+    assert_equal "paid", payment.status
+    assert_equal "ideal", payment.payment_method
+  end
+
+  test "sync_from_mollie! keeps the existing payment method when Mollie reports none" do
+    payment = payments(:paid_payment)
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid"))
+
+    assert_equal "ideal", payment.reload.payment_method
+  end
+
+  test "sync_from_mollie! records a refunded Mollie payment as refunded" do
+    payment = payments(:paid_payment)
+
+    payment.sync_from_mollie!(
+      OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR"))
+    )
+
+    assert_equal "refunded", payment.reload.status
+  end
+
+  test "refresh_from_mollie! does nothing without a Mollie payment id" do
+    payment = payments(:manual_payment)
+
+    assert_nil payment.refresh_from_mollie!
+    assert_equal "paid", payment.reload.status
+  end
+
+  test "refresh_from_mollie swallows Mollie errors" do
+    payment = payments(:open_payment)
+
+    with_mollie_get(->(_id) { raise Mollie::Exception, "boom" }) do
+      assert_nil payment.refresh_from_mollie
+    end
+
+    assert_equal "open", payment.reload.status
+  end
+
+  test "resume_mollie_checkout! returns the checkout url of a retryable payment" do
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "pending", checkout_url: "https://example.test/checkout")
+
+    with_mollie_get(->(_id) { remote }) do
+      assert_equal "https://example.test/checkout", payment.resume_mollie_checkout!
+    end
+
+    assert_equal "pending", payment.reload.status
+  end
+
+  test "resume_mollie_checkout! returns nil when the checkout can no longer be completed" do
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "failed", checkout_url: "https://example.test/checkout")
+
+    with_mollie_get(->(_id) { remote }) do
+      assert_nil payment.resume_mollie_checkout!
+    end
+
+    assert_equal "failed", payment.reload.status
+  end
+
+  test "start_mollie_checkout! stores the Mollie id and returns the checkout url" do
+    payment = payments(:open_payment)
+    payment.update!(mollie_payment_id: nil)
+    created_params = nil
+    remote = OpenStruct.new(id: "tr_started_123", checkout_url: "https://example.test/new-checkout")
+
+    with_mollie_create(->(params) { created_params = params; remote }) do
+      assert_equal "https://example.test/new-checkout",
+        payment.start_mollie_checkout!(redirect_url: "https://egc2027.test/return", webhook_url: "https://egc2027.test/hook")
+    end
+
+    assert_equal "tr_started_123", payment.reload.mollie_payment_id
+    assert_equal payment.description, created_params[:description]
+    assert_equal "190.00", created_params[:amount][:value]
+    assert_equal "https://egc2027.test/hook", created_params[:webhook_url]
+  end
+
+  test "start_mollie_checkout! raises when Mollie returns no checkout url" do
+    payment = payments(:open_payment)
+
+    with_mollie_create(->(_params) { OpenStruct.new(id: "tr_no_url", checkout_url: nil) }) do
+      assert_raises(Mollie::Exception) do
+        payment.start_mollie_checkout!(redirect_url: "https://egc2027.test/return", webhook_url: "https://egc2027.test/hook")
+      end
+    end
+  end
+
+  test "sync_from_mollie_webhook updates the matching payment" do
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+
+    with_mollie_get(->(_id) { remote }) do
+      assert_equal payment, Payment.sync_from_mollie_webhook(payment.mollie_payment_id)
+    end
+
+    assert_equal "paid", payment.reload.status
+  end
+
+  test "sync_from_mollie_webhook ignores unknown payments" do
+    with_mollie_get(->(id) { OpenStruct.new(id: id, status: "paid") }) do
+      assert_nil Payment.sync_from_mollie_webhook("tr_unknown")
+    end
+  end
+
+  test "simulate_mollie_status! records the simulated status without a Mollie id" do
+    payment = payments(:open_payment)
+
+    payment.simulate_mollie_status!("failed")
+
+    payment.reload
+    assert_equal "failed", payment.status
+    assert_nil payment.mollie_payment_id
+  end
+
+  private
+
+  def with_mollie_get(stub)
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |id| stub.call(id) }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  def with_mollie_create(stub)
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) { |**params| stub.call(params) }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:create, &original)
   end
 end
