@@ -152,7 +152,7 @@ class PaymentsController < ApplicationController
   # once it is known, which is recorded alongside the status.
   def sync_from_mollie(payment, mollie_payment)
     payment.update!(
-      status: mollie_status(payment, mollie_payment),
+      status: mollie_status(mollie_payment),
       payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
     )
   end
@@ -160,7 +160,7 @@ class PaymentsController < ApplicationController
   # A refunded payment keeps the "paid" status at Mollie, which only reports the
   # refunded amount separately, so refunds are mapped onto our own "refunded"
   # status.
-  def mollie_status(payment, mollie_payment)
+  def mollie_status(mollie_payment)
     return "refunded" if mollie_refunded?(mollie_payment)
 
     mollie_payment.status
