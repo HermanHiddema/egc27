@@ -196,6 +196,29 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
+  test "admin can filter by status refunded" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "refunded")
+
+    assert_response :success
+    # Bob's payment was refunded
+    assert_match "Bob Jones", response.body
+    assert_match "Refund", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+  end
+
+  test "refunded participants are excluded from the confirmed filter" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "confirmed")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
   test "admin can sort by email ascending" do
     sign_in users(:admin)
     get admin_participants_path(sort: "email", direction: "asc")
@@ -211,7 +234,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     statuses = css_select("tbody tr td:nth-child(5)").map { |td| td.text.strip }
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2 }
+    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
   end
 

@@ -19,6 +19,16 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='country'] option[value='BE']", count: 0
   end
 
+  test "participants index hides participants whose payment was refunded" do
+    participants(:two).payments.update_all(status: "refunded")
+
+    get participants_path
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
   test "mine requires authentication" do
     get mine_participants_path
 

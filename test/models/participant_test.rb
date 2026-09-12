@@ -573,6 +573,41 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal "Paid", participants(:two).registration_status
   end
 
+  test "registration_status is Refund when the payment was refunded" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    participant.reload
+    assert participant.refunded?
+    assert_not participant.paid?
+    assert_equal "Refund", participant.registration_status
+  end
+
+  test "registration_status is Paid when a later payment succeeded after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    participant.reload
+    assert_not participant.refunded?
+    assert_equal "Paid", participant.registration_status
+  end
+
+  test "not_refunded excludes participants with a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
+  test "not_refunded keeps participants that paid again after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    assert_includes Participant.not_refunded, participant.reload
+  end
+
   test "blocking_payments? is true for an open payment" do
     assert participants(:one).blocking_payments?
   end

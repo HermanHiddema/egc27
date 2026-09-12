@@ -49,7 +49,7 @@ class PaymentsController < ApplicationController
       sync_from_mollie(@payment, mollie_payment)
     end
 
-    if mollie_payment&.status == "paid"
+    if @payment.paid?
       return redirect_to success_payments_path, notice: "Your registration has already been paid."
     end
 
@@ -149,9 +149,32 @@ class PaymentsController < ApplicationController
   # once it is known, which is recorded alongside the status.
   def sync_from_mollie(payment, mollie_payment)
     payment.update!(
-      status: mollie_payment.status,
+      status: mollie_status(mollie_payment),
       payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
     )
+  end
+
+  # A refunded payment keeps the "paid" status at Mollie, which only reports the
+  # refunded amount separately, so refunds are mapped onto our own "refunded"
+  # status.
+  def mollie_status(mollie_payment)
+    return "refunded" if mollie_refunded?(mollie_payment)
+
+    mollie_payment.status
+  end
+
+  # Any refunded amount (full or partial) marks the payment as refunded.
+  def mollie_refunded?(mollie_payment)
+    amount_refunded = mollie_payment.try(:amount_refunded)
+    return false if amount_refunded.blank?
+
+    value = if amount_refunded.respond_to?(:value)
+      amount_refunded.value
+    elsif amount_refunded.respond_to?(:[])
+      amount_refunded["value"] || amount_refunded[:value]
+    end
+
+    value.to_f.positive?
   end
 
   # Read from the raw Mollie attributes because `method` is also the name of a

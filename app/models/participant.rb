@@ -76,6 +76,15 @@ class Participant < ApplicationRecord
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
 
+  # Participants whose payment was refunded are no longer attending, so they are
+  # left out of the public participant list. A later successful payment
+  # reinstates them.
+  scope :not_refunded, -> {
+    where.not(
+      id: Payment.refunded.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id)
+    )
+  }
+
   validates :first_name, :last_name, :email, :country, presence: true
   validates :user, presence: true, if: -> { email.present? }
   validates :age_group, inclusion: { in: AGE_GROUPS, message: "must be selected" }
@@ -142,9 +151,22 @@ class Participant < ApplicationRecord
     end
   end
 
-  # Payments that are canceled, expired or failed can never succeed anymore, so
-  # they do not block recording a manual payment. Uses the in-memory association
+  # A participant is considered refunded once one of their payments was refunded
+  # and no other payment succeeded afterwards. Uses the in-memory association
   # when it is already loaded, like #paid?.
+  def refunded?
+    return false if paid?
+
+    if payments.loaded?
+      payments.any?(&:refunded?)
+    else
+      payments.refunded.exists?
+    end
+  end
+
+  # Payments that are canceled, expired, failed or refunded can never succeed
+  # anymore, so they do not block recording a manual payment. Uses the in-memory
+  # association when it is already loaded, like #paid?.
   def blocking_payments?
     if payments.loaded?
       payments.any? { |payment| !payment.unsuccessful? }
@@ -173,6 +195,7 @@ class Participant < ApplicationRecord
   # High-level registration status used in the admin participant list.
   def registration_status
     return "Paid" if paid?
+    return "Refund" if refunded?
     return "Confirmed" if confirmed?
 
     "Pending"
