@@ -106,7 +106,7 @@ class RackAttackTest < ActionDispatch::IntegrationTest
 
   test "throttles email registration lookups by IP after limit" do
     freeze_time do
-      60.times do
+      20.times do
         post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
         assert_response :success
       end

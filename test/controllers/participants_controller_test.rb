@@ -825,12 +825,12 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Log in first", payload["action_label"]
   end
 
-  test "email_registered rejects requests when turnstile verification fails" do
+  test "email_registered does not require turnstile verification" do
     with_turnstile_configured do
       post email_registered_participants_path, params: { email: users(:one).email }, as: :json
     end
 
-    assert_response :unprocessable_entity
+    assert_response :success
   end
 
   test "email_registered reports an existing unconfirmed account email with a confirmation url" do

@@ -191,7 +191,6 @@ export default class extends Controller {
 
         try {
             const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
-            const turnstileToken = document.querySelector("input[name='cf-turnstile-response']")?.value || ""
             const headers = {
                 Accept: "application/json",
                 "Content-Type": "application/json"
@@ -202,11 +201,9 @@ export default class extends Controller {
                 method: "POST",
                 headers,
                 body: JSON.stringify({
-                    email,
-                    "cf-turnstile-response": turnstileToken
+                    email
                 })
             })
-            if (turnstileToken) this.resetTurnstileWidget()
 
             if (!response.ok) {
                 const currentEmail = this.normalizedEmail()
@@ -246,16 +243,6 @@ export default class extends Controller {
 
         this.existingAccountNoticeTarget.innerHTML = ""
         this.existingAccountNoticeTarget.classList.add("hidden")
-    }
-
-    resetTurnstileWidget() {
-        if (typeof window.turnstile === "undefined") return
-
-        const turnstileElement = document.querySelector(".cf-turnstile")
-        const widgetId = turnstileElement?.dataset?.turnstileWidgetId
-        if (!widgetId) return
-
-        window.turnstile.reset(widgetId)
     }
 
     hide() {
