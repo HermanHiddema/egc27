@@ -26,6 +26,10 @@ class ParticipantsCountrySelectorTest < ApplicationSystemTestCase
     assert_equal "", find("#participant_country", visible: false).value
     assert_equal "", country_input.value
     assert_equal "false", country_input["aria-expanded"]
+
+    country_input.click
+
+    assert_equal "true", country_input["aria-expanded"]
   end
 
   test "country can be cleared from the dropdown" do
