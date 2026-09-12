@@ -402,13 +402,13 @@ export default class extends Controller {
         )
 
         const items = matches.map(({ code, name }) => `
-            <button type="button" role="option" data-country-code="${code}" data-action="egd-autocomplete#chooseCountry" class="block w-full text-left px-4 py-2 text-sm text-neutral-900 hover:bg-gray-50">
+            <button type="button" id="${this.countryOptionIdFor(code)}" role="option" aria-selected="false" data-country-code="${code}" data-action="egd-autocomplete#chooseCountry" class="block w-full text-left px-4 py-2 text-sm text-neutral-900 hover:bg-gray-50">
               ${this.escapeHtml(name)} (${code})
             </button>
         `)
 
         items.push(`
-            <button type="button" role="option" data-action="egd-autocomplete#clearCountry" class="block w-full text-left px-4 py-2 text-sm font-medium text-neutral-600 border-t border-gray-200 hover:bg-gray-50">
+            <button type="button" id="${this.countryOptionIdFor("clear")}" role="option" aria-selected="false" data-action="egd-autocomplete#clearCountry" class="block w-full text-left px-4 py-2 text-sm font-medium text-neutral-600 border-t border-gray-200 hover:bg-gray-50">
               Clear
             </button>
         `)
@@ -416,7 +416,7 @@ export default class extends Controller {
         this.countryOptionsTarget.innerHTML = items.join("")
         this.countryOptionsTarget.classList.remove("hidden")
         this.countryInputTarget.setAttribute("aria-expanded", "true")
-        this.countryHighlightIndex = -1
+        this.clearCountryHighlight()
     }
 
     showCountryOptions() {
@@ -433,7 +433,7 @@ export default class extends Controller {
 
         this.countryOptionsTarget.classList.add("hidden")
         this.countryInputTarget.setAttribute("aria-expanded", "false")
-        this.countryHighlightIndex = -1
+        this.clearCountryHighlight()
     }
 
     chooseCountry(event) {
@@ -490,14 +490,40 @@ export default class extends Controller {
         const options = this.countryOptionElements()
         if (options.length === 0) return
 
-        const nextIndex = this.countryHighlightIndex + step
-        this.countryHighlightIndex = (nextIndex + options.length) % options.length
+        if (this.countryHighlightIndex === -1) {
+            this.countryHighlightIndex = step > 0 ? 0 : options.length - 1
+        } else {
+            const nextIndex = this.countryHighlightIndex + step
+            this.countryHighlightIndex = (nextIndex + options.length) % options.length
+        }
+
+        this.syncCountryHighlight(options)
+        options[this.countryHighlightIndex].scrollIntoView({ block: "nearest" })
+    }
+
+    clearCountryHighlight() {
+        this.countryHighlightIndex = -1
+        this.syncCountryHighlight()
+    }
+
+    syncCountryHighlight(options = this.countryOptionElements()) {
+        const activeOption = options[this.countryHighlightIndex]
 
         options.forEach((option, index) => {
-            option.classList.toggle("bg-gray-100", index === this.countryHighlightIndex)
+            const selected = index === this.countryHighlightIndex
+            option.classList.toggle("bg-gray-100", selected)
+            option.setAttribute("aria-selected", selected ? "true" : "false")
         })
 
-        options[this.countryHighlightIndex].scrollIntoView({ block: "nearest" })
+        if (activeOption) {
+            this.countryInputTarget.setAttribute("aria-activedescendant", activeOption.id)
+        } else {
+            this.countryInputTarget.removeAttribute("aria-activedescendant")
+        }
+    }
+
+    countryOptionIdFor(value) {
+        return `participant-country-option-${value}`
     }
 
     countryDisplayFor(value) {

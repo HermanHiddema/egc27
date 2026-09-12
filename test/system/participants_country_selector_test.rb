@@ -32,4 +32,35 @@ class ParticipantsCountrySelectorTest < ApplicationSystemTestCase
     assert_equal "", find("#participant_country", visible: false).value
     assert_equal "", find("[data-egd-autocomplete-target='countryInput']").value
   end
+
+  test "arrow up starts country highlight at the clear option" do
+    visit new_participant_path
+
+    country_input = find("[data-egd-autocomplete-target='countryInput']")
+    country_input.click
+    country_input.send_keys(:arrow_up)
+
+    clear_option = find("[data-egd-autocomplete-target='countryOptions'] button", text: "Clear", exact_text: true)
+
+    assert_equal "true", clear_option["aria-selected"]
+    assert_equal clear_option[:id], country_input["aria-activedescendant"]
+  end
+
+  test "keyboard highlight updates aria state and clears it when closed" do
+    visit new_participant_path
+
+    country_input = find("[data-egd-autocomplete-target='countryInput']")
+    country_input.click
+    country_input.send_keys(:arrow_down)
+
+    first_option = find("[data-egd-autocomplete-target='countryOptions'] button", match: :first)
+
+    assert_equal "true", first_option["aria-selected"]
+    assert_equal first_option[:id], country_input["aria-activedescendant"]
+
+    country_input.send_keys(:escape)
+
+    assert_nil country_input["aria-activedescendant"]
+    assert_equal "false", first_option["aria-selected"]
+  end
 end
