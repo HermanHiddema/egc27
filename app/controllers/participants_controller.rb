@@ -4,7 +4,7 @@ class ParticipantsController < ApplicationController
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration, :confirm, :resend_confirmation]
   before_action :build_participant, only: [:create]
   before_action :set_participant, only: [:show, :resend_confirmation]
-  before_action :verify_turnstile, only: [:create, :resend_confirmation]
+  before_action :verify_turnstile, only: [:create, :email_registered, :resend_confirmation]
   before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index

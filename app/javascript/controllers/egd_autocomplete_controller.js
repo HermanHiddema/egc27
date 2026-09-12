@@ -191,6 +191,7 @@ export default class extends Controller {
 
         try {
             const csrfToken = document.querySelector("meta[name='csrf-token']")?.content
+            const turnstileToken = document.querySelector("input[name='cf-turnstile-response']")?.value || ""
             const headers = {
                 Accept: "application/json",
                 "Content-Type": "application/json"
@@ -200,7 +201,10 @@ export default class extends Controller {
             const response = await fetch(this.emailRegisteredUrlValue, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({ email })
+                body: JSON.stringify({
+                    email,
+                    "cf-turnstile-response": turnstileToken
+                })
             })
 
             if (!response.ok) {
