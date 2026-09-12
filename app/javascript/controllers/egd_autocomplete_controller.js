@@ -183,6 +183,7 @@ export default class extends Controller {
             return
         }
 
+        this.hideExistingAccountNotice()
         this.emailCheckTimeout = setTimeout(() => this.checkExistingAccount(email), 250)
     }
 
