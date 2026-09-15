@@ -23,6 +23,7 @@ class NewsletterSubscriptionsController < ApplicationController
       @newsletter_subscription.unsubscribed_at = nil
 
       if @newsletter_subscription.save
+        NewsletterMailer.welcome(@newsletter_subscription).deliver_later
         redirect_to newsletter_path, notice: "Thanks for subscribing to the newsletter."
       else
         render :new, status: :unprocessable_entity
