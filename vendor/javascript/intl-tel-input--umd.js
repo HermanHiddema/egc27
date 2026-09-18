@@ -4038,7 +4038,10 @@ var factoryOutput = (() => {
         if (!id2) {
           return null;
         }
-        return intlTelInput.instances instanceof Map ? intlTelInput.instances.get(id2) : intlTelInput.instances[id2];
+        if (intlTelInput.instances instanceof Map) {
+          return intlTelInput.instances.get(Number(id2)) ?? intlTelInput.instances.get(id2);
+        }
+        return intlTelInput.instances[id2];
       },
       //* A map from instance ID to instance object.
       instances: {},

@@ -68,7 +68,7 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
           document.body.appendChild(extraInput)
           extraIti = window.intlTelInput(extraInput, { initialCountry: "nl" })
 
-          return window.intlTelInput.instances.get(extraInput.dataset.intlTelInputId) === extraIti
+          return window.intlTelInput.getInstance(extraInput) === extraIti
         } catch (error) {
           return false
         } finally {
