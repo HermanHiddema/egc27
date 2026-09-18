@@ -45,7 +45,7 @@ Rails.application.configure do
 
   # Generate per-request nonces so inline scripts (the Turnstile loader and the
   # tags emitted by `javascript_importmap_tags`) do not need 'unsafe-inline'.
-  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.base64(16) }
+  config.content_security_policy_nonce_generator = ->(_request) { SecureRandom.urlsafe_base64(16) }
   config.content_security_policy_nonce_directives = %w[script-src]
 
   # Set CONTENT_SECURITY_POLICY_REPORT_ONLY=true to observe violations without
