@@ -60,7 +60,9 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
         let extraIti
 
         try {
-          window.intlTelInput.instances = new Map(Object.entries(originalInstances))
+          window.intlTelInput.instances = new Map(
+            Object.entries(originalInstances).map(([id, instance]) => [Number(id), instance])
+          )
 
           if (window.intlTelInput.getInstance(input) !== iti) return false
 

@@ -4039,7 +4039,7 @@ var factoryOutput = (() => {
           return null;
         }
         if (intlTelInput.instances instanceof Map) {
-          return intlTelInput.instances.get(Number(id2)) ?? intlTelInput.instances.get(id2);
+          return intlTelInput.instances.get(Number(id2));
         }
         return intlTelInput.instances[id2];
       },
