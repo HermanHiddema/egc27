@@ -24,7 +24,7 @@
 
     <%# Load Cloudflare Turnstile only on pages that render a widget %>
     <% if content_for?(:turnstile_script) && ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
-      <script>function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
+      <script nonce="<%= content_security_policy_nonce %>">function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
       <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=egc27TurnstileOnLoad&render=explicit" async defer></script>
     <% end %>
 
