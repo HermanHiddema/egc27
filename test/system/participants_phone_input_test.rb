@@ -11,7 +11,7 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
       (() => {
         const imports = JSON.parse(document.querySelector("script[type='importmap']").textContent).imports
 
-        return ["intl-tel-input", "intl-tel-input/utils"].every((name) => {
+        return ["intl-tel-input", "intl-tel-input/umd", "intl-tel-input/utils"].every((name) => {
           return new URL(imports[name], window.location.origin).origin === window.location.origin
         })
       })()
