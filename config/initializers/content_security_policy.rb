@@ -5,6 +5,16 @@
 # https://guides.rubyonrails.org/security.html#content-security-policy-header
 
 Rails.application.configure do
+  egd_connect_origins = [
+    ENV.fetch("EGD_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByData.php"),
+    ENV.fetch("EGD_PIN_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByPIN.php")
+  ].filter_map do |url|
+    uri = URI.parse(url)
+    uri.origin if uri.is_a?(URI::HTTP) && uri.host.present?
+  rescue URI::InvalidURIError
+    nil
+  end.uniq
+
   config.content_security_policy do |policy|
     policy.default_src     :self
     policy.base_uri        :self
@@ -24,7 +34,7 @@ Rails.application.configure do
     # flag images loaded from CDNs by intl-tel-input.
     policy.img_src     :self, :data, :blob, :https
     policy.font_src    :self, :data
-    policy.connect_src :self
+    policy.connect_src :self, *egd_connect_origins
     # Turnstile renders its challenge inside an iframe.
     policy.frame_src   :self, "https://challenges.cloudflare.com"
 
