@@ -29,4 +29,22 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
 
     assert_selector :field, "participant_phone", with: "+31612345678"
   end
+
+  test "selected country can be cleared after initialization" do
+    visit new_participant_path
+
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const input = document.querySelector("[data-phone-input-target='input']")
+        const iti = window.intlTelInput.getInstance(input)
+
+        try {
+          iti.setCountry("")
+          return iti.getSelectedCountryData().iso2 == null
+        } catch (error) {
+          return false
+        }
+      })()
+    JS
+  end
 end

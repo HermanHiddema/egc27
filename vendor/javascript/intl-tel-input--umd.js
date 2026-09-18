@@ -3935,7 +3935,7 @@ var factoryOutput = (() => {
     //* Update the selected country, and update the input val accordingly.
     setCountry(iso2) {
       const iso2Lower = iso2?.toLowerCase();
-      if (!isIso2(iso2Lower)) {
+      if (iso2Lower && !isIso2(iso2Lower)) {
         throw new Error(`Invalid country code: '${iso2Lower}'`);
       }
       const currentCountry = this.selectedCountryData.iso2;
