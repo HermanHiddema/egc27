@@ -4007,7 +4007,8 @@ var factoryOutput = (() => {
     return null;
   };
   var forEachInstance = (method, ...args) => {
-    Object.values(intlTelInput.instances).forEach((instance) => {
+    const instances = intlTelInput.instances instanceof Map ? Array.from(intlTelInput.instances.values()) : Object.values(intlTelInput.instances);
+    instances.forEach((instance) => {
       const fn = instance[method];
       if (typeof fn === "function") {
         fn.apply(instance, args);
