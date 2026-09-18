@@ -675,7 +675,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "refuses a guest registration with an existing unconfirmed account email" do
     unconfirmed_user = User.create!(
       email: "pending_account@example.org",
-      password: "password123",
+      password: "password1234!",
       role: "regular"
     )
     assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
@@ -846,7 +846,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "email_registered reports an existing unconfirmed account email with a confirmation url" do
     unconfirmed_user = User.create!(
       email: "pending_lookup@example.org",
-      password: "password123",
+      password: "password1234!",
       role: "regular"
     )
     assert_not unconfirmed_user.confirmed?, "user should be unconfirmed"
