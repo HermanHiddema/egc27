@@ -4018,7 +4018,11 @@ var factoryOutput = (() => {
   var intlTelInput = Object.assign(
     (input, options) => {
       const iti = new Iti(input, options);
-      intlTelInput.instances[iti.id] = iti;
+      if (intlTelInput.instances instanceof Map) {
+        intlTelInput.instances.set(iti.id, iti);
+      } else {
+        intlTelInput.instances[iti.id] = iti;
+      }
       input.iti = iti;
       return iti;
     },
@@ -4031,7 +4035,10 @@ var factoryOutput = (() => {
       //* A getter for the plugin instance.
       getInstance: (input) => {
         const id2 = input.dataset.intlTelInputId;
-        return id2 ? intlTelInput.instances[id2] : null;
+        if (!id2) {
+          return null;
+        }
+        return intlTelInput.instances instanceof Map ? intlTelInput.instances.get(id2) : intlTelInput.instances[id2];
       },
       //* A map from instance ID to instance object.
       instances: {},

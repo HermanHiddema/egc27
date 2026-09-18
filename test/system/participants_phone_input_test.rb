@@ -47,4 +47,36 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
       })()
     JS
   end
+
+  test "instance registry supports map-backed storage" do
+    visit new_participant_path
+
+    assert page.evaluate_script(<<~JS)
+      (() => {
+        const input = document.querySelector("[data-phone-input-target='input']")
+        const iti = window.intlTelInput.getInstance(input)
+        const originalInstances = window.intlTelInput.instances
+        let extraInput
+        let extraIti
+
+        try {
+          window.intlTelInput.instances = new Map(Object.entries(originalInstances))
+
+          if (window.intlTelInput.getInstance(input) !== iti) return false
+
+          extraInput = document.createElement("input")
+          document.body.appendChild(extraInput)
+          extraIti = window.intlTelInput(extraInput, { initialCountry: "nl" })
+
+          return window.intlTelInput.instances.get(extraInput.dataset.intlTelInputId) === extraIti
+        } catch (error) {
+          return false
+        } finally {
+          if (extraIti) extraIti.destroy()
+          if (extraInput) extraInput.remove()
+          window.intlTelInput.instances = originalInstances
+        }
+      })()
+    JS
+  end
 end
