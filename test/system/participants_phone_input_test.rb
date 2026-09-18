@@ -27,6 +27,6 @@ class ParticipantsPhoneInputTest < ApplicationSystemTestCase
     phone_input.fill_in with: "0612345678"
     phone_input.native.send_keys(:tab)
 
-    assert_field "participant_phone", with: "+31612345678"
+    assert_selector :field, "participant_phone", with: "+31612345678"
   end
 end
