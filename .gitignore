@@ -39,6 +39,7 @@
 vendor/*
 # Vendored JavaScript is checked in so it can be served from our own origin.
 !vendor/javascript/
+!vendor/javascript/**
 
 # Bundled gems (local dev install, not for deployment)
 vendor/bundle/
