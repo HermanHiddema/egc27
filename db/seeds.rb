@@ -10,8 +10,8 @@ if seed_updates_allowed
   user = User.find_or_initialize_by(email: "test@example.com")
   user.update!(
     email: "test@example.com",
-    password: "password123",
-    password_confirmation: "password123",
+    password: "testpassword123",
+    password_confirmation: "testpassword123",
     full_name: "Test Admin",
     role: "admin",
     confirmed_at: Time.current,
@@ -20,7 +20,7 @@ if seed_updates_allowed
     unconfirmed_email: nil
   )
 
-  puts "✓ Test admin user created: test@example.com / password123"
+  puts "✓ Test admin user created: test@example.com / testpassword123"
 else
   user = User.find_by(email: "test@example.com")
 end
