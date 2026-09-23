@@ -196,5 +196,11 @@ Rails.application.routes.draw do
     end
   end
 
+  # Flyers were printed with URLs missing the /pages prefix, so keep those
+  # shortcuts working by redirecting them to the real page URLs.
+  %w[cns cnt jp kr].each do |slug|
+    get slug, to: redirect("/pages/#{slug}")
+  end
+
   root "home#index"
 end
