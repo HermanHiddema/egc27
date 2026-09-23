@@ -92,6 +92,7 @@ All must pass before deploy.
 - `config/routes.rb` - Guards all routes with auth (study carefully when routing)
 - `config/ci.rb` - Defines CI pipeline; update here if adding checks
 - `DESIGN_SYSTEM.md` - Brand colors, typography, component classes (Tailwind + CSS vars)
+- `docs/egd-graphql-api.md` - European Go Database API reference (schema, auth, known upstream defects)
 - `Gemfile` - All dependencies; commit `Gemfile.lock` only after changes
 - `.ruby-version` - Currently Ruby 4.0.6; change if updating Ruby
 - `Dockerfile` - Production image build; no dev-only gems in bundle
