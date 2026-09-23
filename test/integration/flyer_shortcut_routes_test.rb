@@ -5,7 +5,7 @@ class FlyerShortcutRoutesTest < ActionDispatch::IntegrationTest
     %w[cns cnt jp kr].each do |slug|
       get "/#{slug}"
       assert_redirected_to "/pages/#{slug}"
-      assert_response :moved_permanently
+      assert_response 302
     end
   end
 end
