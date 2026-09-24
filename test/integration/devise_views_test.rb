@@ -40,6 +40,10 @@ class DeviseViewsTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div.card-elevated"
     assert_select "h1", text: "Resend confirmation instructions"
+    assert_match "Enter the email address you used for your registration.", response.body
+    assert_match "You should already have a confirmation email from us.", response.body
+    assert_match "Please check your inbox and spam folder first.", response.body
+    assert_match "If you still cannot find it, you can resend the confirmation link below.", response.body
     assert_select "input[name='user[email]']"
   end
 

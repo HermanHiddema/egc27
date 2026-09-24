@@ -10,6 +10,8 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
+    refresh_completed_payments_until_paid
+
     @payment = @participant.payments.completed.order(created_at: :desc).first || @participant.payments.pending_or_open.order(created_at: :desc).first || build_payment_for(@participant)
     @price_valid_until = CongressPassPricing.new(
       attendance_option: @participant.attendance_option,
@@ -23,8 +25,9 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     created_payment = false
 
+    refresh_completed_payments_until_paid
     existing = @participant.payments.completed.order(created_at: :desc).first
-    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing
+    return redirect_to success_payments_path, notice: "Your registration has already been paid." if existing&.paid?
 
     @payment = @participant.payments.pending_or_open.order(created_at: :desc).first
 
@@ -49,7 +52,7 @@ class PaymentsController < ApplicationController
       sync_from_mollie(@payment, mollie_payment)
     end
 
-    if mollie_payment&.status == "paid"
+    if @payment.paid?
       return redirect_to success_payments_path, notice: "Your registration has already been paid."
     end
 
@@ -149,9 +152,37 @@ class PaymentsController < ApplicationController
   # once it is known, which is recorded alongside the status.
   def sync_from_mollie(payment, mollie_payment)
     payment.update!(
-      status: mollie_payment.status,
+      status: mollie_status(mollie_payment),
       payment_method: mollie_payment_method(mollie_payment) || payment.payment_method
     )
+  end
+
+  # A refunded payment keeps the "paid" status at Mollie, which only reports the
+  # refunded amount separately, so refunds are mapped onto our own "refunded"
+  # status.
+  def mollie_status(mollie_payment)
+    return "refunded" if mollie_refunded?(mollie_payment)
+
+    mollie_payment.status
+  end
+
+  def mollie_refunded?(mollie_payment)
+    refunded_amount = mollie_amount_value(mollie_payment.try(:amount_refunded))
+    refunded_amount&.positive?
+  end
+
+  def mollie_amount_value(amount)
+    return if amount.blank?
+
+    value = if amount.respond_to?(:value)
+      amount.value
+    elsif amount.respond_to?(:[])
+      amount["value"] || amount[:value]
+    end
+
+    return if value.blank?
+
+    BigDecimal(value.to_s)
   end
 
   # Read from the raw Mollie attributes because `method` is also the name of a
@@ -165,6 +196,19 @@ class PaymentsController < ApplicationController
 
   def retryable_mollie_status?(status)
     %w[open pending authorized].include?(status)
+  end
+
+  def refresh_completed_payments_until_paid
+    @participant.payments.completed.order(created_at: :desc).each do |payment|
+      next if payment.mollie_payment_id.blank?
+
+      sync_from_mollie(payment, Mollie::Payment.get(payment.mollie_payment_id))
+      break if payment.paid?
+    end
+
+    @participant.association(:payments).reset
+  rescue Mollie::Exception => e
+    Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{@participant.id}: #{e.message}"
   end
 
   def simulate_mollie_payment?

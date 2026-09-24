@@ -32,6 +32,12 @@ module Egc27
     config.middleware.insert_after ActionDispatch::RemoteIp, Rack::Attack
     config.active_storage.variant_processor = :vips
 
+    # Do not draw the default Active Storage routes: they include an
+    # unauthenticated POST /rails/active_storage/direct_uploads endpoint that
+    # this application does not use. The routes we do need (blob and
+    # representation serving) are drawn explicitly in config/routes.rb.
+    config.active_storage.draw_routes = false
+
     # Master switch for anonymous-form bot protection (Rack::Attack throttling and
     # Cloudflare Turnstile). Enabled by default; individual environments (e.g.
     # staging) may disable it.

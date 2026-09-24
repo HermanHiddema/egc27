@@ -19,7 +19,8 @@ export default class extends Controller {
 
   renderWidget() {
     if (!this.element.querySelector("iframe")) {
-      window.turnstile.render(this.element)
+      const widgetId = window.turnstile.render(this.element)
+      this.element.dataset.turnstileWidgetId = String(widgetId)
     }
   }
 }

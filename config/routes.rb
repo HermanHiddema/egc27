@@ -37,6 +37,82 @@ Rails.application.routes.draw do
 
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
+  # Active Storage routes are drawn here instead of by the engine
+  # (config.active_storage.draw_routes is false) so that the unauthenticated
+  # POST /rails/active_storage/direct_uploads endpoint, which this application
+  # does not use, does not exist. Everything else mirrors the engine defaults.
+  scope ActiveStorage.routes_prefix do
+    get "/blobs/redirect/:signed_id/*filename" => "active_storage/blobs/redirect#show", as: :rails_service_blob
+    get "/blobs/proxy/:signed_id/*filename" => "active_storage/blobs/proxy#show", as: :rails_service_blob_proxy
+    get "/blobs/:signed_id/*filename" => "active_storage/blobs/redirect#show"
+
+    get "/representations/redirect/:signed_blob_id/:variation_key/*filename" => "active_storage/representations/redirect#show", as: :rails_blob_representation
+    get "/representations/proxy/:signed_blob_id/:variation_key/*filename" => "active_storage/representations/proxy#show", as: :rails_blob_representation_proxy
+    get "/representations/:signed_blob_id/:variation_key/*filename" => "active_storage/representations/redirect#show"
+
+    get "/disk/:encoded_key/*filename" => "active_storage/disk#show", as: :rails_disk_service
+    put "/disk/:encoded_token" => "active_storage/disk#update", as: :update_rails_disk_service
+  end
+
+  direct :rails_representation do |representation, options|
+    route_for(ActiveStorage.resolve_model_to_route, representation, options)
+  end
+
+  resolve("ActiveStorage::Variant") { |variant, options| route_for(ActiveStorage.resolve_model_to_route, variant, options) }
+  resolve("ActiveStorage::VariantWithRecord") { |variant, options| route_for(ActiveStorage.resolve_model_to_route, variant, options) }
+  resolve("ActiveStorage::Preview") { |preview, options| route_for(ActiveStorage.resolve_model_to_route, preview, options) }
+
+  direct :rails_blob do |blob, options|
+    route_for(ActiveStorage.resolve_model_to_route, blob, options)
+  end
+
+  resolve("ActiveStorage::Blob")       { |blob, options| route_for(ActiveStorage.resolve_model_to_route, blob, options) }
+  resolve("ActiveStorage::Attachment") { |attachment, options| route_for(ActiveStorage.resolve_model_to_route, attachment.blob, options) }
+
+  direct :rails_storage_proxy do |model, options|
+    expires_in = options.delete(:expires_in) { ActiveStorage.urls_expire_in }
+    expires_at = options.delete(:expires_at)
+
+    if model.respond_to?(:signed_id)
+      route_for(
+        :rails_service_blob_proxy,
+        model.signed_id(expires_in: expires_in, expires_at: expires_at),
+        model.filename,
+        options
+      )
+    else
+      route_for(
+        :rails_blob_representation_proxy,
+        model.blob.signed_id(expires_in: expires_in, expires_at: expires_at),
+        model.variation.key,
+        model.blob.filename,
+        options
+      )
+    end
+  end
+
+  direct :rails_storage_redirect do |model, options|
+    expires_in = options.delete(:expires_in) { ActiveStorage.urls_expire_in }
+    expires_at = options.delete(:expires_at)
+
+    if model.respond_to?(:signed_id)
+      route_for(
+        :rails_service_blob,
+        model.signed_id(expires_in: expires_in, expires_at: expires_at),
+        model.filename,
+        options
+      )
+    else
+      route_for(
+        :rails_blob_representation,
+        model.blob.signed_id(expires_in: expires_in, expires_at: expires_at),
+        model.variation.key,
+        model.blob.filename,
+        options
+      )
+    end
+  end
+
   # Reveal health status on /up that returns 200 if the app boots with no exceptions, otherwise 500.
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
@@ -72,6 +148,7 @@ Rails.application.routes.draw do
     collection do
       get :egd_search
       get :egd_registered
+      post :email_registered
       get :alter_registration
       get :mine
     end
@@ -120,6 +197,12 @@ Rails.application.routes.draw do
         patch :unmark_processed
       end
     end
+  end
+
+  # Flyers were printed with URLs missing the /pages prefix, so keep those
+  # shortcuts working by redirecting them to the real page URLs.
+  %w[cns cnt jp kr].each do |slug|
+    get slug, to: redirect("/pages/#{slug}")
   end
 
   root "home#index"
