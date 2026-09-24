@@ -57,7 +57,14 @@ class EgdLookupServiceTest < ActiveSupport::TestCase
     body = JSON.parse(request.body)
     assert_equal "SearchPlayers", body["operationName"]
     assert_equal "Hiddema", body["variables"]["search"]
-    assert_equal({ "page" => 1, "limit" => EgdLookupService::MAX_RESULTS }, body["variables"]["pagination"])
+    # EGD returns HTTP 500 when pagination is passed as an input-object
+    # variable, so page and limit must travel as scalars and the pagination
+    # object must be inlined in the query document.
+    assert_equal 1, body["variables"]["page"]
+    assert_equal EgdLookupService::MAX_RESULTS, body["variables"]["limit"]
+    assert_includes body["query"], "pagination: { page: $page, limit: $limit }"
+    assert_not_includes body["query"], "PaginationInput"
+    assert_equal [], body["variables"].values.select { |value| value.is_a?(Hash) }
     assert_equal 1, results.length
     assert_equal "Hiddema", results.first[:last_name]
   end

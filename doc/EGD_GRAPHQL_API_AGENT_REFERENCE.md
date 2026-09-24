@@ -1,6 +1,6 @@
 # European Go Database GraphQL API — agent reference
 
-> Self-contained development reference derived from the EGD Developer Guide and the complete published GraphQL API reference for version `2026.02`, retrieved 2026-09-11. Use this file when the live documentation is unavailable.
+> Self-contained development reference derived from the EGD Developer Guide and the complete published GraphQL API reference for version `2026.02`, retrieved 2026-09-11 and revalidated 2026-09-23. Use this file when the live documentation is unavailable.
 
 ## Agent instructions
 
@@ -8,6 +8,7 @@
 - Endpoint: `https://europeangodatabase.eu/api/v2026.02/graphql`
 - Send GraphQL requests as HTTP `POST` with a JSON body and a bearer token.
 - Every request requires authentication.
+- Do not pass `PaginationInput` or `PlayerFilterInput` as GraphQL variables to `players` or `playersSearch`. As of 2026-09-23, EGD returns HTTP 500 for those otherwise valid requests. Bind their individual scalar fields and construct the input objects inline instead.
 - The published schema documents **queries only**. It does not document any mutations, despite generic text saying a `read-write` token permits mutations. Do not invent mutations; consult newer documentation if writes are required.
 - GraphQL fields must be selected explicitly. A relation such as `games`, `players`, or `placements` is not returned unless requested with a sub-selection.
 - List relations embedded in objects return `{ data, total }` and are not page-based. Top-level plural queries return pagination metadata and require `pagination`.
@@ -59,8 +60,8 @@ curl -X POST 'https://europeangodatabase.eu/api/v2026.02/graphql' \
   -H 'Content-Type: application/json' \
   --data-binary @- <<'JSON'
 {
-  "query": "query FindPlayers($term: String!, $pagination: PaginationInput!) { playersSearch(search: $term, pagination: $pagination) { data { pin firstName lastName rating } total currentPage lastPage hasMorePages } }",
-  "variables": { "term": "Ilya", "pagination": { "page": 1, "limit": 5 } }
+  "query": "query FindPlayers($term: String!, $page: Int!, $limit: Int!) { playersSearch(search: $term, pagination: { page: $page, limit: $limit }) { data { pin firstName lastName rating } total currentPage lastPage hasMorePages } }",
+  "variables": { "term": "Ilya", "page": 1, "limit": 5 }
 }
 JSON
 ```
@@ -89,6 +90,18 @@ GraphQL can return HTTP success while including application errors. Always inspe
 ```
 
 Treat `401` as missing, expired, deleted, or invalid authentication. The documentation does not specify rate limits, retry rules, error extensions, timeouts, or idempotency behavior. Implement bounded retries only for transient transport/5xx failures, never blind retries for unknown writes.
+
+### Known upstream defects
+
+These behaviors were reproduced against the live `2026.02` endpoint on 2026-09-23:
+
+- Passing a `PaginationInput` variable to `players` or `playersSearch` returns HTTP 500 with only `{ "message": "Server Error" }`. Inline the input object and bind `$page` and `$limit` as `Int` variables.
+- Passing a `PlayerFilterInput` variable to `players` returns the same HTTP 500. Inline the input object and bind fields such as `$countryCode` as scalar variables.
+- The equivalent scalar-variable workaround returns HTTP 200. Literal input objects also work.
+- Introspection with `__type` returned HTTP 200 with a GraphQL `Internal server error`, so live schema introspection may not be dependable.
+- The live Developer Guide and GraphQL overview still show `players(search: "Ilya", first: 5)`. That example is stale: the endpoint reports that `search` and `first` are unknown arguments and that required `pagination` is missing. Use `playersSearch(search: ..., pagination: ...)` for text search, as documented by the query-specific reference page.
+
+The query-specific live reference pages still declare `pagination: PaginationInput!` and optional `filter: PlayerFilterInput`; they do not mention the input-variable failures. The reference itself was last modified 2026-07-25 when checked.
 
 ## Query root
 
@@ -559,3 +572,24 @@ The published reference does not specify:
 - SGF retrieval semantics for `sgfCode`.
 
 When behavior depends on one of these points, probe safely against the API or obtain updated official documentation rather than guessing.
+
+## How this application uses the API
+
+`EgdLookupService` (`app/services/egd_lookup_service.rb`) is the only backend
+client for this endpoint. It exposes two operations:
+
+- `find_by_pin(pin:)` → `player(pin: Int!)`, used by `EgdSyncJob` to refresh the
+  rank and rating of every participant with an EGD pin, and by `search` when the
+  query is an 8 digit pin.
+- `search(query:)` → `playersSearch`, backing the public autocomplete endpoint
+  `participants#egd_search`.
+
+Both bind `$page` and `$limit` as `Int` variables and build `pagination` inline,
+per the upstream defect documented above. The token comes from `EGD_API_TOKEN`;
+when it is missing the service logs a warning and returns empty results rather
+than raising, so registration keeps working without EGD.
+
+The browser-side autocomplete (`egd_autocomplete_controller.js`) still calls the
+legacy REST endpoints directly, because the GraphQL API requires a token that
+cannot be exposed to the browser. `EgdLookupService::BY_DATA_URL` and
+`BY_PIN_URL` exist only to supply those legacy URLs to the frontend.

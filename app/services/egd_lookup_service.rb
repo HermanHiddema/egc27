@@ -22,8 +22,8 @@ class EgdLookupService
   MIN_SEARCH_LENGTH = 2
   PIN_FORMAT = /\A\d{8}\z/
   USER_AGENT = "EGC27/participant-registration"
-  OPEN_TIMEOUT = 5
-  READ_TIMEOUT = 10
+  OPEN_TIMEOUT = 10
+  READ_TIMEOUT = 30
 
   PLAYER_FIELDS = "pin firstName lastName countryCode club grade rating"
 
@@ -33,9 +33,18 @@ class EgdLookupService
     }
   GRAPHQL
 
+  # Input objects are built inline from scalar variables on purpose: EGD returns
+  # HTTP 500 when a PaginationInput or PlayerFilterInput is passed as a GraphQL
+  # variable, while literal input objects work. See the "Known upstream defects"
+  # section of the API reference. Ordering is explicit because the API documents
+  # no default sort, so results would otherwise be unstable between calls.
   PLAYERS_SEARCH_QUERY = <<~GRAPHQL.freeze
-    query SearchPlayers($search: String!, $pagination: PaginationInput!) {
-      playersSearch(search: $search, pagination: $pagination) {
+    query SearchPlayers($search: String!, $page: Int!, $limit: Int!) {
+      playersSearch(
+        search: $search
+        order: { field: rating, direction: DESC }
+        pagination: { page: $page, limit: $limit }
+      ) {
         data { #{PLAYER_FIELDS} }
       }
     }
@@ -56,7 +65,7 @@ class EgdLookupService
     data = execute(
       query: PLAYERS_SEARCH_QUERY,
       operation_name: "SearchPlayers",
-      variables: { search: term, pagination: { page: 1, limit: MAX_RESULTS } }
+      variables: { search: term, page: 1, limit: MAX_RESULTS }
     )
 
     normalize(data&.dig("playersSearch", "data")).first(MAX_RESULTS)
