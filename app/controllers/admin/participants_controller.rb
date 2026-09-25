@@ -24,6 +24,13 @@ class Admin::ParticipantsController < ApplicationController
   def edit
   end
 
+  # Queues a background refresh of rank and rating from the European Go
+  # Database for every participant with a valid EGD pin.
+  def sync_egd
+    EgdSyncJob.perform_later
+    redirect_to admin_participants_path, notice: "EGD synchronization has been started."
+  end
+
   def update
     if @participant.update(participant_params)
       redirect_to admin_participants_path, notice: "Participant was successfully updated."
