@@ -485,11 +485,12 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     duplicate_pin = participants(:one).egd_pin
     duplicate_email = "concurrent-duplicate-pin@example.org"
     participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    error = duplicate_key_error_for("index_participants_on_egd_pin", with_result: true)
     participant.define_singleton_method(:save!) do |*|
-      raise duplicate_key_error_for("index_participants_on_egd_pin")
+      raise error
     end
 
-    Participant.stub(:new, participant) do
+    with_stubbed_participant_new(participant) do
       assert_no_difference("Participant.count") do
         post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
       end
@@ -503,12 +504,13 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     duplicate_pin = participants(:one).egd_pin
     duplicate_email = "concurrent-other-constraint@example.org"
     participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    duplicate_error = duplicate_key_error_for("index_users_on_email", with_result: true)
     participant.define_singleton_method(:save!) do |*|
-      raise duplicate_key_error_for("index_users_on_email")
+      raise duplicate_error
     end
 
     error = assert_raises(ActiveRecord::RecordNotUnique) do
-      Participant.stub(:new, participant) do
+      with_stubbed_participant_new(participant) do
         post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
       end
     end
@@ -993,9 +995,34 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     Participant.new(duplicate_pin_participant_params(email: email, egd_pin: egd_pin)[:participant])
   end
 
-  def duplicate_key_error_for(constraint_name)
-    ActiveRecord::RecordNotUnique.new(
-      "PG::UniqueViolation: ERROR: duplicate key value violates unique constraint \"#{constraint_name}\""
-    )
+  def with_stubbed_participant_new(participant)
+    original_new = Participant.method(:new)
+    Participant.define_singleton_method(:new) { |*| participant }
+    yield
+  ensure
+    Participant.define_singleton_method(:new) do |*args, **kwargs, &block|
+      original_new.call(*args, **kwargs, &block)
+    end
+  end
+
+  def duplicate_key_error_for(constraint_name, with_result: false)
+    message = "PG::UniqueViolation: ERROR: duplicate key value violates unique constraint \"#{constraint_name}\""
+    return ActiveRecord::RecordNotUnique.new(message) unless with_result
+
+    result = Object.new
+    result.define_singleton_method(:error_field) do |field|
+      constraint_name if field == PG::Result::PG_DIAG_CONSTRAINT_NAME
+    end
+
+    cause = StandardError.new(message)
+    cause.define_singleton_method(:result) { result }
+
+    begin
+      raise cause
+    rescue StandardError
+      raise ActiveRecord::RecordNotUnique, message
+    end
+  rescue ActiveRecord::RecordNotUnique => error
+    error
   end
 end

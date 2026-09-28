@@ -347,7 +347,7 @@ class ParticipantsController < ApplicationController
     result = error.cause&.respond_to?(:result) ? error.cause.result : nil
     return unless result.respond_to?(:error_field)
 
-    result.error_field(PG::PG_DIAG_CONSTRAINT_NAME)
+    result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def participant_params
