@@ -21,7 +21,9 @@ class AddUniqueIndexToParticipantsEgdPinTest < ActiveSupport::TestCase
     pin = "87654321"
     earliest, middle, latest = create_duplicate_pin_participants(pin)
 
-    AddUniqueIndexToParticipantsEgdPin.new.migrate(:up)
+    ActiveRecord::Base.transaction do
+      AddUniqueIndexToParticipantsEgdPin.new.migrate(:up)
+    end
 
     assert_equal pin, earliest.reload.egd_pin
     assert_nil middle.reload.egd_pin

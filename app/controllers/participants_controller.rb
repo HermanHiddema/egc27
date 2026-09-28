@@ -335,7 +335,6 @@ class ParticipantsController < ApplicationController
 
   def duplicate_egd_pin_conflict?(error)
     @participant&.egd_pin.present? &&
-      Participant.exists?(egd_pin: @participant.egd_pin) &&
       duplicate_egd_pin_constraint?(error)
   end
 

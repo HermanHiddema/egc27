@@ -19,7 +19,7 @@ class AddUniqueIndexToParticipantsEgdPin < ActiveRecord::Migration[8.1]
 
   def lock_participant_writes!
     quoted_table_name = MigrationParticipant.connection.quote_table_name(MigrationParticipant.table_name)
-    MigrationParticipant.connection.execute("LOCK TABLE #{quoted_table_name} IN ACCESS EXCLUSIVE MODE")
+    MigrationParticipant.connection.execute("LOCK TABLE #{quoted_table_name} IN SHARE ROW EXCLUSIVE MODE")
   end
 
   def deduplicate_egd_pins!
