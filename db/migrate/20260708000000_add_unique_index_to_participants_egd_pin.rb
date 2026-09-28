@@ -5,6 +5,7 @@ class AddUniqueIndexToParticipantsEgdPin < ActiveRecord::Migration[8.1]
 
   def up
     lock_participant_writes!
+    normalize_blank_egd_pins!
     deduplicate_egd_pins!
     remove_index :participants, :egd_pin
     add_index :participants, :egd_pin, unique: true
@@ -28,6 +29,10 @@ class AddUniqueIndexToParticipantsEgdPin < ActiveRecord::Migration[8.1]
       # so the unique index can be applied without dropping the affected rows.
       MigrationParticipant.where(egd_pin: pin).order(created_at: :asc, id: :asc).offset(1).update_all(egd_pin: nil)
     end
+  end
+
+  def normalize_blank_egd_pins!
+    MigrationParticipant.where(egd_pin: "").update_all(egd_pin: nil)
   end
 
   def duplicate_pins

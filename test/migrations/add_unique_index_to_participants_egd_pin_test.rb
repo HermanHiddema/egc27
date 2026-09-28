@@ -31,6 +31,17 @@ class AddUniqueIndexToParticipantsEgdPinTest < ActiveSupport::TestCase
     assert ActiveRecord::Base.connection.index_exists?(:participants, :egd_pin, unique: true)
   end
 
+  test "normalizes blank EGD pins before adding the unique index" do
+    blank_pin_ids = create_blank_pin_participants
+
+    ActiveRecord::Base.transaction do
+      AddUniqueIndexToParticipantsEgdPin.new.migrate(:up)
+    end
+
+    assert_equal [nil, nil], Participant.where(id: blank_pin_ids).order(:created_at, :id).pluck(:egd_pin)
+    assert ActiveRecord::Base.connection.index_exists?(:participants, :egd_pin, unique: true)
+  end
+
   private
 
   def create_duplicate_pin_participants(pin)
@@ -44,6 +55,19 @@ class AddUniqueIndexToParticipantsEgdPinTest < ActiveSupport::TestCase
     @created_participant_ids.concat(result.rows.flatten)
 
     Participant.where(id: @created_participant_ids.last(3)).order(:created_at, :id).to_a
+  end
+
+  def create_blank_pin_participants
+    created_at = Time.zone.parse("2026-07-01 12:00:00")
+    rows = [
+      build_participant_row(email: "egd-blank-pin-one@example.org", user: users(:one), egd_pin: "", created_at: created_at),
+      build_participant_row(email: "egd-blank-pin-two@example.org", user: users(:two), egd_pin: "", created_at: created_at + 1.minute)
+    ]
+
+    result = Participant.insert_all!(rows, returning: %w[id])
+    ids = result.rows.flatten
+    @created_participant_ids.concat(ids)
+    ids
   end
 
   def build_participant_row(email:, user:, egd_pin:, created_at:)
