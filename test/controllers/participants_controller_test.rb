@@ -407,6 +407,47 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "renders duplicate EGD pin errors when the unique index rejects a concurrent insert" do
+    participant = Participant.new(
+      first_name: "Jane",
+      last_name: "Doe",
+      email: users(:one).email,
+      participant_type: "player",
+      age_group: "18-49",
+      country: "NL",
+      club: "Utrecht",
+      rank: 27,
+      gender: "female",
+      image_use_consent: true,
+      egd_pin: participants(:one).egd_pin
+    )
+
+    participant.stub(:save!, -> { raise ActiveRecord::RecordNotUnique, "duplicate key value violates unique constraint" }) do
+      Participant.stub(:new, participant) do
+        assert_no_difference("Participant.count") do
+          post participants_path, params: {
+            participant: {
+              first_name: "Jane",
+              last_name: "Doe",
+              email: users(:one).email,
+              participant_type: "player",
+              age_group: "18-49",
+              country: "NL",
+              club: "Utrecht",
+              rank: 27,
+              gender: "female",
+              image_use_consent: true,
+              egd_pin: participants(:one).egd_pin
+            }
+          }
+        end
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "already registered", response.body
+  end
+
   test "does not subscribe to the newsletter at registration time" do
     assert_no_difference("NewsletterSubscription.count") do
       post participants_path, params: {

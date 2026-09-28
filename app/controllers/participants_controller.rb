@@ -62,6 +62,11 @@ class ParticipantsController < ApplicationController
     redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
+  rescue ActiveRecord::RecordNotUnique
+    raise unless duplicate_egd_pin_conflict?
+
+    @participant.errors.add(:egd_pin, "is already registered")
+    render :new, status: :unprocessable_entity
   end
 
   def confirm
@@ -224,6 +229,10 @@ class ParticipantsController < ApplicationController
     user.registration_participant = participant
     user.save!
     user
+  end
+
+  def duplicate_egd_pin_conflict?
+    @participant&.egd_pin.present? && Participant.exists?(egd_pin: @participant.egd_pin)
   end
 
   def participant_params
