@@ -482,40 +482,38 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders duplicate EGD pin errors when the unique index rejects a concurrent insert" do
-    participant = Participant.new(
-      first_name: "Jane",
-      last_name: "Doe",
-      email: users(:one).email,
-      participant_type: "player",
-      age_group: "18-49",
-      country: "NL",
-      club: "Utrecht",
-      rank: 27,
-      gender: "female",
-      image_use_consent: true,
-      egd_pin: participants(:one).egd_pin
-    )
+    original_save = Participant.instance_method(:save!)
+    duplicate_pin = participants(:one).egd_pin
+    duplicate_email = "concurrent-duplicate-pin@example.org"
 
-    participant.stub(:save!, -> { raise ActiveRecord::RecordNotUnique, "duplicate key value violates unique constraint" }) do
-      Participant.stub(:new, participant) do
-        assert_no_difference("Participant.count") do
-          post participants_path, params: {
-            participant: {
-              first_name: "Jane",
-              last_name: "Doe",
-              email: users(:one).email,
-              participant_type: "player",
-              age_group: "18-49",
-              country: "NL",
-              club: "Utrecht",
-              rank: 27,
-              gender: "female",
-              image_use_consent: true,
-              egd_pin: participants(:one).egd_pin
-            }
-          }
-        end
+    Participant.define_method(:save!) do |*args, **kwargs|
+      if egd_pin == duplicate_pin && email == duplicate_email
+        raise ActiveRecord::RecordNotUnique, "duplicate key value violates unique constraint"
       end
+
+      original_save.bind_call(self, *args, **kwargs)
+    end
+
+    begin
+      assert_no_difference("Participant.count") do
+        post participants_path, params: {
+          participant: {
+            first_name: "Jane",
+            last_name: "Doe",
+            email: duplicate_email,
+            participant_type: "player",
+            age_group: "18-49",
+            country: "NL",
+            club: "Utrecht",
+            rank: 27,
+            gender: "female",
+            image_use_consent: true,
+            egd_pin: participants(:one).egd_pin
+          }
+        }
+      end
+    ensure
+      Participant.define_method(:save!, original_save)
     end
 
     assert_response :unprocessable_entity
