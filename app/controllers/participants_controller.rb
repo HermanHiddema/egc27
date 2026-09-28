@@ -66,8 +66,8 @@ class ParticipantsController < ApplicationController
     end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
-  rescue ActiveRecord::RecordNotUnique
-    raise unless duplicate_egd_pin_conflict?
+  rescue ActiveRecord::RecordNotUnique => e
+    raise unless duplicate_egd_pin_conflict?(e)
 
     @participant.errors.add(:egd_pin, "is already registered")
     render :new, status: :unprocessable_entity
@@ -333,8 +333,22 @@ class ParticipantsController < ApplicationController
     user
   end
 
-  def duplicate_egd_pin_conflict?
-    @participant&.egd_pin.present? && Participant.exists?(egd_pin: @participant.egd_pin)
+  def duplicate_egd_pin_conflict?(error)
+    @participant&.egd_pin.present? &&
+      Participant.exists?(egd_pin: @participant.egd_pin) &&
+      duplicate_egd_pin_constraint?(error)
+  end
+
+  def duplicate_egd_pin_constraint?(error)
+    constraint_name = unique_constraint_name_from(error)
+    constraint_name == "index_participants_on_egd_pin" || error.message.include?("index_participants_on_egd_pin")
+  end
+
+  def unique_constraint_name_from(error)
+    result = error.cause&.respond_to?(:result) ? error.cause.result : nil
+    return unless result.respond_to?(:error_field)
+
+    result.error_field(PG::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def participant_params

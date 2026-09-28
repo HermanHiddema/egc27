@@ -482,42 +482,38 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "renders duplicate EGD pin errors when the unique index rejects a concurrent insert" do
-    original_save = Participant.instance_method(:save!)
     duplicate_pin = participants(:one).egd_pin
     duplicate_email = "concurrent-duplicate-pin@example.org"
-
-    Participant.define_method(:save!) do |*args, **kwargs|
-      if egd_pin == duplicate_pin && email == duplicate_email
-        raise ActiveRecord::RecordNotUnique, "duplicate key value violates unique constraint"
-      end
-
-      original_save.bind_call(self, *args, **kwargs)
+    participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    participant.define_singleton_method(:save!) do |*|
+      raise duplicate_key_error_for("index_participants_on_egd_pin")
     end
 
-    begin
+    Participant.stub(:new, participant) do
       assert_no_difference("Participant.count") do
-        post participants_path, params: {
-          participant: {
-            first_name: "Jane",
-            last_name: "Doe",
-            email: duplicate_email,
-            participant_type: "player",
-            age_group: "18-49",
-            country: "NL",
-            club: "Utrecht",
-            rank: 27,
-            gender: "female",
-            image_use_consent: true,
-            egd_pin: participants(:one).egd_pin
-          }
-        }
+        post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
       end
-    ensure
-      Participant.define_method(:save!, original_save)
     end
 
     assert_response :unprocessable_entity
     assert_match "already registered", response.body
+  end
+
+  test "re-raises unrelated unique index violations during concurrent participant registration" do
+    duplicate_pin = participants(:one).egd_pin
+    duplicate_email = "concurrent-other-constraint@example.org"
+    participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    participant.define_singleton_method(:save!) do |*|
+      raise duplicate_key_error_for("index_users_on_email")
+    end
+
+    error = assert_raises(ActiveRecord::RecordNotUnique) do
+      Participant.stub(:new, participant) do
+        post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
+      end
+    end
+
+    assert_includes error.message, "index_users_on_email"
   end
 
   test "does not subscribe to the newsletter at registration time" do
@@ -971,5 +967,35 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_no_match participants(:unconfirmed).email, response.body
+  end
+
+  private
+
+  def duplicate_pin_participant_params(email:, egd_pin:)
+    {
+      participant: {
+        first_name: "Jane",
+        last_name: "Doe",
+        email: email,
+        participant_type: "player",
+        age_group: "18-49",
+        country: "NL",
+        club: "Utrecht",
+        rank: 27,
+        gender: "female",
+        image_use_consent: true,
+        egd_pin: egd_pin
+      }
+    }
+  end
+
+  def participant_for_concurrent_insert(email:, egd_pin:)
+    Participant.new(duplicate_pin_participant_params(email: email, egd_pin: egd_pin)[:participant])
+  end
+
+  def duplicate_key_error_for(constraint_name)
+    ActiveRecord::RecordNotUnique.new(
+      "PG::UniqueViolation: ERROR: duplicate key value violates unique constraint \"#{constraint_name}\""
+    )
   end
 end
