@@ -207,7 +207,7 @@ class Payment < ApplicationRecord
 
     raise Mollie::Exception, "No checkout URL was returned by Mollie." if mollie_payment.checkout_url.blank?
 
-    update!(mollie_payment_id: mollie_payment.id) if mollie_payment_id.blank?
+    update!(mollie_payment_id: mollie_payment.id)
 
     mollie_payment.checkout_url
   end

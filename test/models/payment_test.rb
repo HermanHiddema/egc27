@@ -413,6 +413,17 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "https://egc2027.test/hook", created_params[:webhook_url]
   end
 
+  test "start_mollie_checkout! replaces an existing Mollie id" do
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: "tr_restarted_123", checkout_url: "https://example.test/restarted-checkout")
+
+    with_mollie_create(->(_params) { remote }) do
+      payment.start_mollie_checkout!(redirect_url: "https://egc2027.test/return", webhook_url: "https://egc2027.test/hook")
+    end
+
+    assert_equal "tr_restarted_123", payment.reload.mollie_payment_id
+  end
+
   test "start_mollie_checkout! raises when Mollie returns no checkout url" do
     payment = payments(:open_payment)
 
