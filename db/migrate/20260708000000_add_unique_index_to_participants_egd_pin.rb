@@ -4,6 +4,7 @@ class AddUniqueIndexToParticipantsEgdPin < ActiveRecord::Migration[8.1]
   end
 
   def up
+    lock_participant_writes!
     deduplicate_egd_pins!
     remove_index :participants, :egd_pin
     add_index :participants, :egd_pin, unique: true
@@ -16,11 +17,16 @@ class AddUniqueIndexToParticipantsEgdPin < ActiveRecord::Migration[8.1]
 
   private
 
+  def lock_participant_writes!
+    quoted_table_name = MigrationParticipant.connection.quote_table_name(MigrationParticipant.table_name)
+    MigrationParticipant.connection.execute("LOCK TABLE #{quoted_table_name} IN ACCESS EXCLUSIVE MODE")
+  end
+
   def deduplicate_egd_pins!
     duplicate_pins.each do |pin|
-      # Retain the latest registration for each PIN and clear earlier duplicates
+      # Retain the earliest registration for each PIN and clear later duplicates
       # so the unique index can be applied without dropping the affected rows.
-      MigrationParticipant.where(egd_pin: pin).order(created_at: :desc, id: :desc).offset(1).update_all(egd_pin: nil)
+      MigrationParticipant.where(egd_pin: pin).order(created_at: :asc, id: :asc).offset(1).update_all(egd_pin: nil)
     end
   end
 
