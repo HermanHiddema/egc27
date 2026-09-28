@@ -1,5 +1,6 @@
 class SponsorsController < ApplicationController
-  before_action :require_admin!
+  skip_before_action :authenticate_user!, only: [:index]
+  before_action :require_admin!, only: [:new, :create, :edit, :update, :destroy]
   before_action :set_sponsor, only: [:edit, :update, :destroy]
 
   def index

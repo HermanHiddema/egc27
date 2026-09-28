@@ -4,21 +4,27 @@ require "test_helper"
 #
 # Table name: payments
 #
-#  id                :bigint           not null, primary key
-#  amount_cents      :integer          not null
-#  confirmation_sent :boolean          default(FALSE), not null
-#  description       :string           not null
-#  status            :string           default("open"), not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  mollie_payment_id :string
-#  participant_id    :bigint           not null
+#  id                       :bigint           not null, primary key
+#  amount_cents             :integer          not null
+#  confirmation_sent        :boolean          default(FALSE), not null
+#  description              :string           not null
+#  payment_method           :string
+#  processed_in_bookkeeping :boolean          default(FALSE), not null
+#  provider                 :string           default("mollie"), not null
+#  reference                :string
+#  status                   :string           default("open"), not null
+#  created_at               :datetime         not null
+#  updated_at               :datetime         not null
+#  mollie_payment_id        :string
+#  participant_id           :bigint           not null
 #
 # Indexes
 #
-#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
-#  index_payments_on_participant_id     (participant_id)
-#  index_payments_on_status             (status)
+#  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
+#  index_payments_on_participant_id            (participant_id)
+#  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
+#  index_payments_on_provider                  (provider)
+#  index_payments_on_status                    (status)
 #
 # Foreign Keys
 #
@@ -32,7 +38,7 @@ class PaymentTest < ActiveSupport::TestCase
       participant: participants(:one),
       status: "open",
       amount_cents: 19_000,
-      description: "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)"
+      description: "EGC 2027 All events"
     )
     assert payment.valid?
   end
@@ -94,6 +100,65 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not_includes Payment.pending_or_open, payments(:paid_payment)
   end
 
+  test "unsuccessful? is true for payments that can never succeed anymore" do
+    payment = payments(:open_payment)
+
+    Payment::UNSUCCESSFUL_STATUSES.each do |status|
+      payment.update!(status: status)
+      assert payment.unsuccessful?, "expected #{status} to be unsuccessful"
+    end
+
+    %w[open pending authorized paid].each do |status|
+      payment.update!(status: status)
+      assert_not payment.unsuccessful?, "expected #{status} not to be unsuccessful"
+    end
+  end
+
+  test "refunded payment is no longer paid and does not block a new payment" do
+    payment = payments(:paid_payment)
+    payment.update!(status: "refunded")
+
+    assert payment.refunded?
+    assert_not payment.paid?
+    assert payment.unsuccessful?
+    assert_includes Payment.refunded, payment
+    assert_not_includes Payment.completed, payment
+    assert_not_includes Payment.blocking, payment
+  end
+
+  test "unsuccessful and blocking scopes filter on the status" do
+    expired = payments(:open_payment)
+    expired.update!(status: "expired")
+
+    assert_includes Payment.unsuccessful, expired
+    assert_not_includes Payment.unsuccessful, payments(:paid_payment)
+    assert_includes Payment.blocking, payments(:paid_payment)
+    assert_not_includes Payment.blocking, expired
+  end
+
+  test "processed and unprocessed scopes filter on the bookkeeping flag" do
+    processed = payments(:manual_payment)
+    processed.update!(processed_in_bookkeeping: true)
+
+    assert_includes Payment.processed, processed
+    assert_not_includes Payment.processed, payments(:paid_payment)
+    assert_includes Payment.unprocessed, payments(:paid_payment)
+    assert_not_includes Payment.unprocessed, processed
+  end
+
+  test "payments are not processed in bookkeeping by default" do
+    payment = Payment.create!(
+      participant: participants(:one),
+      status: "open",
+      amount_cents: 19_000,
+      description: "Bank transfer pending",
+      provider: "manual",
+      payment_method: "bank_transfer"
+    )
+
+    assert_not payment.processed_in_bookkeeping?
+  end
+
   test "sends payment confirmation email when status changes to paid" do
     payment = payments(:open_payment)
     assert_emails 1 do
@@ -120,6 +185,123 @@ class PaymentTest < ActiveSupport::TestCase
     payment = payments(:paid_payment)
     assert_no_emails do
       payment.update!(status: "paid")
+    end
+  end
+
+  test "defaults to the mollie provider" do
+    payment = Payment.new(participant: participants(:one))
+    assert_equal "mollie", payment.provider
+    assert_not payment.manual?
+  end
+
+  test "validates provider inclusion" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "paypal"
+    )
+    assert_not payment.valid?
+    assert payment.errors[:provider].any?
+  end
+
+  test "validates payment_method inclusion for manual payments" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "manual",
+      payment_method: "bitcoin"
+    )
+    assert_not payment.valid?
+    assert payment.errors[:payment_method].any?
+  end
+
+  test "allows any payment method reported by mollie" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "mollie",
+      payment_method: "ideal"
+    )
+    assert payment.valid?
+  end
+
+  test "allows a blank payment method for mollie payments" do
+    assert payments(:open_payment).valid?
+    assert_nil payments(:open_payment).payment_method
+  end
+
+  test "disallows mollie payment id on manual payments" do
+    payment = Payment.new(
+      participant: participants(:one),
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Test",
+      provider: "manual",
+      payment_method: "cash",
+      mollie_payment_id: "tr_manual"
+    )
+
+    assert_not payment.valid?
+    assert payment.errors[:mollie_payment_id].any?
+  end
+
+  test "manual? is true for payments received outside mollie" do
+    assert payments(:manual_payment).manual?
+    assert_not payments(:paid_payment).manual?
+  end
+
+  test "manual scope returns manually recorded payments" do
+    assert_includes Payment.manual, payments(:manual_payment)
+    assert_not_includes Payment.manual, payments(:paid_payment)
+  end
+
+  test "labels humanize the provider and payment method" do
+    assert_equal "Manual", payments(:manual_payment).provider_label
+    assert_equal "Bank transfer", payments(:manual_payment).payment_method_label
+    assert_nil payments(:open_payment).payment_method_label
+    assert_equal "Point of sale", Payment.payment_method_label("pointofsale")
+    assert_equal "PayPal", Payment.payment_method_label("paypal")
+  end
+
+  test "accepts pointofsale and paypal as manual payment methods" do
+    payment = payments(:manual_payment)
+
+    payment.payment_method = "pointofsale"
+    assert payment.valid?
+
+    payment.payment_method = "paypal"
+    assert payment.valid?
+  end
+
+  test "sends payment confirmation email when created as paid" do
+    assert_emails 1 do
+      Payment.create!(
+        participant: participants(:one),
+        status: "paid",
+        amount_cents: 19_000,
+        description: "Cash at the venue",
+        provider: "manual",
+        payment_method: "cash"
+      )
+    end
+  end
+
+  test "does not send payment confirmation email when created as open" do
+    assert_no_emails do
+      Payment.create!(
+        participant: participants(:one),
+        status: "open",
+        amount_cents: 19_000,
+        description: "Bank transfer pending",
+        provider: "manual",
+        payment_method: "bank_transfer"
+      )
     end
   end
 end

@@ -17,7 +17,7 @@ require "test_helper"
 #  first_name                    :string           not null
 #  first_week                    :boolean          default(TRUE), not null
 #  gender                        :string
-#  image_use_consent             :boolean          default(NULL), not null
+#  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
 #  participant_type              :string           default("player"), not null
 #  phone                         :string
@@ -60,6 +60,16 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:email], "can't be blank"
     assert_includes participant.errors[:age_group], "must be selected"
     assert_includes participant.errors[:country], "can't be blank"
+  end
+
+  test "participant number is the database id offset by 1000" do
+    participant = participants(:one)
+
+    assert_equal participant.id + 1000, participant.participant_number
+  end
+
+  test "participant number is nil for an unpersisted participant" do
+    assert_nil Participant.new.participant_number
   end
 
   test "age group has a single must be selected error when blank" do
@@ -562,5 +572,96 @@ class ParticipantTest < ActiveSupport::TestCase
   test "registration_status is Paid when a payment has completed" do
     assert participants(:two).paid?
     assert_equal "Paid", participants(:two).registration_status
+  end
+
+  test "registration_status is Refund when the payment was refunded" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    participant.reload
+    assert participant.refunded?
+    assert_not participant.paid?
+    assert_equal "Refund", participant.registration_status
+  end
+
+  test "registration_status is Paid when a later payment succeeded after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    participant.reload
+    assert_not participant.refunded?
+    assert_equal "Paid", participant.registration_status
+  end
+
+  test "not_refunded excludes participants with a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
+  test "not_refunded keeps participants that paid again after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    assert_includes Participant.not_refunded, participant.reload
+  end
+
+  test "blocking_payments? is true for an open payment" do
+    assert participants(:one).blocking_payments?
+  end
+
+  test "blocking_payments? is false without payments" do
+    assert_not participants(:three).blocking_payments?
+  end
+
+  test "blocking_payments? is false when all payments are unsuccessful" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "expired")
+
+    assert_not participant.reload.blocking_payments?
+  end
+
+  test "blocking_payments? uses the loaded association when available" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "failed")
+    participant.payments.load
+
+    assert_no_queries do
+      assert_not participant.blocking_payments?
+    end
+  end
+
+  test "deletable? is false for a successful payment" do
+    assert_not participants(:two).deletable?
+  end
+
+  test "deletable? is false for an open payment" do
+    assert_not participants(:one).deletable?
+  end
+
+  test "deletable? is false for a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not participant.reload.deletable?
+  end
+
+  test "deletable? is true without payments" do
+    assert participants(:three).deletable?
+  end
+
+  test "changes and deletions are recorded by paper trail" do
+    participant = participants(:three)
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id).count }, 1 do
+      participant.update!(club: "Rotterdam Go Club")
+    end
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id, event: "destroy").count }, 1 do
+      participant.destroy!
+    end
   end
 end

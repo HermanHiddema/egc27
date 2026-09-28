@@ -22,3 +22,8 @@ footer:
   name: Footer Navigation
   location: footer
   active: true
+
+user_dropdown:
+  name: User Menu
+  location: user
+  active: true

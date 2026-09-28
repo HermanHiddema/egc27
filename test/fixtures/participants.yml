@@ -15,7 +15,7 @@
 #  first_name                    :string           not null
 #  first_week                    :boolean          default(TRUE), not null
 #  gender                        :string
-#  image_use_consent             :boolean          default(NULL), not null
+#  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
 #  participant_type              :string           default("player"), not null
 #  phone                         :string
@@ -135,6 +135,23 @@ four:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
+  confirmed_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+visitor_one:
+  user: one
+  first_name: Victor
+  last_name: Visitor
+  email: victor@example.org
+  age_group: 18-49
+  gender: male
+  country: CH
+  club: Utrecht
+  rating: 1800
+  accepted_terms_and_conditions: true
+  accepted_privacy_policy: true
+  participant_type: visitor
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

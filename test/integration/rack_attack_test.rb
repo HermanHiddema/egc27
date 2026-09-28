@@ -104,6 +104,19 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles email registration lookups by IP after limit" do
+    freeze_time do
+      20.times do
+        post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+        assert_response :success
+      end
+
+      post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "throttles confirmation resend by participant UUID after limit" do
     freeze_time do
       participant = participants(:unconfirmed)
@@ -209,5 +222,21 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
     end
+  end
+
+  test "does not throttle when Rack::Attack is disabled" do
+    previous_enabled = Rack::Attack.enabled
+    Rack::Attack.enabled = false
+
+    freeze_time do
+      15.times do |i|
+        post user_magic_link_session_path,
+          params: { user: { email: "user#{i}@example.com" } },
+          headers: { "REMOTE_ADDR" => "9.9.9.9" }
+        assert_response :redirect
+      end
+    end
+  ensure
+    Rack::Attack.enabled = previous_enabled
   end
 end

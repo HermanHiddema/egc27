@@ -153,12 +153,37 @@ class CongressPassPricingTest < ActiveSupport::TestCase
   # Description and labels
   test "description includes attendance label" do
     pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 6, 1))
-    assert_equal "EGC 2027 Congress Pass – Full (Week 1 + Weekend + Week 2)", pricing.description
+    assert_equal "EGC 2027 All events", pricing.description
+  end
+
+  test "description includes participant number" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 6, 1), participant_number: 1042)
+    assert_equal "EGC 2027 All events - 1042", pricing.description
+  end
+
+  test "description includes u12 age suffix for 0-11" do
+    pricing = CongressPassPricing.new(attendance_option: "weekend_only", payment_date: Date.new(2026, 6, 1), age_group: "0-11", participant_number: 1042)
+    assert_equal "EGC 2027 Weekend Only u12 - 1042", pricing.description
+  end
+
+  test "description includes u18 age suffix for 12-17" do
+    pricing = CongressPassPricing.new(attendance_option: "first_week_plus_weekend", payment_date: Date.new(2026, 6, 1), age_group: "12-17", participant_number: 1042)
+    assert_equal "EGC 2027 Week 1 + Weekend u18 - 1042", pricing.description
+  end
+
+  test "description omits age suffix for adult age groups" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 6, 1), age_group: "18-49", participant_number: 1042)
+    assert_equal "EGC 2027 All events - 1042", pricing.description
+  end
+
+  test "attendance label for all events" do
+    pricing = CongressPassPricing.new(attendance_option: "all_events", payment_date: Date.new(2026, 6, 1))
+    assert_equal "All events", pricing.attendance_label
   end
 
   test "attendance label for weekend only" do
     pricing = CongressPassPricing.new(attendance_option: "weekend_only", payment_date: Date.new(2026, 6, 1))
-    assert_equal "Weekend only", pricing.attendance_label
+    assert_equal "Weekend Only", pricing.attendance_label
   end
 
   test "attendance label for first week plus weekend" do

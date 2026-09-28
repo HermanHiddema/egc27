@@ -74,10 +74,6 @@
   width: 100%;
 }
 
-trix-editor {
-  min-height: 7.5rem;
-}
-
 .rich-content ol {
   list-style: decimal;
   margin-left: 1.5rem;
@@ -228,11 +224,5 @@ trix-editor {
   .responsive-menu-details-sub[open] > .responsive-menu-content-sub {
     animation: none;
     transition: none;
-  }
-}
-
-@media (min-width: 1024px) {
-  trix-editor {
-    min-height: 12rem;
   }
 }

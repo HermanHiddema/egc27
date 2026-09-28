@@ -71,7 +71,7 @@ All must pass before deploy.
 3. Root path logic: authenticated users → `HomeController#index`, unauthenticated → Devise sign-in page
 
 ### Browser Support
-- Only modern browsers (WebP, web push, CSS nesting, CSS :has support) due to `allow_browser versions: :modern` in ApplicationController
+- No browser version restriction is enforced; the app does not use `allow_browser`
 - Don't worry about IE11 compatibility
 
 ### Database
@@ -93,7 +93,7 @@ All must pass before deploy.
 - `config/ci.rb` - Defines CI pipeline; update here if adding checks
 - `DESIGN_SYSTEM.md` - Brand colors, typography, component classes (Tailwind + CSS vars)
 - `Gemfile` - All dependencies; commit `Gemfile.lock` only after changes
-- `.ruby-version` - Currently Ruby 3.4.5; change if updating Ruby
+- `.ruby-version` - Currently Ruby 4.0.6; change if updating Ruby
 - `Dockerfile` - Production image build; no dev-only gems in bundle
 
 ## Quick Diagnostics

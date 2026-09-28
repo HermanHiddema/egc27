@@ -25,7 +25,7 @@ class Users::MailerTest < ActionMailer::TestCase
     assert_match "Jane Doe", body
     assert_match "NL", body
     assert_match "Utrecht", body
-    assert_match "Weekend only", body
+    assert_match "Weekend Only", body
     assert_match "magic link", body
   end
 

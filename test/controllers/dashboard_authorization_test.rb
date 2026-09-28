@@ -7,6 +7,22 @@ class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
+  test "editor can access dashboard with allowed links only" do
+    sign_in users(:editor)
+    get dashboard_path
+
+    assert_response :success
+    assert_select "a[href='#{pages_path}']", text: "Pages"
+    assert_select "a[href='#{notices_path}']", text: "Notices"
+    assert_select "a[href='#{users_path}']", count: 0
+    assert_select "a[href='#{admin_participants_path}']", count: 0
+    assert_select "a[href='#{admin_payments_path}']", count: 0
+    assert_select "a[href='#{event_groups_path}']", count: 0
+    assert_select "a[href='#{menus_path}']", count: 0
+    assert_select "a[href='#{newsletter_subscriptions_path}']", count: 0
+    assert_select "a[href='#{sponsors_path}']", count: 0
+  end
+
   test "admin can access menus index and management controls" do
     sign_in users(:admin)
     get menus_path
@@ -25,8 +41,12 @@ class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href='#{users_path}']", text: "Users"
     assert_select "a[href='#{admin_participants_path}']", text: "Participants"
+    assert_select "a[href='#{admin_payments_path}']", text: "Payments"
+    assert_select "a[href='#{pages_path}']", text: "Pages"
+    assert_select "a[href='#{event_groups_path}']", text: "Event Groups"
     assert_select "a[href='#{notices_path}']", text: "Notices"
     assert_select "a[href='#{menus_path}']", text: "Menus"
+    assert_select "a[href='#{newsletter_subscriptions_path}']", text: "Newsletter subscriptions"
     assert_select "a[href='#{sponsors_path}']", text: "Sponsors"
   end
 end

@@ -11,10 +11,11 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href='#{new_participant_path}'] span.hidden.lg\\:inline", text: "Register now"
     assert_select "a[href='#{newsletter_path}']", text: "Newsletter"
-    assert_select "a span.md\\:hidden", text: "EGC 2027"
-    assert_select "a span.hidden.md\\:inline", text: "European Go Congress"
-    assert_select "p.hidden.md\\:block", text: "'s Hertogenbosch, the Netherlands, 24 July - 8 August, 2027"
+    assert_select "a.text-3xl", text: "DraGo's Summer Festival"
+    assert_select "p.hidden.md\\:block.text-base", text: "European Go Congress 2027"
+    assert_select "p.hidden.md\\:block.text-sm", text: "'s Hertogenbosch, the Netherlands, 24 July - 7 August"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
+    assert_select "a[aria-label='WhatsApp'][href='https://chat.whatsapp.com/LPdN50HJlFaFvcaRVhmkPC']"
   end
 
   test "home page shows article main image in summaries when attached" do
@@ -82,6 +83,7 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "div[data-controller='sponsor-carousel']"
     assert_select "h2", text: "Our Sponsors"
+    assert_select "a[href=?]", sponsors_path, text: "View all"
     assert_select "div[data-sponsor-carousel-target='slide']", count: 1
     assert_select "img[alt=?]", "#{with_logo.name} logo"
   end

@@ -6,7 +6,7 @@ class ArticlesController < ApplicationController
   before_action :set_article, only: [:show, :edit, :update, :destroy]
 
   def index
-    @articles = Article.with_attached_main_image.with_rich_text_content_and_embeds.order(created_at: :desc).includes(:user)
+    @articles = Article.with_attached_main_image.order(created_at: :desc).includes(:user)
   end
 
   def show
@@ -49,10 +49,10 @@ class ArticlesController < ApplicationController
   private
 
   def set_article
-    @article = Article.with_attached_main_image.with_rich_text_content_and_embeds.find(params[:id])
+    @article = Article.with_attached_main_image.find(params[:id])
   end
 
   def article_params
-    params.require(:article).permit(:title, :content, :content_html, :main_image, :remove_main_image)
+    params.require(:article).permit(:title, :content_html, :main_image, :remove_main_image)
   end
 end

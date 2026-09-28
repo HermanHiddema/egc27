@@ -51,3 +51,36 @@ schedule_child:
   position: 1
   visible: true
   open_in_new_tab: false
+
+members_only_item:
+  menu: primary
+  label: Members Area
+  page: members_only
+  position: 3
+  visible: true
+  open_in_new_tab: false
+
+members_only_child:
+  menu: primary
+  parent: schedule
+  label: Members Only Child
+  page: members_only
+  position: 2
+  visible: true
+  open_in_new_tab: false
+
+user_dropdown_item:
+  menu: user_dropdown
+  label: Player Information
+  url: /player-information
+  position: 1
+  visible: true
+  open_in_new_tab: false
+
+user_dropdown_hidden_item:
+  menu: user_dropdown
+  label: Hidden User Link
+  url: /hidden-user-link
+  position: 2
+  visible: false
+  open_in_new_tab: false

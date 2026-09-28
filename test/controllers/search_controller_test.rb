@@ -72,6 +72,22 @@ class SearchControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "hides pages that require authentication from visitors" do
+    get search_path, params: { q: "Members Area" }
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:members_only))}']", count: 0
+  end
+
+  test "shows pages that require authentication to signed-in users" do
+    sign_in users(:one)
+
+    get search_path, params: { q: "Members Area" }
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:members_only))}']"
+  end
+
   test "shows message when nothing matches" do
     get search_path, params: { q: "zzzznonexistentquery" }
 

@@ -4,6 +4,10 @@ require "openssl"
 # across all Puma workers and app replicas.
 Rack::Attack.cache.store = Rails.cache
 
+# Allow environments (e.g. staging during a pentest) to turn throttling off
+# entirely via the shared bot-protection switch.
+Rack::Attack.enabled = false if Rails.application.config.x.bot_protection_enabled == false
+
 class Rack::Attack
   ### Throttle public endpoints that trigger emails ###
 
@@ -12,6 +16,7 @@ class Rack::Attack
   MAGIC_LINK_PATH          = %r{\A/users/magic_link(\.[^/]+)?/?\z}
   PARTICIPANTS_PATH        = %r{\A/participants(\.[^/]+)?/?\z}
   EGD_REGISTERED_PATH      = %r{\A/participants/egd_registered(\.[^/]+)?/?\z}
+  EMAIL_REGISTERED_PATH    = %r{\A/participants/email_registered(\.[^/]+)?/?\z}
   ALTER_REGISTRATION_PATH  = %r{\A/participants/alter_registration(\.[^/]+)?/?\z}
   RESEND_CONFIRMATION_PATH = %r{\A/participants/(?<uuid>[^/]+)/resend_confirmation(\.[^/]+)?/?\z}
   PASSWORD_PATH            = %r{\A/users/password(\.[^/]+)?/?\z}
@@ -42,6 +47,11 @@ class Rack::Attack
   # EGD registration lookups: limit by IP address (60 per minute)
   throttle("egd_registered/ip", limit: 60, period: 1.minute) do |req|
     req.ip if req.path.match?(EGD_REGISTERED_PATH) && req.get?
+  end
+
+  # Email registration lookups: limit by IP address (20 per minute)
+  throttle("email_registered/ip", limit: 20, period: 1.minute) do |req|
+    req.ip if req.path.match?(EMAIL_REGISTERED_PATH) && req.post?
   end
 
   # Alter-registration lookups: limit by IP address (20 per minute)

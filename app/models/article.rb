@@ -25,22 +25,15 @@ class Article < ApplicationRecord
   PLACEHOLDER_MAIN_IMAGE_PATHS = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].freeze
 
   belongs_to :user
-  has_rich_text :content
   has_one_attached :main_image
 
   before_create :attach_placeholder_main_image
 
   validates :title, presence: true
-  validate :content_must_be_present
+  validates :content_html, presence: true
   validate :main_image_must_be_image
 
   private
-
-  def content_must_be_present
-    return if content.present? || content_html.present?
-
-    errors.add(:content, "can't be blank")
-  end
 
   def attach_placeholder_main_image
     return if main_image.attached?

@@ -10,8 +10,8 @@ if seed_updates_allowed
   user = User.find_or_initialize_by(email: "test@example.com")
   user.update!(
     email: "test@example.com",
-    password: "password123",
-    password_confirmation: "password123",
+    password: "testpassword123",
+    password_confirmation: "testpassword123",
     full_name: "Test Admin",
     role: "admin",
     confirmed_at: Time.current,
@@ -20,7 +20,7 @@ if seed_updates_allowed
     unconfirmed_email: nil
   )
 
-  puts "✓ Test admin user created: test@example.com / password123"
+  puts "✓ Test admin user created: test@example.com / testpassword123"
 else
   user = User.find_by(email: "test@example.com")
 end
@@ -46,7 +46,6 @@ if File.exist?(static_pages_path)
 
     page.assign_attributes(
       title: title,
-      content: content,
       content_html: "<p>#{ERB::Util.html_escape(content)}</p>"
     )
     next unless page.new_record? || page.changed?
@@ -73,7 +72,6 @@ legal_pages.each do |legal_page|
 
   page.assign_attributes(
     title: legal_page[:title],
-    content: legal_page[:content],
     content_html: "<p>#{ERB::Util.html_escape(legal_page[:content])}</p>"
   )
   next unless page.new_record? || page.changed?
@@ -112,7 +110,6 @@ article_seeds.each do |article_seed|
 
   article.assign_attributes(
     user: article_user,
-    content: article_seed[:content],
     content_html: "<p>#{ERB::Util.html_escape(article_seed[:content])}</p>"
   )
   next unless article.new_record? || article.changed?
@@ -361,6 +358,17 @@ footer_menu.menu_items.destroy_all
 end
 
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
+
+# Links added to this menu show up in the account dropdown for signed-in users.
+# No items are seeded, so existing ones are left untouched for admins to manage.
+user_menu = Menu.find_or_initialize_by(location: "user")
+if user_menu.new_record?
+  user_menu.name = "User Menu"
+  user_menu.active = true
+end
+user_menu.save!
+
+puts "✓ Seeded user menu with #{user_menu.menu_items.count} menu items"
 
 calendar_event_seeds = [
   # Saturday 24th July

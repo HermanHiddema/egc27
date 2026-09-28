@@ -1,7 +1,7 @@
 require "test_helper"
 
 class ParticipantMailerTest < ActionMailer::TestCase
-  test "participant_confirmation explains an account already exists and includes details" do
+  test "participant_confirmation asks the registrant to confirm and includes details" do
     participant = participants(:unconfirmed)
     email = ParticipantMailer.participant_confirmation(participant)
 
@@ -9,8 +9,8 @@ class ParticipantMailerTest < ActionMailer::TestCase
     assert_equal "EGC 2027 – Please confirm your registration", email.subject
 
     body = email.body.decoded
-    assert_match "An account for", body
-    assert_match "already exists", body
+    assert_match "Thank you for registering", body
+    assert_match "confirm your registration", body
     assert_match "suspect someone is trying to abuse", body
     assert_match "#{participant.first_name} #{participant.last_name}", body
     assert_match participant.country, body

@@ -96,4 +96,7 @@ Rails.application.configure do
 
   # Disable CSRF protection for origin mismatch in development (behind proxy)
   config.action_controller.forgery_protection_origin_check = false
+
+  # Allow local simulation of Mollie outcomes without external API calls.
+  config.x.payments.simulate_mollie = true
 end

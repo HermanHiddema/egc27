@@ -1,24 +1,74 @@
 require "test_helper"
 
 class SponsorsAuthorizationTest < ActionDispatch::IntegrationTest
-  test "regular user cannot access sponsors" do
+  test "regular user cannot access new sponsor page" do
     sign_in users(:one)
-    get sponsors_path
+    get new_sponsor_path
     assert_redirected_to root_path
   end
 
-  test "editor cannot access sponsors" do
+  test "editor cannot access new sponsor page" do
     sign_in users(:editor)
-    get sponsors_path
+    get new_sponsor_path
     assert_redirected_to root_path
   end
 
-  test "admin can list sponsors" do
-    sign_in users(:admin)
-    get sponsors_path
-    assert_response :success
-    assert_select "h1", text: "Sponsors"
-    assert_select "td", text: sponsors(:one).name
+  test "editor cannot create sponsor" do
+    sign_in users(:editor)
+
+    assert_no_difference "Sponsor.count" do
+      post sponsors_path, params: { sponsor: { name: "Nope" } }
+    end
+    assert_redirected_to root_path
+  end
+
+  test "editor cannot edit sponsor" do
+    sign_in users(:editor)
+    get edit_sponsor_path(sponsors(:one))
+    assert_redirected_to root_path
+  end
+
+  test "editor cannot update sponsor" do
+    sign_in users(:editor)
+    sponsor = sponsors(:one)
+
+    patch sponsor_path(sponsor), params: { sponsor: { name: "Updated Sponsor Name" } }
+
+    assert_redirected_to root_path
+    assert_equal sponsors(:one).name, sponsor.reload.name
+  end
+
+  test "editor cannot delete sponsor" do
+    sign_in users(:editor)
+
+    assert_no_difference "Sponsor.count" do
+      delete sponsor_path(sponsors(:one))
+    end
+    assert_redirected_to root_path
+  end
+
+  test "regular user cannot create sponsor" do
+    sign_in users(:one)
+
+    assert_no_difference "Sponsor.count" do
+      post sponsors_path, params: { sponsor: { name: "Nope" } }
+    end
+    assert_redirected_to root_path
+  end
+
+  test "regular user cannot edit sponsor" do
+    sign_in users(:one)
+    get edit_sponsor_path(sponsors(:one))
+    assert_redirected_to root_path
+  end
+
+  test "regular user cannot delete sponsor" do
+    sign_in users(:one)
+
+    assert_no_difference "Sponsor.count" do
+      delete sponsor_path(sponsors(:one))
+    end
+    assert_redirected_to root_path
   end
 
   test "admin can access new sponsor page" do

@@ -1,7 +1,5 @@
 class ApplicationController < ActionController::Base
-  # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
-  # Server-to-server endpoints (e.g. payment provider webhooks) opt out via #skip_browser_version_guard?.
-  allow_browser versions: :modern, unless: :skip_browser_version_guard?
+  include PaperTrail::Rails::Controller
 
   # Changes to the importmap will invalidate the etag for HTML responses
   stale_when_importmap_changes
@@ -9,6 +7,7 @@ class ApplicationController < ActionController::Base
   before_action :authenticate_user!, unless: :devise_controller?
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_navigation_menus
+  before_action :set_paper_trail_whodunnit
 
   protected
 
@@ -17,12 +16,6 @@ class ApplicationController < ActionController::Base
   # authentication was required mid-flow).
   def after_sign_in_path_for(resource)
     stored_location_for(resource) || mine_participants_path
-  end
-
-  # Browser version enforcement applies to interactive (browser) requests only.
-  # Controllers serving machine-to-machine endpoints override this to opt out.
-  def skip_browser_version_guard?
-    false
   end
 
   def require_creator!
@@ -50,7 +43,7 @@ class ApplicationController < ActionController::Base
         .roots
         .ordered
         .includes(:page, children: [:page, { children: :page }])
-        .to_a
+        .select { |item| item.visible_to?(current_user) }
     end
 
     @footer_menu = Menu.active.find_by(location: "footer")
@@ -61,7 +54,22 @@ class ApplicationController < ActionController::Base
         .roots
         .ordered
         .includes(:page)
-        .to_a
+        .select { |item| item.visible_to?(current_user) }
+    end
+
+    # The user menu is only rendered inside the account dropdown, so it is only
+    # loaded for signed-in users.
+    return unless user_signed_in?
+
+    @user_menu = Menu.active.find_by(location: "user")
+
+    if @user_menu.present?
+      @user_menu_root_items = @user_menu.menu_items
+        .visible
+        .roots
+        .ordered
+        .includes(:page)
+        .select { |item| item.visible_to?(current_user) }
     end
   end
 end
