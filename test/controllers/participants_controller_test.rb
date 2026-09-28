@@ -997,7 +997,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   def with_stubbed_participant_new(participant)
     original_new = Participant.method(:new)
-    Participant.define_singleton_method(:new) { |*| participant }
+    Participant.define_singleton_method(:new) { |*args, **kwargs, &block| participant }
     yield
   ensure
     Participant.define_singleton_method(:new) do |*args, **kwargs, &block|
