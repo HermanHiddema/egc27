@@ -8,16 +8,17 @@ class Admin::PaymentsController < ApplicationController
   before_action :require_manual_payment, only: [:edit, :update]
 
   # Overview of all completed payments, so an admin can process them in the
-  # bookkeeping and keep track of which ones still need processing.
+  # bookkeeping and keep track of which ones still need processing. Charged-back
+  # payments are listed too, so their bookkeeping can be corrected.
   def index
     @processed_filter = permitted_processed_filter
 
-    payments = Payment.completed.includes(:participant)
+    payments = Payment.for_bookkeeping.includes(:participant)
     payments = payments.processed if @processed_filter == "processed"
     payments = payments.unprocessed if @processed_filter == "unprocessed"
 
     @payments = payments.order(created_at: :desc, id: :desc)
-    @unprocessed_count = Payment.completed.unprocessed.count
+    @unprocessed_count = Payment.for_bookkeeping.unprocessed.count
   end
 
   def mark_processed
@@ -72,7 +73,7 @@ class Admin::PaymentsController < ApplicationController
   private
 
   def update_processed_in_bookkeeping(processed, notice)
-    payment = Payment.completed.find(params[:id])
+    payment = Payment.for_bookkeeping.find(params[:id])
     payment.update!(processed_in_bookkeeping: processed)
 
     redirect_to admin_payments_path(processed: permitted_processed_filter), notice: notice

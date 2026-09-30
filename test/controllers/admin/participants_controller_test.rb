@@ -209,6 +209,27 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
+  test "admin can filter by status charged back" do
+    participants(:two).payments.update_all(status: "charged_back")
+    sign_in users(:admin)
+    get admin_participants_path(status: "charged_back")
+
+    assert_response :success
+    assert_match "Bob Jones", response.body
+    assert_match "Chargeback", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+
+    get admin_participants_path(status: "confirmed")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(status: "refunded")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(sort: "status")
+    assert_response :success
+  end
+
   test "refunded participants are excluded from the confirmed filter" do
     participants(:two).payments.update_all(status: "refunded")
     sign_in users(:admin)
