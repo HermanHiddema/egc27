@@ -32,6 +32,7 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
 
     style_src = directives.find { |directive| directive.start_with?("style-src ") }
     assert_includes style_src, "'self'"
+    assert_includes style_src, "'unsafe-inline'"
     assert_includes style_src, "https://cdn.jsdelivr.net"
   end
 
