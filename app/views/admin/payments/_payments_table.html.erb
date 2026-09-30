@@ -20,7 +20,7 @@
           <td class="px-3 py-2 text-neutral-900"><%= payment.amount_formatted %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.provider_label %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.payment_method_label || "—" %></td>
-          <td class="px-3 py-2 text-neutral-700"><%= payment.status.capitalize %></td>
+          <td class="px-3 py-2 text-neutral-700"><%= payment.status.humanize %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.reference.presence || payment.mollie_payment_id.presence || "—" %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.processed_in_bookkeeping? ? "Processed" : "Not processed" %></td>
           <td class="px-3 py-2 text-right">

@@ -594,6 +594,23 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal "Paid", participant.registration_status
   end
 
+  test "registration_status is Chargeback when the payment was charged back" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    participant.reload
+    assert participant.charged_back?
+    assert_not participant.paid?
+    assert_equal "Chargeback", participant.registration_status
+  end
+
+  test "not_refunded excludes participants with a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
   test "not_refunded excludes participants with a refunded payment" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
@@ -645,6 +662,13 @@ class ParticipantTest < ActiveSupport::TestCase
   test "deletable? is false for a refunded payment" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
+
+    assert_not participant.reload.deletable?
+  end
+
+  test "deletable? is false for a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
 
     assert_not participant.reload.deletable?
   end

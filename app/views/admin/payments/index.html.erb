@@ -39,7 +39,12 @@
                   <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
                   <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-900"><%= payment.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <%= payment.amount_formatted %>
+                  <% if payment.charged_back? %>
+                    <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">Charged back</span>
+                  <% end %>
+                </td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.provider_label %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.payment_method_label || "—" %></td>
