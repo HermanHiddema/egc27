@@ -66,6 +66,11 @@ class ParticipantsController < ApplicationController
     end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
+  rescue ActiveRecord::RecordNotUnique => e
+    raise unless duplicate_egd_pin_conflict?(e)
+
+    @participant.errors.add(:egd_pin, "is already registered")
+    render :new, status: :unprocessable_entity
   end
 
   def confirm
@@ -116,7 +121,7 @@ class ParticipantsController < ApplicationController
   # account email address on a public page.
   def alter_registration
     pin = params[:egd_pin].to_s.strip
-    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :asc, id: :asc).first : nil
+    @participant = pin.present? ? Participant.find_by(egd_pin: pin) : nil
 
     if @participant.nil?
       redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
@@ -326,6 +331,23 @@ class ParticipantsController < ApplicationController
     user.skip_confirmation_notification!
     user.save!
     user
+  end
+
+  def duplicate_egd_pin_conflict?(error)
+    @participant&.egd_pin.present? &&
+      duplicate_egd_pin_constraint?(error)
+  end
+
+  def duplicate_egd_pin_constraint?(error)
+    constraint_name = unique_constraint_name_from(error)
+    constraint_name == "index_participants_on_egd_pin" || error.message.include?("index_participants_on_egd_pin")
+  end
+
+  def unique_constraint_name_from(error)
+    result = error.cause&.respond_to?(:result) ? error.cause.result : nil
+    return unless result.respond_to?(:error_field)
+
+    result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def participant_params

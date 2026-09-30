@@ -459,8 +459,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
   end
 
-  test "allows a participant with a duplicate EGD pin" do
-    assert_difference("Participant.count", 1) do
+  test "rejects a participant with a duplicate EGD pin" do
+    assert_no_difference("Participant.count") do
       post participants_path, params: {
         participant: {
           first_name: "Jane",
@@ -478,9 +478,44 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
       }
     end
 
-    participant = Participant.order(:id).last
-    assert_redirected_to participant_path(participant)
-    assert_equal participants(:one).egd_pin, participant.egd_pin
+    assert_response :unprocessable_entity
+  end
+
+  test "renders duplicate EGD pin errors when the unique index rejects a concurrent insert" do
+    duplicate_pin = participants(:one).egd_pin
+    duplicate_email = "concurrent-duplicate-pin@example.org"
+    participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    error = duplicate_key_error_for("index_participants_on_egd_pin", with_result: true)
+    participant.define_singleton_method(:save!) do |*|
+      raise error
+    end
+
+    with_stubbed_participant_new(participant) do
+      assert_no_difference("Participant.count") do
+        post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_match "already registered", response.body
+  end
+
+  test "re-raises unrelated unique index violations during concurrent participant registration" do
+    duplicate_pin = participants(:one).egd_pin
+    duplicate_email = "concurrent-other-constraint@example.org"
+    participant = participant_for_concurrent_insert(email: duplicate_email, egd_pin: duplicate_pin)
+    duplicate_error = duplicate_key_error_for("index_users_on_email", with_result: true)
+    participant.define_singleton_method(:save!) do |*|
+      raise duplicate_error
+    end
+
+    error = assert_raises(ActiveRecord::RecordNotUnique) do
+      with_stubbed_participant_new(participant) do
+        post participants_path, params: duplicate_pin_participant_params(email: duplicate_email, egd_pin: duplicate_pin)
+      end
+    end
+
+    assert_includes error.message, "index_users_on_email"
   end
 
   test "does not subscribe to the newsletter at registration time" do
@@ -900,43 +935,6 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Please confirm your email address to continue.", flash[:notice]
   end
 
-  test "alter_registration uses the oldest matching participant" do
-    original_user = User.create!(email: "original@example.org", skip_password_validation: true)
-    original_user.update_column(:confirmed_at, nil)
-    later_user = User.create!(email: "later@example.org", skip_password_validation: true, confirmed_at: Time.current)
-
-    original_participant = Participant.create!(
-      first_name: "Original",
-      last_name: "Player",
-      email: "original@example.org",
-      age_group: "18-49",
-      country: "NL",
-      club: "Utrecht",
-      gender: "male",
-      image_use_consent: true,
-      user: original_user
-    )
-    later_participant = Participant.create!(
-      first_name: "Later",
-      last_name: "Player",
-      email: "later@example.org",
-      age_group: "18-49",
-      country: "DE",
-      club: "Berlin",
-      gender: "female",
-      image_use_consent: true,
-      user: later_user
-    )
-
-    original_participant.update_columns(egd_pin: "76543210", created_at: 2.days.ago)
-    later_participant.update_columns(egd_pin: "76543210", created_at: 1.day.ago)
-
-    get alter_registration_participants_path, params: { egd_pin: "76543210" }
-
-    assert_redirected_to new_user_confirmation_path
-    assert_equal "Please confirm your email address to continue.", flash[:notice]
-  end
-
   test "alter_registration redirects to new registration for an unknown pin" do
     get alter_registration_participants_path, params: { egd_pin: "99999999" }
 
@@ -971,5 +969,60 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
 
     assert_no_match participants(:unconfirmed).email, response.body
+  end
+
+  private
+
+  def duplicate_pin_participant_params(email:, egd_pin:)
+    {
+      participant: {
+        first_name: "Jane",
+        last_name: "Doe",
+        email: email,
+        participant_type: "player",
+        age_group: "18-49",
+        country: "NL",
+        club: "Utrecht",
+        rank: 27,
+        gender: "female",
+        image_use_consent: true,
+        egd_pin: egd_pin
+      }
+    }
+  end
+
+  def participant_for_concurrent_insert(email:, egd_pin:)
+    Participant.new(duplicate_pin_participant_params(email: email, egd_pin: egd_pin)[:participant])
+  end
+
+  def with_stubbed_participant_new(participant)
+    original_new = Participant.method(:new)
+    Participant.define_singleton_method(:new) { |*args, **kwargs, &block| participant }
+    yield
+  ensure
+    Participant.define_singleton_method(:new) do |*args, **kwargs, &block|
+      original_new.call(*args, **kwargs, &block)
+    end
+  end
+
+  def duplicate_key_error_for(constraint_name, with_result: false)
+    message = "PG::UniqueViolation: ERROR: duplicate key value violates unique constraint \"#{constraint_name}\""
+    return ActiveRecord::RecordNotUnique.new(message) unless with_result
+
+    result = Object.new
+    result.define_singleton_method(:error_field) do |field|
+      constraint_name if field == PG::Result::PG_DIAG_CONSTRAINT_NAME
+    end
+
+    cause = StandardError.new(message)
+    cause.define_singleton_method(:result) { result }
+
+    begin
+      raise cause
+    rescue StandardError
+      raise ActiveRecord::RecordNotUnique, message
+    end
+  rescue ActiveRecord::RecordNotUnique => error
+    error
   end
 end
