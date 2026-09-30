@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 # == Schema Information
 #
@@ -662,5 +663,95 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id, event: "destroy").count }, 1 do
       participant.destroy!
     end
+  end
+  # Payment lookups and refreshing
+  test "paid_payment returns the most recent completed payment" do
+    participant = participants(:two)
+
+    assert_equal payments(:paid_payment), participant.paid_payment
+  end
+
+  test "paid_payment is nil without a completed payment" do
+    assert_nil participants(:one).paid_payment
+  end
+
+  test "pending_payment returns the most recent in-progress payment" do
+    participant = participants(:one)
+
+    assert_equal payments(:open_payment), participant.pending_payment
+  end
+
+  test "current_payment prefers a completed payment" do
+    assert_equal payments(:paid_payment), participants(:two).current_payment
+  end
+
+  test "current_payment falls back to an in-progress payment" do
+    assert_equal payments(:open_payment), participants(:one).current_payment
+  end
+
+  test "current_payment builds a new payment when there is none" do
+    participant = participants(:three)
+
+    payment = participant.current_payment
+
+    assert_not payment.persisted?
+    assert_equal "open", payment.status
+  end
+
+  test "refresh_paid_payments! records a refund reported by Mollie" do
+    participant = participants(:two)
+    payment = payments(:paid_payment)
+    remote = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    with_mollie_get(->(_id) { remote }) { participant.refresh_paid_payments! }
+
+    assert_equal "refunded", payment.reload.status
+    assert_not participant.paid?
+  end
+
+  test "refresh_paid_payments! stops at the first payment that is still paid" do
+    participant = participants(:two)
+    newer_payment = payments(:paid_payment)
+    older_payment = participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Older Mollie payment",
+      provider: "mollie",
+      mollie_payment_id: "tr_paid_older",
+      status: "paid",
+      created_at: newer_payment.created_at - 1.day,
+      updated_at: newer_payment.updated_at - 1.day
+    )
+    fetched_ids = []
+
+    with_mollie_get(->(id) { fetched_ids << id; OpenStruct.new(id: id, status: "paid") }) do
+      participant.refresh_paid_payments!
+    end
+
+    assert_equal [newer_payment.mollie_payment_id], fetched_ids
+    assert_equal "paid", older_payment.reload.status
+  end
+
+  test "refresh_paid_payments! swallows Mollie errors" do
+    participant = participants(:two)
+
+    with_mollie_get(->(_id) { raise Mollie::Exception, "boom" }) do
+      assert_nothing_raised { participant.refresh_paid_payments! }
+    end
+
+    assert_equal "paid", payments(:paid_payment).reload.status
+  end
+
+  private
+
+  def with_mollie_get(stub)
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |id| stub.call(id) }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 end
