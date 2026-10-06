@@ -29,7 +29,7 @@ class PaymentsController < ApplicationController
 
     if simulate_mollie_payment?
       @payment.simulate_mollie_status!(params[:simulate_status])
-      return redirect_to success_payments_path(payment_id: @payment.id),
+      return redirect_to success_payments_path(token: @payment.return_token),
         notice: "Simulated Mollie payment status: #{@payment.status}."
     end
 
@@ -41,7 +41,7 @@ class PaymentsController < ApplicationController
       # payment attempt, because Mollie owns the state of its own payments.
       @payment = start_new_payment_attempt if @payment.mollie_payment_id.present?
       checkout_url = @payment.start_mollie_checkout!(
-        redirect_url: success_payments_url(payment_id: @payment.id),
+        redirect_url: success_payments_url(token: @payment.return_token),
         webhook_url: webhook_payments_url
       )
     end
@@ -56,8 +56,10 @@ class PaymentsController < ApplicationController
     render :new, status: :unprocessable_entity
   end
 
+  # The payment is looked up by a signed, expiring token handed out only to the
+  # payer, so payments cannot be enumerated through this public page.
   def success
-    @payment = Payment.find_by(id: params[:payment_id])
+    @payment = Payment.find_by_return_token(params[:token])
     @payment&.refresh_from_mollie
   end
 

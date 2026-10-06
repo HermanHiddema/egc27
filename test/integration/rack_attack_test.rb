@@ -239,4 +239,16 @@ class RackAttackTest < ActionDispatch::IntegrationTest
   ensure
     Rack::Attack.enabled = previous_enabled
   end
+
+  test "throttles payment return page by IP after limit" do
+    freeze_time do
+      20.times do
+        get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+        assert_response :success
+      end
+
+      get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+      assert_response 429
+    end
+  end
 end
