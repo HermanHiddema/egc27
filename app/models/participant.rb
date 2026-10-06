@@ -76,12 +76,12 @@ class Participant < ApplicationRecord
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
 
-  # Participants whose payment was refunded are no longer attending, so they are
-  # left out of the public participant list. A later successful payment
-  # reinstates them.
+  # Participants whose payment was refunded or charged back are no longer
+  # attending, so they are left out of the public participant list. A later
+  # successful payment reinstates them.
   scope :not_refunded, -> {
     where.not(
-      id: Payment.refunded.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id)
+      id: Payment.reversed.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id)
     )
   }
 
@@ -165,6 +165,19 @@ class Participant < ApplicationRecord
     end
   end
 
+  # A participant is considered charged back once one of their payments was
+  # charged back and no other payment remains paid. Uses the in-memory
+  # association when it is already loaded, like #paid?.
+  def charged_back?
+    return false if paid?
+
+    if payments.loaded?
+      payments.any?(&:charged_back?)
+    else
+      payments.charged_back.exists?
+    end
+  end
+
   # The most recent payment that completed successfully, if any.
   def paid_payment
     payments.completed.order(created_at: :desc).first
@@ -209,14 +222,14 @@ class Participant < ApplicationRecord
     end
   end
 
-  # Admins may only delete participants with no current paid or refunded
-  # payment status and no open/pending payment. A payment that is still in
+  # Admins may only delete participants with no current paid, charged-back or
+  # refunded payment status and no open/pending payment. A payment that is still in
   # flight at a provider (e.g. Mollie) could complete after the participant
   # and its payment records are gone, leaving the app with money received but
   # nothing to reconcile it against, so deletion is blocked until that payment
   # resolves.
   def deletable?
-    !refunded? && !blocking_payments?
+    !charged_back? && !refunded? && !blocking_payments?
   end
 
   # Deleting the last participant of a user leaves an account behind that no
@@ -230,6 +243,7 @@ class Participant < ApplicationRecord
   # High-level registration status used in the admin participant list.
   def registration_status
     return "Paid" if paid?
+    return "Chargeback" if charged_back?
     return "Refund" if refunded?
     return "Confirmed" if confirmed?
 

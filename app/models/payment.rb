@@ -32,13 +32,16 @@ class Payment < ApplicationRecord
   # "refunded" is not reported by Mollie as a payment status (Mollie keeps a
   # refunded payment as "paid" and reports the refunded amount separately), but
   # is recorded as a status of our own so refunds are visible everywhere a
-  # payment status is used.
-  STATUSES = %w[open canceled pending authorized expired failed paid refunded].freeze
+  # payment status is used. "charged_back" is recorded the same way for payments
+  # that Mollie reports a chargeback amount for.
+  STATUSES = %w[open canceled pending authorized expired failed paid refunded charged_back].freeze
   # Payments in these statuses can never succeed anymore, so they do not stand
   # in the way of recording a new (manual) payment. A refunded payment is
   # included because the money was returned to the payer, so the participant may
-  # pay again.
-  UNSUCCESSFUL_STATUSES = %w[canceled expired failed refunded].freeze
+  # pay again. The same holds for a charged-back payment.
+  UNSUCCESSFUL_STATUSES = %w[canceled expired failed refunded charged_back].freeze
+  # Payments whose money was returned to the payer after they were paid.
+  REVERSED_STATUSES = %w[refunded charged_back].freeze
   # Payments are normally handled by Mollie, but admins can also record payments
   # that were received outside of Mollie (e.g. cash or bank transfer).
   PROVIDERS = %w[mollie manual].freeze
@@ -66,6 +69,11 @@ class Payment < ApplicationRecord
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
+  scope :charged_back, -> { where(status: "charged_back") }
+  scope :reversed, -> { where(status: REVERSED_STATUSES) }
+  # Payments shown in the admin bookkeeping overview: completed payments, and
+  # charged-back payments whose bookkeeping must be corrected.
+  scope :for_bookkeeping, -> { where(status: %w[paid charged_back]) }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
   scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
@@ -116,6 +124,10 @@ class Payment < ApplicationRecord
     status == "refunded"
   end
 
+  def charged_back?
+    status == "charged_back"
+  end
+
   def manual?
     provider == "manual"
   end
@@ -159,11 +171,15 @@ class Payment < ApplicationRecord
 
   # Mollie reports the method the payer actually used (ideal, creditcard, …)
   # once it is known, which is recorded alongside the status.
+  #
+  # A payment that becomes charged back is flagged as not processed in the
+  # bookkeeping again, so admins notice it in the payments overview and can
+  # correct the bookkeeping.
   def sync_from_mollie!(mollie_payment)
-    update!(
-      status: mollie_status(mollie_payment),
-      payment_method: mollie_reported_payment_method(mollie_payment) || payment_method
-    )
+    self.status = mollie_status(mollie_payment)
+    self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
+    self.processed_in_bookkeeping = false if status_changed? && charged_back?
+    save!
   end
 
   # Records the current state of this payment at Mollie. Returns the Mollie
@@ -220,18 +236,19 @@ class Payment < ApplicationRecord
 
   private
 
-  # A refunded payment keeps the "paid" status at Mollie, which only reports the
-  # refunded amount separately, so refunds are mapped onto our own "refunded"
-  # status.
+  # A refunded or charged-back payment keeps the "paid" status at Mollie, which
+  # only reports the refunded and charged-back amounts separately, so these are
+  # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
+  # takes precedence, because it needs follow-up by an admin.
   def mollie_status(mollie_payment)
-    return "refunded" if mollie_refunded?(mollie_payment)
+    return "charged_back" if mollie_amount_positive?(mollie_payment.try(:amount_charged_back))
+    return "refunded" if mollie_amount_positive?(mollie_payment.try(:amount_refunded))
 
     mollie_payment.status
   end
 
-  def mollie_refunded?(mollie_payment)
-    refunded_amount = mollie_amount_value(mollie_payment.try(:amount_refunded))
-    refunded_amount&.positive?
+  def mollie_amount_positive?(amount)
+    mollie_amount_value(amount)&.positive?
   end
 
   def mollie_amount_value(amount)

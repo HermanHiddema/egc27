@@ -357,6 +357,78 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "refunded", payment.reload.status
   end
 
+  test "charged-back payment is no longer paid and does not block a new payment" do
+    payment = payments(:paid_payment)
+    payment.update!(status: "charged_back")
+
+    assert payment.charged_back?
+    assert_not payment.paid?
+    assert payment.unsuccessful?
+    assert_includes Payment.charged_back, payment
+    assert_includes Payment.reversed, payment
+    assert_not_includes Payment.completed, payment
+    assert_not_includes Payment.blocking, payment
+  end
+
+  test "sync_from_mollie! records a charged-back Mollie payment as charged back" do
+    payment = payments(:paid_payment)
+    payment.update!(processed_in_bookkeeping: true)
+
+    payment.sync_from_mollie!(
+      OpenStruct.new(
+        status: "paid",
+        amount_refunded: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR"),
+        amount_charged_back: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+      )
+    )
+
+    payment.reload
+    assert_equal "charged_back", payment.status
+    # The bookkeeping must be corrected, so the payment is flagged again.
+    assert_not payment.processed_in_bookkeeping?
+  end
+
+  test "sync_from_mollie! reads the charged-back amount from a Mollie payment" do
+    payment = payments(:paid_payment)
+
+    payment.sync_from_mollie!(
+      Mollie::Payment.new(
+        "id" => payment.mollie_payment_id,
+        "status" => "paid",
+        "amount_charged_back" => { "value" => "50.00", "currency" => "EUR" }
+      )
+    )
+
+    assert_equal "charged_back", payment.reload.status
+  end
+
+  test "sync_from_mollie! prefers a chargeback over a refund" do
+    payment = payments(:paid_payment)
+
+    payment.sync_from_mollie!(
+      OpenStruct.new(
+        status: "paid",
+        amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR"),
+        amount_charged_back: OpenStruct.new(value: BigDecimal("40.00"), currency: "EUR")
+      )
+    )
+
+    assert_equal "charged_back", payment.reload.status
+  end
+
+  test "sync_from_mollie! keeps a payment paid when nothing was charged back" do
+    payment = payments(:paid_payment)
+    payment.update!(processed_in_bookkeeping: true)
+
+    payment.sync_from_mollie!(
+      OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR"))
+    )
+
+    payment.reload
+    assert_equal "paid", payment.status
+    assert payment.processed_in_bookkeeping?
+  end
+
   test "refresh_from_mollie! does nothing without a Mollie payment id" do
     payment = payments(:manual_payment)
 

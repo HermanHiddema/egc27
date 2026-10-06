@@ -348,6 +348,22 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{mark_processed_admin_payment_path(payments(:open_payment))}']", count: 0
   end
 
+  test "admin sees charged-back payments in the overview" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    payment.update!(status: "charged_back")
+
+    get admin_payments_path(processed: "unprocessed")
+
+    assert_response :success
+    assert_select "td", text: payment.description
+    assert_select "span", text: "Charged back"
+    assert_select "form[action='#{mark_processed_admin_payment_path(payment, processed: "unprocessed")}']"
+
+    patch mark_processed_admin_payment_path(payment)
+    assert payment.reload.processed_in_bookkeeping?
+  end
+
   test "payments overview can be filtered on the bookkeeping status" do
     sign_in users(:admin)
     payments(:manual_payment).update!(processed_in_bookkeeping: true)
