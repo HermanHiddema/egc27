@@ -1,7 +1,10 @@
 <div class="container-wide py-12">
   <div class="flex justify-between items-center mb-8">
     <h1 class="text-4xl font-bold">Payments (Admin)</h1>
-    <p class="text-sm text-neutral-700"><strong><%= @unprocessed_count %></strong> payment<%= "s" unless @unprocessed_count == 1 %> still to be processed</p>
+    <div class="flex items-center gap-4">
+      <p class="text-sm text-neutral-700"><strong><%= @unprocessed_count %></strong> payment<%= "s" unless @unprocessed_count == 1 %> still to be processed</p>
+      <%= link_to "Settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    </div>
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
@@ -27,6 +30,7 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Provider</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reference</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Settlement</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Bookkeeping</th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
             </tr>
@@ -49,6 +53,13 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.provider_label %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.payment_method_label || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.reference.presence || payment.mollie_payment_id.presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700">
+                  <% if payment.settlement %>
+                    <%= link_to payment.settlement.reference.presence || payment.settlement.mollie_settlement_id, admin_settlement_path(payment.settlement), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
                 <td class="px-4 py-3 text-sm">
                   <% if payment.processed_in_bookkeeping? %>
                     <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Processed</span>

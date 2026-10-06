@@ -1,0 +1,75 @@
+<div class="container-wide py-12">
+  <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+    <h1 class="text-4xl font-bold">Settlement <%= @settlement.reference.presence || @settlement.mollie_settlement_id %></h1>
+    <%= link_to "All settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-4">
+    <dl class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</dt>
+        <dd class="text-neutral-900"><%= @settlement.status_label %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Settled</dt>
+        <dd class="text-neutral-900"><%= @settlement.settled_at&.strftime("%-d %b %Y") || "—" %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</dt>
+        <dd class="text-neutral-900"><%= @settlement.mollie_settlement_id %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Payments total</dt>
+        <dd class="text-neutral-900"><%= Settlement.format_cents(@settlement.payments_total_cents) %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Deductions</dt>
+        <dd class="text-neutral-900"><%= @payments.any? ? Settlement.format_cents(@settlement.deductions_cents) : "—" %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Paid out</dt>
+        <dd class="text-neutral-900"><%= @settlement.amount_formatted %></dd>
+      </div>
+    </dl>
+  </div>
+
+  <% if @payments.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @payments.each do |payment| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.created_at.strftime("%-d %b %Y") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                  <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                </td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= payment.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.payment_method_label || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.mollie_payment_id %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.status.humanize %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <p class="text-neutral-700">No payments known here were paid out in this settlement.</p>
+    </div>
+  <% end %>
+</div>

@@ -15,6 +15,7 @@
 #  updated_at               :datetime         not null
 #  mollie_payment_id        :string
 #  participant_id           :bigint           not null
+#  settlement_id            :bigint
 #
 # Indexes
 #
@@ -22,11 +23,13 @@
 #  index_payments_on_participant_id            (participant_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
 #  index_payments_on_provider                  (provider)
+#  index_payments_on_settlement_id             (settlement_id)
 #  index_payments_on_status                    (status)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (participant_id => participants.id)
+#  fk_rails_...  (settlement_id => settlements.id)
 #
 open_payment:
   participant: one

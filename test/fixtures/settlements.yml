@@ -1,0 +1,7 @@
+paid_out:
+  mollie_settlement_id: stl_paidout1
+  reference: "1234567.2610.01"
+  status: paidout
+  amount_cents: 4800
+  settled_at: <%= 2.days.ago %>
+  mollie_created_at: <%= 3.days.ago %>

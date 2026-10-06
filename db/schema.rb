@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_06_204255) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -208,10 +208,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.string "reference"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
+    t.bigint "settlement_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
     t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
+    t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"
   end
 
@@ -222,6 +224,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.string "searchable_type", null: false
     t.datetime "updated_at", null: false
     t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
+  end
+
+  create_table "settlements", force: :cascade do |t|
+    t.string "mollie_settlement_id", null: false
+    t.string "reference"
+    t.string "status", null: false
+    t.integer "amount_cents", default: 0, null: false
+    t.datetime "settled_at"
+    t.datetime "mollie_created_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_settlement_id"], name: "index_settlements_on_mollie_settlement_id", unique: true
   end
 
   create_table "sponsors", force: :cascade do |t|
@@ -281,4 +295,5 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
   add_foreign_key "menu_items", "pages"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
+  add_foreign_key "payments", "settlements"
 end
