@@ -265,14 +265,16 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:one).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "charged_back")
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
     statuses = css_select("tbody tr td:nth-child(6)").map { |td| td.text.strip }
+    assert_includes statuses, "Chargeback"
     assert_includes statuses, "Refund"
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3 }
+    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
   end
 
