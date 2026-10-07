@@ -51,9 +51,11 @@ class Settlement < ApplicationRecord
     payments.loaded? ? payments.sum(&:amount_cents) : payments.sum(:amount_cents)
   end
 
-  # What Mollie kept from the payments in this settlement: mostly its fees, but
-  # refunds and chargebacks settled in the same period are deducted too.
+  # What Mollie kept from the payments in this settlement, when all its
+  # payments are known locally.
   def deductions_cents
+    return unless payments_complete?
+
     payments_total_cents - amount_cents
   end
 end

@@ -17,11 +17,20 @@ class SettlementTest < ActiveSupport::TestCase
 
   test "totals the payments paid out and the deductions by Mollie" do
     settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: true)
     payments(:paid_payment).update!(settlement: settlement)
 
     assert_equal 5_000, settlement.payments_total_cents
     assert_equal 200, settlement.deductions_cents
     assert_equal 200, Settlement.includes(:payments).find(settlement.id).deductions_cents
+  end
+
+  test "does not calculate deductions when payments are incomplete" do
+    settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: false)
+    payments(:paid_payment).update!(settlement: settlement)
+
+    assert_nil settlement.deductions_cents
   end
 
   test "formats amounts in euros" do

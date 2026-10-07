@@ -24,6 +24,7 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin sees the settlements with their totals" do
     sign_in users(:admin)
+    settlements(:paid_out).update!(payments_complete: true)
     payments(:paid_payment).update!(settlement: settlements(:paid_out))
 
     get admin_settlements_path

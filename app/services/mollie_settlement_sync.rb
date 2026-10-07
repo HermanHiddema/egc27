@@ -59,18 +59,28 @@ class MollieSettlementSync
     settlement = Settlement.find_or_initialize_by(mollie_settlement_id: remote_settlement.id)
     # The payments of a settlement that was already paid out can no longer
     # change, so they do not need to be fetched again.
-    return 0 if settlement.persisted? && settlement.status == "paidout" && status == "paidout"
+    return 0 if settlement.persisted? && settlement.status == "paidout" && status == "paidout" && settlement.payments_complete?
 
     mollie_payment_ids = settlement_payment_ids(remote_settlement.id)
 
     Settlement.transaction do
+      payments_complete = Payment.where(mollie_payment_id: mollie_payment_ids).count == mollie_payment_ids.size
       settlement.update!(
         reference: remote_settlement.reference,
         status: status,
         amount_cents: amount_cents(remote_settlement.amount),
         settled_at: remote_settlement.settled_at,
-        mollie_created_at: remote_settlement.created_at
+        mollie_created_at: remote_settlement.created_at,
+        payments_complete: payments_complete
       )
+
+      linked_payments = Payment.where(settlement_id: settlement.id)
+      if mollie_payment_ids.empty?
+        linked_payments.update_all(settlement_id: nil, updated_at: Time.current)
+      else
+        linked_payments.where.not(mollie_payment_id: mollie_payment_ids)
+          .update_all(settlement_id: nil, updated_at: Time.current)
+      end
 
       Payment.where(mollie_payment_id: mollie_payment_ids)
         .update_all(settlement_id: settlement.id, updated_at: Time.current)

@@ -24,6 +24,8 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_equal "paidout", settlement.status
     assert_equal 18_512, settlement.amount_cents
     assert_equal Time.utc(2026, 10, 5, 10), settlement.settled_at
+    assert_not settlement.payments_complete?
+    assert_nil settlement.deductions_cents
     assert_equal settlement, payments(:paid_payment).reload.settlement
     assert_nil payments(:open_payment).reload.settlement
     assert_equal 1, result.settlements_count
@@ -68,11 +70,27 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     end
 
     assert_equal "paidout", settlement.reload.status
+    assert settlement.payments_complete?
     assert_equal settlement, payments(:paid_payment).reload.settlement
+  end
+
+  test "unlinks payments removed from a non-final settlement" do
+    settlement = settlements(:paid_out)
+    settlement.update!(status: "pending")
+    payments(:paid_payment).update!(settlement: settlement)
+    remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "pending",
+                                "amount" => { "value" => "48.00", "currency" => "EUR" } }])
+
+    with_mollie_settlements(remote, { settlement.mollie_settlement_id => payment_list([]) }) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_nil payments(:paid_payment).reload.settlement_id
   end
 
   test "does not fetch the payments of a settlement that was already paid out again" do
     settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: true)
     remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" } }])
 
     with_mollie_settlements(remote, {}) do
