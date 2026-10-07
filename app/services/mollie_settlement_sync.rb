@@ -56,6 +56,7 @@ class MollieSettlementSync
       return
     end
 
+    payout_amount_cents = amount_cents(remote_settlement.amount, remote_settlement.id)
     settlement = Settlement.find_or_initialize_by(mollie_settlement_id: remote_settlement.id)
     # The payments of a settlement that was already paid out can no longer
     # change, so they do not need to be fetched again.
@@ -68,7 +69,7 @@ class MollieSettlementSync
       settlement.update!(
         reference: remote_settlement.reference,
         status: status,
-        amount_cents: amount_cents(remote_settlement.amount),
+        amount_cents: payout_amount_cents,
         settled_at: remote_settlement.settled_at,
         mollie_created_at: remote_settlement.created_at,
         payments_complete: payments_complete
@@ -104,8 +105,10 @@ class MollieSettlementSync
     end
   end
 
-  def amount_cents(amount)
-    return 0 if amount.nil? || amount.value.nil?
+  def amount_cents(amount, settlement_id)
+    if amount.nil? || amount.value.nil?
+      raise Mollie::Exception, "Settlement #{settlement_id} is missing its payout amount."
+    end
 
     (amount.value * 100).round
   end

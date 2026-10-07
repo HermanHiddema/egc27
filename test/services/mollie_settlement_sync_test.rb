@@ -111,6 +111,33 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_equal 0, result.settlements_count
   end
 
+  test "rejects a paid out settlement with a missing amount instead of storing zero" do
+    remote = settlement_list([{ "id" => "stl_missing_amount", "status" => "paidout" }])
+
+    error = assert_raises(Mollie::Exception) do
+      with_mollie_settlements(remote, { "stl_missing_amount" => payment_list(%w[tr_paid456]) }) do
+        MollieSettlementSync.new(token: "access_test").call
+      end
+    end
+
+    assert_equal "Settlement stl_missing_amount is missing its payout amount.", error.message
+    assert_not Settlement.exists?(mollie_settlement_id: "stl_missing_amount")
+  end
+
+  test "rejects a missing amount even when the paid out settlement is already complete" do
+    settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: true)
+    remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "paidout" }])
+
+    assert_raises(Mollie::Exception) do
+      with_mollie_settlements(remote, {}) do
+        MollieSettlementSync.new(token: "access_test").call
+      end
+    end
+
+    assert_equal 4800, settlement.reload.amount_cents
+  end
+
   private
 
   def settlement_list(items, links: {})
