@@ -24,6 +24,7 @@ class Rack::Attack
   SIGN_IN_PATH             = %r{\A/users/sign_in(\.[^/]+)?/?\z}
   NEWSLETTER_PATH          = %r{\A/newsletter_subscriptions(\.[^/]+)?/?\z}
   SEARCH_PATH              = %r{\A/search(\.[^/]+)?/?\z}
+  PAYMENT_SUCCESS_PATH     = %r{\A/payments/success(\.[^/]+)?/?\z}
 
   # Magic link requests: limit by IP address (10 per minute)
   throttle("magic_link/ip", limit: 10, period: 1.minute) do |req|
@@ -109,6 +110,12 @@ class Rack::Attack
   # public, query-driven endpoint.
   throttle("search/ip", limit: 30, period: 1.minute) do |req|
     req.ip if req.path.match?(SEARCH_PATH) && req.get?
+  end
+
+  # Payment return page: limit by IP address (20 per minute) to blunt
+  # enumeration and the Mollie API calls it triggers.
+  throttle("payment_success/ip", limit: 20, period: 1.minute) do |req|
+    req.ip if req.path.match?(PAYMENT_SUCCESS_PATH) && req.get?
   end
 
   ### Response for throttled requests ###

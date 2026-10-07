@@ -54,6 +54,8 @@ class Payment < ApplicationRecord
   # Mollie statuses from which a checkout can still be completed, so its
   # checkout URL can be reused instead of starting a new payment attempt.
   RETRYABLE_MOLLIE_STATUSES = %w[open pending authorized].freeze
+  # How long the token in the return URL after a checkout stays valid.
+  RETURN_TOKEN_EXPIRY = 1.week
 
   has_paper_trail
 
@@ -114,6 +116,20 @@ class Payment < ApplicationRecord
     payment = find_by(mollie_payment_id: mollie_payment.id)
     payment&.sync_from_mollie!(mollie_payment)
     payment
+  end
+
+  # Finds the payment for a token created by #return_token, or nil when the
+  # token is missing, tampered with or expired.
+  def self.find_by_return_token(token)
+    return if token.blank?
+
+    find_signed(token.to_s, purpose: :payment_return)
+  end
+
+  # A signed, expiring token identifying this payment, used in the URL the payer
+  # returns to after a checkout instead of the guessable numeric id.
+  def return_token
+    signed_id(purpose: :payment_return, expires_in: RETURN_TOKEN_EXPIRY)
   end
 
   def paid?
