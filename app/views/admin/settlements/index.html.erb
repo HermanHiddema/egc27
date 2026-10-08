@@ -48,7 +48,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= settlement.status_label %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.payments.size %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= Settlement.format_cents(settlement.payments_total_cents) %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.payments.any? && settlement.deductions_cents ? Settlement.format_cents(settlement.deductions_cents) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.deductions_cents ? Settlement.format_cents(settlement.deductions_cents) : "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= settlement.amount_formatted %></td>
               </tr>
             <% end %>

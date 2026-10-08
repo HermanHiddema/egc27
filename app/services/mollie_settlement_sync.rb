@@ -110,6 +110,6 @@ class MollieSettlementSync
       raise Mollie::Exception, "Settlement #{settlement_id} is missing its payout amount."
     end
 
-    (amount.value * 100).round
+    (BigDecimal(amount.value.to_s) * 100).round
   end
 end

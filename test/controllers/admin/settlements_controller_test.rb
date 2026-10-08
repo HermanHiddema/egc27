@@ -37,6 +37,16 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: "€ 48.00"
   end
 
+  test "admin sees deductions for a complete settlement with no linked payments in the list" do
+    sign_in users(:admin)
+    settlements(:paid_out).update!(payments_complete: true)
+
+    get admin_settlements_path
+
+    assert_response :success
+    assert_select "td", text: "-€ 48.00"
+  end
+
   test "admin is told how to configure the organization token when it is missing" do
     sign_in users(:admin)
 
@@ -69,6 +79,17 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: payments(:paid_payment).description
     assert_select "td", text: payments(:paid_payment).mollie_payment_id
     assert_select "td", text: payments(:manual_payment).description, count: 0
+  end
+
+  test "admin sees deductions for a complete settlement with no linked payments" do
+    sign_in users(:admin)
+    settlements(:paid_out).update!(payments_complete: true)
+
+    get admin_settlement_path(settlements(:paid_out))
+
+    assert_response :success
+    assert_select "dd", text: "-€ 48.00"
+    assert_select "p", text: "No payments known here were paid out in this settlement."
   end
 
   test "payments overview links to the settlement of a payment" do
