@@ -18,7 +18,9 @@ Rails.application.configure do
   config.content_security_policy do |policy|
     policy.default_src     :self
     policy.base_uri        :self
-    policy.form_action     :self
+    # The payment form posts to this app, which redirects to the Mollie hosted
+    # checkout. Browsers apply form-action to redirects, so Mollie must be allowed.
+    policy.form_action     :self, "https://*.mollie.com"
     policy.frame_ancestors :none
     policy.object_src      :none
 

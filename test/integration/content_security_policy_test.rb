@@ -14,7 +14,7 @@ class ContentSecurityPolicyTest < ActionDispatch::IntegrationTest
     assert_includes directives, "default-src 'self'"
     assert_includes directives, "object-src 'none'"
     assert_includes directives, "base-uri 'self'"
-    assert_includes directives, "form-action 'self'"
+    assert_includes directives, "form-action 'self' https://*.mollie.com"
     assert_includes directives, "frame-ancestors 'none'"
     assert_includes directives, "frame-src 'self' https://challenges.cloudflare.com"
     assert_includes directives, "font-src 'self' data:"
