@@ -15,6 +15,7 @@
 #  updated_at               :datetime         not null
 #  mollie_payment_id        :string
 #  participant_id           :bigint           not null
+#  settlement_id            :bigint
 #
 # Indexes
 #
@@ -22,11 +23,13 @@
 #  index_payments_on_participant_id            (participant_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
 #  index_payments_on_provider                  (provider)
+#  index_payments_on_settlement_id             (settlement_id)
 #  index_payments_on_status                    (status)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (participant_id => participants.id)
+#  fk_rails_...  (settlement_id => settlements.id)
 #
 class Payment < ApplicationRecord
   # "refunded" is not reported by Mollie as a payment status (Mollie keeps a
@@ -60,6 +63,8 @@ class Payment < ApplicationRecord
   has_paper_trail
 
   belongs_to :participant
+  # The Mollie payout this payment was paid out in, once Mollie settled it.
+  belongs_to :settlement, optional: true
 
   validates :status, inclusion: { in: STATUSES }
   validates :provider, inclusion: { in: PROVIDERS }

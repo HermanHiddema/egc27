@@ -13,7 +13,7 @@ class Admin::PaymentsController < ApplicationController
   def index
     @processed_filter = permitted_processed_filter
 
-    payments = Payment.for_bookkeeping.includes(:participant)
+    payments = Payment.for_bookkeeping.includes(:participant, :settlement)
     payments = payments.processed if @processed_filter == "processed"
     payments = payments.unprocessed if @processed_filter == "unprocessed"
 

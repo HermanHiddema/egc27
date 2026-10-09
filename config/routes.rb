@@ -194,6 +194,11 @@ Rails.application.routes.draw do
         patch :unmark_processed
       end
     end
+    resources :settlements, only: [:index, :show] do
+      collection do
+        post :sync
+      end
+    end
   end
 
   # Flyers were printed with URLs missing the /pages prefix, so keep those
