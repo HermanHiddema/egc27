@@ -12,16 +12,12 @@
 # optionally be limited further to a single balance by setting the
 # MOLLIE_SETTLEMENT_BALANCE_ID environment variable.
 #
-# Mollie lists settlements newest first, so to avoid fetching the full
-# settlement history the sync stops at the first settlement created before our
-# first payment, or once it reaches a settlement that was already synced and can
-# no longer change (paid out or failed), as long as no older synced settlement
-# is still open or pending.
+# Mollie lists settlements newest first, so the sync stops at the first
+# settlement created before our first payment.
 class MollieSettlementSync
   class NotConfigured < StandardError; end
 
   PAGE_SIZE = 250
-  FINAL_STATUSES = %w[paidout failed].freeze
 
   Result = Data.define(:settlements_count, :payments_count)
 
@@ -52,9 +48,6 @@ class MollieSettlementSync
     since = first_payment_date
     return Result.new(settlements_count:, payments_count:) if since.nil?
 
-    final_ids = Settlement.where(status: FINAL_STATUSES).pluck(:mollie_settlement_id).to_set
-    oldest_unfinished_at = Settlement.where.not(status: FINAL_STATUSES).minimum(:mollie_created_at)
-
     each_item(Mollie::Settlement.all(list_options)) do |remote_settlement|
       next if remote_settlement.id.blank? || remote_settlement.created_at.nil?
       throw :done if remote_settlement.created_at.in_time_zone.to_date < since
@@ -63,11 +56,6 @@ class MollieSettlementSync
       unless linked.nil?
         settlements_count += 1
         payments_count += linked
-      end
-
-      if final_ids.include?(remote_settlement.id) &&
-          (oldest_unfinished_at.nil? || remote_settlement.created_at < oldest_unfinished_at)
-        throw :done
       end
     end
 

@@ -233,7 +233,9 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_equal 1, result.settlements_count
   end
 
-  test "stops once it reaches a settlement that was already synced and is final" do
+  test "continues past settlements that were already synced and are final" do
+    Settlement.create!(mollie_settlement_id: "stl_paidout1", status: "paidout",
+                       mollie_created_at: Time.utc(2026, 10, 1, 10))
     remote = settlement_list([
       { "id" => "stl_new1", "status" => "open", "amount" => { "value" => "2.00", "currency" => "EUR" },
         "created_at" => "2026-10-02T10:00:00+00:00" },
@@ -243,12 +245,13 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
         "created_at" => "2026-09-15T10:00:00+00:00" }
     ])
 
-    with_mollie_settlements(remote, { "stl_new1" => payment_list([]), "stl_paidout1" => payment_list([]) }) do
+    with_mollie_settlements(remote, { "stl_new1" => payment_list([]), "stl_paidout1" => payment_list([]),
+                                     "stl_old" => payment_list([]) }) do
       MollieSettlementSync.new(token: "access_test").call
     end
 
     assert Settlement.exists?(mollie_settlement_id: "stl_new1")
-    assert_not Settlement.exists?(mollie_settlement_id: "stl_old")
+    assert Settlement.exists?(mollie_settlement_id: "stl_old")
   end
 
   test "keeps fetching past final settlements until older open settlements are reached" do
