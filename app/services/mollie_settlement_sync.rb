@@ -12,15 +12,16 @@
 # optionally be limited further to a single balance by setting the
 # MOLLIE_SETTLEMENT_BALANCE_ID environment variable.
 #
-# To avoid fetching the full settlement history, the first sync looks for the
-# first settlement month by month (Mollie's year/month filter), starting at the
-# month of the first payment. Later syncs use Mollie's `from` parameter to only
-# fetch the settlements from the last known one onwards, starting at the oldest
-# known settlement that is still open or pending so its status gets updated.
+# Mollie lists settlements newest first, so to avoid fetching the full
+# settlement history the sync stops at the first settlement created before our
+# first payment, or once it reaches a settlement that was already synced and can
+# no longer change (paid out or failed), as long as no older synced settlement
+# is still open or pending.
 class MollieSettlementSync
   class NotConfigured < StandardError; end
 
   PAGE_SIZE = 250
+  FINAL_STATUSES = %w[paidout failed].freeze
 
   Result = Data.define(:settlements_count, :payments_count)
 
@@ -51,17 +52,23 @@ class MollieSettlementSync
     since = first_payment_date
     return Result.new(settlements_count:, payments_count:) if since.nil?
 
-    from = resume_settlement_id(since) || first_settlement_id(since)
-    return Result.new(settlements_count:, payments_count:) if from.nil?
+    final_ids = Settlement.where(status: FINAL_STATUSES).pluck(:mollie_settlement_id).to_set
+    oldest_unfinished_at = Settlement.where.not(status: FINAL_STATUSES).minimum(:mollie_created_at)
 
-    each_item(Mollie::Settlement.all(list_options(from:))) do |remote_settlement|
-      next unless relevant?(remote_settlement, since)
+    each_item(Mollie::Settlement.all(list_options)) do |remote_settlement|
+      next if remote_settlement.id.blank? || remote_settlement.created_at.nil?
+      throw :done if remote_settlement.created_at.in_time_zone.to_date < since
 
       linked = sync_settlement(remote_settlement)
-      next if linked.nil?
+      unless linked.nil?
+        settlements_count += 1
+        payments_count += linked
+      end
 
-      settlements_count += 1
-      payments_count += linked
+      if final_ids.include?(remote_settlement.id) &&
+          (oldest_unfinished_at.nil? || remote_settlement.created_at < oldest_unfinished_at)
+        throw :done
+      end
     end
 
     Result.new(settlements_count:, payments_count:)
@@ -75,40 +82,10 @@ class MollieSettlementSync
     Payment.where(provider: "mollie").minimum(:created_at)&.in_time_zone&.to_date
   end
 
-  def list_options(**options)
+  def list_options
+    options = { limit: PAGE_SIZE, api_key: @token }
     options[:balance_id] = @balance_id if @balance_id.present?
-    options.merge(limit: PAGE_SIZE, api_key: @token)
-  end
-
-  def relevant?(remote_settlement, since)
-    remote_settlement.id.present? && remote_settlement.created_at.present? &&
-      remote_settlement.created_at.in_time_zone.to_date >= since
-  end
-
-  # The settlement to continue syncing from: the oldest known settlement that
-  # can still change, or else the newest known settlement.
-  def resume_settlement_id(since)
-    known = Settlement.where(mollie_created_at: since.beginning_of_day..)
-    known.where(status: %w[open pending]).order(:mollie_created_at, :id).pick(:mollie_settlement_id) ||
-      known.order(mollie_created_at: :desc, id: :desc).pick(:mollie_settlement_id)
-  end
-
-  # Searches month by month, from the month of the first payment up to the
-  # current month, for the first relevant settlement.
-  def first_settlement_id(since)
-    month = since.beginning_of_month
-    while month <= Date.current
-      first = nil
-      list = Mollie::Settlement.all(list_options(year: month.year.to_s, month: month.month.to_s))
-      each_item(list) do |remote_settlement|
-        next unless relevant?(remote_settlement, since)
-
-        first = remote_settlement if first.nil? || remote_settlement.created_at < first.created_at
-      end
-      return first.id if first
-
-      month = month.next_month
-    end
+    options
   end
 
   # Records the settlement and links its payments. Returns the number of
@@ -159,13 +136,16 @@ class MollieSettlementSync
     ids
   end
 
-  # Iterates over all items of a paginated Mollie list.
+  # Iterates over all items of a paginated Mollie list, until the block throws
+  # :done.
   def each_item(list, &block)
-    loop do
-      list.each(&block)
-      break if list.links.blank? || list.links["next"].blank?
+    catch(:done) do
+      loop do
+        list.each(&block)
+        break if list.links.blank? || list.links["next"].blank?
 
-      list = list.next(api_key: @token)
+        list = list.next(api_key: @token)
+      end
     end
   end
 

@@ -144,10 +144,10 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
 
   test "skips settlements created before the date of the first Mollie payment" do
     remote = settlement_list([
-      { "id" => "stl_before", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" },
-        "created_at" => "2026-08-31T23:00:00+00:00" },
       { "id" => "stl_same_day", "status" => "pending", "amount" => { "value" => "2.00", "currency" => "EUR" },
-        "created_at" => "2026-09-01T08:00:00+00:00" }
+        "created_at" => "2026-09-01T08:00:00+00:00" },
+      { "id" => "stl_before", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" },
+        "created_at" => "2026-08-31T23:00:00+00:00" }
     ])
 
     result = with_mollie_settlements(remote, { "stl_same_day" => payment_list([]) }) do
@@ -216,62 +216,57 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     ENV["MOLLIE_SETTLEMENT_BALANCE_ID"] = original
   end
 
-  test "searches month by month for the first settlement when none are known yet" do
-    Settlement.delete_all
-    options = []
-    found = settlement_list([
-      { "id" => "stl_later", "status" => "pending", "amount" => { "value" => "2.00", "currency" => "EUR" }, "created_at" => "2026-10-03T10:00:00+00:00" },
-      { "id" => "stl_first", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" }, "created_at" => "2026-10-02T10:00:00+00:00" }
+  test "stops at the first settlement created before the first Mollie payment" do
+    remote = settlement_list([
+      { "id" => "stl_same_day", "status" => "pending", "amount" => { "value" => "2.00", "currency" => "EUR" },
+        "created_at" => "2026-09-01T08:00:00+00:00" },
+      { "id" => "stl_before", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" },
+        "created_at" => "2026-08-31T23:00:00+00:00" }
+    ], links: { "next" => { "href" => "https://api.mollie.com/v2/settlements?from=stl_older" } })
+    remote.define_singleton_method(:next) { |_options = {}| raise "should not fetch the next page" }
+
+    result = with_mollie_settlements(remote, { "stl_same_day" => payment_list([]) }) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_equal 1, result.settlements_count
+  end
+
+  test "stops once it reaches a settlement that was already synced and is final" do
+    settlements(:paid_out).update!(payments_complete: true)
+    remote = settlement_list([
+      { "id" => "stl_new1", "status" => "open", "amount" => { "value" => "2.00", "currency" => "EUR" },
+        "created_at" => "2026-10-02T10:00:00+00:00" },
+      { "id" => "stl_paidout1", "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" },
+        "created_at" => "2026-10-01T10:00:00+00:00" },
+      { "id" => "stl_old", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" },
+        "created_at" => "2026-09-15T10:00:00+00:00" }
     ])
-    lists = ->(opts) { opts[:month] == "10" || opts[:from] ? found : settlement_list([]) }
 
-    result = with_mollie_settlements(lists, { "stl_later" => payment_list([]), "stl_first" => payment_list(%w[tr_paid456]) }, [], options) do
-      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    with_mollie_settlements(remote, { "stl_new1" => payment_list([]) }) do
+      MollieSettlementSync.new(token: "access_test").call
     end
 
-    assert_equal [
-      { year: "2026", month: "9", limit: MollieSettlementSync::PAGE_SIZE },
-      { year: "2026", month: "10", limit: MollieSettlementSync::PAGE_SIZE },
-      { from: "stl_first", limit: MollieSettlementSync::PAGE_SIZE }
-    ], options
-    assert_equal 2, result.settlements_count
-    assert_equal "stl_first", payments(:paid_payment).reload.settlement.mollie_settlement_id
+    assert Settlement.exists?(mollie_settlement_id: "stl_new1")
+    assert_not Settlement.exists?(mollie_settlement_id: "stl_old")
   end
 
-  test "does not list settlements when no first settlement is found" do
-    Settlement.delete_all
-    options = []
+  test "keeps fetching past final settlements until older open settlements are reached" do
+    settlements(:paid_out).update!(payments_complete: true, mollie_created_at: Time.utc(2026, 10, 1, 10))
+    pending = Settlement.create!(mollie_settlement_id: "stl_pending", status: "pending", mollie_created_at: Time.utc(2026, 9, 15, 10))
+    remote = settlement_list([
+      { "id" => "stl_paidout1", "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" },
+        "created_at" => "2026-10-01T10:00:00+00:00" },
+      { "id" => "stl_pending", "status" => "paidout", "amount" => { "value" => "5.00", "currency" => "EUR" },
+        "created_at" => "2026-09-15T10:00:00+00:00" }
+    ])
 
-    result = with_mollie_settlements(settlement_list([]), {}, [], options) do
-      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    with_mollie_settlements(remote, { "stl_pending" => payment_list(%w[tr_paid456]) }) do
+      MollieSettlementSync.new(token: "access_test").call
     end
 
-    assert(options.none? { |opts| opts.key?(:from) })
-    assert_equal 0, result.settlements_count
-  end
-
-  test "continues from the newest known settlement" do
-    newer = Settlement.create!(mollie_settlement_id: "stl_newer", status: "failed", mollie_created_at: 1.day.ago)
-    options = []
-
-    with_mollie_settlements(settlement_list([]), {}, [], options) do
-      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
-    end
-
-    assert_equal [{ from: newer.mollie_settlement_id, limit: MollieSettlementSync::PAGE_SIZE }], options
-  end
-
-  test "continues from the oldest known settlement that can still change" do
-    Settlement.create!(mollie_settlement_id: "stl_newer", status: "paidout", mollie_created_at: 1.day.ago)
-    Settlement.create!(mollie_settlement_id: "stl_pending", status: "pending", mollie_created_at: 2.days.ago)
-    Settlement.create!(mollie_settlement_id: "stl_open", status: "open", mollie_created_at: 1.day.ago)
-    options = []
-
-    with_mollie_settlements(settlement_list([]), {}, [], options) do
-      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
-    end
-
-    assert_equal "stl_pending", options.first[:from]
+    assert_equal "paidout", pending.reload.status
+    assert_equal pending, payments(:paid_payment).reload.settlement
   end
 
   private
@@ -291,7 +286,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     Mollie::Settlement.define_singleton_method(:all) do |options = {}|
       settlement_options << options.except(:api_key)
       tokens << options[:api_key]
-      settlement_list.respond_to?(:call) ? settlement_list.call(options) : settlement_list
+      settlement_list
     end
     Mollie::Settlement::Payment.define_singleton_method(:all) do |options = {}|
       tokens << options[:api_key]
