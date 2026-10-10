@@ -6,6 +6,14 @@
 # an organization access token with the settlements.read and payments.read
 # permissions, configured as `mollie_organization_token` in the credentials or
 # as the MOLLIE_ORGANIZATION_TOKEN environment variable.
+#
+# Settlements are not limited to a single profile, so only the settlements
+# created on or after the date of our first Mollie payment are synced. They can
+# optionally be limited further to a single balance by setting the
+# MOLLIE_SETTLEMENT_BALANCE_ID environment variable.
+#
+# Mollie lists settlements newest first, so the sync stops at the first
+# settlement created before our first payment.
 class MollieSettlementSync
   class NotConfigured < StandardError; end
 
@@ -22,8 +30,13 @@ class MollieSettlementSync
     organization_token.present?
   end
 
-  def initialize(token: self.class.organization_token)
+  def self.balance_id
+    ENV.fetch("MOLLIE_SETTLEMENT_BALANCE_ID", nil).presence
+  end
+
+  def initialize(token: self.class.organization_token, balance_id: self.class.balance_id)
     @token = token
+    @balance_id = balance_id
   end
 
   def call
@@ -32,20 +45,36 @@ class MollieSettlementSync
     settlements_count = 0
     payments_count = 0
 
-    each_item(Mollie::Settlement.all(limit: PAGE_SIZE, api_key: @token)) do |remote_settlement|
-      next if remote_settlement.id.blank?
+    since = first_payment_date
+    return Result.new(settlements_count:, payments_count:) if since.nil?
+
+    each_item(Mollie::Settlement.all(list_options)) do |remote_settlement|
+      next if remote_settlement.id.blank? || remote_settlement.created_at.nil?
+      throw :done if remote_settlement.created_at.in_time_zone.to_date < since
 
       linked = sync_settlement(remote_settlement)
-      next if linked.nil?
-
-      settlements_count += 1
-      payments_count += linked
+      unless linked.nil?
+        settlements_count += 1
+        payments_count += linked
+      end
     end
 
     Result.new(settlements_count:, payments_count:)
   end
 
   private
+
+  # Settlements created before our first Mollie payment cannot contain any of
+  # our payments. Returns nil when there are no Mollie payments yet.
+  def first_payment_date
+    Payment.where(provider: "mollie").minimum(:created_at)&.in_time_zone&.to_date
+  end
+
+  def list_options
+    options = { limit: PAGE_SIZE, api_key: @token }
+    options[:balance_id] = @balance_id if @balance_id.present?
+    options
+  end
 
   # Records the settlement and links its payments. Returns the number of
   # payments linked, or nil when the settlement is skipped.
@@ -58,10 +87,6 @@ class MollieSettlementSync
 
     payout_amount_cents = amount_cents(remote_settlement.amount, remote_settlement.id)
     settlement = Settlement.find_or_initialize_by(mollie_settlement_id: remote_settlement.id)
-    # The payments of a settlement that was already paid out can no longer
-    # change, so they do not need to be fetched again.
-    return 0 if settlement.persisted? && settlement.status == "paidout" && status == "paidout" && settlement.payments_complete?
-
     mollie_payment_ids = settlement_payment_ids(remote_settlement.id)
 
     Settlement.transaction do
@@ -95,13 +120,16 @@ class MollieSettlementSync
     ids
   end
 
-  # Iterates over all items of a paginated Mollie list.
+  # Iterates over all items of a paginated Mollie list, until the block throws
+  # :done.
   def each_item(list, &block)
-    loop do
-      list.each(&block)
-      break if list.links.blank? || list.links["next"].blank?
+    catch(:done) do
+      loop do
+        list.each(&block)
+        break if list.links.blank? || list.links["next"].blank?
 
-      list = list.next(api_key: @token)
+        list = list.next(api_key: @token)
+      end
     end
   end
 

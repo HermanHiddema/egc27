@@ -20,7 +20,9 @@
 
   <p class="text-sm text-neutral-700 mb-4">
     Mollie pays out the payments received in a period in a settlement, minus its fees. Refunds and chargebacks
-    in the same period are deducted as well.
+    in the same period are deducted as well. Only settlements created on or after the date of the first Mollie
+    payment are synced; set the <code>MOLLIE_SETTLEMENT_BALANCE_ID</code> environment variable to only sync the
+    settlements of a single balance.
   </p>
 
   <% if @settlements.any? %>
