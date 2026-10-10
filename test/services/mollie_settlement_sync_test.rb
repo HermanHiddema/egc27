@@ -1,6 +1,10 @@
 require "test_helper"
 
 class MollieSettlementSyncTest < ActiveSupport::TestCase
+  setup do
+    Payment.update_all(created_at: Time.utc(2026, 9, 1, 12))
+  end
+
   test "is not configured without an organization token" do
     assert_raises(MollieSettlementSync::NotConfigured) do
       MollieSettlementSync.new(token: nil).call
@@ -138,9 +142,84 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_equal 4800, settlement.reload.amount_cents
   end
 
+  test "skips settlements created before the date of the first Mollie payment" do
+    remote = settlement_list([
+      { "id" => "stl_before", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" },
+        "created_at" => "2026-08-31T23:00:00+00:00" },
+      { "id" => "stl_same_day", "status" => "pending", "amount" => { "value" => "2.00", "currency" => "EUR" },
+        "created_at" => "2026-09-01T08:00:00+00:00" }
+    ])
+
+    result = with_mollie_settlements(remote, { "stl_same_day" => payment_list([]) }) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_not Settlement.exists?(mollie_settlement_id: "stl_before")
+    assert Settlement.exists?(mollie_settlement_id: "stl_same_day")
+    assert_equal 1, result.settlements_count
+  end
+
+  test "ignores the date of the first manual payment" do
+    payments(:manual_payment).update_columns(created_at: Time.utc(2026, 1, 1, 12))
+    remote = settlement_list([{ "id" => "stl_before", "status" => "pending", "amount" => { "value" => "1.00", "currency" => "EUR" },
+                                "created_at" => "2026-06-01T10:00:00+00:00" }])
+
+    with_mollie_settlements(remote, {}) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_not Settlement.exists?(mollie_settlement_id: "stl_before")
+  end
+
+  test "does not fetch settlements without any Mollie payments" do
+    Payment.where(provider: "mollie").delete_all
+    requested = false
+    original_all = Mollie::Settlement.method(:all)
+    Mollie::Settlement.define_singleton_method(:all) { |_options = {}| requested = true }
+
+    result = MollieSettlementSync.new(token: "access_test").call
+
+    assert_not requested
+    assert_equal 0, result.settlements_count
+  ensure
+    Mollie::Settlement.define_singleton_method(:all, &original_all)
+  end
+
+  test "limits settlements to the configured balance" do
+    options = []
+    remote = settlement_list([])
+
+    with_mollie_settlements(remote, {}, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: "bal_test123").call
+    end
+
+    assert_equal "bal_test123", options.first[:balance_id]
+  end
+
+  test "does not limit settlements to a balance by default" do
+    options = []
+
+    with_mollie_settlements(settlement_list([]), {}, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    end
+
+    assert_not options.first.key?(:balance_id)
+  end
+
+  test "reads the balance from the environment" do
+    original = ENV["MOLLIE_SETTLEMENT_BALANCE_ID"]
+    ENV["MOLLIE_SETTLEMENT_BALANCE_ID"] = "bal_env456"
+    assert_equal "bal_env456", MollieSettlementSync.balance_id
+    ENV["MOLLIE_SETTLEMENT_BALANCE_ID"] = ""
+    assert_nil MollieSettlementSync.balance_id
+  ensure
+    ENV["MOLLIE_SETTLEMENT_BALANCE_ID"] = original
+  end
+
   private
 
   def settlement_list(items, links: {})
+    items = items.map { |item| { "created_at" => "2026-10-01T10:00:00+00:00" }.merge(item) }
     Mollie::List.new({ "_embedded" => { "settlements" => items }, "_links" => links }, Mollie::Settlement)
   end
 
@@ -148,10 +227,11 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     Mollie::List.new({ "_embedded" => { "payments" => ids.map { |id| { "id" => id } } }, "_links" => {} }, Mollie::Settlement::Payment)
   end
 
-  def with_mollie_settlements(settlement_list, payment_lists, tokens = [])
+  def with_mollie_settlements(settlement_list, payment_lists, tokens = [], settlement_options = [])
     original_all = Mollie::Settlement.method(:all)
     original_payments_all = Mollie::Settlement::Payment.method(:all)
     Mollie::Settlement.define_singleton_method(:all) do |options = {}|
+      settlement_options << options
       tokens << options[:api_key]
       settlement_list
     end

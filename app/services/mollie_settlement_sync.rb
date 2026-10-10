@@ -6,6 +6,11 @@
 # an organization access token with the settlements.read and payments.read
 # permissions, configured as `mollie_organization_token` in the credentials or
 # as the MOLLIE_ORGANIZATION_TOKEN environment variable.
+#
+# Settlements are not limited to a single profile, so only the settlements
+# created on or after the date of our first Mollie payment are synced. They can
+# optionally be limited further to a single balance by setting the
+# MOLLIE_SETTLEMENT_BALANCE_ID environment variable.
 class MollieSettlementSync
   class NotConfigured < StandardError; end
 
@@ -22,8 +27,13 @@ class MollieSettlementSync
     organization_token.present?
   end
 
-  def initialize(token: self.class.organization_token)
+  def self.balance_id
+    ENV.fetch("MOLLIE_SETTLEMENT_BALANCE_ID", nil).presence
+  end
+
+  def initialize(token: self.class.organization_token, balance_id: self.class.balance_id)
     @token = token
+    @balance_id = balance_id
   end
 
   def call
@@ -32,8 +42,15 @@ class MollieSettlementSync
     settlements_count = 0
     payments_count = 0
 
-    each_item(Mollie::Settlement.all(limit: PAGE_SIZE, api_key: @token)) do |remote_settlement|
+    since = first_payment_date
+    return Result.new(settlements_count:, payments_count:) if since.nil?
+
+    options = { limit: PAGE_SIZE, api_key: @token }
+    options[:balance_id] = @balance_id if @balance_id.present?
+
+    each_item(Mollie::Settlement.all(options)) do |remote_settlement|
       next if remote_settlement.id.blank?
+      next if remote_settlement.created_at.nil? || remote_settlement.created_at.in_time_zone.to_date < since
 
       linked = sync_settlement(remote_settlement)
       next if linked.nil?
@@ -46,6 +63,12 @@ class MollieSettlementSync
   end
 
   private
+
+  # Settlements created before our first Mollie payment cannot contain any of
+  # our payments. Returns nil when there are no Mollie payments yet.
+  def first_payment_date
+    Payment.where(provider: "mollie").minimum(:created_at)&.in_time_zone&.to_date
+  end
 
   # Records the settlement and links its payments. Returns the number of
   # payments linked, or nil when the settlement is skipped.
