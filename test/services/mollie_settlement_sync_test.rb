@@ -13,7 +13,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
 
   test "records settlements and links the payments paid out in them" do
     remote = settlement_list([
-      { "id" => "stl_new1", "reference" => "1234567.2610.02", "status" => "paidout",
+      { "id" => "stl_new1", "reference" => "1234567.2610.02", "balance_id" => "bal_test123", "status" => "paidout",
         "amount" => { "value" => "185.12", "currency" => "EUR" },
         "settled_at" => "2026-10-05T10:00:00+00:00", "created_at" => "2026-10-04T10:00:00+00:00" }
     ])
@@ -25,6 +25,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
 
     settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
     assert_equal "1234567.2610.02", settlement.reference
+    assert_equal "bal_test123", settlement.balance_id
     assert_equal "paidout", settlement.status
     assert_equal 18_512, settlement.amount_cents
     assert_equal Time.utc(2026, 10, 5, 10), settlement.settled_at

@@ -93,6 +93,7 @@ class MollieSettlementSync
       payments_complete = Payment.where(mollie_payment_id: mollie_payment_ids).count == mollie_payment_ids.size
       settlement.update!(
         reference: remote_settlement.reference,
+        balance_id: remote_settlement.attributes["balance_id"].presence,
         status: status,
         amount_cents: payout_amount_cents,
         settled_at: remote_settlement.settled_at,

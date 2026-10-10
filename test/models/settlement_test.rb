@@ -1,5 +1,25 @@
 require "test_helper"
 
+# == Schema Information
+#
+# Table name: settlements
+#
+#  id                   :bigint           not null, primary key
+#  amount_cents         :integer          default(0), not null
+#  mollie_created_at    :datetime
+#  payments_complete    :boolean          default(FALSE), not null
+#  reference            :string
+#  settled_at           :datetime
+#  status               :string           not null
+#  created_at           :datetime         not null
+#  updated_at           :datetime         not null
+#  balance_id           :string
+#  mollie_settlement_id :string           not null
+#
+# Indexes
+#
+#  index_settlements_on_mollie_settlement_id  (mollie_settlement_id) UNIQUE
+#
 class SettlementTest < ActiveSupport::TestCase
   test "requires a unique mollie settlement id" do
     settlement = Settlement.new(mollie_settlement_id: settlements(:paid_out).mollie_settlement_id, status: "paidout")

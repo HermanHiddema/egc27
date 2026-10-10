@@ -19,6 +19,10 @@
         <dd class="text-neutral-900"><%= @settlement.mollie_settlement_id %></dd>
       </div>
       <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Balance ID</dt>
+        <dd class="text-neutral-900"><%= @settlement.balance_id.presence || "—" %></dd>
+      </div>
+      <div>
         <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Payments total</dt>
         <dd class="text-neutral-900"><%= Settlement.format_cents(@settlement.payments_total_cents) %></dd>
       </div>
