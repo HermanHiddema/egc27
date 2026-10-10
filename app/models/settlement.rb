@@ -5,6 +5,7 @@
 #  id                   :bigint           not null, primary key
 #  amount_cents         :integer          default(0), not null
 #  mollie_created_at    :datetime
+#  payments_complete    :boolean          default(FALSE), not null
 #  reference            :string
 #  settled_at           :datetime
 #  status               :string           not null
