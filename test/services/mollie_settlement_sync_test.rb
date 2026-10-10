@@ -92,16 +92,17 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_nil payments(:paid_payment).reload.settlement_id
   end
 
-  test "does not fetch the payments of a settlement that was already paid out again" do
+  test "fetches the payments of a known paid out settlement again" do
     settlement = settlements(:paid_out)
     settlement.update!(payments_complete: true)
     remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" } }])
 
-    with_mollie_settlements(remote, {}) do
+    with_mollie_settlements(remote, { settlement.mollie_settlement_id => payment_list(%w[tr_paid456 tr_unknown]) }) do
       MollieSettlementSync.new(token: "access_test").call
     end
 
-    assert_equal "paidout", settlement.reload.status
+    assert_not settlement.reload.payments_complete?
+    assert_equal settlement, payments(:paid_payment).reload.settlement
   end
 
   test "skips settlements with an unknown status" do
@@ -233,7 +234,6 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
   end
 
   test "stops once it reaches a settlement that was already synced and is final" do
-    settlements(:paid_out).update!(payments_complete: true)
     remote = settlement_list([
       { "id" => "stl_new1", "status" => "open", "amount" => { "value" => "2.00", "currency" => "EUR" },
         "created_at" => "2026-10-02T10:00:00+00:00" },
@@ -243,7 +243,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
         "created_at" => "2026-09-15T10:00:00+00:00" }
     ])
 
-    with_mollie_settlements(remote, { "stl_new1" => payment_list([]) }) do
+    with_mollie_settlements(remote, { "stl_new1" => payment_list([]), "stl_paidout1" => payment_list([]) }) do
       MollieSettlementSync.new(token: "access_test").call
     end
 
@@ -252,7 +252,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
   end
 
   test "keeps fetching past final settlements until older open settlements are reached" do
-    settlements(:paid_out).update!(payments_complete: true, mollie_created_at: Time.utc(2026, 10, 1, 10))
+    settlements(:paid_out).update!(mollie_created_at: Time.utc(2026, 10, 1, 10))
     pending = Settlement.create!(mollie_settlement_id: "stl_pending", status: "pending", mollie_created_at: Time.utc(2026, 9, 15, 10))
     remote = settlement_list([
       { "id" => "stl_paidout1", "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" },
@@ -261,7 +261,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
         "created_at" => "2026-09-15T10:00:00+00:00" }
     ])
 
-    with_mollie_settlements(remote, { "stl_pending" => payment_list(%w[tr_paid456]) }) do
+    with_mollie_settlements(remote, { "stl_paidout1" => payment_list([]), "stl_pending" => payment_list(%w[tr_paid456]) }) do
       MollieSettlementSync.new(token: "access_test").call
     end
 

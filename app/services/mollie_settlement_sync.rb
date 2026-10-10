@@ -99,10 +99,6 @@ class MollieSettlementSync
 
     payout_amount_cents = amount_cents(remote_settlement.amount, remote_settlement.id)
     settlement = Settlement.find_or_initialize_by(mollie_settlement_id: remote_settlement.id)
-    # The payments of a settlement that was already paid out can no longer
-    # change, so they do not need to be fetched again.
-    return 0 if settlement.persisted? && settlement.status == "paidout" && status == "paidout" && settlement.payments_complete?
-
     mollie_payment_ids = settlement_payment_ids(remote_settlement.id)
 
     Settlement.transaction do
