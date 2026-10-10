@@ -234,8 +234,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
   end
 
   test "continues past settlements that were already synced and are final" do
-    Settlement.create!(mollie_settlement_id: "stl_paidout1", status: "paidout",
-                       mollie_created_at: Time.utc(2026, 10, 1, 10))
+    settlements(:paid_out).update!(mollie_created_at: Time.utc(2026, 10, 1, 10))
     remote = settlement_list([
       { "id" => "stl_new1", "status" => "open", "amount" => { "value" => "2.00", "currency" => "EUR" },
         "created_at" => "2026-10-02T10:00:00+00:00" },
