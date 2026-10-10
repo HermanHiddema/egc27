@@ -216,6 +216,64 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     ENV["MOLLIE_SETTLEMENT_BALANCE_ID"] = original
   end
 
+  test "searches month by month for the first settlement when none are known yet" do
+    Settlement.delete_all
+    options = []
+    found = settlement_list([
+      { "id" => "stl_later", "status" => "pending", "amount" => { "value" => "2.00", "currency" => "EUR" }, "created_at" => "2026-10-03T10:00:00+00:00" },
+      { "id" => "stl_first", "status" => "paidout", "amount" => { "value" => "1.00", "currency" => "EUR" }, "created_at" => "2026-10-02T10:00:00+00:00" }
+    ])
+    lists = ->(opts) { opts[:month] == "10" || opts[:from] ? found : settlement_list([]) }
+
+    result = with_mollie_settlements(lists, { "stl_later" => payment_list([]), "stl_first" => payment_list(%w[tr_paid456]) }, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    end
+
+    assert_equal [
+      { year: "2026", month: "9", limit: MollieSettlementSync::PAGE_SIZE },
+      { year: "2026", month: "10", limit: MollieSettlementSync::PAGE_SIZE },
+      { from: "stl_first", limit: MollieSettlementSync::PAGE_SIZE }
+    ], options
+    assert_equal 2, result.settlements_count
+    assert_equal "stl_first", payments(:paid_payment).reload.settlement.mollie_settlement_id
+  end
+
+  test "does not list settlements when no first settlement is found" do
+    Settlement.delete_all
+    options = []
+
+    result = with_mollie_settlements(settlement_list([]), {}, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    end
+
+    assert(options.none? { |opts| opts.key?(:from) })
+    assert_equal 0, result.settlements_count
+  end
+
+  test "continues from the newest known settlement" do
+    newer = Settlement.create!(mollie_settlement_id: "stl_newer", status: "failed", mollie_created_at: 1.day.ago)
+    options = []
+
+    with_mollie_settlements(settlement_list([]), {}, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    end
+
+    assert_equal [{ from: newer.mollie_settlement_id, limit: MollieSettlementSync::PAGE_SIZE }], options
+  end
+
+  test "continues from the oldest known settlement that can still change" do
+    Settlement.create!(mollie_settlement_id: "stl_newer", status: "paidout", mollie_created_at: 1.day.ago)
+    Settlement.create!(mollie_settlement_id: "stl_pending", status: "pending", mollie_created_at: 2.days.ago)
+    Settlement.create!(mollie_settlement_id: "stl_open", status: "open", mollie_created_at: 1.day.ago)
+    options = []
+
+    with_mollie_settlements(settlement_list([]), {}, [], options) do
+      MollieSettlementSync.new(token: "access_test", balance_id: nil).call
+    end
+
+    assert_equal "stl_pending", options.first[:from]
+  end
+
   private
 
   def settlement_list(items, links: {})
@@ -231,9 +289,9 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     original_all = Mollie::Settlement.method(:all)
     original_payments_all = Mollie::Settlement::Payment.method(:all)
     Mollie::Settlement.define_singleton_method(:all) do |options = {}|
-      settlement_options << options
+      settlement_options << options.except(:api_key)
       tokens << options[:api_key]
-      settlement_list
+      settlement_list.respond_to?(:call) ? settlement_list.call(options) : settlement_list
     end
     Mollie::Settlement::Payment.define_singleton_method(:all) do |options = {}|
       tokens << options[:api_key]
