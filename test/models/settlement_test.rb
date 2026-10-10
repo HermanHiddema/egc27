@@ -13,6 +13,7 @@ require "test_helper"
 #  status               :string           not null
 #  created_at           :datetime         not null
 #  updated_at           :datetime         not null
+#  mollie_balance_id    :string
 #  mollie_settlement_id :string           not null
 #
 # Indexes

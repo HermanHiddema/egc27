@@ -76,6 +76,7 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     get admin_settlement_path(settlements(:paid_out))
 
     assert_response :success
+    assert_select "dd", text: "bal_fixture1"
     assert_select "td", text: payments(:paid_payment).description
     assert_select "td", text: payments(:paid_payment).mollie_payment_id
     assert_select "td", text: payments(:manual_payment).description, count: 0
