@@ -37,6 +37,9 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
+    # Personal access token for the European Go Database GraphQL API, used to
+    # look up players during registration and to refresh ranks and ratings.
+    # - EGD_API_TOKEN
   clear:
     # Run the Solid Queue Supervisor inside the web server's Puma process to do jobs.
     # When you start using multiple servers, you should split out job processing to a dedicated machine.
