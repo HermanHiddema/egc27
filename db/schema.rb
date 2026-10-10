@@ -236,7 +236,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "payments_complete", default: false, null: false
-    t.string "balance_id"
+    t.string "mollie_balance_id"
     t.index ["mollie_settlement_id"], name: "index_settlements_on_mollie_settlement_id", unique: true
   end
 

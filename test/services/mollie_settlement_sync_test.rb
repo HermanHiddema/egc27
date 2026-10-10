@@ -25,7 +25,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
 
     settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
     assert_equal "1234567.2610.02", settlement.reference
-    assert_equal "bal_test123", settlement.balance_id
+    assert_equal "bal_test123", settlement.mollie_balance_id
     assert_equal "paidout", settlement.status
     assert_equal 18_512, settlement.amount_cents
     assert_equal Time.utc(2026, 10, 5, 10), settlement.settled_at
