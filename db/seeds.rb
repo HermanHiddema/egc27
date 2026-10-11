@@ -634,3 +634,11 @@ end
 
 puts "✓ Seeded #{event_group_seeds.size} event groups"
 puts "✓ Seeded #{calendar_event_seeds.size} calendar events"
+
+# The congress pass product is created by a data migration so that it also
+# exists in databases that were migrated rather than loaded from the schema.
+# Reuse that migration here (it is idempotent) for freshly created databases.
+require Rails.root.join("db/migrate/20261011220001_create_congress_pass_product").to_s
+CreateCongressPassProduct.new.up
+
+puts "✓ Seeded congress pass product"
