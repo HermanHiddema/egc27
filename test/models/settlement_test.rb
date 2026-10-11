@@ -6,9 +6,12 @@ require "test_helper"
 #
 #  id                   :bigint           not null, primary key
 #  amount_cents         :integer          default(0), not null
+#  chargebacks          :jsonb            not null
 #  mollie_created_at    :datetime
 #  payments_complete    :boolean          default(FALSE), not null
+#  periods              :jsonb            not null
 #  reference            :string
+#  refunds              :jsonb            not null
 #  settled_at           :datetime
 #  status               :string           not null
 #  created_at           :datetime         not null
@@ -71,5 +74,60 @@ class SettlementTest < ActiveSupport::TestCase
     settlement.destroy!
 
     assert_nil payment.reload.settlement_id
+  end
+
+  test "breaks the payout down per period, oldest first" do
+    settlement = settlements(:paid_out)
+    settlement.update!(periods: {
+      "2026" => {
+        "10" => {
+          "revenue" => [{ "description" => "iDEAL", "method" => "ideal", "count" => 2,
+                           "amount_net" => { "value" => "100.00", "currency" => "EUR" },
+                           "amount_gross" => { "value" => "100.00", "currency" => "EUR" } },
+                         { "method" => "creditcard", "count" => 1, "amount_gross" => { "value" => "-10.00", "currency" => "EUR" } }],
+          "costs" => [{ "description" => "iDEAL", "count" => 2,
+                         "amount_net" => { "value" => "0.58", "currency" => "EUR" },
+                         "amount_vat" => { "value" => "0.12", "currency" => "EUR" },
+                         "amount_gross" => { "value" => "0.70", "currency" => "EUR" } }],
+          "invoice_id" => "inv_test1"
+        },
+        "9" => { "revenue" => [], "costs" => [] }
+      }
+    })
+
+    september, october = settlement.breakdown_periods
+
+    assert_equal "September 2026", september.label
+    assert_equal "October 2026", october.label
+    assert_equal "inv_test1", october.invoice_id
+    assert_nil september.invoice_id
+    assert_equal ["iDEAL", "Creditcard"], october.revenue.map(&:description)
+    assert_equal 10_000, october.revenue.first.net_cents
+    assert_nil october.revenue.first.vat_cents
+    assert_equal 9_000, october.revenue_cents
+    assert_equal 70, october.costs_cents
+    assert_equal 12, october.costs.first.vat_cents
+  end
+
+  test "has no breakdown periods without a breakdown" do
+    assert_empty settlements(:paid_out).breakdown_periods
+  end
+
+  test "totals the refunds and chargebacks deducted from the payout" do
+    settlement = settlements(:paid_out)
+    settlement.update!(
+      refunds: [{ "id" => "re_1", "settlement_amount_cents" => -1_000 }, { "id" => "re_2", "settlement_amount_cents" => -500 }],
+      chargebacks: [{ "id" => "chb_1", "settlement_amount_cents" => -2_500 }]
+    )
+
+    assert_equal(-1_500, settlement.refunds_total_cents)
+    assert_equal(-2_500, settlement.chargebacks_total_cents)
+  end
+
+  test "converts Mollie amounts to cents" do
+    assert_equal 1_234, Settlement.cents_from_amount({ "value" => "12.34", "currency" => "EUR" })
+    assert_equal(-50, Settlement.cents_from_amount({ "value" => "-0.50", "currency" => "EUR" }))
+    assert_nil Settlement.cents_from_amount(nil)
+    assert_nil Settlement.cents_from_amount({ "value" => "bogus" })
   end
 end

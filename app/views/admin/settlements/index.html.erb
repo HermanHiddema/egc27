@@ -12,8 +12,8 @@
   <% unless @configured %>
     <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4 text-sm text-yellow-800">
       Settlements cannot be synced with Mollie because no Mollie organization access token is configured.
-      Create an organization access token with the <code>settlements.read</code> and <code>payments.read</code>
-      permissions and set it as <code>mollie_organization_token</code> in the credentials or as the
+      Create an organization access token with the <code>settlements.read</code>, <code>payments.read</code> and
+      <code>refunds.read</code> permissions and set it as <code>mollie_organization_token</code> in the credentials or as the
       <code>MOLLIE_ORGANIZATION_TOKEN</code> environment variable.
     </div>
   <% end %>

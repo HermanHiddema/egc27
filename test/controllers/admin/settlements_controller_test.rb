@@ -93,6 +93,123 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: "No payments known here were paid out in this settlement."
   end
 
+  test "admin sees the breakdown, refunds and chargebacks of a settlement" do
+    sign_in users(:admin)
+    settlements(:paid_out).update!(
+      periods: { "2026" => { "10" => {
+        "revenue" => [{ "description" => "iDEAL", "method" => "ideal", "count" => 2,
+                         "amount_gross" => { "value" => "60.00", "currency" => "EUR" } }],
+        "costs" => [{ "description" => "iDEAL fees", "method" => "ideal", "count" => 2,
+                       "amount_gross" => { "value" => "0.70", "currency" => "EUR" } }],
+        "invoice_id" => "inv_test1"
+      } } },
+      refunds: [{ "id" => "re_test1", "payment_id" => payments(:paid_payment).mollie_payment_id, "description" => "Cancelled",
+                   "amount_cents" => 1_000, "settlement_amount_cents" => -1_000, "created_at" => "2026-10-02T10:00:00+00:00" }],
+      chargebacks: [{ "id" => "chb_test1", "payment_id" => "tr_unknown", "amount_cents" => 2_500,
+                       "settlement_amount_cents" => -2_500, "created_at" => "2026-10-03T10:00:00+00:00", "reversed_at" => nil }]
+    )
+
+    get admin_settlement_path(settlements(:paid_out))
+
+    assert_response :success
+    assert_select "h3", text: "October 2026"
+    assert_select "td", text: "iDEAL"
+    assert_select "td", text: "iDEAL fees"
+    assert_select "td", text: "€ 60.00"
+    assert_select "td", text: "€ 0.70"
+    assert_select "td", text: "re_test1"
+    assert_select "td", text: "Cancelled"
+    assert_select "td", text: "-€ 10.00"
+    assert_select "td", text: /#{payments(:paid_payment).participant.first_name}/
+    assert_select "td", text: "chb_test1"
+    assert_select "td", text: "-€ 25.00"
+  end
+
+  test "admin is told when a settlement has no breakdown yet" do
+    sign_in users(:admin)
+
+    get admin_settlement_path(settlements(:paid_out))
+
+    assert_response :success
+    assert_select "p", text: "No breakdown of this settlement has been fetched from Mollie yet."
+    assert_select "p", text: "No refunds were deducted from this settlement."
+    assert_select "p", text: "No chargebacks were deducted from this settlement."
+  end
+
+  test "admin can resync a settlement when the organization token is configured" do
+    sign_in users(:admin)
+
+    with_organization_token("access_test") do
+      get admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_select "form[action='#{resync_admin_settlement_path(settlements(:paid_out))}']"
+  end
+
+  test "admin cannot resync a settlement without an organization token" do
+    sign_in users(:admin)
+
+    with_organization_token(nil) do
+      get admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_select "form[action='#{resync_admin_settlement_path(settlements(:paid_out))}']", count: 0
+  end
+
+  test "editor cannot resync a settlement" do
+    sign_in users(:editor)
+
+    post resync_admin_settlement_path(settlements(:paid_out))
+
+    assert_redirected_to root_path
+  end
+
+  test "resync syncs the settlement and reports the result" do
+    sign_in users(:admin)
+    requested = []
+
+    with_sync_one(->(id) { requested << id; 3 }) do
+      post resync_admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_equal [settlements(:paid_out).mollie_settlement_id], requested
+    assert_redirected_to admin_settlement_path(settlements(:paid_out))
+    assert_equal "Synced settlement with Mollie; 3 payments linked.", flash[:notice]
+  end
+
+  test "resync reports a skipped settlement" do
+    sign_in users(:admin)
+
+    with_sync_one(->(_id) { nil }) do
+      post resync_admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_redirected_to admin_settlement_path(settlements(:paid_out))
+    assert_equal "Settlement could not be synced: Mollie reported an unknown status.", flash[:alert]
+  end
+
+  test "resync reports a missing organization token" do
+    sign_in users(:admin)
+
+    with_sync_one(->(_id) { raise MollieSettlementSync::NotConfigured, "No Mollie organization access token is configured." }) do
+      post resync_admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_redirected_to admin_settlement_path(settlements(:paid_out))
+    assert_equal "No Mollie organization access token is configured.", flash[:alert]
+  end
+
+  test "resync reports Mollie errors" do
+    sign_in users(:admin)
+
+    with_sync_one(->(_id) { raise Mollie::Exception, "boom" }) do
+      post resync_admin_settlement_path(settlements(:paid_out))
+    end
+
+    assert_redirected_to admin_settlement_path(settlements(:paid_out))
+    assert_equal "Settlement could not be synced with Mollie: boom", flash[:alert]
+  end
+
   test "payments overview links to the settlement of a payment" do
     sign_in users(:admin)
     payments(:paid_payment).update!(settlement: settlements(:paid_out))
@@ -145,6 +262,14 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     MollieSettlementSync.define_method(:call, original)
+  end
+
+  def with_sync_one(stub)
+    original = MollieSettlementSync.instance_method(:sync_one)
+    MollieSettlementSync.define_method(:sync_one) { |id| stub.call(id) }
+    yield
+  ensure
+    MollieSettlementSync.define_method(:sync_one, original)
   end
 
   def with_organization_token(token)

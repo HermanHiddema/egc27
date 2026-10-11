@@ -1,7 +1,12 @@
 <div class="container-wide py-12">
   <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
     <h1 class="text-4xl font-bold">Settlement <%= @settlement.reference.presence || @settlement.mollie_settlement_id %></h1>
-    <%= link_to "All settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    <div class="flex items-center gap-4">
+      <%= link_to "All settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+      <% if @configured %>
+        <%= button_to "Resync with Mollie", resync_admin_settlement_path(@settlement), method: :post, class: "btn-primary" %>
+      <% end %>
+    </div>
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-4">
@@ -36,6 +41,169 @@
       </div>
     </dl>
   </div>
+
+  <% periods = @settlement.breakdown_periods %>
+  <h2 class="text-2xl font-bold mt-8 mb-4">Breakdown</h2>
+  <% if periods.any? %>
+    <% periods.each do |period| %>
+      <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
+        <div class="px-4 py-3 border-b border-gray-200 flex flex-wrap justify-between gap-2">
+          <h3 class="font-semibold"><%= period.label %></h3>
+          <% if period.invoice_id %>
+            <span class="text-sm text-neutral-700">Invoice <%= period.invoice_id %></span>
+          <% end %>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-neutral-50">
+              <tr>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Count</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Net</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">VAT</th>
+                <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Gross</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 bg-white">
+              <% [["Revenue", period.revenue], ["Costs", period.costs]].each do |type, lines| %>
+                <% lines.each do |line| %>
+                  <tr>
+                    <td class="px-4 py-3 text-sm text-neutral-700"><%= type %></td>
+                    <td class="px-4 py-3 text-sm text-neutral-900"><%= line.description %></td>
+                    <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= line.count || "—" %></td>
+                    <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= line.net_cents ? Settlement.format_cents(line.net_cents) : "—" %></td>
+                    <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= line.vat_cents ? Settlement.format_cents(line.vat_cents) : "—" %></td>
+                    <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= line.gross_cents ? Settlement.format_cents(line.gross_cents) : "—" %></td>
+                  </tr>
+                <% end %>
+              <% end %>
+            </tbody>
+            <tfoot class="bg-neutral-50 text-sm">
+              <tr>
+                <td class="px-4 py-2 font-semibold" colspan="5">Total revenue</td>
+                <td class="px-4 py-2 font-semibold text-right"><%= Settlement.format_cents(period.revenue_cents) %></td>
+              </tr>
+              <tr>
+                <td class="px-4 py-2 font-semibold" colspan="5">Total costs</td>
+                <td class="px-4 py-2 font-semibold text-right"><%= Settlement.format_cents(period.costs_cents) %></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-4">
+      <p class="text-neutral-700">No breakdown of this settlement has been fetched from Mollie yet.</p>
+    </div>
+  <% end %>
+
+  <h2 class="text-2xl font-bold mt-8 mb-4">Refunds</h2>
+  <% if @settlement.refunds.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Deducted</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @settlement.refunds.each do |item| %>
+              <% payment = @deducted_payments[item["payment_id"]] %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= Settlement.parse_time(item["created_at"])&.strftime("%-d %b %Y") || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <% if payment %>
+                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["payment_id"].presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["description"].presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["id"] %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item["amount_cents"] ? Settlement.format_cents(item["amount_cents"]) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item["settlement_amount_cents"] ? Settlement.format_cents(item["settlement_amount_cents"]) : "—" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="bg-neutral-50 text-sm">
+            <tr>
+              <td class="px-4 py-2 font-semibold" colspan="6">Total deducted</td>
+              <td class="px-4 py-2 font-semibold text-right"><%= Settlement.format_cents(@settlement.refunds_total_cents) %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-4">
+      <p class="text-neutral-700">No refunds were deducted from this settlement.</p>
+    </div>
+  <% end %>
+
+  <h2 class="text-2xl font-bold mt-8 mb-4">Chargebacks</h2>
+  <% if @settlement.chargebacks.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reversed</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Deducted</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @settlement.chargebacks.each do |item| %>
+              <% payment = @deducted_payments[item["payment_id"]] %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= Settlement.parse_time(item["created_at"])&.strftime("%-d %b %Y") || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <% if payment %>
+                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                  <% else %>
+                    —
+                  <% end %>
+                </td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["payment_id"].presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["reversed_at"].present? ? "Yes" : "No" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["id"] %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item["amount_cents"] ? Settlement.format_cents(item["amount_cents"]) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item["settlement_amount_cents"] ? Settlement.format_cents(item["settlement_amount_cents"]) : "—" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="bg-neutral-50 text-sm">
+            <tr>
+              <td class="px-4 py-2 font-semibold" colspan="6">Total deducted</td>
+              <td class="px-4 py-2 font-semibold text-right"><%= Settlement.format_cents(@settlement.chargebacks_total_cents) %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-4">
+      <p class="text-neutral-700">No chargebacks were deducted from this settlement.</p>
+    </div>
+  <% end %>
+
+  <h2 class="text-2xl font-bold mt-8 mb-4">Payments</h2>
 
   <% if @payments.any? %>
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
