@@ -32,6 +32,10 @@
         <dd class="text-neutral-900"><%= Settlement.format_cents(@settlement.payments_total_cents) %></dd>
       </div>
       <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Other webshop payments total</dt>
+        <dd class="text-neutral-900"><%= Settlement.format_cents(@settlement.other_payments_total_cents) %></dd>
+      </div>
+      <div>
         <dt class="text-xs font-semibold uppercase tracking-wide text-neutral-700">Deductions</dt>
         <dd class="text-neutral-900"><%= @settlement.deductions_cents ? Settlement.format_cents(@settlement.deductions_cents) : "—" %></dd>
       </div>
@@ -100,7 +104,7 @@
   <% end %>
 
   <h2 class="text-2xl font-bold mt-8 mb-4">Refunds</h2>
-  <% if @settlement.refunds.any? %>
+  <% if @refunds.any? %>
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -116,10 +120,10 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
-            <% @settlement.refunds.each do |item| %>
-              <% payment = @deducted_payments[item["payment_id"]] %>
+            <% @refunds.each do |item| %>
+              <% payment = item.payment %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= Settlement.parse_time(item["created_at"])&.strftime("%-d %b %Y") || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
                     <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
@@ -128,11 +132,11 @@
                     —
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["payment_id"].presence || "—" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["description"].presence || "—" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["id"] %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item["amount_cents"] ? Settlement.format_cents(item["amount_cents"]) : "—" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item["settlement_amount_cents"] ? Settlement.format_cents(item["settlement_amount_cents"]) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_payment_id.presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.description.presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_refund_id %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item.amount_cents ? Settlement.format_cents(item.amount_cents) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item.settlement_amount_cents ? Settlement.format_cents(item.settlement_amount_cents) : "—" %></td>
               </tr>
             <% end %>
           </tbody>
@@ -152,7 +156,7 @@
   <% end %>
 
   <h2 class="text-2xl font-bold mt-8 mb-4">Chargebacks</h2>
-  <% if @settlement.chargebacks.any? %>
+  <% if @chargebacks.any? %>
     <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden mb-4">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
@@ -168,10 +172,10 @@
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
-            <% @settlement.chargebacks.each do |item| %>
-              <% payment = @deducted_payments[item["payment_id"]] %>
+            <% @chargebacks.each do |item| %>
+              <% payment = item.payment %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= Settlement.parse_time(item["created_at"])&.strftime("%-d %b %Y") || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
                     <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
@@ -180,11 +184,11 @@
                     —
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["payment_id"].presence || "—" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["reversed_at"].present? ? "Yes" : "No" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= item["id"] %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item["amount_cents"] ? Settlement.format_cents(item["amount_cents"]) : "—" %></td>
-                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item["settlement_amount_cents"] ? Settlement.format_cents(item["settlement_amount_cents"]) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_payment_id.presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.reversed? ? "Yes" : "No" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_chargeback_id %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= item.amount_cents ? Settlement.format_cents(item.amount_cents) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= item.settlement_amount_cents ? Settlement.format_cents(item.settlement_amount_cents) : "—" %></td>
               </tr>
             <% end %>
           </tbody>
@@ -242,6 +246,48 @@
   <% else %>
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
       <p class="text-neutral-700">No payments known here were paid out in this settlement.</p>
+    </div>
+  <% end %>
+
+  <% if @settlement.other_payments.any? %>
+    <h2 class="text-2xl font-bold mt-8 mb-4">Payments from other webshops</h2>
+    <p class="text-sm text-neutral-700 mb-4">
+      These payments were made on the same Mollie account by another webshop. They are not imported as payments here,
+      but are needed to account for the payout.
+    </p>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @settlement.other_payments.each do |payment| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= Settlement.parse_time(payment["created_at"])&.strftime("%-d %b %Y") || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= payment["amount_cents"] ? Settlement.format_cents(payment["amount_cents"]) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment["description"].presence || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment["method"].presence&.humanize || "—" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment["id"] %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment["status"].presence&.humanize || "—" %></td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="bg-neutral-50 text-sm">
+            <tr>
+              <td class="px-4 py-2 font-semibold">Total</td>
+              <td class="px-4 py-2 font-semibold" colspan="5"><%= Settlement.format_cents(@settlement.other_payments_total_cents) %></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   <% end %>
 </div>

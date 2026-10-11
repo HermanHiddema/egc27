@@ -65,6 +65,8 @@ class Payment < ApplicationRecord
   belongs_to :participant
   # The Mollie payout this payment was paid out in, once Mollie settled it.
   belongs_to :settlement, optional: true
+  has_many :refunds, dependent: :nullify
+  has_many :chargebacks, dependent: :nullify
 
   validates :status, inclusion: { in: STATUSES }
   validates :provider, inclusion: { in: PROVIDERS }

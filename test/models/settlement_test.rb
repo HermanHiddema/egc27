@@ -6,12 +6,11 @@ require "test_helper"
 #
 #  id                   :bigint           not null, primary key
 #  amount_cents         :integer          default(0), not null
-#  chargebacks          :jsonb            not null
 #  mollie_created_at    :datetime
+#  other_payments       :jsonb            not null
 #  payments_complete    :boolean          default(FALSE), not null
 #  periods              :jsonb            not null
 #  reference            :string
-#  refunds              :jsonb            not null
 #  settled_at           :datetime
 #  status               :string           not null
 #  created_at           :datetime         not null
@@ -115,13 +114,36 @@ class SettlementTest < ActiveSupport::TestCase
 
   test "totals the refunds and chargebacks deducted from the payout" do
     settlement = settlements(:paid_out)
-    settlement.update!(
-      refunds: [{ "id" => "re_1", "settlement_amount_cents" => -1_000 }, { "id" => "re_2", "settlement_amount_cents" => -500 }],
-      chargebacks: [{ "id" => "chb_1", "settlement_amount_cents" => -2_500 }]
-    )
+    settlement.refunds.create!(mollie_refund_id: "re_1", settlement_amount_cents: -1_000)
+    settlement.refunds.create!(mollie_refund_id: "re_2", settlement_amount_cents: -500)
+    settlement.chargebacks.create!(mollie_chargeback_id: "chb_1", settlement_amount_cents: -2_500)
 
     assert_equal(-1_500, settlement.refunds_total_cents)
     assert_equal(-2_500, settlement.chargebacks_total_cents)
+    assert_equal(-1_500, Settlement.includes(:refunds).find(settlement.id).refunds_total_cents)
+  end
+
+  test "includes payments from another webshop in the totals and deductions" do
+    settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: true, other_payments: [{ "id" => "tr_other1", "amount_cents" => 1_000 }])
+    payments(:paid_payment).update!(settlement: settlement)
+
+    assert_equal 5_000, settlement.payments_total_cents
+    assert_equal 1_000, settlement.other_payments_total_cents
+    assert_equal 6_000, settlement.all_payments_total_cents
+    assert_equal 2, settlement.all_payments_count
+    assert_equal 1_200, settlement.deductions_cents
+  end
+
+  test "removing a settlement removes its refunds and chargebacks" do
+    settlement = settlements(:paid_out)
+    settlement.refunds.create!(mollie_refund_id: "re_1")
+    settlement.chargebacks.create!(mollie_chargeback_id: "chb_1")
+
+    settlement.destroy!
+
+    assert_not Refund.exists?(mollie_refund_id: "re_1")
+    assert_not Chargeback.exists?(mollie_chargeback_id: "chb_1")
   end
 
   test "converts Mollie amounts to cents" do

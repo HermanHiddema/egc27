@@ -20,7 +20,8 @@
 
   <p class="text-sm text-neutral-700 mb-4">
     Mollie pays out the payments received in a period in a settlement, minus its fees. Refunds and chargebacks
-    in the same period are deducted as well. Only settlements created on or after the date of the first Mollie
+    in the same period are deducted as well. Payments made by another webshop on the same Mollie account are
+    included in the totals, but are not imported as payments. Only settlements created on or after the date of the first Mollie
     payment are synced; set the <code>MOLLIE_SETTLEMENT_BALANCE_ID</code> environment variable to only sync the
     settlements of a single balance.
   </p>
@@ -48,8 +49,8 @@
                   <%= link_to settlement.reference.presence || settlement.mollie_settlement_id, admin_settlement_path(settlement), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= settlement.status_label %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.payments.size %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= Settlement.format_cents(settlement.payments_total_cents) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.all_payments_count %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= Settlement.format_cents(settlement.all_payments_total_cents) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 text-right"><%= settlement.deductions_cents ? Settlement.format_cents(settlement.deductions_cents) : "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900 text-right"><%= settlement.amount_formatted %></td>
               </tr>

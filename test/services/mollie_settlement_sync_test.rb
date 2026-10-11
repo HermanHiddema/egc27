@@ -311,12 +311,68 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
 
     settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
     assert_equal periods, settlement.periods
-    assert_equal [{ "id" => "re_test1", "payment_id" => "tr_paid456", "description" => "Cancelled", "status" => "refunded",
-                    "amount_cents" => 1000, "settlement_amount_cents" => -1000, "created_at" => "2026-10-02T10:00:00+00:00" }],
-                 settlement.refunds
-    assert_equal [{ "id" => "chb_test1", "payment_id" => "tr_unknown", "amount_cents" => 2500, "settlement_amount_cents" => -2500,
-                    "created_at" => "2026-10-03T10:00:00+00:00", "reversed_at" => nil }],
-                 settlement.chargebacks
+    refund = settlement.refunds.sole
+    assert_equal "re_test1", refund.mollie_refund_id
+    assert_equal payments(:paid_payment), refund.payment
+    assert_equal "tr_paid456", refund.mollie_payment_id
+    assert_equal "Cancelled", refund.description
+    assert_equal "refunded", refund.status
+    assert_equal 1_000, refund.amount_cents
+    assert_equal(-1_000, refund.settlement_amount_cents)
+    assert_equal Time.utc(2026, 10, 2, 10), refund.mollie_created_at
+    chargeback = settlement.chargebacks.sole
+    assert_equal "chb_test1", chargeback.mollie_chargeback_id
+    assert_nil chargeback.payment
+    assert_equal "tr_unknown", chargeback.mollie_payment_id
+    assert_equal 2_500, chargeback.amount_cents
+    assert_equal(-2_500, chargeback.settlement_amount_cents)
+    assert_not chargeback.reversed?
+  end
+
+  test "updates and removes the refunds and chargebacks of a settlement on a resync" do
+    settlement = settlements(:paid_out)
+    settlement.refunds.create!(mollie_refund_id: "re_gone", settlement_amount_cents: -100)
+    Refund.create!(settlement: settlement, mollie_refund_id: "re_kept", settlement_amount_cents: -100)
+    settlement.chargebacks.create!(mollie_chargeback_id: "chb_gone")
+    remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" } }])
+    refunds = { settlement.mollie_settlement_id => refund_list([{ "id" => "re_kept", "payment_id" => "tr_paid456",
+                                                                    "settlement_amount" => { "value" => "-2.00", "currency" => "EUR" } }]) }
+
+    with_mollie_settlements(remote, { settlement.mollie_settlement_id => payment_list([]) }, [], [], refunds) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_equal %w[re_kept], settlement.refunds.pluck(:mollie_refund_id)
+    assert_equal(-200, settlement.refunds.sole.settlement_amount_cents)
+    assert_equal payments(:paid_payment), settlement.refunds.sole.payment
+    assert_empty settlement.chargebacks.reload
+  end
+
+  test "keeps the details of payments from another webshop without importing them" do
+    remote = settlement_list([{ "id" => "stl_new1", "status" => "paidout", "amount" => { "value" => "120.00", "currency" => "EUR" } }])
+    payments = Mollie::List.new({ "_embedded" => { "payments" => [
+      { "id" => "tr_paid456" },
+      { "id" => "tr_other1", "description" => "Webshop order 12", "method" => "ideal", "status" => "paid",
+        "amount" => { "value" => "75.00", "currency" => "EUR" }, "settlement_amount" => { "value" => "75.00", "currency" => "EUR" },
+        "created_at" => "2026-09-20T10:00:00+00:00" }
+    ] }, "_links" => {} }, Mollie::Settlement::Payment)
+
+    result = with_mollie_settlements(remote, { "stl_new1" => payments }) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
+    assert_not Payment.exists?(mollie_payment_id: "tr_other1")
+    other = settlement.other_payments.sole
+    assert_equal "tr_other1", other["id"]
+    assert_equal "Webshop order 12", other["description"]
+    assert_equal "ideal", other["method"]
+    assert_equal 7_500, other["amount_cents"]
+    assert_equal 7_500, other["settlement_amount_cents"]
+    assert settlement.payments_complete?
+    assert_equal 12_500, settlement.all_payments_total_cents
+    assert_equal 500, settlement.deductions_cents
+    assert_equal 1, result.payments_count
   end
 
   test "syncs a single settlement" do

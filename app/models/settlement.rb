@@ -4,12 +4,11 @@
 #
 #  id                   :bigint           not null, primary key
 #  amount_cents         :integer          default(0), not null
-#  chargebacks          :jsonb            not null
 #  mollie_created_at    :datetime
+#  other_payments       :jsonb            not null
 #  payments_complete    :boolean          default(FALSE), not null
 #  periods              :jsonb            not null
 #  reference            :string
-#  refunds              :jsonb            not null
 #  settled_at           :datetime
 #  status               :string           not null
 #  created_at           :datetime         not null
@@ -24,7 +23,11 @@
 # A payout by Mollie of the payments received in a period, minus the fees
 # Mollie charged (and any refunds or chargebacks). Settlements are synced from
 # the Mollie Settlements API by MollieSettlementSync, which also links the
-# payments that were paid out in each settlement.
+# payments that were paid out in each settlement and records the refunds and
+# chargebacks deducted from it. Older settlements can also contain payments
+# from another webshop on the same Mollie account; those are not imported as
+# payments, but the details needed to account for the payout are kept in
+# other_payments.
 class Settlement < ApplicationRecord
   STATUSES = %w[open pending paidout failed].freeze
   STATUS_LABELS = { "paidout" => "Paid out" }.freeze
@@ -47,6 +50,8 @@ class Settlement < ApplicationRecord
   end
 
   has_many :payments, dependent: :nullify
+  has_many :refunds, dependent: :destroy
+  has_many :chargebacks, dependent: :destroy
 
   validates :mollie_settlement_id, presence: true, uniqueness: true
   validates :status, inclusion: { in: STATUSES }
@@ -90,12 +95,27 @@ class Settlement < ApplicationRecord
     payments.loaded? ? payments.sum(&:amount_cents) : payments.sum(:amount_cents)
   end
 
-  # What Mollie kept from the payments in this settlement, when all its
-  # payments are known locally.
+  # The gross amount of the payments from another webshop that were paid out
+  # in this settlement.
+  def other_payments_total_cents
+    Array(other_payments).sum { |payment| payment["amount_cents"].to_i }
+  end
+
+  # The gross amount of all payments that were paid out in this settlement.
+  def all_payments_total_cents
+    payments_total_cents + other_payments_total_cents
+  end
+
+  def all_payments_count
+    payments.size + Array(other_payments).size
+  end
+
+  # What Mollie kept from the payments in this settlement (fees, refunds and
+  # chargebacks), when all its payments are accounted for.
   def deductions_cents
     return unless payments_complete?
 
-    payments_total_cents - amount_cents
+    all_payments_total_cents - amount_cents
   end
 
   # The revenue and costs per month that make up the payout, as reported by
@@ -119,11 +139,11 @@ class Settlement < ApplicationRecord
   end
 
   def refunds_total_cents
-    Array(refunds).sum { |refund| refund["settlement_amount_cents"].to_i }
+    refunds.loaded? ? refunds.sum { |refund| refund.settlement_amount_cents.to_i } : refunds.sum(:settlement_amount_cents)
   end
 
   def chargebacks_total_cents
-    Array(chargebacks).sum { |chargeback| chargeback["settlement_amount_cents"].to_i }
+    chargebacks.loaded? ? chargebacks.sum { |chargeback| chargeback.settlement_amount_cents.to_i } : chargebacks.sum(:settlement_amount_cents)
   end
 
   private

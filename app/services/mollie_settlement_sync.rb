@@ -1,7 +1,9 @@
 # Fetches the settlements (payouts) from the Mollie Settlements API and links
 # the payments that were paid out in each settlement, so admins can see which
 # payments make up each payout. It also stores how the payout was calculated:
-# the revenue and costs per period, and the refunds and chargebacks deducted.
+# the revenue and costs per period, the refunds and chargebacks deducted, and
+# the details of payments from another webshop on the same Mollie account
+# (which are not imported as payments).
 #
 # The Settlements API cannot be used with the regular Mollie API key; it needs
 # an organization access token with the settlements.read, payments.read and
@@ -96,13 +98,17 @@ class MollieSettlementSync
 
     payout_amount_cents = amount_cents(remote_settlement.amount, remote_settlement.id)
     settlement = Settlement.find_or_initialize_by(mollie_settlement_id: remote_settlement.id)
-    mollie_payment_ids = settlement_payment_ids(remote_settlement.id)
-    refunds = settlement_refunds(remote_settlement.id)
-    chargebacks = settlement_chargebacks(remote_settlement.id)
+    remote_payments = settlement_payments(remote_settlement.id)
+    mollie_payment_ids = remote_payments.pluck("id")
+    remote_refunds = settlement_refunds(remote_settlement.id)
+    remote_chargebacks = settlement_chargebacks(remote_settlement.id)
     periods = remote_settlement.attributes["periods"]
 
+    other_payments = []
+
     Settlement.transaction do
-      payments_complete = Payment.where(mollie_payment_id: mollie_payment_ids).count == mollie_payment_ids.size
+      known_ids = Payment.where(mollie_payment_id: mollie_payment_ids).pluck(:mollie_payment_id)
+      other_payments = remote_payments.reject { |payment| known_ids.include?(payment["id"]) }
       settlement.update!(
         reference: remote_settlement.reference,
         mollie_balance_id: remote_settlement.attributes["balance_id"].presence,
@@ -110,10 +116,9 @@ class MollieSettlementSync
         amount_cents: payout_amount_cents,
         settled_at: remote_settlement.settled_at,
         mollie_created_at: remote_settlement.created_at,
-        payments_complete: payments_complete,
+        payments_complete: other_payments.all? { |payment| payment["amount_cents"] },
         periods: periods.is_a?(Hash) ? periods : {},
-        refunds: refunds,
-        chargebacks: chargebacks
+        other_payments: other_payments
       )
 
       linked_payments = Payment.where(settlement_id: settlement.id)
@@ -126,14 +131,50 @@ class MollieSettlementSync
 
       Payment.where(mollie_payment_id: mollie_payment_ids)
         .update_all(settlement_id: settlement.id, updated_at: Time.current)
+
+      sync_deductions(settlement, Refund, :mollie_refund_id, remote_refunds)
+      sync_deductions(settlement, Chargeback, :mollie_chargeback_id, remote_chargebacks)
     end
+
+    mollie_payment_ids.size - other_payments.size
   end
 
-  def settlement_payment_ids(mollie_settlement_id)
-    ids = []
+  # Records the refunds or chargebacks deducted from a settlement, linked to
+  # our own payment when it is known here, and removes those that are no longer
+  # part of it.
+  def sync_deductions(settlement, model, id_column, remote_items)
+    local_payments = Payment.where(mollie_payment_id: remote_items.filter_map { |item| item[:mollie_payment_id] })
+      .index_by(&:mollie_payment_id)
+
+    remote_items.each do |item|
+      record = model.find_or_initialize_by(id_column => item[id_column])
+      record.update!(item.merge(settlement: settlement, payment: local_payments[item[:mollie_payment_id]]))
+    end
+
+    model.where(settlement: settlement).where.not(id_column => remote_items.pluck(id_column)).destroy_all
+  end
+
+  # The payments paid out in a settlement, with the details needed to account
+  # for the payout of payments that are not ours.
+  def settlement_payments(mollie_settlement_id)
+    payments = []
     list = Mollie::Settlement::Payment.all(settlement_id: mollie_settlement_id, limit: PAGE_SIZE, api_key: @token)
-    each_item(list) { |remote_payment| ids << remote_payment.id if remote_payment.id.present? }
-    ids
+    each_item(list) do |remote_payment|
+      next if remote_payment.id.blank?
+
+      payments << {
+        "id" => remote_payment.id,
+        "description" => remote_payment.attributes["description"],
+        "method" => remote_payment.attributes["method"],
+        "status" => remote_payment.attributes["status"],
+        "amount_cents" => Settlement.cents_from_amount(remote_payment.attributes["amount"]),
+        "settlement_amount_cents" => Settlement.cents_from_amount(remote_payment.attributes["settlement_amount"]),
+        "amount_refunded_cents" => Settlement.cents_from_amount(remote_payment.attributes["amount_refunded"]),
+        "amount_charged_back_cents" => Settlement.cents_from_amount(remote_payment.attributes["amount_charged_back"]),
+        "created_at" => remote_payment.attributes["created_at"]
+      }
+    end
+    payments
   end
 
   def settlement_refunds(mollie_settlement_id)
@@ -143,13 +184,13 @@ class MollieSettlementSync
       next if refund.id.blank?
 
       refunds << {
-        "id" => refund.id,
-        "payment_id" => refund.payment_id,
-        "description" => refund.description,
-        "status" => refund.status,
-        "amount_cents" => Settlement.cents_from_amount(refund.attributes["amount"]),
-        "settlement_amount_cents" => Settlement.cents_from_amount(refund.attributes["settlement_amount"]),
-        "created_at" => refund.attributes["created_at"]
+        mollie_refund_id: refund.id,
+        mollie_payment_id: refund.payment_id.presence,
+        description: refund.description,
+        status: refund.status,
+        amount_cents: Settlement.cents_from_amount(refund.attributes["amount"]),
+        settlement_amount_cents: Settlement.cents_from_amount(refund.attributes["settlement_amount"]),
+        mollie_created_at: Settlement.parse_time(refund.attributes["created_at"])
       }
     end
     refunds
@@ -162,12 +203,12 @@ class MollieSettlementSync
       next if chargeback.id.blank?
 
       chargebacks << {
-        "id" => chargeback.id,
-        "payment_id" => chargeback.payment_id,
-        "amount_cents" => Settlement.cents_from_amount(chargeback.attributes["amount"]),
-        "settlement_amount_cents" => Settlement.cents_from_amount(chargeback.attributes["settlement_amount"]),
-        "created_at" => chargeback.attributes["created_at"],
-        "reversed_at" => chargeback.attributes["reversed_at"]
+        mollie_chargeback_id: chargeback.id,
+        mollie_payment_id: chargeback.payment_id.presence,
+        amount_cents: Settlement.cents_from_amount(chargeback.attributes["amount"]),
+        settlement_amount_cents: Settlement.cents_from_amount(chargeback.attributes["settlement_amount"]),
+        mollie_created_at: Settlement.parse_time(chargeback.attributes["created_at"]),
+        reversed_at: Settlement.parse_time(chargeback.attributes["reversed_at"])
       }
     end
     chargebacks

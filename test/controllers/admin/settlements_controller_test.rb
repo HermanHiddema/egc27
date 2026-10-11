@@ -103,11 +103,15 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
                        "amount_gross" => { "value" => "0.70", "currency" => "EUR" } }],
         "invoice_id" => "inv_test1"
       } } },
-      refunds: [{ "id" => "re_test1", "payment_id" => payments(:paid_payment).mollie_payment_id, "description" => "Cancelled",
-                   "amount_cents" => 1_000, "settlement_amount_cents" => -1_000, "created_at" => "2026-10-02T10:00:00+00:00" }],
-      chargebacks: [{ "id" => "chb_test1", "payment_id" => "tr_unknown", "amount_cents" => 2_500,
-                       "settlement_amount_cents" => -2_500, "created_at" => "2026-10-03T10:00:00+00:00", "reversed_at" => nil }]
+      payments_complete: true,
+      other_payments: [{ "id" => "tr_other1", "description" => "Webshop order 12", "method" => "ideal", "status" => "paid",
+                         "amount_cents" => 7_500, "created_at" => "2026-09-20T10:00:00+00:00" }]
     )
+    settlements(:paid_out).refunds.create!(mollie_refund_id: "re_test1", payment: payments(:paid_payment),
+                                           mollie_payment_id: payments(:paid_payment).mollie_payment_id, description: "Cancelled",
+                                           amount_cents: 1_000, settlement_amount_cents: -1_000, mollie_created_at: Time.utc(2026, 10, 2, 10))
+    settlements(:paid_out).chargebacks.create!(mollie_chargeback_id: "chb_test1", mollie_payment_id: "tr_unknown", amount_cents: 2_500,
+                                               settlement_amount_cents: -2_500, mollie_created_at: Time.utc(2026, 10, 3, 10))
 
     get admin_settlement_path(settlements(:paid_out))
 
@@ -123,6 +127,11 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: /#{payments(:paid_payment).participant.first_name}/
     assert_select "td", text: "chb_test1"
     assert_select "td", text: "-€ 25.00"
+    assert_select "h2", text: "Payments from other webshops"
+    assert_select "td", text: "tr_other1"
+    assert_select "td", text: "Webshop order 12"
+    assert_select "dd", text: "€ 75.00"
+    assert_select "dd", text: "€ 27.00"
   end
 
   test "admin is told when a settlement has no breakdown yet" do

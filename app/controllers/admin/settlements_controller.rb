@@ -11,8 +11,8 @@ class Admin::SettlementsController < ApplicationController
     @settlement = Settlement.find(params[:id])
     @payments = @settlement.payments.includes(:participant).order(created_at: :desc, id: :desc)
     @configured = MollieSettlementSync.configured?
-    deducted_payment_ids = (@settlement.refunds + @settlement.chargebacks).filter_map { |item| item["payment_id"] }
-    @deducted_payments = Payment.where(mollie_payment_id: deducted_payment_ids).includes(:participant).index_by(&:mollie_payment_id)
+    @refunds = @settlement.refunds.includes(payment: :participant).order(:mollie_created_at, :id)
+    @chargebacks = @settlement.chargebacks.includes(payment: :participant).order(:mollie_created_at, :id)
   end
 
   def sync
