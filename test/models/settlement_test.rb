@@ -45,6 +45,20 @@ class SettlementTest < ActiveSupport::TestCase
     assert_equal 200, Settlement.includes(:payments).find(settlement.id).deductions_cents
   end
 
+  test "reports PayPal payments separately and does not count them as deductions" do
+    settlement = settlements(:paid_out)
+    settlement.update!(payments_complete: true)
+    payments(:paid_payment).update!(settlement: settlement)
+    payments(:open_payment).update!(settlement: settlement, status: "paid", payment_method: "paypal", amount_cents: 3_000)
+
+    assert_equal 8_000, settlement.payments_total_cents
+    assert_equal 3_000, settlement.paypal_total_cents
+    assert_equal 200, settlement.deductions_cents
+    loaded = Settlement.includes(:payments).find(settlement.id)
+    assert_equal 3_000, loaded.paypal_total_cents
+    assert_equal 200, loaded.deductions_cents
+  end
+
   test "does not calculate deductions when payments are incomplete" do
     settlement = settlements(:paid_out)
     settlement.update!(payments_complete: false)

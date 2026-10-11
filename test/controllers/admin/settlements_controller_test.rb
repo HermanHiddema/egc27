@@ -37,6 +37,28 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: "€ 48.00"
   end
 
+  test "admin sees the PayPal amount separately from the deductions" do
+    sign_in users(:admin)
+    settlements(:paid_out).update!(payments_complete: true)
+    payments(:paid_payment).update!(settlement: settlements(:paid_out))
+    payments(:open_payment).update!(settlement: settlements(:paid_out), status: "paid", payment_method: "paypal", amount_cents: 3_000)
+
+    get admin_settlements_path
+
+    assert_response :success
+    assert_select "th", text: "PayPal"
+    assert_select "td", text: "€ 80.00"
+    assert_select "td", text: "€ 30.00"
+    assert_select "td", text: "€ 2.00"
+    assert_select "td", text: "€ 48.00"
+
+    get admin_settlement_path(settlements(:paid_out))
+
+    assert_response :success
+    assert_select "dd", text: "€ 30.00"
+    assert_select "dd", text: "€ 2.00"
+  end
+
   test "admin sees deductions for a complete settlement with no linked payments in the list" do
     sign_in users(:admin)
     settlements(:paid_out).update!(payments_complete: true)

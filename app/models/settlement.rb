@@ -25,6 +25,7 @@
 class Settlement < ApplicationRecord
   STATUSES = %w[open pending paidout failed].freeze
   STATUS_LABELS = { "paidout" => "Paid out" }.freeze
+  PAYPAL_METHOD = "paypal"
 
   has_many :payments, dependent: :nullify
 
@@ -53,11 +54,23 @@ class Settlement < ApplicationRecord
     payments.loaded? ? payments.sum(&:amount_cents) : payments.sum(:amount_cents)
   end
 
+  # The gross amount of the PayPal payments in this settlement. Mollie never
+  # pays these out itself; PayPal pays them out directly, so they are not a
+  # deduction by Mollie.
+  def paypal_total_cents
+    if payments.loaded?
+      payments.select { |payment| payment.payment_method == PAYPAL_METHOD }.sum(&:amount_cents)
+    else
+      payments.where(payment_method: PAYPAL_METHOD).sum(:amount_cents)
+    end
+  end
+
   # What Mollie kept from the payments in this settlement, when all its
-  # payments are known locally.
+  # payments are known locally. PayPal payments are excluded, as those are
+  # paid out by PayPal rather than by Mollie.
   def deductions_cents
     return unless payments_complete?
 
-    payments_total_cents - amount_cents
+    payments_total_cents - paypal_total_cents - amount_cents
   end
 end
