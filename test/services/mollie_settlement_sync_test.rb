@@ -45,7 +45,7 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
       MollieSettlementSync.new(token: "access_test").call
     end
 
-    assert_equal %w[access_test access_test], tokens
+    assert_equal %w[access_test access_test access_test access_test], tokens
   end
 
   test "follows the pagination of Mollie lists" do
@@ -272,7 +272,148 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     assert_equal pending, payments(:paid_payment).reload.settlement
   end
 
+  test "stores the breakdown, refunds and chargebacks of a settlement" do
+    periods = {
+      "2026" => {
+        "10" => {
+          "revenue" => [
+            { "description" => "iDEAL", "method" => "ideal", "count" => 2,
+              "amount_net" => { "value" => "100.00", "currency" => "EUR" }, "amount_vat" => nil,
+              "amount_gross" => { "value" => "100.00", "currency" => "EUR" } },
+            { "description" => "Refunds iDEAL", "method" => "ideal", "count" => 1,
+              "amount_net" => { "value" => "-10.00", "currency" => "EUR" }, "amount_vat" => nil,
+              "amount_gross" => { "value" => "-10.00", "currency" => "EUR" } }
+          ],
+          "costs" => [
+            { "description" => "iDEAL", "method" => "ideal", "count" => 2,
+              "amount_net" => { "value" => "0.58", "currency" => "EUR" },
+              "amount_vat" => { "value" => "0.12", "currency" => "EUR" },
+              "amount_gross" => { "value" => "0.70", "currency" => "EUR" } }
+          ],
+          "invoice_id" => "inv_test1"
+        }
+      }
+    }
+    remote = settlement_list([{ "id" => "stl_new1", "status" => "paidout", "amount" => { "value" => "89.30", "currency" => "EUR" },
+                                "periods" => periods }])
+    refunds = { "stl_new1" => refund_list([{ "id" => "re_test1", "payment_id" => "tr_paid456", "description" => "Cancelled",
+                                              "status" => "refunded", "amount" => { "value" => "10.00", "currency" => "EUR" },
+                                              "settlement_amount" => { "value" => "-10.00", "currency" => "EUR" },
+                                              "created_at" => "2026-10-02T10:00:00+00:00" }]) }
+    chargebacks = { "stl_new1" => chargeback_list([{ "id" => "chb_test1", "payment_id" => "tr_unknown",
+                                                     "amount" => { "value" => "25.00", "currency" => "EUR" },
+                                                     "settlement_amount" => { "value" => "-25.00", "currency" => "EUR" },
+                                                     "created_at" => "2026-10-03T10:00:00+00:00" }]) }
+
+    with_mollie_settlements(remote, { "stl_new1" => payment_list([]) }, [], [], refunds, chargebacks) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
+    assert_equal periods, settlement.periods
+    refund = settlement.refunds.sole
+    assert_equal "re_test1", refund.mollie_refund_id
+    assert_equal payments(:paid_payment), refund.payment
+    assert_equal "tr_paid456", refund.mollie_payment_id
+    assert_equal "Cancelled", refund.description
+    assert_equal "refunded", refund.status
+    assert_equal 1_000, refund.amount_cents
+    assert_equal(-1_000, refund.settlement_amount_cents)
+    assert_equal Time.utc(2026, 10, 2, 10), refund.mollie_created_at
+    chargeback = settlement.chargebacks.sole
+    assert_equal "chb_test1", chargeback.mollie_chargeback_id
+    assert_nil chargeback.payment
+    assert_equal "tr_unknown", chargeback.mollie_payment_id
+    assert_equal 2_500, chargeback.amount_cents
+    assert_equal(-2_500, chargeback.settlement_amount_cents)
+    assert_not chargeback.reversed?
+  end
+
+  test "updates and removes the refunds and chargebacks of a settlement on a resync" do
+    settlement = settlements(:paid_out)
+    settlement.refunds.create!(mollie_refund_id: "re_gone", settlement_amount_cents: -100)
+    Refund.create!(settlement: settlement, mollie_refund_id: "re_kept", settlement_amount_cents: -100)
+    settlement.chargebacks.create!(mollie_chargeback_id: "chb_gone")
+    remote = settlement_list([{ "id" => settlement.mollie_settlement_id, "status" => "paidout", "amount" => { "value" => "48.00", "currency" => "EUR" } }])
+    refunds = { settlement.mollie_settlement_id => refund_list([{ "id" => "re_kept", "payment_id" => "tr_paid456",
+                                                                    "settlement_amount" => { "value" => "-2.00", "currency" => "EUR" } }]) }
+
+    with_mollie_settlements(remote, { settlement.mollie_settlement_id => payment_list([]) }, [], [], refunds) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    assert_equal %w[re_kept], settlement.refunds.pluck(:mollie_refund_id)
+    assert_equal(-200, settlement.refunds.sole.settlement_amount_cents)
+    assert_equal payments(:paid_payment), settlement.refunds.sole.payment
+    assert_empty settlement.chargebacks.reload
+  end
+
+  test "keeps the details of payments from another webshop without importing them" do
+    remote = settlement_list([{ "id" => "stl_new1", "status" => "paidout", "amount" => { "value" => "120.00", "currency" => "EUR" } }])
+    payments = Mollie::List.new({ "_embedded" => { "payments" => [
+      { "id" => "tr_paid456" },
+      { "id" => "tr_other1", "description" => "Webshop order 12", "method" => "ideal", "status" => "paid",
+        "amount" => { "value" => "75.00", "currency" => "EUR" }, "settlement_amount" => { "value" => "75.00", "currency" => "EUR" },
+        "created_at" => "2026-09-20T10:00:00+00:00" }
+    ] }, "_links" => {} }, Mollie::Settlement::Payment)
+
+    result = with_mollie_settlements(remote, { "stl_new1" => payments }) do
+      MollieSettlementSync.new(token: "access_test").call
+    end
+
+    settlement = Settlement.find_by!(mollie_settlement_id: "stl_new1")
+    assert_not Payment.exists?(mollie_payment_id: "tr_other1")
+    other = settlement.other_payments.sole
+    assert_equal "tr_other1", other["id"]
+    assert_equal "Webshop order 12", other["description"]
+    assert_equal "ideal", other["method"]
+    assert_equal 7_500, other["amount_cents"]
+    assert_equal 7_500, other["settlement_amount_cents"]
+    assert settlement.payments_complete?
+    assert_equal 12_500, settlement.all_payments_total_cents
+    assert_equal 500, settlement.deductions_cents
+    assert_equal 1, result.payments_count
+  end
+
+  test "syncs a single settlement" do
+    settlement = settlements(:paid_out)
+    requested = []
+    remote = Mollie::Settlement.new({ "id" => settlement.mollie_settlement_id, "status" => "paidout",
+                                      "amount" => { "value" => "48.00", "currency" => "EUR" },
+                                      "created_at" => "2026-10-01T10:00:00+00:00", "periods" => { "2026" => { "10" => { "revenue" => [], "costs" => [] } } } })
+    original_get = Mollie::Settlement.method(:get)
+    Mollie::Settlement.define_singleton_method(:get) do |id, options = {}|
+      requested << [id, options[:api_key]]
+      remote
+    end
+
+    linked = with_mollie_settlements(settlement_list([]), { settlement.mollie_settlement_id => payment_list(%w[tr_paid456]) }) do
+      MollieSettlementSync.new(token: "access_test").sync_one(settlement.mollie_settlement_id)
+    end
+
+    assert_equal [[settlement.mollie_settlement_id, "access_test"]], requested
+    assert_equal 1, linked
+    assert_equal settlement, payments(:paid_payment).reload.settlement
+    assert_equal({ "2026" => { "10" => { "revenue" => [], "costs" => [] } } }, settlement.reload.periods)
+  ensure
+    Mollie::Settlement.define_singleton_method(:get, &original_get)
+  end
+
+  test "syncing a single settlement requires an organization token" do
+    assert_raises(MollieSettlementSync::NotConfigured) do
+      MollieSettlementSync.new(token: nil).sync_one("stl_paidout1")
+    end
+  end
+
   private
+
+  def refund_list(items)
+    Mollie::List.new({ "_embedded" => { "refunds" => items }, "_links" => {} }, Mollie::Settlement::Refund)
+  end
+
+  def chargeback_list(items)
+    Mollie::List.new({ "_embedded" => { "chargebacks" => items }, "_links" => {} }, Mollie::Settlement::Chargeback)
+  end
 
   def settlement_list(items, links: {})
     items = items.map { |item| { "created_at" => "2026-10-01T10:00:00+00:00" }.merge(item) }
@@ -283,9 +424,13 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
     Mollie::List.new({ "_embedded" => { "payments" => ids.map { |id| { "id" => id } } }, "_links" => {} }, Mollie::Settlement::Payment)
   end
 
-  def with_mollie_settlements(settlement_list, payment_lists, tokens = [], settlement_options = [])
+  def with_mollie_settlements(settlement_list, payment_lists, tokens = [], settlement_options = [], refund_lists = {}, chargeback_lists = {})
     original_all = Mollie::Settlement.method(:all)
     original_payments_all = Mollie::Settlement::Payment.method(:all)
+    original_refunds_all = Mollie::Settlement::Refund.method(:all)
+    original_chargebacks_all = Mollie::Settlement::Chargeback.method(:all)
+    no_refunds = refund_list([])
+    no_chargebacks = chargeback_list([])
     Mollie::Settlement.define_singleton_method(:all) do |options = {}|
       settlement_options << options.except(:api_key)
       tokens << options[:api_key]
@@ -295,9 +440,19 @@ class MollieSettlementSyncTest < ActiveSupport::TestCase
       tokens << options[:api_key]
       payment_lists.fetch(options[:settlement_id])
     end
+    Mollie::Settlement::Refund.define_singleton_method(:all) do |options = {}|
+      tokens << options[:api_key]
+      refund_lists.fetch(options[:settlement_id]) { no_refunds }
+    end
+    Mollie::Settlement::Chargeback.define_singleton_method(:all) do |options = {}|
+      tokens << options[:api_key]
+      chargeback_lists.fetch(options[:settlement_id]) { no_chargebacks }
+    end
     yield
   ensure
     Mollie::Settlement.define_singleton_method(:all, &original_all)
     Mollie::Settlement::Payment.define_singleton_method(:all, &original_payments_all)
+    Mollie::Settlement::Refund.define_singleton_method(:all, &original_refunds_all)
+    Mollie::Settlement::Chargeback.define_singleton_method(:all, &original_chargebacks_all)
   end
 end

@@ -198,6 +198,9 @@ Rails.application.routes.draw do
       collection do
         post :sync
       end
+      member do
+        post :resync
+      end
     end
   end
 

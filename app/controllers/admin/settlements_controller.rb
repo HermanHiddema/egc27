@@ -10,6 +10,9 @@ class Admin::SettlementsController < ApplicationController
   def show
     @settlement = Settlement.find(params[:id])
     @payments = @settlement.payments.includes(:participant).order(created_at: :desc, id: :desc)
+    @configured = MollieSettlementSync.configured?
+    @refunds = @settlement.refunds.includes(payment: :participant).order(:mollie_created_at, :id)
+    @chargebacks = @settlement.chargebacks.includes(payment: :participant).order(:mollie_created_at, :id)
   end
 
   def sync
@@ -22,5 +25,21 @@ class Admin::SettlementsController < ApplicationController
   rescue Mollie::Exception => e
     Rails.logger.error("[Mollie] Error syncing settlements: #{e.message}")
     redirect_to admin_settlements_path, alert: "Settlements could not be synced with Mollie: #{e.message}"
+  end
+
+  def resync
+    settlement = Settlement.find(params[:id])
+    linked = MollieSettlementSync.new.sync_one(settlement.mollie_settlement_id)
+    if linked.nil?
+      redirect_to admin_settlement_path(settlement), alert: "Settlement could not be synced: Mollie reported an unknown status."
+    else
+      redirect_to admin_settlement_path(settlement),
+        notice: "Synced settlement with Mollie; #{helpers.pluralize(linked, "payment")} linked."
+    end
+  rescue MollieSettlementSync::NotConfigured => e
+    redirect_to admin_settlement_path(settlement), alert: e.message
+  rescue Mollie::Exception => e
+    Rails.logger.error("[Mollie] Error syncing settlement #{settlement.mollie_settlement_id}: #{e.message}")
+    redirect_to admin_settlement_path(settlement), alert: "Settlement could not be synced with Mollie: #{e.message}"
   end
 end

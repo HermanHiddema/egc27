@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_11_120001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -65,6 +65,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
     t.index ["ends_at"], name: "index_calendar_events_on_ends_at"
     t.index ["event_group_id"], name: "index_calendar_events_on_event_group_id"
     t.index ["starts_at"], name: "index_calendar_events_on_starts_at"
+  end
+
+  create_table "chargebacks", force: :cascade do |t|
+    t.bigint "settlement_id", null: false
+    t.bigint "payment_id"
+    t.string "mollie_chargeback_id", null: false
+    t.string "mollie_payment_id"
+    t.integer "amount_cents"
+    t.integer "settlement_amount_cents"
+    t.datetime "mollie_created_at"
+    t.datetime "reversed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_chargeback_id"], name: "index_chargebacks_on_mollie_chargeback_id", unique: true
+    t.index ["payment_id"], name: "index_chargebacks_on_payment_id"
+    t.index ["settlement_id"], name: "index_chargebacks_on_settlement_id"
   end
 
   create_table "event_groups", force: :cascade do |t|
@@ -226,6 +242,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
     t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
   end
 
+  create_table "refunds", force: :cascade do |t|
+    t.bigint "settlement_id", null: false
+    t.bigint "payment_id"
+    t.string "mollie_refund_id", null: false
+    t.string "mollie_payment_id"
+    t.string "description"
+    t.string "status"
+    t.integer "amount_cents"
+    t.integer "settlement_amount_cents"
+    t.datetime "mollie_created_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_refund_id"], name: "index_refunds_on_mollie_refund_id", unique: true
+    t.index ["payment_id"], name: "index_refunds_on_payment_id"
+    t.index ["settlement_id"], name: "index_refunds_on_settlement_id"
+  end
+
   create_table "settlements", force: :cascade do |t|
     t.string "mollie_settlement_id", null: false
     t.string "reference"
@@ -237,6 +270,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
     t.datetime "updated_at", null: false
     t.boolean "payments_complete", default: false, null: false
     t.string "mollie_balance_id"
+    t.jsonb "periods", default: {}, null: false
+    t.jsonb "other_payments", default: [], null: false
     t.index ["mollie_settlement_id"], name: "index_settlements_on_mollie_settlement_id", unique: true
   end
 
@@ -289,6 +324,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "articles", "users"
   add_foreign_key "calendar_events", "event_groups"
+  add_foreign_key "chargebacks", "payments", on_delete: :nullify
+  add_foreign_key "chargebacks", "settlements"
   add_foreign_key "event_registrations", "events"
   add_foreign_key "event_registrations", "participants"
   add_foreign_key "events", "users"
@@ -298,4 +335,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_10_224319) do
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
   add_foreign_key "payments", "settlements"
+  add_foreign_key "refunds", "payments", on_delete: :nullify
+  add_foreign_key "refunds", "settlements"
 end
