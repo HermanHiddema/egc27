@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_11_120001) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_11_220001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -173,6 +173,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_11_120001) do
     t.index ["slug"], name: "index_pages_on_slug", unique: true
   end
 
+  create_table "participant_discounts", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.string "age_group", null: false
+    t.decimal "discount_fraction", precision: 5, scale: 4, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id", "age_group"], name: "index_participant_discounts_on_product_id_and_age_group", unique: true
+    t.check_constraint "discount_fraction > 0::numeric AND discount_fraction <= 1::numeric", name: "participant_discounts_discount_fraction_range"
+  end
+
   create_table "participants", force: :cascade do |t|
     t.boolean "accepted_privacy_policy", default: false, null: false
     t.boolean "accepted_terms_and_conditions", default: false, null: false
@@ -240,6 +250,49 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_11_120001) do
     t.string "searchable_type", null: false
     t.datetime "updated_at", null: false
     t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
+  end
+
+  create_table "price_tiers", force: :cascade do |t|
+    t.bigint "product_id"
+    t.bigint "product_variant_id"
+    t.string "name", null: false
+    t.integer "price_cents", null: false
+    t.date "valid_until"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id", "valid_until"], name: "index_price_tiers_on_product_id_and_valid_until", unique: true
+    t.index ["product_id"], name: "index_price_tiers_on_product_id_final", unique: true, where: "(valid_until IS NULL)"
+    t.index ["product_variant_id", "valid_until"], name: "index_price_tiers_on_product_variant_id_and_valid_until", unique: true
+    t.index ["product_variant_id"], name: "index_price_tiers_on_product_variant_id_final", unique: true, where: "(valid_until IS NULL)"
+    t.check_constraint "num_nonnulls(product_id, product_variant_id) = 1", name: "price_tiers_exactly_one_owner"
+    t.check_constraint "price_cents > 0", name: "price_tiers_price_cents_positive"
+  end
+
+  create_table "product_variants", force: :cascade do |t|
+    t.bigint "product_id", null: false
+    t.string "code"
+    t.string "name", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "available", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["product_id", "code"], name: "index_product_variants_on_product_id_and_code", unique: true
+    t.index ["product_id"], name: "index_product_variants_on_product_id"
+  end
+
+  create_table "products", force: :cascade do |t|
+    t.string "code"
+    t.string "name", null: false
+    t.text "description"
+    t.string "category", null: false
+    t.string "vat_category", null: false
+    t.integer "position", default: 0, null: false
+    t.boolean "available", default: true, null: false
+    t.boolean "requires_participant", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_products_on_category"
+    t.index ["code"], name: "index_products_on_code", unique: true
   end
 
   create_table "refunds", force: :cascade do |t|
@@ -332,9 +385,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_11_120001) do
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
+  add_foreign_key "participant_discounts", "products"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
   add_foreign_key "payments", "settlements"
+  add_foreign_key "price_tiers", "product_variants"
+  add_foreign_key "price_tiers", "products"
+  add_foreign_key "product_variants", "products"
   add_foreign_key "refunds", "payments", on_delete: :nullify
   add_foreign_key "refunds", "settlements"
 end
