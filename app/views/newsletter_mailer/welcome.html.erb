@@ -1,0 +1,21 @@
+<p>Hello <%= @newsletter_subscription.first_name %>,</p>
+
+<p>
+  Thank you for subscribing to the European Go Congress 2027 newsletter. We are
+  glad to have you on board and will keep you updated with the latest news about
+  the congress.
+</p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>
+
+<hr>
+
+<p>
+  If you did not subscribe to this list, please use the link below to
+  unsubscribe:
+</p>
+
+<p><%= link_to "Unsubscribe", @unsubscribe_url %></p>
