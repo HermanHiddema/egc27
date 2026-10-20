@@ -28,17 +28,30 @@ class SponsorsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "Mastodon"
   end
 
-  test "sponsors overview alternates the logo side and renders attached logos" do
+  test "sponsors overview renders a responsive tile grid with logos consistently above content" do
     sponsors(:one).logo.attach(image_upload)
     sponsors(:two).logo.attach(image_upload)
 
     get sponsors_path
 
     assert_response :success
+    assert_select "div.grid.grid-cols-1.sm\\:grid-cols-2.lg\\:grid-cols-3.xl\\:grid-cols-4"
     assert_select "img[alt=?]", "#{sponsors(:one).name} logo"
     assert_select "img[alt=?]", "#{sponsors(:two).name} logo"
-    assert_select "div.sm\\:left-0"
-    assert_select "div.sm\\:right-0"
+    assert_select "article > div.h-40", count: 2
+  end
+
+  test "sponsor tile links to its website and social links stay independently clickable" do
+    sponsor = sponsors(:one)
+
+    get sponsors_path
+
+    assert_response :success
+    assert_select "article > a[href=?][aria-label=?]", sponsor.website, "Visit #{sponsor.name} website"
+    sponsor.social_media_links.each do |platform, url|
+      label = Sponsor::SOCIAL_MEDIA_PLATFORMS.fetch(platform.to_s)
+      assert_select "a[href=?][aria-label=?]", url, "#{sponsor.name} on #{label}"
+    end
   end
 
   test "sponsors overview hides admin controls from anonymous visitors" do
