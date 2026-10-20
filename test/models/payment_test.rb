@@ -364,6 +364,26 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal Date.new(2026, 9, 1), payment.reload.payment_date
   end
 
+  test "sets the payment date of a mollie payment that is charged back without being seen as paid" do
+    payment = payments(:open_payment)
+    payment.update_columns(created_at: Time.zone.local(2026, 9, 1, 10))
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: "50.00"), attributes: {}))
+
+    assert_equal "charged_back", payment.reload.status
+    assert_equal Date.new(2026, 9, 1), payment.payment_date
+  end
+
+  test "keeps the payment date of a paid mollie payment that is refunded later" do
+    payment = payments(:paid_payment)
+    payment.update_columns(payment_date: Date.new(2026, 8, 1))
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "50.00"), attributes: {}))
+
+    assert_equal "refunded", payment.reload.status
+    assert_equal Date.new(2026, 8, 1), payment.payment_date
+  end
+
   test "does not set the payment date of a mollie payment that is not paid" do
     payment = payments(:open_payment)
 

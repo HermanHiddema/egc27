@@ -3,7 +3,7 @@ class AddPaymentDateToPayments < ActiveRecord::Migration[8.1]
     add_column :payments, :payment_date, :date
 
     execute <<~SQL
-      UPDATE payments SET payment_date = created_at::date WHERE status IN ('paid', 'refunded')
+      UPDATE payments SET payment_date = created_at::date WHERE status IN ('paid', 'refunded', 'charged_back')
     SQL
   end
 

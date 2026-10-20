@@ -92,8 +92,9 @@ class Payment < ApplicationRecord
   scope :processed, -> { where(processed_in_bookkeeping: true) }
   scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
 
-  # Mollie payments get their payment date once they become paid.
-  before_save :set_mollie_payment_date, if: :becoming_paid_mollie_payment?
+  # Mollie payments get their payment date once they become paid. Refunded and
+  # charged-back payments were paid before, so they get one too.
+  before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -302,8 +303,8 @@ class Payment < ApplicationRecord
     (attributes["method"] || attributes[:method]).presence
   end
 
-  def becoming_paid_mollie_payment?
-    !manual? && will_save_change_to_status? && paid?
+  def needs_mollie_payment_date?
+    !manual? && payment_date.blank? && (paid? || REVERSED_STATUSES.include?(status))
   end
 
   def set_mollie_payment_date
