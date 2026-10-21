@@ -122,30 +122,96 @@ puts "✓ Seeded #{seeded_articles} news articles"
 
 sponsor_seeds = [
   {
-    name: "Nordic Tech Systems",
-    website: "https://www.nordictechsystems.example",
-    description: "Nordic Tech Systems supports live pairing displays and on-site connectivity for tournament operations.",
+    name: "Lenovo",
+    website: "https://www.lenovo.com",
+    description: "Lenovo supports live pairing displays and on-site connectivity for tournament operations.",
     social_media_links: {
-      linkedin: "https://www.linkedin.com/company/nordictechsystems",
-      x: "https://x.com/nordictechsys"
+      linkedin: "https://www.linkedin.com/company/lenovo",
+      x: "https://x.com/lenovo",
+      facebook: "https://www.facebook.com/lenovo",
+      instagram: "https://www.instagram.com/lenovo",
+      youtube: "https://www.youtube.com/user/lenovovision"
     }
   },
   {
-    name: "Harbor Bank",
-    website: "https://www.harborbank.example",
-    description: "Harbor Bank is the financial partner for participant services, helping fund youth activities and volunteer support.",
+    name: "Lloyds Bank",
+    website: "https://www.lloydsbank.com",
+    description: "Lloyds Bank is the financial partner for participant services, helping fund youth activities and volunteer support.",
     social_media_links: {
-      facebook: "https://www.facebook.com/harborbank",
-      instagram: "https://www.instagram.com/harborbank"
+      facebook: "https://www.facebook.com/LloydsBank",
+      instagram: "https://www.instagram.com/lloydsbank"
     }
   },
   {
-    name: "GreenRoute Travel",
-    website: "https://www.greenroute.example",
-    description: "GreenRoute Travel co-sponsors excursion logistics and sustainable transport options during congress week.",
+    name: "EarthDay.org",
+    website: "https://www.earthday.org",
+    description: "EarthDay.org co-sponsors excursion logistics and sustainable transport options during congress week.",
     social_media_links: {
-      instagram: "https://www.instagram.com/greenroute.travel",
-      youtube: "https://www.youtube.com/@greenroutetravel"
+      facebook: "https://www.facebook.com/EarthDayNetwork",
+      instagram: "https://www.instagram.com/earthdaynetwork",
+      x: "https://x.com/EarthDay",
+      linkedin: "https://www.linkedin.com/company/earthdaynetwork",
+      youtube: "https://www.youtube.com/user/earthdaynetwork"
+    }
+  },
+  {
+    name: "OpenAI",
+    website: "https://openai.com",
+    description: "OpenAI builds AI tools that help people solve problems and create new things.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/openai",
+      instagram: "https://www.instagram.com/openai",
+      x: "https://x.com/OpenAI",
+      linkedin: "https://www.linkedin.com/company/openai",
+      youtube: "https://www.youtube.com/@OpenAI"
+    }
+  },
+  {
+    name: "The British Museum",
+    website: "https://www.britishmuseum.org",
+    description: "The British Museum brings people together through a collection spanning world history and culture.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/britishmuseum",
+      instagram: "https://www.instagram.com/britishmuseum",
+      x: "https://x.com/britishmuseum",
+      linkedin: "https://www.linkedin.com/company/the-british-museum",
+      youtube: "https://www.youtube.com/user/britishmuseum"
+    }
+  },
+  {
+    name: "VisitScotland",
+    website: "https://www.visitscotland.com",
+    description: "VisitScotland shares the landscapes, culture, and experiences of Scotland with visitors from around the world.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/VisitScotland",
+      instagram: "https://www.instagram.com/visitscotland",
+      x: "https://x.com/VisitScotland",
+      linkedin: "https://www.linkedin.com/company/visitscotland",
+      youtube: "https://www.youtube.com/user/visitscotland"
+    }
+  },
+  {
+    name: "BBC",
+    website: "https://www.bbc.com",
+    description: "The BBC is a public service broadcaster providing news, learning, and entertainment.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/bbcnews",
+      instagram: "https://www.instagram.com/bbcnews",
+      x: "https://x.com/BBCNews",
+      linkedin: "https://www.linkedin.com/company/bbc",
+      youtube: "https://www.youtube.com/user/bbcnews"
+    }
+  },
+  {
+    name: "Wikipedia",
+    website: "https://www.wikipedia.org",
+    description: "Wikipedia is the free encyclopedia that anyone can edit, supported by the Wikimedia Foundation.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/wikipedia",
+      instagram: "https://www.instagram.com/wikipedia",
+      x: "https://x.com/Wikipedia",
+      linkedin: "https://www.linkedin.com/company/wikimedia-foundation",
+      youtube: "https://www.youtube.com/user/wikimediafoundation"
     }
   }
 ]
@@ -154,6 +220,8 @@ placeholder_logo_paths = Dir[Rails.root.join("app/assets/images/placeholders/*")
 
 seeded_sponsors = 0
 sponsor_seeds.each_with_index do |sponsor_seed, index|
+  next unless seed_updates_allowed
+
   sponsor = Sponsor.find_or_initialize_by(name: sponsor_seed[:name])
   should_save = sponsor.new_record? || seed_updates_allowed
   next unless should_save
