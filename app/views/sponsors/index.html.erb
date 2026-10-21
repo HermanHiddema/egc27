@@ -11,7 +11,7 @@
 
   <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
     <% @sponsors.each do |sponsor| %>
-      <article class="group relative flex min-h-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+      <article class="group relative flex min-h-80 flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-within:ring-4 focus-within:ring-brand-blue-500">
         <% if sponsor.website.present? %>
           <%= link_to sponsor.website, target: "_blank", rel: "noopener noreferrer", class: "absolute inset-0 z-0 rounded-xl focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-blue-500", aria: { label: "Visit #{sponsor.name} website" } do %>
             <span class="sr-only">Visit #{sponsor.name}</span>

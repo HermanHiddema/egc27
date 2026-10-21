@@ -220,6 +220,8 @@ placeholder_logo_paths = Dir[Rails.root.join("app/assets/images/placeholders/*")
 
 seeded_sponsors = 0
 sponsor_seeds.each_with_index do |sponsor_seed, index|
+  next unless seed_updates_allowed
+
   sponsor = Sponsor.find_or_initialize_by(name: sponsor_seed[:name])
   should_save = sponsor.new_record? || seed_updates_allowed
   next unless should_save
