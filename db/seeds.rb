@@ -56,6 +56,8 @@ if File.exist?(static_pages_path)
   end
 end
 
+Page.find_by(slug: "sponsors")&.destroy! if seed_updates_allowed
+
 puts "✓ Seeded #{seeded_pages} static content pages"
 
 legal_pages = [
@@ -502,7 +504,7 @@ who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", pos
   )
 end
 
-create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, page_slug: "sponsors")
+create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, url: "/sponsors")
 create_menu_item.call(menu: header_menu, label: "Venue", position: 10, page_slug: "venue")
 
 sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 11, url: "#")
