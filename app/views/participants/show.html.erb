@@ -1,49 +1,41 @@
 <div class="container-wide py-12">
   <div class="max-w-4xl mx-auto">
-    <div class="flex justify-between items-center mb-8">
-      <h1 class="text-4xl font-bold"><%= @participant.confirmed? ? "Registration Confirmed" : "Registration Received" %></h1>
+    <div class="flex justify-between items-center mb-8 gap-4">
+      <h1 class="text-4xl font-bold"><%= @personal_details_visible ? "Participant Details" : (@participant.confirmed? ? "Registration Confirmed" : "Registration Received") %></h1>
+      <% if @personal_details_visible %>
+        <div class="flex gap-3">
+          <% if @has_multiple_participants %>
+            <%= link_to "Back to participants", mine_participants_path, class: "btn-primary" %>
+          <% end %>
+          <%= link_to "Edit", edit_participant_path(@participant), class: "btn-primary" %>
+        </div>
+      <% end %>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm space-y-6">
-      <div>
-        <h2 class="text-lg font-semibold text-neutral-900 mb-4">Registration Details</h2>
-        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <div>
-            <dt class="font-medium text-neutral-700">Participant number</dt>
-            <dd class="text-neutral-900"><%= @participant.participant_number %></dd>
-          </div>
-          <div>
-            <dt class="font-medium text-neutral-700">Name</dt>
-            <dd class="text-neutral-900"><%= "#{@participant.first_name} #{@participant.last_name}" %></dd>
-          </div>
-          <div>
-            <dt class="font-medium text-neutral-700">Country</dt>
-            <dd class="text-neutral-900"><%= country_with_flag(@participant.country) %></dd>
-          </div>
-          <% if @participant.club.present? %>
-            <div>
-              <dt class="font-medium text-neutral-700">Club</dt>
-              <dd class="text-neutral-900"><%= @participant.club %></dd>
-            </div>
-          <% end %>
-          <% if @participant.rank_grade.present? %>
-            <div>
-              <dt class="font-medium text-neutral-700">Rank</dt>
-              <dd class="text-neutral-900"><%= @participant.rank_grade %></dd>
-            </div>
-          <% end %>
-          <% if @participant.rating.present? %>
-            <div>
-              <dt class="font-medium text-neutral-700">Rating</dt>
-              <dd class="text-neutral-900"><%= @participant.rating %></dd>
-            </div>
-          <% end %>
-          <div>
-            <dt class="font-medium text-neutral-700">Attendance</dt>
-            <dd class="text-neutral-900"><%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %></dd>
-          </div>
-        </dl>
-      </div>
+      <% if @personal_details_visible %>
+        <div>
+          <h2 class="text-lg font-semibold text-neutral-900 mb-4">Personal Details</h2>
+          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div><dt class="font-medium text-neutral-700">Participant number</dt><dd class="text-neutral-900"><%= @participant.participant_number %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Display name</dt><dd class="text-neutral-900"><%= @participant.user.display_name %></dd></div>
+            <div><dt class="font-medium text-neutral-700">First name</dt><dd class="text-neutral-900"><%= @participant.first_name %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Last name</dt><dd class="text-neutral-900"><%= @participant.last_name %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Email</dt><dd class="text-neutral-900"><%= @participant.email %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Country</dt><dd class="text-neutral-900"><%= country_with_flag(@participant.country) %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Gender</dt><dd class="text-neutral-900"><%= @participant.gender.humanize %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Age group</dt><dd class="text-neutral-900"><%= @participant.age_group %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Club</dt><dd class="text-neutral-900"><%= @participant.club.presence || "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Participant type</dt><dd class="text-neutral-900"><%= @participant.participant_type.humanize %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Phone</dt><dd class="text-neutral-900"><%= @participant.phone.presence || "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">EGD PIN</dt><dd class="text-neutral-900"><%= @participant.egd_pin.presence || "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Rank</dt><dd class="text-neutral-900"><%= @participant.rank_grade.presence || "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Rating</dt><dd class="text-neutral-900"><%= @participant.rating.presence || "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Attendance</dt><dd class="text-neutral-900"><%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Photo consent</dt><dd class="text-neutral-900"><%= @participant.image_use_consent? ? "Yes" : "No" %></dd></div>
+          </dl>
+        </div>
+      <% end %>
 
       <% if !@participant.confirmed? %>
         <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -63,25 +55,17 @@
         </div>
       <% elsif @participant.visitor? %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p class="text-green-800 text-sm">
-            <strong>Your registration is confirmed.</strong> No payment is required for visitor registrations.
-          </p>
+          <p class="text-green-800 text-sm"><strong>Your registration is confirmed.</strong> No payment is required for visitor registrations.</p>
         </div>
       <% elsif @participant.paid? %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p class="text-green-800 text-sm">
-            <strong>Your registration is confirmed and paid.</strong> Thank you! No further action is required.
-          </p>
+          <p class="text-green-800 text-sm"><strong>Your registration is confirmed and paid.</strong> Thank you! No further action is required.</p>
         </div>
       <% else %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-          <p class="text-green-800 text-sm">
-            <strong>Your registration is confirmed.</strong>
-          </p>
+          <p class="text-green-800 text-sm"><strong>Your registration is confirmed.</strong></p>
         </div>
-        <div>
-          <%= link_to "Proceed to Payment", new_participant_payment_path(@participant), class: "btn-primary" %>
-        </div>
+        <div><%= link_to "Proceed to Payment", new_participant_payment_path(@participant), class: "btn-primary" %></div>
       <% end %>
     </div>
   </div>
