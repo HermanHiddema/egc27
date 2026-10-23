@@ -56,6 +56,8 @@ if File.exist?(static_pages_path)
   end
 end
 
+Page.find_by(slug: "sponsors")&.destroy! if seed_updates_allowed
+
 puts "✓ Seeded #{seeded_pages} static content pages"
 
 legal_pages = [
@@ -119,6 +121,127 @@ article_seeds.each do |article_seed|
 end
 
 puts "✓ Seeded #{seeded_articles} news articles"
+
+if seed_updates_allowed && user
+  newsletter_title = "Newsletter: A Week of Go in Scotland"
+  newsletter_images = [
+    ["EGC2027-goborddraakje2.jpg", "Go board and congress mascot", "Players gather around the board before the first round.", "right"],
+    ["EGC2027-liggenddraakje.jpg", "European Go Congress mascot", "The congress mascot welcomes players from across Europe.", "left"],
+    ["EGC2027-schilddraak-zondertekst.png", "Congress dragon emblem", "A keepsake emblem for a memorable summer of Go.", "right"]
+  ]
+  newsletter_figures = newsletter_images.map do |filename, alt_text, caption, float_side|
+    image_path = Rails.root.join("app/assets/images/placeholders", filename)
+    blob_key = "seed-newsletter/#{filename}"
+    blob = ActiveStorage::Blob.find_by(key: blob_key)
+    unless blob
+      File.open(image_path) do |image_file|
+        blob = ActiveStorage::Blob.create_and_upload!(
+          key: blob_key,
+          io: image_file,
+          filename: filename,
+          content_type: Marcel::MimeType.for(Pathname.new(image_path))
+        )
+      end
+    end
+    image_src = Rails.application.routes.url_helpers.rails_blob_path(blob, only_path: true)
+
+    <<~HTML.strip
+      <figure style="float: #{float_side}; width: 50%; margin: 0 1.5rem 1rem #{float_side == 'left' ? '0' : '1.5rem'};">
+        <img src="#{image_src}" alt="#{ERB::Util.html_escape(alt_text)}" style="width: 100%; height: auto;">
+        <figcaption style="text-align: center;">#{ERB::Util.html_escape(caption)}</figcaption>
+      </figure>
+    HTML
+  end
+  newsletter_content = <<~HTML
+    <p>Scotland will welcome Go players from across Europe and beyond for a summer of competition, study, and new friendships. The European Go Congress brings together people of every age and playing strength, from first-time tournament players to professionals and long-time champions.</p>
+    #{newsletter_figures[0]}
+    <p>Each day offers a full program of games, with the main tournaments at its heart. Players can test their reading and strategy over the board, then review key positions with fellow competitors after the round. Side tournaments offer a change of pace, whether you prefer a quick game, a team event, or a different board size.</p>
+    <p>Between rounds, take time to enjoy the setting. Scotland is known for its dramatic landscapes, historic towns, and warm welcome. The congress is a chance to share that experience with visitors and local players alike, and to discover what makes the Go community so welcoming wherever it meets.</p>
+    #{newsletter_figures[1]}
+    <p>The professional program adds another perspective to the week. Game reviews, lectures, and simultaneous games give participants the chance to learn directly from strong players, ask questions, and see familiar positions in a new light. Sessions are suitable for curious beginners as well as experienced players looking to deepen their understanding.</p>
+    #{newsletter_figures[2]}
+    <p>There is plenty to enjoy away from the boards too. Meet old friends over a meal, make plans for an excursion, or simply continue a conversation that began during a game. These informal moments are part of the congress tradition and often become some of the most memorable parts of the week.</p>
+    <p>We look forward to welcoming you to Scotland. Keep an eye on the schedule and news pages for program updates, and start planning the games, events, and conversations you most want to be part of.</p>
+  HTML
+  newsletter = Article.find_or_initialize_by(title: newsletter_title)
+  newsletter.update!(user: user, content_html: newsletter_content)
+end
+
+participant_seeds = [
+  { first_name: "Alex", last_name: "Morgan", email: "alex.morgan@example.com", country: "GB", club: "Edinburgh Go Club", rank: "3 dan", gender: "prefer_not_to_say", age_group: "18-49", participant_type: "player" },
+  { first_name: "Sofia", last_name: "van Dijk", email: "sofia.vandijk@example.com", country: "NL", club: "Amsterdam Go Club", rank: "2 kyu", gender: "female", age_group: "18-49", participant_type: "player" },
+  { first_name: "Min-jun", last_name: "Kim", email: "minjun.kim@example.com", country: "KR", club: "Seoul Baduk Club", rank: "5 dan", gender: "male", age_group: "18-49", participant_type: "player" },
+  { first_name: "Jamie", last_name: "Taylor", email: "jamie.taylor@example.com", country: "IE", club: "Dublin Go Club", gender: "non_binary", age_group: "12-17", participant_type: "visitor" }
+]
+
+additional_participant_names = %w[Avery Bailey Charlie Dakota Elliott Finley Harper Jordan Morgan Quinn Riley Sasha Taylor]
+additional_participant_surnames = %w[Anderson Brown Chen Dubois Eriksson Fischer Garcia Hassan Ivanov Jensen Kowalski Laurent Müller Novak O'Connor Patel Rossi Suzuki]
+additional_participant_countries = %w[GB NL KR IE DE FR BE DK SE NO FI IT ES PL CZ UA JP US CA AU]
+additional_participant_clubs = [
+  "Edinburgh Go Club", "Amsterdam Go Club", "Seoul Baduk Club", "Dublin Go Club", "Berlin Go Club",
+  "Paris Go Club", "Brussels Go Club", "Copenhagen Go Club", "Stockholm Go Club", "Helsinki Go Club",
+  "Rome Go Club", "Madrid Go Club", "Warsaw Go Club", "Prague Go Club", "Kyiv Go Club"
+]
+additional_participant_ranks = ["30 kyu", "20 kyu", "10 kyu", "5 kyu", "1 kyu", "1 dan", "3 dan", "5 dan", "7 dan"]
+additional_participant_genders = Participant::GENDERS
+additional_participant_age_groups = Participant::AGE_GROUPS
+additional_participant_attendance_options = Participant::ATTENDANCE_OPTIONS.keys
+
+48.times do |index|
+  number = index + 1
+  first_name = additional_participant_names[index % additional_participant_names.length]
+  last_name = additional_participant_surnames[index % additional_participant_surnames.length]
+  participant_seeds << {
+    first_name: first_name,
+    last_name: "#{last_name}#{number}",
+    email: "seed.participant.#{number}@example.com",
+    country: additional_participant_countries[index % additional_participant_countries.length],
+    club: additional_participant_clubs[index % additional_participant_clubs.length],
+    rank: additional_participant_ranks[index % additional_participant_ranks.length],
+    gender: additional_participant_genders[index % additional_participant_genders.length],
+    age_group: additional_participant_age_groups[index % additional_participant_age_groups.length],
+    participant_type: (index.to_i % 4).zero? ? "visitor" : "player",
+    attendance_option: additional_participant_attendance_options[index % additional_participant_attendance_options.length],
+    phone: "+44#{format('%010d', number)}".then { |phone| (index % 3).zero? ? nil : phone },
+    egd_pin: (index % 5).zero? ? nil : format("%08d", 1_000_000 + number)
+  }
+end
+
+if seed_updates_allowed
+  participant_seeds.each do |participant_seed|
+    participant_user = User.find_or_initialize_by(email: participant_seed[:email])
+    if participant_user.new_record?
+      participant_user.assign_attributes(
+        password: "testpassword123",
+        password_confirmation: "testpassword123",
+        full_name: "#{participant_seed[:first_name]} #{participant_seed[:last_name]}",
+        role: "regular",
+        confirmed_at: Time.current
+      )
+      participant_user.save!
+    end
+
+    participant = Participant.find_or_initialize_by(email: participant_seed[:email])
+    participant_attributes = participant_seed.except(:attendance_option)
+    participant.assign_attributes(
+      participant_attributes.merge(
+        user: participant_user,
+        confirmed_at: Time.current,
+        image_use_consent: false
+      )
+    )
+    participant.attendance_option = participant_seed[:attendance_option] if participant_seed[:attendance_option].present?
+    participant.save!
+  end
+
+  puts "✓ Seeded #{participant_seeds.size} participants"
+
+  notice = Notice.find_or_initialize_by(title: "Welcome to the European Go Congress")
+  notice.update!(
+    body: "Explore the schedule, meet fellow participants, and check back for the latest congress news.",
+    active: true
+  )
+end
 
 sponsor_seeds = [
   {
@@ -381,7 +504,7 @@ who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", pos
   )
 end
 
-create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, page_slug: "sponsors")
+create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, url: "/sponsors")
 create_menu_item.call(menu: header_menu, label: "Venue", position: 10, page_slug: "venue")
 
 sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 11, url: "#")
