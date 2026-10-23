@@ -163,7 +163,7 @@ class ParticipantsController < ApplicationController
   end
 
   def participant_profile_params
-    params.require(:participant).permit(:gender, :country, :club)
+    params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
   end
 
   # True when a signed-in (already confirmed) user is registering a participant

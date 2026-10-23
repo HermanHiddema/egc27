@@ -23,7 +23,7 @@
             <div><dt class="font-medium text-neutral-700">Last name</dt><dd class="text-neutral-900"><%= @participant.last_name %></dd></div>
             <div><dt class="font-medium text-neutral-700">Email</dt><dd class="text-neutral-900"><%= @participant.email %></dd></div>
             <div><dt class="font-medium text-neutral-700">Country</dt><dd class="text-neutral-900"><%= country_with_flag(@participant.country) %></dd></div>
-            <div><dt class="font-medium text-neutral-700">Gender</dt><dd class="text-neutral-900"><%= @participant.gender.humanize %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Gender</dt><dd class="text-neutral-900"><%= @participant.gender.present? ? @participant.gender.humanize : "—" %></dd></div>
             <div><dt class="font-medium text-neutral-700">Age group</dt><dd class="text-neutral-900"><%= @participant.age_group %></dd></div>
             <div><dt class="font-medium text-neutral-700">Club</dt><dd class="text-neutral-900"><%= @participant.club.presence || "—" %></dd></div>
             <div><dt class="font-medium text-neutral-700">Participant type</dt><dd class="text-neutral-900"><%= @participant.participant_type.humanize %></dd></div>
@@ -32,7 +32,7 @@
             <div><dt class="font-medium text-neutral-700">Rank</dt><dd class="text-neutral-900"><%= @participant.rank_grade.presence || "—" %></dd></div>
             <div><dt class="font-medium text-neutral-700">Rating</dt><dd class="text-neutral-900"><%= @participant.rating.presence || "—" %></dd></div>
             <div><dt class="font-medium text-neutral-700">Attendance</dt><dd class="text-neutral-900"><%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %></dd></div>
-            <div><dt class="font-medium text-neutral-700">Photo consent</dt><dd class="text-neutral-900"><%= @participant.image_use_consent? ? "Yes" : "No" %></dd></div>
+            <div><dt class="font-medium text-neutral-700">Photo consent</dt><dd class="text-neutral-900"><%= @participant.image_use_consent.nil? ? "—" : (@participant.image_use_consent? ? "Yes" : "No") %></dd></div>
           </dl>
         </div>
       <% end %>

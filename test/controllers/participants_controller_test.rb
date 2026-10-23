@@ -114,6 +114,20 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{mine_participants_path}'].btn-primary", text: "Back to participants"
   end
 
+  test "show handles a legacy participant with no gender" do
+    participant = participants(:one)
+    participant.update_column(:gender, nil)
+    sign_in participant.user
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_select "dt", text: "Gender" do |labels|
+      assert_equal "—", labels.first.next_element.text.strip
+    end
+    assert_select "a[href='#{edit_participant_path(participant)}']", text: "Edit"
+  end
+
   test "show omits back to participants button for a user with one participant" do
     participant = participants(:two)
     sign_in participant.user
@@ -152,6 +166,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='participant[gender]']"
     assert_select "input[name='participant[country]'][type='hidden']"
     assert_select "input[name='participant[club]']"
+    assert_select "input[name='participant[image_use_consent]'][type='radio']", count: 2
     assert_select "input[name^='user[']", count: 0
     assert_select "input[type='password']", count: 0
     assert_select "select[name='participant[age_group]']", count: 0
@@ -160,7 +175,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     patch participant_path(participant), params: {
       user: { full_name: "Tampered Name", email: "tampered@example.com", password: "newpassword123" },
-      participant: { country: "DE", gender: "female", age_group: "50+", club: "Berlin", first_name: "Tampered" }
+      participant: { country: "DE", gender: "female", age_group: "50+", club: "Berlin", first_name: "Tampered", image_use_consent: "false" }
     }
 
     assert_redirected_to participant_path(participant)
@@ -172,6 +187,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Alice", participant.first_name
     assert_equal "female", participant.gender
     assert_equal "Berlin", participant.club
+    assert_not participant.image_use_consent?
   end
 
   test "show does not resolve a participant by sequential id" do
