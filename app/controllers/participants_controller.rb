@@ -3,7 +3,8 @@ class ParticipantsController < ApplicationController
 
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration, :confirm, :resend_confirmation]
   before_action :build_participant, only: [:create]
-  before_action :set_participant, only: [:show, :resend_confirmation]
+  before_action :set_participant, only: [:show, :edit, :update, :resend_confirmation]
+  before_action :require_participant_owner!, only: [:edit, :update]
   before_action :verify_turnstile, only: [:create, :resend_confirmation]
   before_action :refuse_registration_for_existing_account, only: [:create]
 
@@ -34,6 +35,24 @@ class ParticipantsController < ApplicationController
   end
 
   def show
+    if user_signed_in? && @participant.user_id != current_user.id
+      head :not_found
+      return
+    end
+
+    @personal_details_visible = user_signed_in? && @participant.user_id == current_user.id
+    @has_multiple_participants = @personal_details_visible && current_user.participants.count > 1
+  end
+
+  def edit
+  end
+
+  def update
+    if @participant.update(participant_profile_params)
+      redirect_to participant_path(@participant), notice: "Participant details updated."
+    else
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   # Resends the participant confirmation email for this registration, identified
@@ -138,6 +157,14 @@ class ParticipantsController < ApplicationController
   end
 
   private
+
+  def require_participant_owner!
+    head :not_found unless @participant.user_id == current_user.id
+  end
+
+  def participant_profile_params
+    params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
+  end
 
   # True when a signed-in (already confirmed) user is registering a participant
   # under their own account. The registration email is pre-filled and locked to

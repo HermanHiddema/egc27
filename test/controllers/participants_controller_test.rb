@@ -100,12 +100,94 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "show looks up the participant by uuid" do
     participant = participants(:one)
+    sign_in participant.user
 
     get participant_path(participant)
 
     assert_response :success
     assert_equal participant.uuid, participant.to_param
-    assert_match "Alice Smith", response.body
+    assert_match "Alice", response.body
+    assert_match participant.email, response.body
+    assert_match "Gender", response.body
+    assert_match "Age group", response.body
+    assert_select "a[href='#{edit_participant_path(participant)}']", text: "Edit"
+    assert_select "a[href='#{mine_participants_path}'].btn-primary", text: "Back to participants"
+  end
+
+  test "show handles a legacy participant with no gender" do
+    participant = participants(:one)
+    participant.update_column(:gender, nil)
+    sign_in participant.user
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_select "dt", text: "Gender" do |labels|
+      assert_equal "—", labels.first.next_element.text.strip
+    end
+    assert_select "a[href='#{edit_participant_path(participant)}']", text: "Edit"
+  end
+
+  test "show omits back to participants button for a user with one participant" do
+    participant = participants(:two)
+    sign_in participant.user
+
+    get participant_path(participant)
+
+    assert_response :success
+    assert_select "a[href='#{mine_participants_path}']", count: 0
+  end
+
+  test "show does not expose personal details to another signed in user" do
+    sign_in users(:two)
+
+    get participant_path(participants(:one))
+
+    assert_response :not_found
+    assert_no_match "Alice Smith", response.body
+  end
+
+  test "edit requires authentication and participant ownership" do
+    get edit_participant_path(participants(:one))
+    assert_redirected_to new_user_session_path
+
+    sign_in users(:two)
+    get edit_participant_path(participants(:one))
+    assert_response :not_found
+  end
+
+  test "owner can edit only gender country and club" do
+    participant = participants(:one)
+    sign_in participant.user
+
+    get edit_participant_path(participant)
+
+    assert_response :success
+    assert_select "select[name='participant[gender]']"
+    assert_select "input[name='participant[country]'][type='hidden']"
+    assert_select "input[name='participant[club]']"
+    assert_select "input[name='participant[image_use_consent]'][type='radio']", count: 2
+    assert_select "input[name^='user[']", count: 0
+    assert_select "input[type='password']", count: 0
+    assert_select "select[name='participant[age_group]']", count: 0
+    assert_select "input[name='participant[first_name]']", count: 0
+    assert_select "input[name='participant[rank]']", count: 0
+
+    patch participant_path(participant), params: {
+      user: { full_name: "Tampered Name", email: "tampered@example.com", password: "newpassword123" },
+      participant: { country: "DE", gender: "female", age_group: "50+", club: "Berlin", first_name: "Tampered", image_use_consent: "false" }
+    }
+
+    assert_redirected_to participant_path(participant)
+    assert_nil participant.user.reload.full_name
+    assert_equal "test@example.com", participant.user.email
+    assert_not participant.user.valid_password?("newpassword123")
+    assert_equal "DE", participant.reload.country
+    assert_equal "18-49", participant.age_group
+    assert_equal "Alice", participant.first_name
+    assert_equal "female", participant.gender
+    assert_equal "Berlin", participant.club
+    assert_not participant.image_use_consent?
   end
 
   test "show does not resolve a participant by sequential id" do
@@ -141,6 +223,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "show uses normalized attendance labels" do
     participant = participants(:two)
+    sign_in participant.user
 
     get participant_path(participant)
 

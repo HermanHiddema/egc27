@@ -144,7 +144,7 @@ Rails.application.routes.draw do
   end
   resources :event_groups, except: [:show]
   resources :pages, param: :slug
-  resources :participants, only: [:index, :new, :create, :show] do
+  resources :participants, only: [:index, :new, :create, :show, :edit, :update] do
     collection do
       get :egd_search
       get :egd_registered
