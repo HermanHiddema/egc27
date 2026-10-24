@@ -38,7 +38,7 @@
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @payments.each do |payment| %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.created_at.strftime("%-d %b %Y") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
                   <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>

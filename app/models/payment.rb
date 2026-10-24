@@ -6,6 +6,7 @@
 #  amount_cents             :integer          not null
 #  confirmation_sent        :boolean          default(FALSE), not null
 #  description              :string           not null
+#  payment_date             :date
 #  payment_method           :string
 #  processed_in_bookkeeping :boolean          default(FALSE), not null
 #  provider                 :string           default("mollie"), not null
@@ -75,6 +76,7 @@ class Payment < ApplicationRecord
   validates :description, presence: true
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
+  validates :payment_date, presence: true, if: :manual?
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
@@ -89,6 +91,10 @@ class Payment < ApplicationRecord
   scope :blocking, -> { where.not(status: UNSUCCESSFUL_STATUSES) }
   scope :processed, -> { where(processed_in_bookkeeping: true) }
   scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
+
+  # Mollie payments get their payment date once they become paid. Refunded and
+  # charged-back payments were paid before, so they get one too.
+  before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -295,6 +301,14 @@ class Payment < ApplicationRecord
     return unless attributes.respond_to?(:[])
 
     (attributes["method"] || attributes[:method]).presence
+  end
+
+  def needs_mollie_payment_date?
+    !manual? && payment_date.blank? && (paid? || REVERSED_STATUSES.include?(status))
+  end
+
+  def set_mollie_payment_date
+    self.payment_date = (created_at || Time.current).to_date
   end
 
   def became_paid?

@@ -16,7 +16,7 @@
     <tbody class="divide-y divide-gray-100">
       <% payments.each do |payment| %>
         <tr>
-          <td class="px-3 py-2 text-neutral-700"><%= payment.created_at.strftime("%-d %b %Y") %></td>
+          <td class="px-3 py-2 text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
           <td class="px-3 py-2 text-neutral-900"><%= payment.amount_formatted %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.provider_label %></td>
           <td class="px-3 py-2 text-neutral-700"><%= payment.payment_method_label || "—" %></td>

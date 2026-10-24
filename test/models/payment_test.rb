@@ -9,6 +9,7 @@ require "ostruct"
 #  amount_cents             :integer          not null
 #  confirmation_sent        :boolean          default(FALSE), not null
 #  description              :string           not null
+#  payment_date             :date
 #  payment_method           :string
 #  processed_in_bookkeeping :boolean          default(FALSE), not null
 #  provider                 :string           default("mollie"), not null
@@ -158,6 +159,7 @@ class PaymentTest < ActiveSupport::TestCase
       amount_cents: 19_000,
       description: "Bank transfer pending",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer"
     )
 
@@ -218,6 +220,7 @@ class PaymentTest < ActiveSupport::TestCase
       amount_cents: 19_000,
       description: "Test",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bitcoin"
     )
     assert_not payment.valid?
@@ -248,6 +251,7 @@ class PaymentTest < ActiveSupport::TestCase
       amount_cents: 19_000,
       description: "Test",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "cash",
       mollie_payment_id: "tr_manual"
     )
@@ -292,6 +296,7 @@ class PaymentTest < ActiveSupport::TestCase
         amount_cents: 19_000,
         description: "Cash at the venue",
         provider: "manual",
+        payment_date: Date.current,
         payment_method: "cash"
       )
     end
@@ -305,6 +310,7 @@ class PaymentTest < ActiveSupport::TestCase
         amount_cents: 19_000,
         description: "Bank transfer pending",
         provider: "manual",
+        payment_date: Date.current,
         payment_method: "bank_transfer"
       )
     end
@@ -330,6 +336,60 @@ class PaymentTest < ActiveSupport::TestCase
     travel_to Time.zone.local(2026, 9, 10) do
       assert_equal Date.new(2026, 8, 31), payment.price_valid_until
     end
+  end
+
+  test "requires a payment date for manual payments" do
+    payment = payments(:manual_payment)
+    payment.payment_date = nil
+
+    assert_not payment.valid?
+    assert_includes payment.errors[:payment_date], "can't be blank"
+  end
+
+  test "does not require a payment date for mollie payments" do
+    payment = payments(:open_payment)
+
+    assert_nil payment.payment_date
+    assert payment.valid?
+  end
+
+  test "sets the payment date of a mollie payment to its creation date when it becomes paid" do
+    payment = payments(:open_payment)
+    payment.update_columns(created_at: Time.zone.local(2026, 9, 1, 10))
+
+    travel_to Time.zone.local(2026, 9, 5) do
+      payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: { "method" => "ideal" }))
+    end
+
+    assert_equal Date.new(2026, 9, 1), payment.reload.payment_date
+  end
+
+  test "sets the payment date of a mollie payment that is charged back without being seen as paid" do
+    payment = payments(:open_payment)
+    payment.update_columns(created_at: Time.zone.local(2026, 9, 1, 10))
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: "50.00"), attributes: {}))
+
+    assert_equal "charged_back", payment.reload.status
+    assert_equal Date.new(2026, 9, 1), payment.payment_date
+  end
+
+  test "keeps the payment date of a paid mollie payment that is refunded later" do
+    payment = payments(:paid_payment)
+    payment.update_columns(payment_date: Date.new(2026, 8, 1))
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "50.00"), attributes: {}))
+
+    assert_equal "refunded", payment.reload.status
+    assert_equal Date.new(2026, 8, 1), payment.payment_date
+  end
+
+  test "does not set the payment date of a mollie payment that is not paid" do
+    payment = payments(:open_payment)
+
+    payment.sync_from_mollie!(OpenStruct.new(status: "expired", attributes: {}))
+
+    assert_nil payment.reload.payment_date
   end
 
   test "sync_from_mollie! records the status and reported payment method" do
