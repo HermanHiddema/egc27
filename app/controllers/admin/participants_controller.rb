@@ -1,6 +1,7 @@
 class Admin::ParticipantsController < ApplicationController
-  SORT_COLUMNS = %w[name email country club type rank rating status].freeze
+  SORT_COLUMNS = %w[number name email country rank status].freeze
   STATUS_FILTERS = %w[pending confirmed paid charged_back refunded].freeze
+  PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
   before_action :set_participant, only: [:edit, :update, :destroy]
@@ -11,11 +12,18 @@ class Admin::ParticipantsController < ApplicationController
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @status_filter = STATUS_FILTERS.include?(params[:status]) ? params[:status] : nil
+    @type_filter = PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil
+    @name_filter = params[:name].to_s.strip
     @sort = permitted_sort
     @direction = permitted_direction
 
     participants = participants.where(country: @country_filter) if @country_filter.present?
     participants = filtered_by_status(participants, @status_filter) if @status_filter.present?
+    participants = participants.where(participant_type: @type_filter) if @type_filter.present?
+    if @name_filter.present?
+      name = "%#{ActiveRecord::Base.sanitize_sql_like(@name_filter)}%"
+      participants = participants.where("first_name ILIKE :name OR last_name ILIKE :name", name: name)
+    end
 
     @participants = sorted_participants(participants).to_a
     @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
@@ -116,6 +124,8 @@ class Admin::ParticipantsController < ApplicationController
 
     clauses =
       case @sort
+      when "number"
+        [ordered(table[:id])]
       when "email"
         [ordered(nullif_blank(table[:email]))]
       when "country"
