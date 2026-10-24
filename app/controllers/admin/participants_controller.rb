@@ -22,7 +22,10 @@ class Admin::ParticipantsController < ApplicationController
     participants = participants.where(participant_type: @type_filter) if @type_filter.present?
     if @name_filter.present?
       name = "%#{ActiveRecord::Base.sanitize_sql_like(@name_filter)}%"
-      participants = participants.where("first_name ILIKE :name OR last_name ILIKE :name", name: name)
+      participants = participants.where(
+        "first_name ILIKE :name OR last_name ILIKE :name OR CONCAT_WS(' ', first_name, last_name) ILIKE :name",
+        name: name
+      )
     end
 
     @participants = sorted_participants(participants).to_a

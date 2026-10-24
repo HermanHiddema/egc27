@@ -162,6 +162,15 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Alice Smith", response.body
   end
 
+  test "admin can filter by full participant name" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
   test "admin can filter by status pending" do
     sign_in users(:admin)
     get admin_participants_path(status: "pending")

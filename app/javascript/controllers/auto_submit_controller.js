@@ -27,8 +27,9 @@ export default class extends Controller {
     sessionStorage.removeItem("admin-participants-name-focus")
     try {
       const selection = JSON.parse(saved)
-      if (selection.value !== this.nameTarget.value) return
+      if (selection.value.trim() !== this.nameTarget.value.trim()) return
 
+      this.nameTarget.value = selection.value
       this.nameTarget.focus()
       this.nameTarget.setSelectionRange(selection.start, selection.end)
     } catch (_error) {
