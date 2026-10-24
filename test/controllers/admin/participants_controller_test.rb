@@ -27,10 +27,10 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Dave Pending", response.body
     # Shows email addresses
     assert_match "dave@example.org", response.body
-    # Status badges for the three states (now the 6th column after the number)
-    assert_select "tbody tr td:nth-child(6) span", text: "Pending"
-    assert_select "tbody tr td:nth-child(6) span", text: "Confirmed"
-    assert_select "tbody tr td:nth-child(6) span", text: "Paid"
+    # Status badges for the three states (now the 7th column after strength was added)
+    assert_select "tbody tr td:nth-child(7) span", text: "Pending"
+    assert_select "tbody tr td:nth-child(7) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "Paid"
     # Participant number (database id offset by 1000) in the first column
     assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
@@ -271,7 +271,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
-    statuses = css_select("tbody tr td:nth-child(6)").map { |td| td.text.strip }
+    statuses = css_select("tbody tr td:nth-child(7)").map { |td| td.text.strip }
     assert_includes statuses, "Chargeback"
     assert_includes statuses, "Refund"
     order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }

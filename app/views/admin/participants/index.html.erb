@@ -48,6 +48,10 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Country #{sort_indicator("country", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "country", direction: next_sort_direction("country", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
               </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <% strength_direction = @sort == "rank" ? next_sort_direction("rank", @sort, @direction) : :desc %>
+                <%= link_to "Strength #{sort_indicator("rank", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "rank", direction: strength_direction), class: "hover:text-brand-red-700 transition" %>
+              </th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Status #{sort_indicator("status", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "status", direction: next_sort_direction("status", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
@@ -62,6 +66,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.email %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade.presence || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type&.capitalize %></td>
                 <td class="px-4 py-3 text-sm">
                   <% status = participant.registration_status %>

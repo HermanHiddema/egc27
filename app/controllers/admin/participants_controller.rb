@@ -1,5 +1,5 @@
 class Admin::ParticipantsController < ApplicationController
-  SORT_COLUMNS = %w[number name email country status].freeze
+  SORT_COLUMNS = %w[number name email country rank status].freeze
   STATUS_FILTERS = %w[pending confirmed paid charged_back refunded].freeze
   PARTICIPANT_TYPES = %w[player visitor].freeze
 
