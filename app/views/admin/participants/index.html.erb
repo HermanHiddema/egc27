@@ -6,14 +6,22 @@
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
-    <%= form_with url: admin_participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3" do %>
+    <%= form_with url: admin_participants_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3", data: { controller: "auto-submit", action: "submit->auto-submit#preserveNameFocus" } do %>
       <div>
         <label for="country" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Country</label>
         <%= select_tag :country, options_for_select([["All countries", ""]] + @countries.map { |country| [country, country] }, @country_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { country_names_target: "select", action: "change->country-names#filter" } %>
       </div>
       <div>
+        <label for="type" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Type</label>
+        <%= select_tag :type, options_for_select([["All types", ""], ["Player", "player"], ["Visitor", "visitor"]], @type_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+      </div>
+      <div>
         <label for="status" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Status</label>
-        <%= select_tag :status, options_for_select([["All statuses", ""], ["Pending", "pending"], ["Confirmed", "confirmed"], ["Paid", "paid"], ["Chargeback", "charged_back"], ["Refund", "refunded"]], @status_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->country-names#filter" } %>
+        <%= select_tag :status, options_for_select([["All statuses", ""], ["Pending", "pending"], ["Confirmed", "confirmed"], ["Paid", "paid"], ["Chargeback", "charged_back"], ["Refund", "refunded"]], @status_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+      </div>
+      <div>
+        <label for="name" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Name</label>
+        <%= search_field_tag :name, @name_filter, placeholder: "Filter by name", class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { auto_submit_target: "name", action: "input->auto-submit#submitAfterDelay" } %>
       </div>
       <%= hidden_field_tag :sort, @sort %>
       <%= hidden_field_tag :direction, @direction %>
@@ -27,8 +35,10 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
             <tr>
-              <% filters = { country: @country_filter, status: @status_filter } %>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Number</th>
+              <% filters = { country: @country_filter, status: @status_filter, type: @type_filter, name: @name_filter.presence } %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Number #{sort_indicator("number", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "number", direction: next_sort_direction("number", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Name #{sort_indicator("name", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "name", direction: next_sort_direction("name", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
               </th>
@@ -39,8 +49,10 @@
                 <%= link_to "Country #{sort_indicator("country", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "country", direction: next_sort_direction("country", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
               </th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
-                <%= link_to "Type #{sort_indicator("type", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "type", direction: next_sort_direction("type", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+                <% strength_direction = @sort == "rank" ? next_sort_direction("rank", @sort, @direction) : :desc %>
+                <%= link_to "Strength #{sort_indicator("rank", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "rank", direction: strength_direction), class: "hover:text-brand-red-700 transition" %>
               </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Status #{sort_indicator("status", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "status", direction: next_sort_direction("status", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
               </th>
@@ -54,6 +66,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.email %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade.presence || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type&.capitalize %></td>
                 <td class="px-4 py-3 text-sm">
                   <% status = participant.registration_status %>
