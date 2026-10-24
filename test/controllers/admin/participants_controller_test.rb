@@ -295,7 +295,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
     assert_not_nil bob_row
-    assert_includes bob_row.css("td")[5].text.strip, "Paid"
+    assert_includes bob_row.css("td")[6].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do
