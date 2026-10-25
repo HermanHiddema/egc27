@@ -70,3 +70,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep TinyMCE HTML sanitization liberal for stylistic formatting (colors, alignment, and border styling), while still blocking script/event-handler XSS vectors.
 - When a signed-in (confirmed) user registers another participant, the email is pre-filled/locked to their own address; validate it matches, then confirm the participant immediately without sending a confirmation email and route straight to the next step (payment for players, participant page for visitors).
 - In the participant Contact Information card, show the guest email explanation and existing-account warning full width below the field row.
+- On phones, make the tournament schedule selectable by day and show a readable selected-day agenda; keep weekly calendar columns horizontally navigable.
+- Keep the event dates visible in the mobile header; in landscape, use a compact header with the dates stacked beside a small logo and action buttons in a horizontal row when space allows.

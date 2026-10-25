@@ -14,6 +14,8 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "a.text-3xl", text: "DraGo's Summer Festival"
     assert_select "p.hidden.md\\:block.text-base", text: "European Go Congress 2027"
     assert_select "p.hidden.md\\:block.text-sm", text: "'s Hertogenbosch, the Netherlands, 24 July - 7 August"
+    assert_select ".header-mobile-event-info span", text: "24 July"
+    assert_select ".header-mobile-event-info span", text: "7 August"
     assert_select "a[aria-label='Discord'][href='https://discord.gg/m8cpSVbhMY']"
     assert_select "a[aria-label='WhatsApp'][href='https://chat.whatsapp.com/LPdN50HJlFaFvcaRVhmkPC']"
   end
