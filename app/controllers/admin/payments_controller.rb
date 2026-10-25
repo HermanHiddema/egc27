@@ -119,15 +119,16 @@ class Admin::PaymentsController < ApplicationController
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",
+      payment_date: Date.current,
       status: "paid",
       processed_in_bookkeeping: true
     }
   rescue KeyError
-    { provider: "manual", payment_method: "bank_transfer", status: "paid", processed_in_bookkeeping: true }
+    { provider: "manual", payment_method: "bank_transfer", payment_date: Date.current, status: "paid", processed_in_bookkeeping: true }
   end
 
   def payment_params
-    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :reference, :processed_in_bookkeeping)
+    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :payment_date, :reference, :processed_in_bookkeeping)
     amount_eur_input = permitted.delete(:amount_eur).to_s
     @amount_eur_input = amount_eur_input
     amount_eur_str = amount_eur_input.tr(",", ".")

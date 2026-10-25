@@ -239,6 +239,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       amount_cents: 5_000,
       description: "Manual fallback payment",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "paid",
       created_at: paid_payment.created_at + 1.day,

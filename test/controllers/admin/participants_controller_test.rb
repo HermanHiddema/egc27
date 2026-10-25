@@ -252,6 +252,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "refunded participants are excluded from the pending filter" do
     participants(:unconfirmed).payments.create!(
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "refunded",
       amount_cents: 5_000,
@@ -294,6 +295,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       amount_cents: 5_000,
       description: "Manual replacement payment",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "paid"
     )
