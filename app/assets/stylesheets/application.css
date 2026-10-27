@@ -78,6 +78,10 @@
   display: none;
 }
 
+.participant-back-mobile {
+  display: none;
+}
+
 .price-period-info {
   position: relative;
   display: inline-block;
@@ -288,6 +292,24 @@
 }
 
 @media (max-width: 1023px) {
+  .price-overview th:nth-child(n + 2) {
+    vertical-align: top;
+  }
+
+  .price-overview-label {
+    display: block;
+    min-height: 2.5em;
+    line-height: 1.25;
+  }
+
+  .price-overview th .price-period-info {
+    display: flex;
+    width: 100%;
+    min-height: 1rem;
+    justify-content: flex-end;
+    margin: 0;
+  }
+
   .mobile-event-tile {
     background-color: var(--mobile-event-color);
     background-color: color-mix(in srgb, var(--mobile-event-color) 35%, white);
@@ -315,9 +337,45 @@
 
 @media (max-width: 1023px) and (orientation: portrait) {
   .portrait-stack-actions {
+    display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.5rem;
+  }
+
+  .participant-back-mobile {
+    display: inline;
+  }
+
+  .participant-back-full {
+    display: none;
+  }
+
+  .participant-show-actions .btn-primary {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.875rem;
+  }
+
+  .payment-participant-overview .payment-pass-type {
+    text-align: right;
+  }
+
+  .price-overview col:first-child {
+    width: 32%;
+  }
+
+  .price-overview col:nth-child(n + 2) {
+    width: 22.6667%;
+  }
+
+  .price-overview th,
+  .price-overview td {
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+  }
+
+  .price-overview td:nth-child(n + 2) {
+    white-space: nowrap;
   }
 
   .my-registrations-header {

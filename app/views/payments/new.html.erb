@@ -12,7 +12,7 @@
     </div>
   <% else %>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="payment-participant-overview bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
         <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Participant Details</h2>
         <dl class="space-y-3 text-sm">
           <div class="flex justify-between">
@@ -29,7 +29,7 @@
           </div>
           <div class="flex justify-between">
             <dt class="text-neutral-500 font-medium">Congress Pass</dt>
-            <dd class="text-neutral-900"><%= @payment.description %></dd>
+            <dd class="payment-pass-type text-neutral-900 text-right"><%= CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label %></dd>
           </div>
         </dl>
       </div>
@@ -107,21 +107,21 @@
             <tr class="bg-gray-200">
               <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">Pass type</th>
               <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
-                Early Bird
+                <span class="price-overview-label">Early Bird</span>
                 <details class="price-period-info">
                   <summary aria-label="Early Bird price period dates">i</summary>
                   <span class="price-period-popup">Until 31 January 2027</span>
                 </details>
               </th>
               <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
-                Regular
+                <span class="price-overview-label">Regular</span>
                 <details class="price-period-info">
                   <summary aria-label="Regular price period dates">i</summary>
                   <span class="price-period-popup">Until 31 May 2027</span>
                 </details>
               </th>
               <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
-                Late
+                <span class="price-overview-label">Late</span>
                 <details class="price-period-info">
                   <summary aria-label="Late price period dates">i</summary>
                   <span class="price-period-popup">From 1 June 2027</span>
