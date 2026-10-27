@@ -23,7 +23,7 @@
             <p class="text-sm text-gray-600">Position: <%= item.position %> • <%= item.visible? ? "Visible" : "Hidden" %></p>
           </div>
 
-          <div class="portrait-stack-actions gap-4 shrink-0">
+          <div class="flex portrait-stack-actions gap-4 shrink-0">
             <% if current_user&.can_edit? %>
               <%= link_to "Edit", edit_menu_menu_item_path(@menu, item), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
             <% end %>

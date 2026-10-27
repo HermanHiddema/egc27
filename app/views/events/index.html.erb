@@ -41,7 +41,7 @@
             <p class="text-gray-700 mt-3 line-clamp-2"><%= event.description %></p>
           <% end %>
 
-          <div class="portrait-stack-actions items-start gap-4 mt-4">
+          <div class="flex portrait-stack-actions items-start gap-4 mt-4">
             <%= link_to "View", event, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
             <% if current_user&.can_edit? %>
               <%= link_to "Edit", edit_event_path(event), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
