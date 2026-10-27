@@ -6,7 +6,7 @@
     <% end %>
   </div>
 
-  <section class="md:hidden mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-labelledby="schedule-day-heading">
+  <section class="lg:hidden mb-6 rounded-lg border border-gray-200 bg-white p-4 shadow-sm" aria-labelledby="schedule-day-heading">
     <h2 id="schedule-day-heading" class="mb-3 text-lg font-semibold">Choose a day</h2>
     <%= form_with url: schedule_path, method: :get, class: "flex", data: { controller: "auto-submit" } do |form| %>
       <div class="min-w-0 flex-1">
@@ -51,7 +51,7 @@
     </div>
   </section>
 
-  <div class="hidden md:block bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto">
+  <div class="hidden lg:block bg-white border border-gray-200 rounded-lg shadow-sm overflow-x-auto">
     <div class="min-w-[70rem]">
       <div class="grid border-b border-gray-200 bg-gray-50" style="grid-template-columns: 10rem minmax(0, 1fr);">
         <div class="px-4 py-3 text-sm font-semibold text-gray-700 border-r border-gray-200">
@@ -190,7 +190,7 @@
     </div>
   </div>
 
-  <div class="schedule-fun-go-note hidden md:block mt-4 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
+  <div class="schedule-fun-go-note hidden lg:block mt-4 rounded-lg border border-gray-200 bg-white p-4 text-sm text-gray-700 shadow-sm">
     * Fun Go is one of: Keima-Go, Hex-Go, Torus-go, Chess and Go, Phantom Go, One Color Go.
   </div>
 </div>

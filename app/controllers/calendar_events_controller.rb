@@ -150,10 +150,14 @@ class CalendarEventsController < ApplicationController
   end
 
   def return_date
-    return @calendar_event.starts_at.to_date unless params[:date].present?
+    return persisted_start_date unless params[:date].present?
 
     Date.iso8601(params[:date])
   rescue ArgumentError, TypeError
-    @calendar_event.starts_at.to_date
+    persisted_start_date
+  end
+
+  def persisted_start_date
+    @calendar_event.attribute_in_database("starts_at").to_date
   end
 end

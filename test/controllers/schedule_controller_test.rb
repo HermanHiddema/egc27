@@ -79,6 +79,22 @@ class ScheduleControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to schedule_path(date: "2027-07-29")
   end
 
+  test "blank event start keeps the persisted date in the edit back link" do
+    sign_in users(:editor)
+    event = CalendarEvent.create!(
+      title: "Blank start event",
+      starts_at: Time.zone.parse("2027-07-29 10:00"),
+      ends_at: Time.zone.parse("2027-07-29 11:00")
+    )
+
+    patch calendar_event_path(event), params: {
+      calendar_event: { starts_at: "" }
+    }
+
+    assert_response :unprocessable_entity
+    assert_select "a[href=?]", schedule_path(date: "2027-07-29"), text: "← Back to events"
+  end
+
   test "invalid dates return to the first event day" do
     get schedule_path, params: { date: "not-a-date" }
 
