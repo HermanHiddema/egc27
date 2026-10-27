@@ -1,10 +1,13 @@
 <div class="container-wide py-12">
-  <div class="flex justify-between items-center mb-8 gap-4">
+  <div class="my-registrations-header flex justify-between items-center mb-8 gap-4">
     <div>
       <h1 class="text-4xl font-bold">My registrations</h1>
       <p class="mt-2 text-neutral-700">View the participant registrations attached to your account.</p>
     </div>
-    <%= link_to "Register another participant", new_participant_path, class: "btn-primary" %>
+    <%= link_to new_participant_path, class: "register-another-participant btn-primary", aria: { label: "Register another participant" } do %>
+      <span class="register-another-label">Register another participant</span>
+      <span class="register-another-plus" aria-hidden="true">+</span>
+    <% end %>
   </div>
 
   <% if @participants.any? %>

@@ -9,6 +9,12 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_match "Sat, 07 Aug 2027", response.body
   end
 
+  test "obsolete month calendar route is removed" do
+    assert_raises(ActionController::RoutingError) do
+      Rails.application.routes.recognize_path("/calendar", method: :get)
+    end
+  end
+
   test "schedule renders event color" do
     calendar_event = CalendarEvent.create!(
       title: "Color Check",
@@ -51,7 +57,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     get schedule_path
 
     assert_response :success
-    assert_select "a[href='#{edit_calendar_event_path(calendar_event)}']", count: 1
+    assert_select "a[href='#{edit_calendar_event_path(calendar_event, date: "2027-07-24")}']", count: 2
   end
 
   test "regular user cannot access new calendar event" do
@@ -103,7 +109,6 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
 
     calendar_event_date = calendar_events(:one).starts_at.to_date
     [
-      calendar_path(month: calendar_event_date.strftime("%Y-%m")),
       day_calendar_events_path(date: calendar_event_date),
       week_calendar_events_path(date: calendar_event_date),
       schedule_path,
@@ -127,7 +132,6 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
 
     calendar_event_date = calendar_events(:one).starts_at.to_date
     [
-      calendar_path(month: calendar_event_date.strftime("%Y-%m")),
       day_calendar_events_path(date: calendar_event_date),
       week_calendar_events_path(date: calendar_event_date),
       schedule_path,
@@ -191,7 +195,7 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
       calendar_event: { title: "Changed by editor" }
     }
 
-    assert_redirected_to schedule_path
+    assert_redirected_to schedule_path(date: calendar_events(:one).starts_at.to_date)
     assert_equal "Changed by editor", calendar_events(:one).reload.title
   end
 

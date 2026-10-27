@@ -55,6 +55,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Carol Smith", response.body
     assert_no_match "Dave Pending", response.body
     assert_no_match "Bob Jones", response.body
+    assert_select "a.register-another-participant[aria-label='Register another participant'][href='#{new_participant_path}'] span.register-another-plus[aria-hidden='true']", text: "+"
   end
 
   test "mine redirects to show page when user has only one participant" do

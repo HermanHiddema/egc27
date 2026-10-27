@@ -131,9 +131,8 @@ Rails.application.routes.draw do
       patch :reactivate
     end
   end
-  get "calendar" => "calendar_events#index", as: :calendar
   get "schedule" => "schedule#index", as: :schedule
-  resources :calendar_events do
+  resources :calendar_events, except: [:index] do
     collection do
       get :day
       get :week
