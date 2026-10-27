@@ -78,4 +78,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep the month calendar page removed; use the tournament schedule and day/week/list views instead.
 - Reduce mobile page spacing above content and before the footer; keep the footer compact with a social row and responsive footer-link rows.
 - In portrait mobile footer, put Privacy, Copyright, FAQ, and Contact on the top row; place Terms and Conditions alone on the second row, left-aligned with Privacy and kept on one line.
+- Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.

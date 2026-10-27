@@ -27,8 +27,8 @@
                calendar_event_path(calendar_event)
              end %>
           <%= link_to event_path,
-                class: "block rounded-lg border border-gray-300 p-4 text-gray-900 transition hover:brightness-95",
-                style: "background-color: #{calendar_event.effective_color};" do %>
+                class: "mobile-event-tile block rounded-lg border border-gray-300 p-4 text-gray-900 transition hover:brightness-95",
+                style: "--mobile-event-color: #{calendar_event.effective_color};" do %>
             <div class="flex items-center justify-between gap-4">
               <div>
                 <h3 class="text-lg font-semibold text-brand-blue-900"><%= calendar_event.title %></h3>

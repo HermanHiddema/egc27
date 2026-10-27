@@ -42,7 +42,7 @@ class ScheduleControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "p", text: /Fun Go is one of:/
-    assert_select "a[style='background-color: #e06666;']", text: /Fun Go/
+    assert_select "a.mobile-event-tile[style='--mobile-event-color: #e06666;']", text: /Fun Go/
   end
 
   test "desktop schedule includes the Fun Go explanation at the bottom" do
@@ -104,6 +104,12 @@ class ScheduleControllerTest < ActionDispatch::IntegrationTest
 
   test "week and day calendar views render for the chosen date" do
     selected_date = Date.new(2027, 7, 29)
+    event = CalendarEvent.create!(
+      title: "Day view color test",
+      starts_at: Time.zone.parse("2027-07-29 10:00"),
+      ends_at: Time.zone.parse("2027-07-29 11:00"),
+      color: "#e06666"
+    )
 
     get week_calendar_events_path(date: selected_date)
 
@@ -115,5 +121,6 @@ class ScheduleControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select ".bg-gray-50 h2", text: "Thursday, 29 July 2027"
+    assert_select "a.mobile-event-tile[href='#{calendar_event_path(event)}'][style='--mobile-event-color: #e06666;']"
   end
 end
