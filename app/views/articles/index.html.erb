@@ -44,7 +44,7 @@
               <%= render_html_content(article.content_html) %>
             </div>
 
-            <div class="flex gap-4">
+            <div class="portrait-stack-actions items-start gap-4">
               <%= link_to "Read More", article, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
               <% if current_user&.can_edit? %>
                 <%= link_to "Edit", edit_article_path(article), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>

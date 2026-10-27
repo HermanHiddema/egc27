@@ -95,24 +95,47 @@
 
     <div class="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
       <h3 class="text-base font-semibold mb-4 text-brand-blue-900">Congress Pass Price Overview</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
+      <div>
+        <table class="price-overview w-full table-fixed text-xs sm:text-sm text-left">
+          <colgroup>
+            <col class="w-2/5">
+            <col class="w-1/5">
+            <col class="w-1/5">
+            <col class="w-1/5">
+          </colgroup>
           <thead>
-            <tr class="bg-gray-50">
-              <th class="px-4 py-2 font-semibold text-neutral-700">Congress Pass</th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Special<br><span class="font-normal text-xs">Until 31 Aug 2026</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Early Bird<br><span class="font-normal text-xs">Until 31 Jan 2027</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Regular<br><span class="font-normal text-xs">Until 31 May 2027</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Late<br><span class="font-normal text-xs">From 1 Jun 2027</span></th>
+            <tr class="bg-gray-200">
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">Pass type</th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                Early Bird
+                <details class="price-period-info">
+                  <summary aria-label="Early Bird price period dates">i</summary>
+                  <span class="price-period-popup">Until 31 January 2027</span>
+                </details>
+              </th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                Regular
+                <details class="price-period-info">
+                  <summary aria-label="Regular price period dates">i</summary>
+                  <span class="price-period-popup">Until 31 May 2027</span>
+                </details>
+              </th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                Late
+                <details class="price-period-info">
+                  <summary aria-label="Late price period dates">i</summary>
+                  <span class="price-period-popup">From 1 June 2027</span>
+                </details>
+              </th>
             </tr>
           </thead>
         <% labels = CongressPassPricing::PRICES.keys.index_with { |opt| CongressPassPricing.new(attendance_option: opt).attendance_label } %>
           <tbody class="divide-y divide-gray-100">
             <% CongressPassPricing::PRICES.each do |option, tiers| %>
-              <tr class="<%= @participant.attendance_option == option ? 'bg-brand-yellow-50 font-semibold' : '' %>">
-                <td class="px-4 py-2 text-neutral-900"><%= labels[option] %></td>
-                <% %i[special early regular late].each do |tier| %>
-                  <td class="px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
+              <tr class="price-overview-row <%= @participant.attendance_option == option ? 'bg-brand-yellow-200 font-semibold' : '' %>">
+                <td class="px-2 sm:px-4 py-2 text-neutral-900"><%= labels[option] %></td>
+                <% %i[early regular late].each do |tier| %>
+                  <td class="px-2 sm:px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
                 <% end %>
               </tr>
             <% end %>

@@ -36,6 +36,15 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_match "This price is valid until", response.body
     assert_match "31 Aug 2026", response.body
     assert_match "After that, the price will go up.", response.body
+    assert_select "table.price-overview thead tr.bg-gray-200"
+    assert_select "table.price-overview th", count: 4
+    assert_select "table.price-overview th", text: /Pass type/
+    assert_select "table.price-overview th", text: /Special/, count: 0
+    assert_select "details.price-period-info summary[aria-label='Early Bird price period dates']"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 January 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 May 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "From 1 June 2027"
+    assert_select "tr.price-overview-row.bg-brand-yellow-200"
     assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options/
     assert_select "a[href=?]", page_path("faq"), text: "FAQ"
   end

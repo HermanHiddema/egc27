@@ -56,6 +56,10 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
     assert_no_match "Bob Jones", response.body
     assert_select "a.register-another-participant[aria-label='Register another participant'][href='#{new_participant_path}'] span.register-another-plus[aria-hidden='true']", text: "+"
+    assert_select "tr.participant-row", count: 2
+    assert_select "tr.participant-row[data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{participant_path(participants(:one))}'] a[href='#{participant_path(participants(:one))}']", text: "Alice Smith"
+    assert_select "tr.participant-row[data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{participant_path(participants(:three))}'] a[href='#{participant_path(participants(:three))}']", text: "Carol Smith"
+    assert_select "a", text: "View", count: 0
   end
 
   test "mine redirects to show page when user has only one participant" do
