@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -114,6 +114,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
     t.index ["ends_at"], name: "index_events_on_ends_at"
     t.index ["starts_at"], name: "index_events_on_starts_at"
     t.index ["user_id"], name: "index_events_on_user_id"
+  end
+
+  create_table "hostel_bookings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.date "arrival_date", null: false
+    t.date "departure_date", null: false
+    t.integer "single_rooms", default: 0, null: false
+    t.integer "double_rooms", default: 0, null: false
+    t.integer "six_person_rooms", default: 0, null: false
+    t.integer "mixed_dorm_beds", default: 0, null: false
+    t.integer "female_dorm_beds", default: 0, null: false
+    t.integer "breakfasts", default: 0, null: false
+    t.integer "amount_cents", null: false
+    t.date "priced_on", null: false
+    t.string "status", default: "open", null: false
+    t.string "mollie_payment_id"
+    t.string "payment_method"
+    t.boolean "confirmation_sent", default: false, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_payment_id"], name: "index_hostel_bookings_on_mollie_payment_id", unique: true
+    t.index ["status"], name: "index_hostel_bookings_on_status"
+    t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
   end
 
   create_table "menu_items", force: :cascade do |t|
@@ -330,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
   add_foreign_key "event_registrations", "events"
   add_foreign_key "event_registrations", "participants"
   add_foreign_key "events", "users"
+  add_foreign_key "hostel_bookings", "users"
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"

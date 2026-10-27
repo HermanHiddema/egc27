@@ -163,6 +163,14 @@ Rails.application.routes.draw do
       get :success
     end
   end
+  resources :hostel_bookings, only: [:index, :new, :create, :show] do
+    member do
+      post :pay
+    end
+    collection do
+      post :webhook
+    end
+  end
   resources :users, only: [:index, :edit, :update]
   get "users/invite", to: "users#invite", as: :invite_user
   post "users/invite", to: "users#send_invitation", as: :send_invitation_user
@@ -193,6 +201,7 @@ Rails.application.routes.draw do
         patch :unmark_processed
       end
     end
+    resources :hostel_bookings, only: [:index]
     resources :settlements, only: [:index, :show] do
       collection do
         post :sync

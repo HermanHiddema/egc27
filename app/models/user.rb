@@ -37,6 +37,7 @@ class User < ApplicationRecord
   has_many :articles, dependent: :destroy
   has_many :events, dependent: :destroy
   has_many :participants, dependent: :destroy
+  has_many :hostel_bookings, dependent: :destroy
 
   ROLES = %w[regular editor admin].freeze
 

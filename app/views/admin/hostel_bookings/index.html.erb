@@ -1,0 +1,47 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Hostel bookings (Admin)</h1>
+    <%= link_to "← Back to Admin", dashboard_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <% if @hostel_bookings.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Booked</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">User</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Dates</th>
+              <% HostelPricing::ROOM_TYPES.each_value do |room| %>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700"><%= room[:label] %></th>
+              <% end %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Breakfasts per night</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @hostel_bookings.each do |hostel_booking| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_date(hostel_booking.created_at, month: :short) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= hostel_booking.user.display_name %><br><span class="text-neutral-500"><%= hostel_booking.user.email %></span></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_date_range(hostel_booking.arrival_date, hostel_booking.departure_date) %></td>
+                <% HostelBooking::ROOM_TYPES.each do |room_type| %>
+                  <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking[room_type] %></td>
+                <% end %>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.breakfasts %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= hostel_booking.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.status.humanize %></td>
+                <td class="px-4 py-3 text-sm text-neutral-500"><%= hostel_booking.mollie_payment_id %></td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-neutral-700">No hostel bookings yet.</div>
+  <% end %>
+</div>
