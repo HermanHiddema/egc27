@@ -85,15 +85,14 @@ class HostelBooking < ApplicationRecord
     ROOM_TYPES.sum { |room_type| self[room_type].to_i * HostelPricing::ROOM_TYPES.dig(room_type, :guests) }
   end
 
-  # The rooms and beds booked, as [label, quantity, price per night in cents].
-  def booked_rooms
-    pricing = HostelPricing.new(payment_date: priced_on || Date.current)
-    ROOM_TYPES.filter_map do |room_type|
-      quantity = self[room_type].to_i
-      next if quantity.zero?
-
-      [HostelPricing::ROOM_TYPES.dig(room_type, :label), quantity, pricing.room_price_cents(room_type)]
-    end
+  # The price calculation of this booking, one line per booked item, at the
+  # prices of the pricing period it was priced in.
+  def price_lines
+    HostelPricing.new(payment_date: priced_on || Date.current).line_items(
+      nights: nights,
+      rooms: ROOM_TYPES.index_with { |room_type| self[room_type] },
+      breakfasts: breakfasts
+    )
   end
 
   def description
@@ -192,11 +191,7 @@ class HostelBooking < ApplicationRecord
 
   def calculate_amount
     self.priced_on = Date.current
-    self.amount_cents = HostelPricing.new(payment_date: priced_on).total_cents(
-      nights: nights,
-      rooms: ROOM_TYPES.index_with { |room_type| self[room_type] },
-      breakfasts: breakfasts
-    )
+    self.amount_cents = price_lines.sum(&:subtotal_cents)
   end
 
   def at_least_one_room_or_bed

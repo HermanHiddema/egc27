@@ -158,6 +158,32 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
+  test "show lists the price calculation per item summing to the total" do
+    booking = nil
+    travel_to Time.zone.local(2026, 12, 1) do
+      booking = create_booking(breakfasts: 2)
+    end
+    sign_in users(:one)
+
+    get hostel_booking_path(booking)
+
+    assert_response :success
+    assert_select "td", text: "1 × 2-person room × 2 nights × € 79.00"
+    assert_select "td", text: "€ 158.00"
+    assert_select "td", text: "2 × Breakfast buffet × 2 nights × € 9.85"
+    assert_select "td", text: "€ 39.40"
+    assert_select "tfoot td", text: "€ 197.40"
+  end
+
+  test "new has an element for the live price calculation" do
+    sign_in users(:one)
+
+    get new_hostel_booking_path
+
+    assert_select "tbody[data-hostel-booking-target='lines']"
+    assert_select "form[data-hostel-booking-labels-value*='Breakfast buffet']"
+  end
+
   test "show offers payment for an open booking" do
     booking = create_booking
     sign_in users(:one)

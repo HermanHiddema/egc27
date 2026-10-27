@@ -10,7 +10,7 @@
     Prices are per room or bed per night.
   </p>
 
-  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_guests_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:guests] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS } do |form| %>
+  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_guests_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:guests] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
     <% if @hostel_booking.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <h2 class="text-red-800 font-semibold mb-2">There were errors with your booking:</h2>
@@ -78,6 +78,12 @@
               <dd class="text-neutral-900" data-hostel-booking-target="guests"><%= @hostel_booking.guests %></dd>
             </div>
           </dl>
+          <table class="w-full text-sm mb-2">
+            <caption class="sr-only">Price calculation</caption>
+            <tbody class="divide-y divide-gray-100" data-hostel-booking-target="lines">
+              <tr><td class="py-2 text-neutral-500">Choose rooms or beds to see the price calculation.</td></tr>
+            </tbody>
+          </table>
           <div class="bg-brand-blue-50 rounded-lg p-4 mb-4 flex justify-between items-center">
             <span class="text-brand-blue-900 font-medium">Total price</span>
             <span class="text-2xl font-bold text-brand-blue-900" data-hostel-booking-target="total" aria-live="polite">€ 0.00</span>

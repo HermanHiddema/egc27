@@ -38,4 +38,17 @@ class HostelPricingTest < ActiveSupport::TestCase
 
     assert_equal 3 * (7_900 + 2 * 2_900 + 4 * 985), total
   end
+
+  test "line items list quantity, nights and price per item" do
+    pricing = HostelPricing.new(payment_date: Date.new(2026, 11, 1))
+
+    items = pricing.line_items(nights: 3, rooms: { "double_rooms" => 1, "mixed_dorm_beds" => 2 }, breakfasts: 4)
+
+    assert_equal [
+      ["2-person room", 1, 3, 7_900, 23_700],
+      ["1 bed in a 6-person dorm (mixed)", 2, 3, 2_900, 17_400],
+      ["Breakfast buffet", 4, 3, 985, 11_820]
+    ], items.map { |item| [item.label, item.quantity, item.nights, item.unit_price_cents, item.subtotal_cents] }
+    assert_equal items.sum(&:subtotal_cents), pricing.total_cents(nights: 3, rooms: { "double_rooms" => 1, "mixed_dorm_beds" => 2 }, breakfasts: 4)
+  end
 end

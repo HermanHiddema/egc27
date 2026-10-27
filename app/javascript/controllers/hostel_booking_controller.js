@@ -1,11 +1,11 @@
 import { Controller } from "@hotwired/stimulus"
 
-// Calculates the price of a hostel booking while the form is filled in. The
-// server recalculates the price when the booking is saved, so this is only a
-// preview for the user.
+// Calculates the price of a hostel booking while the form is filled in, listed
+// as quantity × nights × price per item, summing to the total. The server
+// recalculates the price when the booking is saved, so this is only a preview.
 export default class extends Controller {
-  static targets = ["arrival", "departure", "quantity", "breakfasts", "nights", "guests", "total"]
-  static values = { prices: Object, guests: Object, breakfastCents: Number }
+  static targets = ["arrival", "departure", "quantity", "breakfasts", "nights", "guests", "lines", "total"]
+  static values = { prices: Object, guests: Object, labels: Object, breakfastCents: Number }
 
   connect() {
     this.calculate()
@@ -13,22 +13,60 @@ export default class extends Controller {
 
   calculate() {
     const nights = this.nights()
+    const lines = []
     let guests = 0
-    let perNightCents = 0
 
     this.quantityTargets.forEach((input) => {
       const roomType = input.dataset.roomType
       const quantity = this.count(input.value)
       guests += quantity * (this.guestsValue[roomType] || 0)
-      perNightCents += quantity * (this.pricesValue[roomType] || 0)
+      if (quantity > 0) {
+        lines.push({ label: this.labelsValue[roomType], quantity, unitCents: this.pricesValue[roomType] || 0 })
+      }
     })
 
-    perNightCents += this.count(this.breakfastsTarget.value) * this.breakfastCentsValue
+    const breakfasts = this.count(this.breakfastsTarget.value)
+    if (breakfasts > 0) {
+      lines.push({ label: this.labelsValue.breakfasts, quantity: breakfasts, unitCents: this.breakfastCentsValue })
+    }
     this.breakfastsTarget.max = guests
+
+    const totalCents = lines.reduce((sum, line) => sum + line.quantity * nights * line.unitCents, 0)
 
     this.nightsTarget.textContent = nights
     this.guestsTarget.textContent = guests
-    this.totalTarget.textContent = this.formatEuros(perNightCents * nights)
+    this.renderLines(lines, nights)
+    this.totalTarget.textContent = this.formatEuros(totalCents)
+  }
+
+  renderLines(lines, nights) {
+    if (lines.length === 0) {
+      this.linesTarget.replaceChildren(this.row("Choose rooms or beds to see the price calculation.", null, "text-neutral-500"))
+      return
+    }
+
+    const nightsLabel = `${nights} ${nights === 1 ? "night" : "nights"}`
+    this.linesTarget.replaceChildren(...lines.map((line) => this.row(
+      `${line.quantity} × ${line.label} × ${nightsLabel} × ${this.formatEuros(line.unitCents)}`,
+      this.formatEuros(line.quantity * nights * line.unitCents),
+      "text-neutral-900"
+    )))
+  }
+
+  row(description, amount, className) {
+    const tr = document.createElement("tr")
+    const descriptionCell = document.createElement("td")
+    descriptionCell.className = `py-2 pr-4 ${className}`
+    descriptionCell.textContent = description
+    tr.append(descriptionCell)
+
+    if (amount !== null) {
+      const amountCell = document.createElement("td")
+      amountCell.className = "py-2 text-right whitespace-nowrap text-neutral-900"
+      amountCell.textContent = amount
+      tr.append(amountCell)
+    }
+    return tr
   }
 
   nights() {

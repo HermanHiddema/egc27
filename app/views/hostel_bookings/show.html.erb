@@ -21,16 +21,6 @@
           <dt class="text-neutral-500 font-medium">Nights</dt>
           <dd class="text-neutral-900"><%= @hostel_booking.nights %></dd>
         </div>
-        <% @hostel_booking.booked_rooms.each do |label, quantity, price_cents| %>
-          <div class="flex justify-between gap-4">
-            <dt class="text-neutral-500 font-medium"><%= label %></dt>
-            <dd class="text-neutral-900"><%= quantity %> × € <%= format("%.2f", price_cents / 100.0) %> per night</dd>
-          </div>
-        <% end %>
-        <div class="flex justify-between gap-4">
-          <dt class="text-neutral-500 font-medium">Breakfasts per night</dt>
-          <dd class="text-neutral-900"><%= @hostel_booking.breakfasts %> × € <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></dd>
-        </div>
         <div class="flex justify-between gap-4">
           <dt class="text-neutral-500 font-medium">Status</dt>
           <dd class="text-neutral-900"><%= @hostel_booking.status.humanize %></dd>
@@ -41,10 +31,7 @@
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
       <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Payment</h2>
 
-      <div class="bg-brand-blue-50 rounded-lg p-4 mb-6 flex justify-between items-center">
-        <span class="text-brand-blue-900 font-medium">Total price</span>
-        <span class="text-2xl font-bold text-brand-blue-900"><%= @hostel_booking.amount_formatted %></span>
-      </div>
+      <%= render "price_calculation", hostel_booking: @hostel_booking %>
 
       <% if @hostel_booking.paid? %>
         <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">

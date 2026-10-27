@@ -35,12 +35,33 @@ class HostelPricing
     ROOM_TYPES.keys.index_with { |room_type| room_price_cents(room_type) }
   end
 
-  # The total price in cents for the given number of nights, rooms per room
-  # type ({ "single_rooms" => 1, ... }) and breakfasts per night.
+  BREAKFAST_LABEL = "Breakfast buffet".freeze
+
+  LineItem = Data.define(:label, :quantity, :nights, :unit_price_cents) do
+    def subtotal_cents
+      quantity * nights * unit_price_cents
+    end
+  end
+
+  # The price calculation for the given number of nights, rooms per room type
+  # ({ "single_rooms" => 1, ... }) and breakfasts per night, as one line per
+  # booked item: quantity × nights × price per night.
+  def line_items(nights:, rooms:, breakfasts: 0)
+    items = ROOM_TYPES.filter_map do |room_type, room|
+      quantity = rooms.fetch(room_type, 0).to_i
+      next unless quantity.positive?
+
+      LineItem.new(label: room[:label], quantity: quantity, nights: nights.to_i, unit_price_cents: room_price_cents(room_type))
+    end
+    if breakfasts.to_i.positive?
+      items << LineItem.new(label: BREAKFAST_LABEL, quantity: breakfasts.to_i, nights: nights.to_i, unit_price_cents: BREAKFAST_CENTS)
+    end
+    items
+  end
+
+  # The total price in cents: the sum of the line items.
   def total_cents(nights:, rooms:, breakfasts: 0)
-    per_night = ROOM_TYPES.keys.sum { |room_type| rooms.fetch(room_type, 0).to_i * room_price_cents(room_type) }
-    per_night += breakfasts.to_i * BREAKFAST_CENTS
-    per_night * nights.to_i
+    line_items(nights: nights, rooms: rooms, breakfasts: breakfasts).sum(&:subtotal_cents)
   end
 
   def tier_name
