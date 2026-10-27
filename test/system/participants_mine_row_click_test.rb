@@ -6,6 +6,8 @@ class ParticipantsMineRowClickTest < ApplicationSystemTestCase
     fill_in "user_email", with: users(:one).email
     fill_in "user_password", with: "password123"
     click_button "Sign in"
+    assert_selector "button[aria-controls='user-menu']"
+
     visit mine_participants_path
 
     participant = participants(:one)
