@@ -9,14 +9,16 @@ class ParticipantsMineRowClickTest < ApplicationSystemTestCase
     visit mine_participants_path
 
     participant = participants(:one)
-    find("tr[data-clickable-row-url-value='#{participant_path(participant)}'] td:nth-child(2)").click
+    participant_name = "#{participant.first_name} #{participant.last_name}"
+    find("tr.participant-row", text: participant_name).find("td:nth-child(2)").click
     assert_current_path participant_path(participant)
 
     visit mine_participants_path
     page.current_window.resize_to(375, 812)
 
     participant = participants(:three)
-    find("tr[data-clickable-row-url-value='#{participant_path(participant)}'] td:nth-child(3)").click
+    participant_name = "#{participant.first_name} #{participant.last_name}"
+    find("tr.participant-row", text: participant_name).find("td:nth-child(3)").click
     assert_current_path participant_path(participant)
   end
 end
