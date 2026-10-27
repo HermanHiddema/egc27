@@ -36,7 +36,7 @@
 
   <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <!-- Header -->
-    <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
+    <header class="bg-brand-red-600 border-b border-brand-yellow-800 lg:sticky lg:top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
         <div class="header-brand flex min-w-0 flex-col items-start justify-center gap-1 lg:flex-row lg:items-center lg:gap-2">
           <%= link_to image_tag("EGC-logo.svg", alt: "DraGo's Summer Festival logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
@@ -125,9 +125,9 @@ DraGo's Summer Festival
 
     <!-- Footer -->
     <footer class="bg-brand-blue-900 text-white">
-      <div class="container-wide py-12">
-        <div class="border-t border-brand-blue-800 pt-8 flex items-start justify-between gap-4">
-          <div class="grid grid-cols-2 gap-3 sm:flex sm:gap-4">
+      <div class="container-wide py-3 lg:py-8">
+        <div class="border-t border-brand-blue-800 pt-3 lg:pt-8 flex flex-col items-center gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div class="footer-social-links flex items-center justify-center gap-3 sm:gap-4">
             <a href="https://www.facebook.com/share/189m4UBKsN/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Facebook">
               <%= social_media_icon("facebook", css_class: "w-6 h-6") %>
             </a>

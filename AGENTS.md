@@ -71,4 +71,11 @@ When the user expresses a new coding/UI/process preference in chat:
 - When a signed-in (confirmed) user registers another participant, the email is pre-filled/locked to their own address; validate it matches, then confirm the participant immediately without sending a confirmation email and route straight to the next step (payment for players, participant page for visitors).
 - In the participant Contact Information card, show the guest email explanation and existing-account warning full width below the field row.
 - On phones, make the tournament schedule selectable by day and show a readable selected-day agenda; keep weekly calendar columns horizontally navigable.
-- Keep the event dates visible in the mobile header; in landscape, use a compact header with the dates stacked beside a small logo and action buttons in a horizontal row when space allows.
+- On mobile, only the blue menu/search bar stays sticky; keep the red brand header compact, with smaller buttons and logo in portrait.
+- Keep event dates visible in the mobile header; in landscape, stack the dates beside a small logo and align the action buttons horizontally when space allows.
+- Make date selection update the schedule directly without a separate submit button, and show event category colors in mobile agendas.
+- Show the Fun Go explanation at the bottom of the desktop tournament schedule and in mobile agendas only on dates that include a Fun Go event; use a contextual “Back to events” link when editing calendar events.
+- Keep the month calendar page removed; use the tournament schedule and day/week/list views instead.
+- Reduce mobile page spacing above content and before the footer; keep the footer compact with a social row and responsive footer-link rows.
+- In portrait mobile footer, put Privacy, Copyright, FAQ, and Contact on the top row; place Terms and Conditions alone on the second row, left-aligned with Privacy and kept on one line.
+- On the portrait My registrations page, use a compact plus button beside the title for registering another participant.

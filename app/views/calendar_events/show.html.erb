@@ -1,6 +1,6 @@
 <div class="container-wide py-12">
   <div class="mb-6">
-    <%= link_to "← Back to Calendar", calendar_path(month: @calendar_event.starts_at.strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    <%= link_to "← Back to events", schedule_path(date: @calendar_event.starts_at.to_date), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
   </div>
 
   <article class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">

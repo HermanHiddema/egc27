@@ -21,7 +21,14 @@
     <div class="p-4 space-y-3 sm:p-6">
       <% if @calendar_events.any? %>
         <% @calendar_events.each do |calendar_event| %>
-          <%= link_to calendar_event_path(calendar_event), class: "block rounded-lg border border-gray-200 p-4 hover:bg-brand-blue-50 transition" do %>
+          <% event_path = if current_user&.can_edit?
+               edit_calendar_event_path(calendar_event, return_to: "day", date: @date.iso8601)
+             else
+               calendar_event_path(calendar_event)
+             end %>
+          <%= link_to event_path,
+                class: "block rounded-lg border border-gray-300 p-4 text-gray-900 transition hover:brightness-95",
+                style: "background-color: #{calendar_event.effective_color};" do %>
             <div class="flex items-center justify-between gap-4">
               <div>
                 <h3 class="text-lg font-semibold text-brand-blue-900"><%= calendar_event.title %></h3>

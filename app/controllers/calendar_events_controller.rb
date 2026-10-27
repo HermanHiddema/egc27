@@ -1,27 +1,12 @@
 class CalendarEventsController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:index, :day, :week, :two_weeks, :three_weeks, :list, :show]
+  helper_method :calendar_event_return_path
+
+  skip_before_action :authenticate_user!, only: [:day, :week, :two_weeks, :three_weeks, :list, :show]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update]
   before_action :require_admin!, only: [:destroy]
   before_action :set_calendar_event, only: [:show, :edit, :update, :destroy]
   before_action :set_event_groups, only: [:new, :create, :edit, :update]
-
-  def index
-    @current_view = :month
-    @month = parse_month(params[:month])
-
-    month_start = @month.beginning_of_month
-    month_end = @month.end_of_month
-    @week_anchor_date = month_start.beginning_of_week(:monday)
-    @display_start = month_start.beginning_of_week(:monday)
-    @display_end = month_end.end_of_week(:monday)
-
-    @calendar_days = (@display_start..@display_end).to_a
-    @calendar_events_by_day = CalendarEvent
-      .where(starts_at: @display_start.beginning_of_day..@display_end.end_of_day)
-      .chronological
-      .group_by { |calendar_event| calendar_event.starts_at.to_date }
-  end
 
   def day
     @current_view = :day
@@ -118,7 +103,7 @@ class CalendarEventsController < ApplicationController
 
   def update
     if @calendar_event.update(calendar_event_params)
-      redirect_to schedule_path, notice: "Event was successfully updated."
+      redirect_to calendar_event_return_path, notice: "Event was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -159,11 +144,16 @@ class CalendarEventsController < ApplicationController
     default
   end
 
-  def parse_month(value)
-    return Date.current unless value.present?
+  def calendar_event_return_path
+    date = return_date
+    params[:return_to] == "day" ? day_calendar_events_path(date: date) : schedule_path(date: date)
+  end
 
-    Date.strptime(value, "%Y-%m")
-  rescue ArgumentError
-    Date.current
+  def return_date
+    return @calendar_event.starts_at.to_date unless params[:date].present?
+
+    Date.iso8601(params[:date])
+  rescue ArgumentError, TypeError
+    @calendar_event.starts_at.to_date
   end
 end

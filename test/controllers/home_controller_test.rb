@@ -20,6 +20,17 @@ class HomeControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[aria-label='WhatsApp'][href='https://chat.whatsapp.com/LPdN50HJlFaFvcaRVhmkPC']"
   end
 
+  test "footer separates social links from footer navigation" do
+    MenuItem.create!(menu: menus(:footer), label: "Privacy", url: "/privacy", position: 1)
+
+    get root_path
+
+    assert_response :success
+    assert_select "footer .footer-social-links a[aria-label]", count: 5
+    assert_select "footer nav[aria-label='Footer menu'] ul.footer-menu-links li", count: 1
+    assert_select "footer nav ul.footer-menu-links li", text: "Privacy"
+  end
+
   test "home page shows article main image in summaries when attached" do
     article = articles(:one)
     article.main_image.attach(image_upload)
