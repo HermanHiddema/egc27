@@ -1,6 +1,39 @@
 require "test_helper"
 require "ostruct"
 
+# == Schema Information
+#
+# Table name: hostel_bookings
+#
+#  id                :bigint           not null, primary key
+#  amount_cents      :integer          not null
+#  arrival_date      :date             not null
+#  breakfasts        :integer          default(0), not null
+#  confirmation_sent :boolean          default(FALSE), not null
+#  departure_date    :date             not null
+#  double_rooms      :integer          default(0), not null
+#  female_dorm_beds  :integer          default(0), not null
+#  mixed_dorm_beds   :integer          default(0), not null
+#  payment_method    :string
+#  priced_on         :date             not null
+#  single_rooms      :integer          default(0), not null
+#  six_person_rooms  :integer          default(0), not null
+#  status            :string           default("open"), not null
+#  created_at        :datetime         not null
+#  updated_at        :datetime         not null
+#  mollie_payment_id :string
+#  user_id           :bigint           not null
+#
+# Indexes
+#
+#  index_hostel_bookings_on_mollie_payment_id  (mollie_payment_id) UNIQUE
+#  index_hostel_bookings_on_status             (status)
+#  index_hostel_bookings_on_user_id            (user_id)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
 class HostelBookingTest < ActiveSupport::TestCase
   include ActionMailer::TestHelper
   include ActiveSupport::Testing::TimeHelpers

@@ -37,6 +37,7 @@ This file defines project-specific guidance for AI coding agents working in this
 ## Safety and Data Integrity
 - Do not silently change persisted data semantics.
 - If data format changes are required, include migration and model normalization.
+- After adding or changing a DB migration (and after adding model tests or fixtures), run `bundle exec annotaterb models` and commit the refreshed schema annotations in models, tests, and fixtures. `db:migrate` only auto-annotates files that already exist at that moment.
 - Validate external API payloads defensively.
 
 ## Bot Protection (Cloudflare Turnstile + Rack::Attack)
