@@ -63,7 +63,7 @@
         <%= button_to "Pay #{@hostel_booking.amount_formatted} via Mollie", pay_hostel_booking_path(@hostel_booking),
               method: :post, data: { turbo: false }, class: "w-full btn-primary text-center block py-3 text-lg" %>
         <p class="text-xs text-neutral-500 mt-3 text-center">
-          You will be redirected to Mollie's secure payment page. The price is recalculated for the current pricing period when you pay.
+          You will be redirected to Mollie's secure payment page. The price is fixed when you make your booking.
         </p>
 
         <% if @show_simulation_controls %>

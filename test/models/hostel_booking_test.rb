@@ -12,6 +12,7 @@ require "ostruct"
 #  double_rooms     :integer          default(0), not null
 #  female_dorm_beds :integer          default(0), not null
 #  mixed_dorm_beds  :integer          default(0), not null
+#  priced_on        :date             not null
 #  single_rooms     :integer          default(0), not null
 #  six_person_rooms :integer          default(0), not null
 #  created_at       :datetime         not null
@@ -39,7 +40,7 @@ class HostelBookingTest < ActiveSupport::TestCase
     }.merge(attributes))
   end
 
-  test "calculates the amount for the current pricing period on create" do
+  test "fixes the amount to the pricing period when the booking is made" do
     booking = build_booking
 
     travel_to Time.zone.local(2027, 3, 1) do
@@ -47,6 +48,7 @@ class HostelBookingTest < ActiveSupport::TestCase
       payment = Payment.build_for_hostel_booking(booking)
 
       assert_equal 3 * (8_200 + 2 * 985), payment.amount_cents
+      assert_equal Date.new(2027, 3, 1), booking.priced_on
     end
 
     assert_equal 3, booking.nights
@@ -101,6 +103,7 @@ class HostelBookingTest < ActiveSupport::TestCase
     travel_to Time.zone.local(2027, 1, 31) do
       booking.save!
     end
+
     payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
     amount = payment.amount_cents
 
@@ -110,6 +113,21 @@ class HostelBookingTest < ActiveSupport::TestCase
 
     assert_equal "pending", booking.reload.status
     assert_equal amount, payment.reload.amount_cents
+  end
+
+  test "a later payment uses the pricing period when the booking was made" do
+    booking = nil
+    travel_to Time.zone.local(2027, 1, 31) do
+      booking = build_booking.tap(&:save!)
+    end
+
+    travel_to Time.zone.local(2027, 2, 1) do
+      payment = Payment.build_for_hostel_booking(booking)
+
+      assert_equal 3 * (7_900 + 2 * 985), payment.amount_cents
+      assert_equal 3 * (7_900 + 2 * 985), booking.amount_cents
+      assert_equal Date.new(2027, 1, 31), booking.priced_on
+    end
   end
 
   test "sends a confirmation email once when the booking becomes paid" do

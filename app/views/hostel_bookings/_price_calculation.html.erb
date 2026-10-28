@@ -1,11 +1,10 @@
 <%# Shows the price of a hostel booking as quantity × nights × price per item, summing to the total. %>
 <% euros = ->(cents) { "€ #{format('%.2f', cents / 100.0)}" } %>
 <% payment = hostel_booking.current_payment %>
-<% payment_date = payment&.created_at&.to_date || Date.current %>
 <table class="w-full text-sm mb-6">
   <caption class="sr-only">Price calculation</caption>
   <tbody class="divide-y divide-gray-100">
-    <% hostel_booking.price_lines(payment_date: payment_date).each do |line| %>
+    <% hostel_booking.price_lines.each do |line| %>
       <tr>
         <td class="py-2 pr-2 sm:whitespace-nowrap text-neutral-900">
           <%= line.quantity %> × <%= line.label %> × <%= pluralize(line.nights, "night") %> × <%= euros.call(line.unit_price_cents) %>

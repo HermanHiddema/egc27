@@ -106,7 +106,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
       booking = HostelBooking.last
       expected_cents = 2 * (6_900 + 2 * 2_900 + 3 * 985)
-      assert_equal expected_cents, booking.amount_cents(payment_date: Date.new(2026, 12, 1))
+      assert_equal expected_cents, booking.amount_cents
+      assert_equal Date.new(2026, 12, 1), booking.priced_on
       assert_equal users(:one), booking.user
       assert_empty booking.payments
       assert_equal "unpaid", booking.status
@@ -238,7 +239,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "pay starts a new checkout at the current price when the previous one expired" do
+  test "pay starts a new checkout at the booking price when the previous one expired" do
     booking = nil
     travel_to Time.zone.local(2027, 1, 15) do
       booking = create_booking
@@ -261,7 +262,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "tr_expired", old_payment.mollie_payment_id
     assert_equal "tr_new", new_payment.mollie_payment_id
     assert_equal "open", new_payment.status
-    assert_equal 2 * 8_200, new_payment.amount_cents
+    assert_equal 2 * 7_900, new_payment.amount_cents
   end
 
   test "pay does not start a checkout for a paid booking" do

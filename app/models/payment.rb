@@ -127,13 +127,11 @@ class Payment < ApplicationRecord
     )
   end
 
-  # Builds a payment for the current price of a hostel booking.
+  # Builds a payment for the price fixed when the hostel booking was made.
   def self.build_for_hostel_booking(hostel_booking)
-    pricing = HostelPricing.new
-
     new(
       hostel_booking: hostel_booking,
-      amount_cents: hostel_booking.amount_cents(payment_date: pricing.payment_date),
+      amount_cents: hostel_booking.amount_cents,
       description: hostel_booking.description,
       status: "open"
     )

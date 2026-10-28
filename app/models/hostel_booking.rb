@@ -9,6 +9,7 @@
 #  double_rooms     :integer          default(0), not null
 #  female_dorm_beds :integer          default(0), not null
 #  mixed_dorm_beds  :integer          default(0), not null
+#  priced_on        :date             not null
 #  single_rooms     :integer          default(0), not null
 #  six_person_rooms :integer          default(0), not null
 #  created_at       :datetime         not null
@@ -27,9 +28,12 @@ class HostelBooking < ApplicationRecord
   ROOM_TYPES = HostelPricing::ROOM_TYPES.keys.freeze
   has_paper_trail
 
+  attr_readonly :priced_on
+
   belongs_to :user
   has_many :payments, -> { order(created_at: :desc, id: :desc) }, dependent: :restrict_with_error
 
+  before_create :lock_price
   before_destroy :prevent_destruction_with_financial_history
 
   validates :arrival_date, :departure_date, presence: true
@@ -53,17 +57,17 @@ class HostelBooking < ApplicationRecord
     ROOM_TYPES.sum { |room_type| self[room_type].to_i * HostelPricing::ROOM_TYPES.dig(room_type, :beds) }
   end
 
-  # The price calculation for this booking at the requested pricing period.
-  def price_lines(payment_date: Date.current)
-    HostelPricing.new(payment_date: payment_date).line_items(
+  # The price calculation for this booking at the pricing period when it was made.
+  def price_lines
+    HostelPricing.new(payment_date: priced_on || Date.current).line_items(
       nights: nights,
       rooms: ROOM_TYPES.index_with { |room_type| self[room_type] },
       breakfasts: breakfasts
     )
   end
 
-  def amount_cents(payment_date: Date.current)
-    price_lines(payment_date: payment_date).sum(&:subtotal_cents)
+  def amount_cents
+    price_lines.sum(&:subtotal_cents)
   end
 
   def description
@@ -95,11 +99,15 @@ class HostelBooking < ApplicationRecord
     payment_status
   end
 
-  def amount_formatted(payment_date: Date.current)
-    "€ #{format('%.2f', amount_cents(payment_date: payment_date) / 100.0)}"
+  def amount_formatted
+    "€ #{format('%.2f', amount_cents / 100.0)}"
   end
 
   private
+
+  def lock_price
+    self.priced_on = Date.current
+  end
 
   def prevent_destruction_with_financial_history
     return unless financial_history_or_active_checkout?

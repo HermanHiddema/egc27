@@ -82,3 +82,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
 - In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.
+- Fix hostel booking prices when the booking is created; later payment attempts must use that booking-time price.
