@@ -27,15 +27,28 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
+    payments(:open_payment).update_column(:created_at, Time.zone.local(2026, 8, 1))
 
     travel_to Time.zone.local(2026, 8, 1) do
       get new_participant_payment_path(participant)
     end
 
     assert_response :success
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
     assert_match "This price is valid until", response.body
     assert_match "31 Aug 2026", response.body
     assert_match "After that, the price will go up.", response.body
+    assert_select "table.price-overview thead tr.bg-gray-200"
+    assert_select "table.price-overview th", count: 4
+    assert_select "table.price-overview th", text: /Pass type/
+    assert_select "table.price-overview th", text: /Special/, count: 0
+    assert_select "table.price-overview th .price-overview-label", count: 3
+    assert_select "table.price-overview th .price-overview-label + details.price-period-info", count: 3
+    assert_select "details.price-period-info summary[aria-label='Early Bird price period dates']"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 January 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 May 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "From 1 June 2027"
+    assert_select "tr.price-overview-row.bg-brand-yellow-200"
     assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options/
     assert_select "a[href=?]", page_path("faq"), text: "FAQ"
   end
@@ -55,7 +68,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_match payment.description, response.body
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
+    assert_select ".payment-participant-overview .payment-pass-type", text: payment.description, count: 0
     assert_match "31 Aug 2026", response.body
   end
 

@@ -56,6 +56,9 @@ When the user expresses a new coding/UI/process preference in chat:
 
 ## Current User Preferences Captured
 - Keep participant date UX aligned with European day-before-month expectations.
+- Keep portrait payment price tables compact enough for Euro amounts; show only the pass type in the participant payment summary, right-aligned.
+- In mobile payment price tables, place each price-period “i” on its own right-aligned second header line.
+- In portrait, shorten the participant details return link to “Back”, stack it with Edit, and stack admin Edit/Delete actions vertically.
 - Use full strength labels: `kyu`, `dan`, `dan pro`.
 - Show stronger playing strengths first.
 - Country selector should support autocomplete with ISO alpha-2 semantics.

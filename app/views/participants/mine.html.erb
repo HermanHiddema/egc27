@@ -20,19 +20,17 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700"></th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @participants.each do |participant| %>
-              <tr>
-                <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
+              <tr class="participant-row cursor-pointer hover:bg-neutral-50" data-controller="clickable-row" data-clickable-row-url-value="<%= participant_path(participant) %>" data-action="click->clickable-row#navigate">
+                <td class="px-4 py-3 text-sm text-neutral-900">
+                  <%= link_to [participant.first_name, participant.last_name].join(" "), participant_path(participant), class: "text-neutral-900" %>
+                </td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type.humanize %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.confirmed? ? "Confirmed" : "Pending confirmation" %></td>
-                <td class="px-4 py-3 text-sm text-right">
-                  <%= link_to "View", participant_path(participant), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-                </td>
               </tr>
             <% end %>
           </tbody>

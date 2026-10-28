@@ -53,9 +53,15 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Alice Smith", response.body
     assert_match "Carol Smith", response.body
+    assert_match "Victor Visitor", response.body
     assert_no_match "Dave Pending", response.body
     assert_no_match "Bob Jones", response.body
     assert_select "a.register-another-participant[aria-label='Register another participant'][href='#{new_participant_path}'] span.register-another-plus[aria-hidden='true']", text: "+"
+    assert_select "tr.participant-row", count: 3
+    assert_select "tr.participant-row[data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{participant_path(participants(:one))}'] a[href='#{participant_path(participants(:one))}']", text: "Alice Smith"
+    assert_select "tr.participant-row[data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{participant_path(participants(:three))}'] a[href='#{participant_path(participants(:three))}']", text: "Carol Smith"
+    assert_select "tr.participant-row[data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{participant_path(participants(:visitor_one))}'] a[href='#{participant_path(participants(:visitor_one))}']", text: "Victor Visitor"
+    assert_select "a", text: "View", count: 0
   end
 
   test "mine redirects to show page when user has only one participant" do
@@ -112,7 +118,8 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Gender", response.body
     assert_match "Age group", response.body
     assert_select "a[href='#{edit_participant_path(participant)}']", text: "Edit"
-    assert_select "a[href='#{mine_participants_path}'].btn-primary", text: "Back to participants"
+    assert_select "a[href='#{mine_participants_path}'].btn-primary[aria-label='Back to participants'] span.participant-back-full", text: "Back to participants"
+    assert_select "a[href='#{mine_participants_path}'].btn-primary span.participant-back-mobile", text: "Back"
   end
 
   test "show handles a legacy participant with no gender" do

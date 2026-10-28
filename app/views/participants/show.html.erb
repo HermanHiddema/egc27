@@ -3,9 +3,12 @@
     <div class="flex justify-between items-center mb-8 gap-4">
       <h1 class="text-4xl font-bold"><%= @personal_details_visible ? "Participant Details" : (@participant.confirmed? ? "Registration Confirmed" : "Registration Received") %></h1>
       <% if @personal_details_visible %>
-        <div class="flex gap-3">
+        <div class="participant-show-actions portrait-stack-actions flex gap-3">
           <% if @has_multiple_participants %>
-            <%= link_to "Back to participants", mine_participants_path, class: "btn-primary" %>
+            <%= link_to mine_participants_path, class: "btn-primary", aria: { label: "Back to participants" } do %>
+              <span class="participant-back-full">Back to participants</span>
+              <span class="participant-back-mobile">Back</span>
+            <% end %>
           <% end %>
           <%= link_to "Edit", edit_participant_path(@participant), class: "btn-primary" %>
         </div>
