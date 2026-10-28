@@ -332,12 +332,14 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
   end
 
-  test "build_for_hostel_booking builds an unsaved payment for current hostel prices" do
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24),
-      departure_date: Date.new(2027, 7, 26),
-      double_rooms: 1
-    )
+  test "build_for_hostel_booking builds an unsaved payment for booking-time hostel prices" do
+    booking = travel_to Time.zone.local(2027, 1, 31) do
+      users(:one).hostel_bookings.create!(
+        arrival_date: Date.new(2027, 7, 24),
+        departure_date: Date.new(2027, 7, 26),
+        double_rooms: 1
+      )
+    end
 
     travel_to Time.zone.local(2027, 3, 1) do
       payment = Payment.build_for_hostel_booking(booking)
@@ -345,7 +347,7 @@ class PaymentTest < ActiveSupport::TestCase
       assert_not payment.persisted?
       assert_equal booking, payment.hostel_booking
       assert_nil payment.participant
-      assert_equal 2 * 8_200, payment.amount_cents
+      assert_equal 2 * 7_900, payment.amount_cents
       assert_equal booking.description, payment.description
     end
   end
