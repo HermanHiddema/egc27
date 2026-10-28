@@ -20,7 +20,7 @@ class HostelBookingsController < ApplicationController
     @hostel_booking = current_user.hostel_bookings.build(hostel_booking_params)
 
     if @hostel_booking.save
-      checkout
+      redirect_to hostel_booking_path(@hostel_booking), notice: "Your booking has been created. Please review it and complete payment."
     else
       set_pricing
       render :new, status: :unprocessable_entity

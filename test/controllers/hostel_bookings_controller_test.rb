@@ -87,11 +87,10 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_match "These prices are valid until", response.body
   end
 
-  test "create saves the booking and redirects to the Mollie checkout" do
+  test "create saves the booking and redirects to its summary without starting payment" do
     sign_in users(:one)
-    mollie_payment = OpenStruct.new(id: "tr_hostel_1", checkout_url: "https://example.test/hostel-checkout")
 
-    with_mollie_create_stub(mollie_payment) do |created_params|
+    with_mollie_create_stub(nil) do |created_params|
       travel_to Time.zone.local(2026, 12, 1) do
         assert_difference("HostelBooking.count", 1) do
           post hostel_bookings_path, params: booking_params
@@ -102,13 +101,17 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
       expected_cents = 2 * (6_900 + 2 * 2_900 + 3 * 985)
       assert_equal expected_cents, booking.amount_cents
       assert_equal users(:one), booking.user
-      assert_equal "tr_hostel_1", booking.mollie_payment_id
-      assert_equal format("%.2f", expected_cents / 100.0), created_params.first[:amount][:value]
-      assert_equal hostel_booking_url(booking), created_params.first[:redirect_url]
-      assert_equal webhook_hostel_bookings_url, created_params.first[:webhook_url]
+      assert_nil booking.mollie_payment_id
+      assert_equal "open", booking.status
+      assert_empty created_params
+      assert_redirected_to hostel_booking_path(booking)
+      assert_equal "Your booking has been created. Please review it and complete payment.", flash[:notice]
     end
 
-    assert_redirected_to "https://example.test/hostel-checkout"
+    follow_redirect!
+
+    assert_response :success
+    assert_select "form[action=?]", pay_hostel_booking_path(HostelBooking.last)
   end
 
   test "create re-renders the form for invalid dates" do
@@ -121,20 +124,6 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_match "can not be before 24 July 2027", response.body
     assert_match "can not be after 7 August 2027", response.body
-  end
-
-  test "create redirects to the booking when Mollie fails" do
-    sign_in users(:one)
-    original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| raise Mollie::Exception, "Mollie is down" }
-
-    post hostel_bookings_path, params: booking_params
-
-    booking = HostelBooking.last
-    assert_redirected_to hostel_booking_path(booking)
-    assert_equal "Payment could not be started: Mollie is down", flash[:alert]
-  ensure
-    Mollie::Payment.define_singleton_method(:create, &original)
   end
 
   test "index lists only the bookings of the current user" do
@@ -182,6 +171,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "tbody[data-hostel-booking-target='lines']"
     assert_select "form[data-hostel-booking-labels-value*='Breakfast buffet']"
+    assert_select "input[type=submit][value='Book with commitment to pay']"
+    assert_match "Review your booking and complete payment on the next page.", response.body
     assert_select "form[data-hostel-booking-labels-value*='mixed dorm bed']"
     assert_select "form[data-hostel-booking-labels-value*='female dorm bed']"
     assert_select "dt", text: "Beds"
