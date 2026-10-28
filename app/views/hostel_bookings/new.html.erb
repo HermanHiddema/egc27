@@ -54,11 +54,12 @@
         </div>
 
         <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
-          <h2 class="text-lg font-semibold text-neutral-900">Breakfast</h2>
+          <h2 class="text-lg font-semibold text-neutral-900">Breakfast buffet</h2>
           <div class="flex items-center justify-between gap-4">
             <%= form.label :breakfasts, class: "text-sm text-neutral-900" do %>
-              <span class="font-medium">Breakfasts per night</span>
-              <span class="block text-neutral-600">Breakfast buffet, € <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night. Enter the number of people who want breakfast.</span>
+              <span class="font-medium">People for breakfast</span>
+              <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
+              <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
             <% end %>
             <%= form.number_field :breakfasts, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "breakfasts" } %>
           </div>
@@ -122,8 +123,10 @@
             </tr>
           <% end %>
           <tr>
-            <td class="px-4 py-2 text-neutral-900">Breakfast buffet (per person)</td>
-            <td class="px-4 py-2 text-neutral-700" colspan="3">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+            <td class="px-4 py-2 text-neutral-900">Breakfast buffet (per person per night)</td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :early == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :regular == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :late == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
           </tr>
         </tbody>
       </table>
