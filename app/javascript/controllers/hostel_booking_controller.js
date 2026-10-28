@@ -29,7 +29,7 @@ export default class extends Controller {
     if (breakfasts > 0) {
       lines.push({ label: this.labelsValue.breakfasts, quantity: breakfasts, unitCents: this.breakfastCentsValue })
     }
-    this.breakfastsTarget.max = beds
+    this.breakfastsTarget.max = Math.min(beds, 99)
 
     const totalCents = lines.reduce((sum, line) => sum + line.quantity * nights * line.unitCents, 0)
 

@@ -250,6 +250,21 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to hostel_booking_path(booking)
   end
 
+  test "pay does not start a checkout when Mollie reports that it is already paid" do
+    booking = create_booking(mollie_payment_id: "tr_paid")
+    sign_in users(:one)
+
+    with_mollie_get_stub(OpenStruct.new(id: "tr_paid", status: "paid")) do
+      with_mollie_create_stub(nil) do |created_params|
+        post pay_hostel_booking_path(booking)
+        assert_empty created_params
+      end
+    end
+
+    assert_redirected_to hostel_booking_path(booking)
+    assert_equal "paid", booking.reload.status
+  end
+
   test "pay can simulate a Mollie status in test" do
     booking = create_booking
     sign_in users(:one)
@@ -271,5 +286,16 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "paid", booking.reload.status
+  end
+
+  test "webhook asks Mollie to retry when fetching the payment fails" do
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "Mollie is down" }
+
+    post webhook_hostel_bookings_path, params: { id: "tr_unavailable" }
+
+    assert_response :service_unavailable
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 end

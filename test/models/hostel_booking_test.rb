@@ -138,4 +138,11 @@ class HostelBookingTest < ActiveSupport::TestCase
     assert_equal "refunded", booking.status
     assert_not booking.payable?
   end
+
+  test "prevents destroying a booking with financial history or an active checkout" do
+    booking = build_booking(mollie_payment_id: "tr_active_checkout").tap(&:save!)
+
+    assert_raises(ActiveRecord::RecordNotDestroyed) { booking.destroy! }
+    assert HostelBooking.exists?(booking.id)
+  end
 end

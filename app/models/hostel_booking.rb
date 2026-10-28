@@ -44,6 +44,8 @@ class HostelBooking < ApplicationRecord
 
   belongs_to :user
 
+  before_destroy :prevent_destruction_with_financial_history
+
   validates :arrival_date, :departure_date, presence: true
   validates :arrival_date, comparison: { greater_than_or_equal_to: HostelPricing::FIRST_ARRIVAL_DATE,
                                          message: "can not be before 24 July 2027" }, allow_nil: true
@@ -65,6 +67,9 @@ class HostelBooking < ApplicationRecord
   after_commit :send_payment_confirmation, on: [:create, :update], if: :became_paid?
 
   scope :paid, -> { where(status: "paid") }
+  scope :with_financial_history_or_active_checkout, -> {
+    where.not(mollie_payment_id: [nil, ""]).or(where(status: %w[paid refunded charged_back]))
+  }
 
   # Records the state of a Mollie payment reported through the webhook. Returns
   # the updated booking, or nil when the payment is not for a hostel booking.
@@ -107,6 +112,10 @@ class HostelBooking < ApplicationRecord
   # again; a new booking has to be made instead.
   def payable?
     !paid? && !Payment::REVERSED_STATUSES.include?(status)
+  end
+
+  def financial_history_or_active_checkout?
+    mollie_payment_id.present? || paid? || Payment::REVERSED_STATUSES.include?(status)
   end
 
   def amount_eur
@@ -188,6 +197,13 @@ class HostelBooking < ApplicationRecord
   end
 
   private
+
+  def prevent_destruction_with_financial_history
+    return unless financial_history_or_active_checkout?
+
+    errors.add(:base, "Cannot delete a hostel booking with financial history or an active checkout")
+    throw(:abort)
+  end
 
   def calculate_amount
     self.priced_on = Date.current

@@ -33,11 +33,6 @@ class HostelBookingsController < ApplicationController
   end
 
   def pay
-    @hostel_booking.refresh_from_mollie
-    unless @hostel_booking.payable?
-      return redirect_to hostel_booking_path(@hostel_booking), alert: "This hostel booking can not be paid anymore."
-    end
-
     checkout
   end
 
@@ -47,7 +42,7 @@ class HostelBookingsController < ApplicationController
     head :ok
   rescue Mollie::Exception => e
     Rails.logger.error "[Mollie] Webhook error for hostel booking payment #{params[:id]}: #{e.message}"
-    head :ok
+    head :service_unavailable
   end
 
   private
@@ -71,13 +66,20 @@ class HostelBookingsController < ApplicationController
         notice: "Simulated Mollie payment status: #{@hostel_booking.status}."
     end
 
-    checkout_url = @hostel_booking.resume_mollie_checkout!
-    return redirect_to hostel_booking_path(@hostel_booking), notice: "Your hostel booking has been paid." if @hostel_booking.paid?
+    checkout_url = @hostel_booking.with_lock do
+      next unless @hostel_booking.payable?
 
-    checkout_url ||= @hostel_booking.start_mollie_checkout!(
-      redirect_url: hostel_booking_url(@hostel_booking),
-      webhook_url: webhook_hostel_bookings_url
-    )
+      resumed_checkout_url = @hostel_booking.resume_mollie_checkout!
+      if @hostel_booking.payable?
+        resumed_checkout_url || @hostel_booking.start_mollie_checkout!(
+          redirect_url: hostel_booking_url(@hostel_booking),
+          webhook_url: webhook_hostel_bookings_url
+        )
+      end
+    end
+
+    return redirect_to hostel_booking_path(@hostel_booking), notice: "Your hostel booking has been paid." if @hostel_booking.paid?
+    return redirect_to hostel_booking_path(@hostel_booking), alert: "This hostel booking can not be paid anymore." unless @hostel_booking.payable?
 
     redirect_to checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
