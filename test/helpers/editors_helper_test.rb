@@ -84,4 +84,40 @@ class EditorsHelperTest < ActionView::TestCase
     assert_includes sanitized, 'valign="top"'
     assert_includes sanitized, 'bgcolor="#f8fafc"'
   end
+
+  test "render_html_content keeps newsletter layout tables and editable content" do
+    html = '<table class="newsletter-layout-locked" contenteditable="false" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse;"><tbody><tr><td width="50%" valign="top" style="width:50%; padding:8px; vertical-align:top;"><div class="newsletter-layout-editable" contenteditable="true"><p>News</p><img src="/uploads/a.jpg" alt="Photo" onerror="alert(1)"></div></td><td width="50%" valign="top"><div class="newsletter-layout-editable"><p>More news</p></div></td></tr></tbody></table>'
+
+    sanitized = render_html_content(html)
+
+    assert_includes sanitized, 'class="newsletter-layout-locked"'
+    assert_includes sanitized, 'class="newsletter-layout-editable"'
+    assert_includes sanitized, 'width="50%"'
+    assert_includes sanitized, 'valign="top"'
+    assert_includes sanitized, "News"
+    assert_includes sanitized, 'src="/uploads/a.jpg"'
+    refute_includes sanitized, "onerror"
+    refute_includes sanitized, "contenteditable"
+  end
+
+  test "render_html_content preserves a resized image inside a newsletter layout" do
+    html = '<table class="newsletter-layout-locked"><tr><td><div class="newsletter-layout-editable"><img class="newsletter-layout-image" src="/uploads/a.jpg" width="180" height="120" style="display:block; width:50%; max-width:100%;"></div></td></tr></table>'
+
+    sanitized = render_html_content(html)
+
+    assert_includes sanitized, 'width="180"'
+    assert_includes sanitized, 'height="120"'
+    assert_includes sanitized, "width:50%"
+    assert_includes sanitized, "max-width:100%"
+  end
+
+  test "render_html_content preserves image alignment styles inside a newsletter layout" do
+    html = '<table class="newsletter-layout-locked"><tr><td><div class="newsletter-layout-editable"><img src="/uploads/a.jpg" class="img-align-right" style="display:block; float:right; margin:0.25rem 0 0.75rem 1rem;"></div></td></tr></table>'
+
+    sanitized = render_html_content(html)
+
+    assert_includes sanitized, 'class="img-align-right"'
+    assert_includes sanitized, "float:right"
+    assert_includes sanitized, "margin:0.25rem 0 0.75rem 1rem"
+  end
 end

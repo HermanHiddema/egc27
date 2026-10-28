@@ -35,10 +35,12 @@
                          controller: "tinymce",
                          tinymce_script_url_value: tinymce_script_url,
                          tinymce_plugins_value: "lists link image autoresize",
-                         tinymce_toolbar_value: "undo redo | blocks | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image | removeformat"
+                         tinymce_toolbar_value: "undo redo | blocks | bold italic underline | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image | newsletter_full_text newsletter_text_image newsletter_image_text newsletter_image_image | removeformat",
+                         tinymce_newsletter_layouts_value: true,
+                         tinymce_newsletter_placeholder_image_value: image_path("placeholders/EGC2027-liggenddraakje.jpg")
                        },
                        class: "w-full rounded-lg border border-gray-300 bg-white" %>
-    <p class="text-sm text-gray-500 mt-2">Content will use a simple, single-column email layout. Use headings, text formatting, links, lists, and images. Uploaded images are hosted by this site.</p>
+    <p class="text-sm text-gray-500 mt-2">Use the layout buttons to add fixed one-column text or two-column text and image blocks. Edit text inside each block and replace sample images with the image button. Uploaded images are hosted by this site.</p>
   </div>
 
   <div class="flex flex-wrap gap-3">

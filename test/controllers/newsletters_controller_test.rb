@@ -8,6 +8,7 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select 'textarea[name="newsletter[content_html]"][required]', count: 0
+    assert_select 'textarea[data-tinymce-plugins-value="lists link image autoresize"]'
     assert_select 'button[name="intent"][value="preview"]', text: "Preview"
     assert_select 'button[name="intent"][value="save"]', text: "Save draft"
     assert_select 'button[name="intent"][value="send"]', text: "Send"
@@ -30,6 +31,7 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     follow_redirect!
     assert_response :success
     assert_includes response.body, "Welcome"
+    assert_select ".newsletter-document"
   end
 
   test "save draft returns to the editor with the draft stored" do
@@ -148,6 +150,7 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     get newsletter_path(sent)
     assert_response :success
     assert_includes response.body, sent.content_html
+    assert_select ".newsletter-document"
 
     get newsletter_path(draft)
     assert_response :not_found

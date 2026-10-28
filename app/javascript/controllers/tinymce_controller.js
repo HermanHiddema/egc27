@@ -7,6 +7,8 @@ import { Controller } from "@hotwired/stimulus"
 export default class extends Controller {
     static values = {
         scriptUrl: String,
+        newsletterLayouts: { type: Boolean, default: false },
+        newsletterPlaceholderImage: String,
         plugins: { type: String, default: "lists link image table code autoresize quickbars" },
         toolbar: {
             type: String,
@@ -133,18 +135,34 @@ export default class extends Controller {
 
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || ""
 
-        window.tinymce.init({
+        const config = {
             target: this.element,
             license_key: "gpl",
             menubar: false,
             plugins: this.pluginsValue,
             toolbar: this.toolbarValue,
+            toolbar_mode: this.newsletterLayoutsValue ? "wrap" : undefined,
+            contextmenu: this.newsletterLayoutsValue ? false : undefined,
+            quickbars_insert_toolbar: this.newsletterLayoutsValue ? false : undefined,
+            object_resizing: this.newsletterLayoutsValue ? "img" : true,
             block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
             formats: {
-                alignleft: { selector: "img,figure.image", classes: "img-align-left" },
-                alignright: { selector: "img,figure.image", classes: "img-align-right" },
-                aligncenter: { selector: "img,figure.image", classes: "img-align-center" },
-                alignnone: { selector: "img,figure.image", classes: "img-align-none" }
+                alignleft: [
+                    { selector: "img,figure.image", classes: "img-align-left", styles: { float: "left", margin: "0.25rem 1rem 0.75rem 0" } },
+                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "left" } }
+                ],
+                alignright: [
+                    { selector: "img,figure.image", classes: "img-align-right", styles: { float: "right", margin: "0.25rem 0 0.75rem 1rem" } },
+                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "right" } }
+                ],
+                aligncenter: [
+                    { selector: "img,figure.image", classes: "img-align-center", styles: { float: "none", margin: "0.75rem auto" } },
+                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "center" } }
+                ],
+                alignnone: [
+                    { selector: "img,figure.image", classes: "img-align-none", styles: { float: "none", margin: "0.75rem 0" } },
+                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "left" } }
+                ]
             },
             image_class_list: [
                 { title: "None", value: "" },
@@ -154,7 +172,7 @@ export default class extends Controller {
             quickbars_image_toolbar: "alignleft aligncenter alignright | imageoptions",
             image_description: true,
             image_caption: true,
-            table_toolbar: "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
+            table_toolbar: this.newsletterLayoutsValue ? "" : "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
             table_default_attributes: {
                 class: "tinymce-table"
             },
@@ -167,6 +185,16 @@ export default class extends Controller {
                 img.img-align-right, img.alignright, figure.image.img-align-right, figure.image.image-style-align-right {
                     float: right;
                     margin: 0.25rem 0 0.75rem 1rem;
+                }
+
+                img.img-align-center {
+                    float: none;
+                    margin: 0.75rem auto;
+                }
+
+                img.img-align-none {
+                    float: none;
+                    margin: 0.75rem 0;
                 }
 
                 figure.image {
@@ -209,6 +237,38 @@ export default class extends Controller {
                     border: 1px solid #cbd5e1;
                     padding: 0.5rem;
                 }
+
+                table.newsletter-layout-locked {
+                    width: 100%;
+                    table-layout: fixed;
+                    border-collapse: collapse;
+                    height: auto !important;
+                }
+
+                table.newsletter-layout-locked tr,
+                table.newsletter-layout-locked td {
+                    border: 1px dashed #cbd5e1;
+                    padding: 0.5rem;
+                    vertical-align: top;
+                    height: auto !important;
+                }
+
+                .newsletter-layout-editable img {
+                    display: block;
+                    max-width: 100%;
+                    height: auto;
+                }
+
+                .newsletter-layout-editable figure.image {
+                    display: block;
+                    width: 100%;
+                    max-width: 100%;
+                    margin: 0;
+                }
+
+                .newsletter-layout-editable figure.image img {
+                    margin: 0;
+                }
             `,
             convert_urls: false,
             automatic_uploads: true,
@@ -243,6 +303,101 @@ export default class extends Controller {
             }),
             branding: false,
             promotion: false
+        }
+
+        if (this.newsletterLayoutsValue) {
+            config.setup = (editor) => this.registerNewsletterLayoutButtons(editor)
+        }
+
+        window.tinymce.init(config)
+    }
+
+    registerNewsletterLayoutButtons(editor) {
+        const imageUrl = this.newsletterPlaceholderImageValue
+        const textCell = '<div class="newsletter-layout-editable" contenteditable="true"><p>Write your text here.</p></div>'
+        const imageCell = `<div class="newsletter-layout-editable" contenteditable="true"><img class="newsletter-layout-image" src="${imageUrl}" alt="Replace this sample image with your own" width="552" style="display:block; max-width:100%;"></div>`
+
+        const layoutTable = (leftContent, rightContent) => `
+            <table class="newsletter-layout-locked" contenteditable="false" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin:16px 0;">
+                <tbody><tr>
+                    <td class="newsletter-layout-column" width="50%" valign="top" style="width:50%; padding:8px; vertical-align:top;">${leftContent}</td>
+                    <td class="newsletter-layout-column" width="50%" valign="top" style="width:50%; padding:8px; vertical-align:top;">${rightContent}</td>
+                </tr></tbody>
+            </table><p></p>`
+
+        const fullTextBlock = `
+            <table class="newsletter-layout-locked" contenteditable="false" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin:16px 0;">
+                <tbody><tr><td class="newsletter-layout-column" width="100%" valign="top" style="width:100%; padding:8px; vertical-align:top;">
+                    ${textCell}
+                </td></tr></tbody>
+            </table><p></p>`
+
+        const layouts = [
+            ["newsletter_full_text", "Full-width text", null, null],
+            ["newsletter_text_image", "Text + image", textCell, imageCell],
+            ["newsletter_image_text", "Image + text", imageCell, textCell],
+            ["newsletter_image_image", "Image + image", imageCell, imageCell]
+        ]
+
+        const newsletterImageSources = new WeakMap()
+        const normalizeLayoutTableHeights = () => {
+            editor.dom.select(".newsletter-layout-locked, .newsletter-layout-locked tr, .newsletter-layout-locked td").forEach((element) => {
+                element.removeAttribute("height")
+                element.style.removeProperty("height")
+            })
+        }
+        const sizeNewLayoutImage = (image) => {
+            const source = image.getAttribute("src")
+            if (!source || newsletterImageSources.get(image) === source) return
+
+            newsletterImageSources.set(image, source)
+            const sourceWidth = image.naturalWidth || Number(image.getAttribute("width"))
+            const sourceHeight = image.naturalHeight || Number(image.getAttribute("height"))
+
+            if (!sourceWidth || !sourceHeight) {
+                newsletterImageSources.delete(image)
+                image.addEventListener("load", () => sizeNewLayoutImage(image), { once: true })
+                return
+            }
+
+            const cell = image.closest("td")
+            const view = image.ownerDocument.defaultView
+            const cellStyle = cell && view ? view.getComputedStyle(cell) : null
+            const padding = cellStyle ? parseFloat(cellStyle.paddingLeft) + parseFloat(cellStyle.paddingRight) : 0
+            const cellWidth = cell ? Math.round(cell.getBoundingClientRect().width - padding) : 0
+            const fittedWidth = Math.max(1, Math.min(sourceWidth, cellWidth || 552))
+            const fittedHeight = Math.max(1, Math.round(sourceHeight * fittedWidth / sourceWidth))
+
+            image.classList.add("newsletter-layout-image")
+            image.removeAttribute("height")
+            image.style.removeProperty("width")
+            image.style.removeProperty("height")
+            editor.dom.setStyles(image, { display: "block", maxWidth: "100%" })
+            image.setAttribute("width", String(fittedWidth))
+            image.setAttribute("height", String(fittedHeight))
+
+            const figure = image.closest("figure.image")
+            if (figure) {
+                editor.dom.setStyles(figure, { display: "block", width: "100%", maxWidth: "100%", margin: "0" })
+            }
+        }
+
+        editor.on("init", normalizeLayoutTableHeights)
+        editor.on("init", () => {
+            editor.dom.select(".newsletter-layout-locked .newsletter-layout-editable img").forEach((image) => {
+                newsletterImageSources.set(image, image.getAttribute("src"))
+            })
+        })
+        editor.on("NodeChange ObjectResized", () => {
+            editor.dom.select(".newsletter-layout-locked .newsletter-layout-editable img").forEach(sizeNewLayoutImage)
+        })
+
+        layouts.forEach(([name, label, leftContent, rightContent]) => {
+            editor.ui.registry.addButton(name, {
+                text: label,
+                tooltip: `Insert a fixed ${name === "newsletter_full_text" ? "one-column" : "two-column"} ${label.toLowerCase()} block`,
+                onAction: () => editor.insertContent(name === "newsletter_full_text" ? fullTextBlock : layoutTable(leftContent, rightContent))
+            })
         })
     }
 }

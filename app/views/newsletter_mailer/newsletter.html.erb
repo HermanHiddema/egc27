@@ -4,14 +4,35 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= @newsletter.title %></title>
+    <style type="text/css">
+      table.newsletter-layout-locked,
+      table.newsletter-layout-locked tr,
+      table.newsletter-layout-locked td { height: auto !important; }
+
+      table.newsletter-layout-locked img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+
+      table.newsletter-layout-locked img.img-align-left { float: left; margin: 0.25rem 1rem 0.75rem 0; }
+      table.newsletter-layout-locked img.img-align-center { float: none; margin: 0.75rem auto; }
+      table.newsletter-layout-locked img.img-align-right { float: right; margin: 0.25rem 0 0.75rem 1rem; }
+
+      @media only screen and (max-width: 640px) {
+        .newsletter-email-container { width: 100% !important; max-width: 100% !important; }
+        .newsletter-content { padding: 20px 16px !important; }
+        table.newsletter-layout-locked td { display: block !important; width: 100% !important; max-width: 100% !important; box-sizing: border-box !important; }
+      }
+    </style>
   </head>
   <body style="margin:0; padding:0; background-color:#f3f4f6; color:#1f2937; font-family:Arial, Helvetica, sans-serif;">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; background-color:#f3f4f6;">
       <tr>
         <td align="center" style="padding:24px 12px;">
-          <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:600px; background-color:#ffffff;">
+          <table role="presentation" class="newsletter-email-container" width="1200" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:1200px; background-color:#ffffff;">
             <tr>
-              <td style="padding:32px 28px; font-size:16px; line-height:1.6;">
+              <td class="newsletter-content" style="padding:32px 28px; font-size:16px; line-height:1.6;">
                 <h1 style="margin:0 0 24px; color:#1f2937; font-size:26px; line-height:1.25;"><%= @newsletter.title %></h1>
                 <div style="font-size:16px; line-height:1.6;">
                   <%= @content_html %>

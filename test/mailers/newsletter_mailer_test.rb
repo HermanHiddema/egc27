@@ -5,7 +5,7 @@ class NewsletterMailerTest < ActionMailer::TestCase
     newsletter = Newsletter.create!(
       title: "Spring update",
       subject: "News from EGC",
-      content_html: '<p>Welcome</p><script>alert(1)</script><img src="/rails/blobs/redirect/abc/photo.png" onerror="alert(1)">',
+      content_html: '<p>Welcome</p><table class="newsletter-layout-locked" width="100%"><tr><td width="50%"><img src="/rails/blobs/redirect/abc/layout.png" style="display:block; width:100%; max-width:100%; height:auto;"></td><td width="50%"><p>More news</p></td></tr></table><script>alert(1)</script><img src="/rails/blobs/redirect/abc/photo.png" onerror="alert(1)"><img src="https://localhost:3000/rails/blobs/redirect/abc/uploaded.png">',
       user: users(:editor),
       sent_at: Time.current
     )
@@ -17,7 +17,14 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_equal newsletter.subject, email.subject
     assert_includes email.body.to_s, "Welcome"
     assert_includes email.body.to_s, "<p>Welcome</p>"
+    assert_includes email.body.to_s, 'width="1200"'
+    assert_includes email.body.to_s, "@media only screen and (max-width: 640px)"
+    assert_includes email.body.to_s, "table.newsletter-layout-locked td"
+    assert_includes email.body.to_s, "table.newsletter-layout-locked tr"
+    assert_includes email.body.to_s, 'class="newsletter-layout-locked"'
+    assert_includes email.body.to_s, "https://example.com/rails/blobs/redirect/abc/layout.png"
     assert_includes email.body.to_s, "https://example.com/rails/blobs/redirect/abc/photo.png"
+    assert_includes email.body.to_s, "https://example.com/rails/blobs/redirect/abc/uploaded.png"
     assert_includes email.body.to_s, "/newsletter/unsubscribe/#{subscription.unsubscribe_token}"
     assert_includes email.body.to_s, "/newsletter/#{newsletter.id}"
     refute_includes email.body.to_s, "<script"

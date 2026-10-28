@@ -18,7 +18,7 @@
       <% end %>
     </div>
   </div>
-  <div class="mx-auto max-w-[600px] bg-white border border-gray-200 shadow-sm px-6 py-8 md:px-8">
+  <div class="newsletter-document bg-white border border-gray-200 shadow-sm px-6 py-8 md:px-8">
     <p class="text-sm text-gray-500 border-b border-gray-200 pb-4 mb-6">Email subject: <strong class="text-gray-800"><%= @newsletter.subject %></strong></p>
     <h2 class="text-2xl font-bold mb-6"><%= @newsletter.title %></h2>
     <div class="rich-content max-w-none overflow-hidden"><%= render_html_content(@newsletter.content_html) %></div>

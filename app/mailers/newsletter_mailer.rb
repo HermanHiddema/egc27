@@ -17,6 +17,10 @@ class NewsletterMailer < ApplicationMailer
     authority = port.present? ? "#{host}:#{port}" : host
     base_url = "#{protocol}://#{authority}"
 
+    html = html.gsub(/(src|href)=(['"])https?:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?(\/[^'"]*)\2/i) do
+      "#{$1}=#{$2}#{base_url}#{$3}#{$2}"
+    end
+
     html.gsub(/(src|href)=(['"])(\/[^'"]*)\2/i) do
       "#{$1}=#{$2}#{base_url}#{$3}#{$2}"
     end
