@@ -81,3 +81,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - In portrait mobile footer, put Privacy, Copyright, FAQ, and Contact on the top row; place Terms and Conditions alone on the second row, left-aligned with Privacy and kept on one line.
 - Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
+- In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.

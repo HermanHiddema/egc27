@@ -10,7 +10,7 @@
     Prices are per room or bed per night.
   </p>
 
-  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_guests_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:guests] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
+  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
     <% if @hostel_booking.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <h2 class="text-red-800 font-semibold mb-2">There were errors with your booking:</h2>
@@ -22,8 +22,8 @@
       </div>
     <% end %>
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <div class="lg:col-span-2 space-y-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div class="lg:col-span-3 space-y-6">
         <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
           <h2 class="text-lg font-semibold text-neutral-900">Dates</h2>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -58,14 +58,14 @@
           <div class="flex items-center justify-between gap-4">
             <%= form.label :breakfasts, class: "text-sm text-neutral-900" do %>
               <span class="font-medium">Breakfasts per night</span>
-              <span class="block text-neutral-600">Breakfast buffet, € <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night. Enter the number of guests who want breakfast.</span>
+              <span class="block text-neutral-600">Breakfast buffet, € <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night. Enter the number of people who want breakfast.</span>
             <% end %>
             <%= form.number_field :breakfasts, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "breakfasts" } %>
           </div>
         </div>
       </div>
 
-      <div>
+      <div class="lg:col-span-2">
         <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 shadow-sm lg:sticky lg:top-24">
           <h2 class="text-lg font-semibold mb-4 text-brand-blue-900">Total</h2>
           <dl class="space-y-2 text-sm mb-4">
@@ -74,11 +74,11 @@
               <dd class="text-neutral-900" data-hostel-booking-target="nights"><%= @hostel_booking.nights %></dd>
             </div>
             <div class="flex justify-between">
-              <dt class="text-neutral-500 font-medium">Guests</dt>
-              <dd class="text-neutral-900" data-hostel-booking-target="guests"><%= @hostel_booking.guests %></dd>
+              <dt class="text-neutral-500 font-medium">Beds</dt>
+              <dd class="text-neutral-900" data-hostel-booking-target="beds"><%= @hostel_booking.beds %></dd>
             </div>
           </dl>
-          <table class="w-full text-sm mb-2">
+          <table class="w-full text-xs mb-2">
             <caption class="sr-only">Price calculation</caption>
             <tbody class="divide-y divide-gray-100" data-hostel-booking-target="lines">
               <tr><td class="py-2 text-neutral-500">Choose rooms or beds to see the price calculation.</td></tr>

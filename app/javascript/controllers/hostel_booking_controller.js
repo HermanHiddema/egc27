@@ -4,8 +4,8 @@ import { Controller } from "@hotwired/stimulus"
 // as quantity × nights × price per item, summing to the total. The server
 // recalculates the price when the booking is saved, so this is only a preview.
 export default class extends Controller {
-  static targets = ["arrival", "departure", "quantity", "breakfasts", "nights", "guests", "lines", "total"]
-  static values = { prices: Object, guests: Object, labels: Object, breakfastCents: Number }
+  static targets = ["arrival", "departure", "quantity", "breakfasts", "nights", "beds", "lines", "total"]
+  static values = { prices: Object, beds: Object, labels: Object, breakfastCents: Number }
 
   connect() {
     this.calculate()
@@ -14,12 +14,12 @@ export default class extends Controller {
   calculate() {
     const nights = this.nights()
     const lines = []
-    let guests = 0
+    let beds = 0
 
     this.quantityTargets.forEach((input) => {
       const roomType = input.dataset.roomType
       const quantity = this.count(input.value)
-      guests += quantity * (this.guestsValue[roomType] || 0)
+      beds += quantity * (this.bedsValue[roomType] || 0)
       if (quantity > 0) {
         lines.push({ label: this.labelsValue[roomType], quantity, unitCents: this.pricesValue[roomType] || 0 })
       }
@@ -29,12 +29,12 @@ export default class extends Controller {
     if (breakfasts > 0) {
       lines.push({ label: this.labelsValue.breakfasts, quantity: breakfasts, unitCents: this.breakfastCentsValue })
     }
-    this.breakfastsTarget.max = guests
+    this.breakfastsTarget.max = beds
 
     const totalCents = lines.reduce((sum, line) => sum + line.quantity * nights * line.unitCents, 0)
 
     this.nightsTarget.textContent = nights
-    this.guestsTarget.textContent = guests
+    this.bedsTarget.textContent = beds
     this.renderLines(lines, nights)
     this.totalTarget.textContent = this.formatEuros(totalCents)
   }
@@ -49,14 +49,14 @@ export default class extends Controller {
     this.linesTarget.replaceChildren(...lines.map((line) => this.row(
       `${line.quantity} × ${line.label} × ${nightsLabel} × ${this.formatEuros(line.unitCents)}`,
       this.formatEuros(line.quantity * nights * line.unitCents),
-      "text-neutral-900"
+      "min-[375px]:whitespace-nowrap text-neutral-900"
     )))
   }
 
   row(description, amount, className) {
     const tr = document.createElement("tr")
     const descriptionCell = document.createElement("td")
-    descriptionCell.className = `py-2 pr-4 ${className}`
+    descriptionCell.className = `py-2 pr-2 ${className}`
     descriptionCell.textContent = description
     tr.append(descriptionCell)
 

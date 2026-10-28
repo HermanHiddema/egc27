@@ -53,7 +53,7 @@ class HostelBooking < ApplicationRecord
             if: -> { arrival_date.present? && departure_date.present? }
   validates(*ROOM_TYPES, :breakfasts, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 99 })
   validate :at_least_one_room_or_bed
-  validate :breakfasts_not_more_than_guests
+  validate :breakfasts_not_more_than_beds
   validates :status, inclusion: { in: STATUSES }
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
@@ -81,8 +81,8 @@ class HostelBooking < ApplicationRecord
     [(departure_date - arrival_date).to_i, 0].max
   end
 
-  def guests
-    ROOM_TYPES.sum { |room_type| self[room_type].to_i * HostelPricing::ROOM_TYPES.dig(room_type, :guests) }
+  def beds
+    ROOM_TYPES.sum { |room_type| self[room_type].to_i * HostelPricing::ROOM_TYPES.dig(room_type, :beds) }
   end
 
   # The price calculation of this booking, one line per booked item, at the
@@ -195,13 +195,13 @@ class HostelBooking < ApplicationRecord
   end
 
   def at_least_one_room_or_bed
-    errors.add(:base, "Please book at least one room or bed") if guests.zero?
+    errors.add(:base, "Please book at least one room or bed") if beds.zero?
   end
 
-  def breakfasts_not_more_than_guests
-    return if breakfasts.to_i <= guests
+  def breakfasts_not_more_than_beds
+    return if breakfasts.to_i <= beds
 
-    errors.add(:breakfasts, "can not be more than the number of guests (#{guests})")
+    errors.add(:breakfasts, "can not be more than the number of beds (#{beds})")
   end
 
   def mollie_status(mollie_payment)

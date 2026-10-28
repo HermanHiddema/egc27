@@ -55,7 +55,7 @@ class HostelBookingTest < ActiveSupport::TestCase
     end
 
     assert_equal 3, booking.nights
-    assert_equal 2, booking.guests
+    assert_equal 2, booking.beds
     assert_equal 3 * (8_200 + 2 * 985), booking.amount_cents
     assert_equal Date.new(2027, 3, 1), booking.priced_on
     assert_equal "open", booking.status
@@ -89,11 +89,11 @@ class HostelBookingTest < ActiveSupport::TestCase
     assert_includes booking.errors[:base], "Please book at least one room or bed"
   end
 
-  test "breakfasts can not exceed the number of guests" do
+  test "breakfasts can not exceed the number of beds" do
     booking = build_booking(breakfasts: 3)
 
     assert_not booking.valid?
-    assert_includes booking.errors[:breakfasts], "can not be more than the number of guests (2)"
+    assert_includes booking.errors[:breakfasts], "can not be more than the number of beds (2)"
   end
 
   test "quantities can not be negative" do

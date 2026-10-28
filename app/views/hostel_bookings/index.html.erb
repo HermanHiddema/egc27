@@ -15,7 +15,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Dates</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Guests</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Beds</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700"></th>
@@ -25,7 +25,7 @@
             <% @hostel_bookings.each do |hostel_booking| %>
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= eu_date_range(hostel_booking.arrival_date, hostel_booking.departure_date) %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.guests %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.beds %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.amount_formatted %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.status.humanize %></td>
                 <td class="px-4 py-3 text-sm text-right">

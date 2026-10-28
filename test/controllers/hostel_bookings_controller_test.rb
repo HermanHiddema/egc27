@@ -182,6 +182,11 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "tbody[data-hostel-booking-target='lines']"
     assert_select "form[data-hostel-booking-labels-value*='Breakfast buffet']"
+    assert_select "form[data-hostel-booking-labels-value*='mixed dorm bed']"
+    assert_select "form[data-hostel-booking-labels-value*='female dorm bed']"
+    assert_select "dt", text: "Beds"
+    assert_select "dt", text: "Guests", count: 0
+    assert_select "label", text: /1 bed in a 6-person dorm \(female only\)/
   end
 
   test "show offers payment for an open booking" do
