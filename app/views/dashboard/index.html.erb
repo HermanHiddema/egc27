@@ -24,6 +24,11 @@
       <li>
         <%= link_to "Notices", notices_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       </li>
+      <% if current_user.can_edit? %>
+        <li>
+          <%= link_to "Newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </li>
+      <% end %>
       <% if current_user.can_delete? %>
         <li>
           <%= link_to "Event Groups", event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
