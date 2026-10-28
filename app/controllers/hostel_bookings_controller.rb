@@ -5,7 +5,7 @@ class HostelBookingsController < ApplicationController
   before_action :set_hostel_booking, only: [:show, :pay]
 
   def index
-    @hostel_bookings = current_user.hostel_bookings.order(created_at: :desc)
+    @hostel_bookings = current_user.hostel_bookings.includes(:payments).order(created_at: :desc)
   end
 
   def new
@@ -75,6 +75,7 @@ class HostelBookingsController < ApplicationController
         resumed_checkout_url = @payment.resume_mollie_checkout!
         next unless @payment.payable?
         next resumed_checkout_url if resumed_checkout_url.present?
+        next hostel_booking_path(@hostel_booking) if @payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
 
         @payment = nil if @payment.mollie_payment_id.present?
       end

@@ -219,6 +219,25 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "https://example.test/resume"
   end
 
+  test "pay does not replace a pending or authorized Mollie payment without a checkout URL" do
+    %w[pending authorized].each do |status|
+      booking = create_booking
+      payment = create_payment(booking, mollie_payment_id: "tr_#{status}")
+      sign_in users(:one)
+
+      with_mollie_get_stub(OpenStruct.new(id: payment.mollie_payment_id, status: status)) do
+        with_mollie_create_stub(nil) do |created_params|
+          post pay_hostel_booking_path(booking)
+          assert_empty created_params
+        end
+      end
+
+      assert_redirected_to hostel_booking_path(booking)
+      assert_equal status, payment.reload.status
+      assert_equal 1, booking.payments.count
+    end
+  end
+
   test "pay starts a new checkout at the current price when the previous one expired" do
     booking = nil
     travel_to Time.zone.local(2027, 1, 15) do
