@@ -81,7 +81,9 @@ class Participant < ApplicationRecord
   # successful payment reinstates them.
   scope :not_refunded, -> {
     where.not(
-      id: Payment.reversed.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id)
+      id: Payment.reversed.where.not(participant_id: nil).where.not(
+        participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)
+      ).select(:participant_id)
     )
   }
 

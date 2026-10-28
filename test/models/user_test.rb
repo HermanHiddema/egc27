@@ -215,10 +215,14 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!(email: "checkout_user@example.com", skip_password_validation: true)
     assert user.account_deletable?
 
-    user.hostel_bookings.create!(
+    booking = user.hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
       departure_date: Date.new(2027, 7, 26),
-      double_rooms: 1,
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
       mollie_payment_id: "tr_active_checkout"
     )
 
@@ -229,10 +233,14 @@ class UserTest < ActiveSupport::TestCase
     user = User.create!(email: "paid_booking_user@example.com", skip_password_validation: true)
     assert user.account_deletable?
 
-    user.hostel_bookings.create!(
+    booking = user.hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
       departure_date: Date.new(2027, 7, 26),
-      double_rooms: 1,
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
       status: "paid"
     )
 

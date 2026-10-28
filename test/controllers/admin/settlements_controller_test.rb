@@ -82,6 +82,26 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: payments(:manual_payment).description, count: 0
   end
 
+  test "admin sees a hostel booking payment in a settlement" do
+    sign_in users(:admin)
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    payment = Payment.build_for_hostel_booking(booking).tap do |hostel_payment|
+      hostel_payment.status = "paid"
+      hostel_payment.settlement = settlements(:paid_out)
+      hostel_payment.save!
+    end
+
+    get admin_settlement_path(settlements(:paid_out))
+
+    assert_response :success
+    assert_select "td", text: "Hostel booking ##{booking.id}"
+    assert_select "td", text: payment.description
+  end
+
   test "admin sees deductions for a complete settlement with no linked payments" do
     sign_in users(:admin)
     settlements(:paid_out).update!(payments_complete: true)

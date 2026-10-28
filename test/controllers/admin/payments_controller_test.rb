@@ -377,6 +377,26 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{mark_processed_admin_payment_path(payments(:open_payment))}']", count: 0
   end
 
+  test "admin sees hostel booking payments in the overview" do
+    sign_in users(:admin)
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    payment = Payment.build_for_hostel_booking(booking).tap do |hostel_payment|
+      hostel_payment.status = "paid"
+      hostel_payment.save!
+    end
+
+    get admin_payments_path
+
+    assert_response :success
+    assert_select "td", text: "Hostel booking ##{booking.id}"
+    assert_select "td", text: payment.description
+    assert_select "td", text: payment.amount_formatted
+  end
+
   test "admin sees charged-back payments in the overview" do
     sign_in users(:admin)
     payment = payments(:paid_payment)

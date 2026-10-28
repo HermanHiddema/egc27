@@ -23,10 +23,11 @@
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @hostel_bookings.each do |hostel_booking| %>
+              <% payment = hostel_booking.current_payment %>
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= eu_date_range(hostel_booking.arrival_date, hostel_booking.departure_date) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.beds %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment&.amount_formatted || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.status.humanize %></td>
                 <td class="px-4 py-3 text-sm text-right">
                   <%= link_to "View", hostel_booking_path(hostel_booking), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>

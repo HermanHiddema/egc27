@@ -27,6 +27,13 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     }.merge(attributes))
   end
 
+  def create_payment(booking, **attributes)
+    booking.payments.create!({
+      amount_cents: booking.amount_cents,
+      description: booking.description
+    }.merge(attributes))
+  end
+
   def with_mollie_create_stub(mollie_payment)
     original = Mollie::Payment.method(:create)
     created_params = []
@@ -99,10 +106,10 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
       booking = HostelBooking.last
       expected_cents = 2 * (6_900 + 2 * 2_900 + 3 * 985)
-      assert_equal expected_cents, booking.amount_cents
+      assert_equal expected_cents, booking.amount_cents(payment_date: Date.new(2026, 12, 1))
       assert_equal users(:one), booking.user
-      assert_nil booking.mollie_payment_id
-      assert_equal "open", booking.status
+      assert_empty booking.payments
+      assert_equal "unpaid", booking.status
       assert_empty created_params
       assert_redirected_to hostel_booking_path(booking)
       assert_equal "Your booking has been created. Please review it and complete payment.", flash[:notice]
@@ -197,7 +204,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "pay resumes an open Mollie checkout" do
-    booking = create_booking(mollie_payment_id: "tr_open")
+    booking = create_booking
+    create_payment(booking, mollie_payment_id: "tr_open")
     sign_in users(:one)
     remote = OpenStruct.new(id: "tr_open", status: "open", checkout_url: "https://example.test/resume")
 
@@ -214,7 +222,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   test "pay starts a new checkout at the current price when the previous one expired" do
     booking = nil
     travel_to Time.zone.local(2027, 1, 15) do
-      booking = create_booking(mollie_payment_id: "tr_expired")
+      booking = create_booking
+      create_payment(booking, mollie_payment_id: "tr_expired")
     end
     sign_in users(:one)
     remote = OpenStruct.new(id: "tr_expired", status: "expired")
@@ -229,15 +238,16 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to "https://example.test/new"
-    booking.reload
-    assert_equal "tr_new", booking.mollie_payment_id
-    assert_equal "open", booking.status
-    assert_equal 2 * 8_200, booking.amount_cents
+    old_payment, new_payment = booking.payments.reorder(:created_at, :id)
+    assert_equal "tr_expired", old_payment.mollie_payment_id
+    assert_equal "tr_new", new_payment.mollie_payment_id
+    assert_equal "open", new_payment.status
+    assert_equal 2 * 8_200, new_payment.amount_cents
   end
 
   test "pay does not start a checkout for a paid booking" do
-    booking = create_booking(mollie_payment_id: "tr_paid")
-    booking.update!(status: "paid")
+    booking = create_booking
+    create_payment(booking, mollie_payment_id: "tr_paid", status: "paid")
     sign_in users(:one)
 
     with_mollie_get_stub(OpenStruct.new(id: "tr_paid", status: "paid")) do
@@ -248,7 +258,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "pay does not start a checkout when Mollie reports that it is already paid" do
-    booking = create_booking(mollie_payment_id: "tr_paid")
+    booking = create_booking
+    create_payment(booking, mollie_payment_id: "tr_paid")
     sign_in users(:one)
 
     with_mollie_get_stub(OpenStruct.new(id: "tr_paid", status: "paid")) do
@@ -275,7 +286,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "webhook updates the booking without authentication" do
-    booking = create_booking(mollie_payment_id: "tr_webhook")
+    booking = create_booking
+    payment = create_payment(booking, mollie_payment_id: "tr_webhook")
 
     with_mollie_get_stub(OpenStruct.new(id: "tr_webhook", status: "paid")) do
       post webhook_hostel_bookings_path, params: { id: "tr_webhook" }
@@ -283,6 +295,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :ok
     assert_equal "paid", booking.reload.status
+    assert_equal "paid", payment.reload.status
   end
 
   test "webhook asks Mollie to retry when fetching the payment fails" do

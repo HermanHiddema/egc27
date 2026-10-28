@@ -5,30 +5,22 @@ require "ostruct"
 #
 # Table name: hostel_bookings
 #
-#  id                :bigint           not null, primary key
-#  amount_cents      :integer          not null
-#  arrival_date      :date             not null
-#  breakfasts        :integer          default(0), not null
-#  confirmation_sent :boolean          default(FALSE), not null
-#  departure_date    :date             not null
-#  double_rooms      :integer          default(0), not null
-#  female_dorm_beds  :integer          default(0), not null
-#  mixed_dorm_beds   :integer          default(0), not null
-#  payment_method    :string
-#  priced_on         :date             not null
-#  single_rooms      :integer          default(0), not null
-#  six_person_rooms  :integer          default(0), not null
-#  status            :string           default("open"), not null
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
-#  mollie_payment_id :string
-#  user_id           :bigint           not null
+#  id               :bigint           not null, primary key
+#  arrival_date     :date             not null
+#  breakfasts       :integer          default(0), not null
+#  departure_date   :date             not null
+#  double_rooms     :integer          default(0), not null
+#  female_dorm_beds :integer          default(0), not null
+#  mixed_dorm_beds  :integer          default(0), not null
+#  single_rooms     :integer          default(0), not null
+#  six_person_rooms :integer          default(0), not null
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  user_id          :bigint           not null
 #
 # Indexes
 #
-#  index_hostel_bookings_on_mollie_payment_id  (mollie_payment_id) UNIQUE
-#  index_hostel_bookings_on_status             (status)
-#  index_hostel_bookings_on_user_id            (user_id)
+#  index_hostel_bookings_on_user_id  (user_id)
 #
 # Foreign Keys
 #
@@ -52,13 +44,14 @@ class HostelBookingTest < ActiveSupport::TestCase
 
     travel_to Time.zone.local(2027, 3, 1) do
       booking.save!
+      payment = Payment.build_for_hostel_booking(booking)
+
+      assert_equal 3 * (8_200 + 2 * 985), payment.amount_cents
     end
 
     assert_equal 3, booking.nights
     assert_equal 2, booking.beds
-    assert_equal 3 * (8_200 + 2 * 985), booking.amount_cents
-    assert_equal Date.new(2027, 3, 1), booking.priced_on
-    assert_equal "open", booking.status
+    assert_equal "unpaid", booking.status
   end
 
   test "arrival can not be before 24 July 2027" do
@@ -103,44 +96,51 @@ class HostelBookingTest < ActiveSupport::TestCase
     assert booking.errors[:single_rooms].any?
   end
 
-  test "a status update does not change the amount" do
+  test "a payment status update does not change the payment amount" do
     booking = build_booking
     travel_to Time.zone.local(2027, 1, 31) do
       booking.save!
     end
-    amount = booking.amount_cents
+    payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
+    amount = payment.amount_cents
 
     travel_to Time.zone.local(2027, 2, 1) do
-      booking.sync_from_mollie!(OpenStruct.new(id: "tr_hostel", status: "pending"))
+      payment.sync_from_mollie!(OpenStruct.new(id: "tr_hostel", status: "pending"))
     end
 
     assert_equal "pending", booking.reload.status
-    assert_equal amount, booking.amount_cents
+    assert_equal amount, payment.reload.amount_cents
   end
 
   test "sends a confirmation email once when the booking becomes paid" do
     booking = build_booking.tap(&:save!)
+    payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
 
     assert_emails 1 do
-      booking.sync_from_mollie!(OpenStruct.new(id: "tr_hostel", status: "paid", attributes: { "method" => "ideal" }))
-      booking.update!(updated_at: Time.current)
+      payment.sync_from_mollie!(OpenStruct.new(id: "tr_hostel", status: "paid", attributes: { "method" => "ideal" }))
+      payment.update!(updated_at: Time.current)
     end
 
-    assert booking.reload.confirmation_sent
-    assert_equal "ideal", booking.payment_method
+    assert payment.reload.confirmation_sent
+    assert_equal "ideal", payment.payment_method
   end
 
   test "records refunds reported by Mollie" do
     booking = build_booking.tap(&:save!)
+    payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
 
-    booking.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "10.00")))
+    payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "10.00")))
 
-    assert_equal "refunded", booking.status
+    assert_equal "refunded", booking.reload.status
     assert_not booking.payable?
   end
 
   test "prevents destroying a booking with financial history or an active checkout" do
-    booking = build_booking(mollie_payment_id: "tr_active_checkout").tap(&:save!)
+    booking = build_booking.tap(&:save!)
+    Payment.build_for_hostel_booking(booking).tap do |payment|
+      payment.mollie_payment_id = "tr_active_checkout"
+      payment.save!
+    end
 
     assert_raises(ActiveRecord::RecordNotDestroyed) { booking.destroy! }
     assert HostelBooking.exists?(booking.id)

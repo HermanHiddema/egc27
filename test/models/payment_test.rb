@@ -17,12 +17,14 @@ require "ostruct"
 #  status                   :string           default("open"), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
+#  hostel_booking_id        :bigint
 #  mollie_payment_id        :string
-#  participant_id           :bigint           not null
+#  participant_id           :bigint
 #  settlement_id            :bigint
 #
 # Indexes
 #
+#  index_payments_on_hostel_booking_id         (hostel_booking_id)
 #  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
 #  index_payments_on_participant_id            (participant_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
@@ -32,6 +34,7 @@ require "ostruct"
 #
 # Foreign Keys
 #
+#  fk_rails_...  (hostel_booking_id => hostel_bookings.id)
 #  fk_rails_...  (participant_id => participants.id)
 #  fk_rails_...  (settlement_id => settlements.id)
 #
@@ -49,10 +52,10 @@ class PaymentTest < ActiveSupport::TestCase
     assert payment.valid?
   end
 
-  test "requires participant" do
+  test "requires exactly one participant or hostel booking" do
     payment = Payment.new(status: "open", amount_cents: 19_000, description: "Test")
     assert_not payment.valid?
-    assert_includes payment.errors[:participant], "must exist"
+    assert_includes payment.errors[:base], "A payment must belong to exactly one participant or hostel booking"
   end
 
   test "requires description" do
@@ -327,6 +330,24 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal participant, payment.participant
     assert_equal 19_000, payment.amount_cents
     assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
+  end
+
+  test "build_for_hostel_booking builds an unsaved payment for current hostel prices" do
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+
+    travel_to Time.zone.local(2027, 3, 1) do
+      payment = Payment.build_for_hostel_booking(booking)
+
+      assert_not payment.persisted?
+      assert_equal booking, payment.hostel_booking
+      assert_nil payment.participant
+      assert_equal 2 * 8_200, payment.amount_cents
+      assert_equal booking.description, payment.description
+    end
   end
 
   test "price_valid_until uses the date the payment was created" do

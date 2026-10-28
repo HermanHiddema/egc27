@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_28_203025) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -126,16 +126,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
     t.integer "mixed_dorm_beds", default: 0, null: false
     t.integer "female_dorm_beds", default: 0, null: false
     t.integer "breakfasts", default: 0, null: false
-    t.integer "amount_cents", null: false
-    t.date "priced_on", null: false
-    t.string "status", default: "open", null: false
-    t.string "mollie_payment_id"
-    t.string "payment_method"
-    t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["mollie_payment_id"], name: "index_hostel_bookings_on_mollie_payment_id", unique: true
-    t.index ["status"], name: "index_hostel_bookings_on_status"
     t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
   end
 
@@ -240,7 +232,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
     t.datetime "created_at", null: false
     t.string "description", null: false
     t.string "mollie_payment_id"
-    t.bigint "participant_id", null: false
+    t.bigint "participant_id"
     t.string "payment_method"
     t.boolean "processed_in_bookkeeping", default: false, null: false
     t.string "provider", default: "mollie", null: false
@@ -249,12 +241,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
     t.datetime "updated_at", null: false
     t.bigint "settlement_id"
     t.date "payment_date"
+    t.bigint "hostel_booking_id"
+    t.index ["hostel_booking_id"], name: "index_payments_on_hostel_booking_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
     t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
     t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"
+    t.check_constraint "(participant_id IS NULL) <> (hostel_booking_id IS NULL)", name: "payments_have_one_payee"
   end
 
   create_table "pg_search_documents", force: :cascade do |t|
@@ -358,6 +353,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_27_174550) do
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
   add_foreign_key "participants", "users"
+  add_foreign_key "payments", "hostel_bookings"
   add_foreign_key "payments", "participants"
   add_foreign_key "payments", "settlements"
   add_foreign_key "refunds", "payments", on_delete: :nullify

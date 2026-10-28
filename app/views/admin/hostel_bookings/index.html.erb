@@ -24,6 +24,7 @@
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @hostel_bookings.each do |hostel_booking| %>
+              <% payment = hostel_booking.current_payment %>
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_date(hostel_booking.created_at, month: :short) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= hostel_booking.user.display_name %><br><span class="text-neutral-500"><%= hostel_booking.user.email %></span></td>
@@ -32,9 +33,9 @@
                   <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking[room_type] %></td>
                 <% end %>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.breakfasts %></td>
-                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= hostel_booking.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= payment&.amount_formatted || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.status.humanize %></td>
-                <td class="px-4 py-3 text-sm text-neutral-500"><%= hostel_booking.mollie_payment_id %></td>
+                <td class="px-4 py-3 text-sm text-neutral-500"><%= payment&.mollie_payment_id %></td>
               </tr>
             <% end %>
           </tbody>

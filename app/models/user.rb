@@ -81,7 +81,7 @@ class User < ApplicationRecord
   end
 
   def account_deletable?
-    regular? && articles.none? && events.none? && !hostel_bookings.with_financial_history_or_active_checkout.exists?
+    regular? && articles.none? && events.none? && !hostel_bookings.joins(:payments).exists?
   end
 
   def password_set?

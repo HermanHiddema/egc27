@@ -28,7 +28,8 @@ class HostelBookingsController < ApplicationController
   end
 
   def show
-    @hostel_booking.refresh_from_mollie unless @hostel_booking.paid?
+    @payment = @hostel_booking.current_payment
+    @payment&.refresh_from_mollie
     @show_simulation_controls = mollie_simulation_enabled? && @hostel_booking.payable?
   end
 
@@ -37,7 +38,7 @@ class HostelBookingsController < ApplicationController
   end
 
   def webhook
-    HostelBooking.sync_from_mollie_webhook(params[:id])
+    Payment.sync_from_mollie_webhook(params[:id])
 
     head :ok
   rescue Mollie::Exception => e
@@ -61,33 +62,43 @@ class HostelBookingsController < ApplicationController
 
   def checkout
     if simulate_mollie_payment?
-      @hostel_booking.simulate_mollie_status!(params[:simulate_status])
-      return redirect_to hostel_booking_path(@hostel_booking),
-        notice: "Simulated Mollie payment status: #{@hostel_booking.status}."
+      @hostel_booking.with_lock do
+        @payment = @hostel_booking.current_payment || Payment.build_for_hostel_booking(@hostel_booking).tap(&:save!)
+        @payment.simulate_mollie_status!(params[:simulate_status])
+      end
+      return redirect_to hostel_booking_path(@hostel_booking), notice: "Simulated Mollie payment status: #{@payment.status}."
     end
 
     checkout_url = @hostel_booking.with_lock do
-      next unless @hostel_booking.payable?
+      @payment = @hostel_booking.current_payment
+      if @payment
+        resumed_checkout_url = @payment.resume_mollie_checkout!
+        next unless @payment.payable?
+        next resumed_checkout_url if resumed_checkout_url.present?
 
-      resumed_checkout_url = @hostel_booking.resume_mollie_checkout!
-      if @hostel_booking.payable?
-        resumed_checkout_url || @hostel_booking.start_mollie_checkout!(
-          redirect_url: hostel_booking_url(@hostel_booking),
-          webhook_url: webhook_hostel_bookings_url
-        )
+        @payment = nil if @payment.mollie_payment_id.present?
       end
+
+      @payment ||= Payment.build_for_hostel_booking(@hostel_booking)
+      @payment.save! unless @payment.persisted?
+      @payment.start_mollie_checkout!(
+        redirect_url: hostel_booking_url(@hostel_booking),
+        webhook_url: webhook_hostel_bookings_url
+      )
     end
 
-    return redirect_to hostel_booking_path(@hostel_booking), notice: "Your hostel booking has been paid." if @hostel_booking.paid?
-    return redirect_to hostel_booking_path(@hostel_booking), alert: "This hostel booking can not be paid anymore." unless @hostel_booking.payable?
+    @payment&.reload
+    return redirect_to hostel_booking_path(@hostel_booking), notice: "Your hostel booking has been paid." if @payment&.paid?
+    return redirect_to hostel_booking_path(@hostel_booking), alert: "This hostel booking can not be paid anymore." if @payment && !@payment.payable?
 
     redirect_to checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
+    @payment&.destroy if @payment&.persisted? && @payment.mollie_payment_id.blank?
     redirect_to hostel_booking_path(@hostel_booking), alert: "Payment could not be started: #{e.message}"
   end
 
   def simulate_mollie_payment?
-    mollie_simulation_enabled? && params[:simulate_status].in?(HostelBooking::STATUSES)
+    mollie_simulation_enabled? && params[:simulate_status].in?(Payment::STATUSES)
   end
 
   def mollie_simulation_enabled?

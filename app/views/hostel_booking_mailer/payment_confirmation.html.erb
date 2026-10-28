@@ -9,10 +9,10 @@
 </p>
 
 <p>
-  <% @hostel_booking.price_lines.each do |line| %>
+  <% @hostel_booking.price_lines(payment_date: @payment.created_at.to_date).each do |line| %>
     <%= line.quantity %> × <%= line.label %> × <%= pluralize(line.nights, "night") %> × € <%= format("%.2f", line.unit_price_cents / 100.0) %> = € <%= format("%.2f", line.subtotal_cents / 100.0) %><br>
   <% end %>
-  <strong>Total paid:</strong> <%= @hostel_booking.amount_formatted %>
+  <strong>Total paid:</strong> <%= @payment.amount_formatted %>
 </p>
 
 <p><%= link_to "View your hostel booking", hostel_booking_url(@hostel_booking) %></p>

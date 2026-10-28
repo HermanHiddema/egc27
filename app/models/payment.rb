@@ -14,12 +14,14 @@
 #  status                   :string           default("open"), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
+#  hostel_booking_id        :bigint
 #  mollie_payment_id        :string
-#  participant_id           :bigint           not null
+#  participant_id           :bigint
 #  settlement_id            :bigint
 #
 # Indexes
 #
+#  index_payments_on_hostel_booking_id         (hostel_booking_id)
 #  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
 #  index_payments_on_participant_id            (participant_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
@@ -29,6 +31,7 @@
 #
 # Foreign Keys
 #
+#  fk_rails_...  (hostel_booking_id => hostel_bookings.id)
 #  fk_rails_...  (participant_id => participants.id)
 #  fk_rails_...  (settlement_id => settlements.id)
 #
@@ -63,7 +66,8 @@ class Payment < ApplicationRecord
 
   has_paper_trail
 
-  belongs_to :participant
+  belongs_to :participant, optional: true
+  belongs_to :hostel_booking, optional: true
   # The Mollie payout this payment was paid out in, once Mollie settled it.
   belongs_to :settlement, optional: true
   has_many :refunds, dependent: :nullify
@@ -77,6 +81,7 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
+  validate :has_exactly_one_payee
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
@@ -122,6 +127,18 @@ class Payment < ApplicationRecord
     )
   end
 
+  # Builds a payment for the current price of a hostel booking.
+  def self.build_for_hostel_booking(hostel_booking)
+    pricing = HostelPricing.new
+
+    new(
+      hostel_booking: hostel_booking,
+      amount_cents: hostel_booking.amount_cents(payment_date: pricing.payment_date),
+      description: hostel_booking.description,
+      status: "open"
+    )
+  end
+
   # Records the state of a Mollie payment reported through the webhook. Returns
   # the updated payment, or nil when the payment is unknown here.
   def self.sync_from_mollie_webhook(mollie_id)
@@ -147,6 +164,10 @@ class Payment < ApplicationRecord
 
   def paid?
     status == "paid"
+  end
+
+  def payable?
+    !paid? && !REVERSED_STATUSES.include?(status)
   end
 
   def refunded?
@@ -247,7 +268,7 @@ class Payment < ApplicationRecord
       description: description,
       redirect_url: redirect_url,
       webhook_url: webhook_url,
-      metadata: { payment_id: id, participant_id: participant_id }
+      metadata: mollie_metadata
     )
 
     raise Mollie::Exception, "No checkout URL was returned by Mollie." if mollie_payment.checkout_url.blank?
@@ -307,6 +328,14 @@ class Payment < ApplicationRecord
     !manual? && payment_date.blank? && (paid? || REVERSED_STATUSES.include?(status))
   end
 
+  def mollie_metadata
+    if hostel_booking
+      { payment_id: id, hostel_booking_id: hostel_booking_id, user_id: hostel_booking.user_id }
+    else
+      { payment_id: id, participant_id: participant_id }
+    end
+  end
+
   def set_mollie_payment_date
     self.payment_date = (created_at || Time.current).to_date
   end
@@ -316,13 +345,24 @@ class Payment < ApplicationRecord
   end
 
   def send_payment_confirmation
-    return if participant.email.blank?
+    recipient = participant&.email || hostel_booking&.user&.email
+    return if recipient.blank?
 
     # Atomic check-and-set prevents duplicate emails under concurrent webhook/redirect updates.
     return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
-    ParticipantMailer.payment_confirmation(self).deliver_now
+    if hostel_booking
+      HostelBookingMailer.payment_confirmation(self).deliver_now
+    else
+      ParticipantMailer.payment_confirmation(self).deliver_now
+    end
   rescue StandardError => e
     Rails.logger.error("Failed to deliver payment confirmation for Payment #{id}: #{e.class}: #{e.message}")
+  end
+
+  def has_exactly_one_payee
+    return if participant.present? ^ hostel_booking.present?
+
+    errors.add(:base, "A payment must belong to exactly one participant or hostel booking")
   end
 end

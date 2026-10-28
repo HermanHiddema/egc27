@@ -1,7 +1,8 @@
 class HostelBookingMailer < ApplicationMailer
-  def payment_confirmation(hostel_booking)
-    @hostel_booking = hostel_booking
-    @user = hostel_booking.user
+  def payment_confirmation(payment)
+    @payment = payment
+    @hostel_booking = payment.hostel_booking
+    @user = @hostel_booking.user
 
     mail(
       to: @user.email,

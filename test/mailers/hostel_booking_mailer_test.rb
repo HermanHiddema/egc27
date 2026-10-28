@@ -14,7 +14,11 @@ class HostelBookingMailerTest < ActionMailer::TestCase
       booking.save!
     end
 
-    email = HostelBookingMailer.payment_confirmation(booking)
+    payment = nil
+    travel_to Time.zone.local(2027, 3, 1) do
+      payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
+    end
+    email = HostelBookingMailer.payment_confirmation(payment)
 
     assert_equal [users(:one).email], email.to
     assert_equal "EGC 2027 – Hostel booking paid", email.subject
