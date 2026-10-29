@@ -144,6 +144,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "a[href=?]", hostel_booking_path(own)
     assert_select "a[href=?]", hostel_booking_path(other), count: 0
+    assert_select "td", text: own.amount_formatted
   end
 
   test "show is limited to the bookings of the current user" do

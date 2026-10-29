@@ -2,19 +2,26 @@
 #
 # Table name: hostel_bookings
 #
-#  id               :bigint           not null, primary key
-#  arrival_date     :date             not null
-#  breakfasts       :integer          default(0), not null
-#  departure_date   :date             not null
-#  double_rooms     :integer          default(0), not null
-#  female_dorm_beds :integer          default(0), not null
-#  mixed_dorm_beds  :integer          default(0), not null
-#  priced_on        :date             not null
-#  single_rooms     :integer          default(0), not null
-#  six_person_rooms :integer          default(0), not null
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  user_id          :bigint           not null
+#  id                          :bigint           not null, primary key
+#  amount_cents                :integer          not null
+#  arrival_date                :date             not null
+#  breakfast_price_cents       :integer          not null
+#  breakfasts                  :integer          default(0), not null
+#  departure_date              :date             not null
+#  double_room_price_cents     :integer          not null
+#  double_rooms                :integer          default(0), not null
+#  female_dorm_bed_price_cents :integer          not null
+#  female_dorm_beds            :integer          default(0), not null
+#  mixed_dorm_bed_price_cents  :integer          not null
+#  mixed_dorm_beds             :integer          default(0), not null
+#  priced_on                   :date             not null
+#  single_room_price_cents     :integer          not null
+#  single_rooms                :integer          default(0), not null
+#  six_person_room_price_cents :integer          not null
+#  six_person_rooms            :integer          default(0), not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  user_id                     :bigint           not null
 #
 # Indexes
 #
@@ -26,9 +33,16 @@
 #
 class HostelBooking < ApplicationRecord
   ROOM_TYPES = HostelPricing::ROOM_TYPES.keys.freeze
+  ROOM_PRICE_COLUMNS = {
+    "single_rooms" => :single_room_price_cents,
+    "double_rooms" => :double_room_price_cents,
+    "six_person_rooms" => :six_person_room_price_cents,
+    "mixed_dorm_beds" => :mixed_dorm_bed_price_cents,
+    "female_dorm_beds" => :female_dorm_bed_price_cents
+  }.freeze
   has_paper_trail
 
-  attr_readonly :priced_on
+  attr_readonly :priced_on, *ROOM_PRICE_COLUMNS.values, :breakfast_price_cents, :amount_cents
 
   belongs_to :user
   has_many :payments, -> { order(created_at: :desc, id: :desc) }, dependent: :restrict_with_error
@@ -59,15 +73,16 @@ class HostelBooking < ApplicationRecord
 
   # The price calculation for this booking at the pricing period when it was made.
   def price_lines
-    HostelPricing.new(payment_date: priced_on || Date.current).line_items(
+    pricing = HostelPricing.new(payment_date: priced_on || Date.current)
+    pricing.line_items(
       nights: nights,
       rooms: ROOM_TYPES.index_with { |room_type| self[room_type] },
-      breakfasts: breakfasts
+      breakfasts: breakfasts,
+      room_prices_cents: ROOM_PRICE_COLUMNS.to_h do |room_type, price_column|
+        [room_type, self[price_column] || pricing.room_price_cents(room_type)]
+      end,
+      breakfast_price_cents: breakfast_price_cents || HostelPricing::BREAKFAST_CENTS
     )
-  end
-
-  def amount_cents
-    price_lines.sum(&:subtotal_cents)
   end
 
   def description
@@ -107,6 +122,12 @@ class HostelBooking < ApplicationRecord
 
   def lock_price
     self.priced_on = Date.current
+    pricing = HostelPricing.new(payment_date: priced_on)
+    ROOM_PRICE_COLUMNS.each do |room_type, price_column|
+      self[price_column] = pricing.room_price_cents(room_type)
+    end
+    self.breakfast_price_cents = HostelPricing::BREAKFAST_CENTS
+    self.amount_cents = price_lines.sum(&:subtotal_cents)
   end
 
   def prevent_destruction_with_financial_history

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_171041) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_184244) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -129,6 +129,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_171041) do
     t.date "priced_on", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "single_room_price_cents", null: false
+    t.integer "double_room_price_cents", null: false
+    t.integer "six_person_room_price_cents", null: false
+    t.integer "mixed_dorm_bed_price_cents", null: false
+    t.integer "female_dorm_bed_price_cents", null: false
+    t.integer "breakfast_price_cents", null: false
+    t.integer "amount_cents", null: false
     t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
   end
 

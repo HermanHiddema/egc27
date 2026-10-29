@@ -46,15 +46,16 @@ class HostelPricing
   # The price calculation for the given number of nights, rooms per room type
   # ({ "single_rooms" => 1, ... }) and breakfasts per night, as one line per
   # booked item: quantity × nights × price per night.
-  def line_items(nights:, rooms:, breakfasts: 0)
+  def line_items(nights:, rooms:, breakfasts: 0, room_prices_cents: nil, breakfast_price_cents: BREAKFAST_CENTS)
+    room_prices_cents ||= self.room_prices_cents
     items = ROOM_TYPES.filter_map do |room_type, room|
       quantity = rooms.fetch(room_type, 0).to_i
       next unless quantity.positive?
 
-      LineItem.new(label: room[:short_label], quantity: quantity, nights: nights.to_i, unit_price_cents: room_price_cents(room_type))
+      LineItem.new(label: room[:short_label], quantity: quantity, nights: nights.to_i, unit_price_cents: room_prices_cents.fetch(room_type))
     end
     if breakfasts.to_i.positive?
-      items << LineItem.new(label: BREAKFAST_LABEL, quantity: breakfasts.to_i, nights: nights.to_i, unit_price_cents: BREAKFAST_CENTS)
+      items << LineItem.new(label: BREAKFAST_LABEL, quantity: breakfasts.to_i, nights: nights.to_i, unit_price_cents: breakfast_price_cents)
     end
     items
   end

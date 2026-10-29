@@ -5,19 +5,26 @@ require "ostruct"
 #
 # Table name: hostel_bookings
 #
-#  id               :bigint           not null, primary key
-#  arrival_date     :date             not null
-#  breakfasts       :integer          default(0), not null
-#  departure_date   :date             not null
-#  double_rooms     :integer          default(0), not null
-#  female_dorm_beds :integer          default(0), not null
-#  mixed_dorm_beds  :integer          default(0), not null
-#  priced_on        :date             not null
-#  single_rooms     :integer          default(0), not null
-#  six_person_rooms :integer          default(0), not null
-#  created_at       :datetime         not null
-#  updated_at       :datetime         not null
-#  user_id          :bigint           not null
+#  id                          :bigint           not null, primary key
+#  amount_cents                :integer          not null
+#  arrival_date                :date             not null
+#  breakfast_price_cents       :integer          not null
+#  breakfasts                  :integer          default(0), not null
+#  departure_date              :date             not null
+#  double_room_price_cents     :integer          not null
+#  double_rooms                :integer          default(0), not null
+#  female_dorm_bed_price_cents :integer          not null
+#  female_dorm_beds            :integer          default(0), not null
+#  mixed_dorm_bed_price_cents  :integer          not null
+#  mixed_dorm_beds             :integer          default(0), not null
+#  priced_on                   :date             not null
+#  single_room_price_cents     :integer          not null
+#  single_rooms                :integer          default(0), not null
+#  six_person_room_price_cents :integer          not null
+#  six_person_rooms            :integer          default(0), not null
+#  created_at                  :datetime         not null
+#  updated_at                  :datetime         not null
+#  user_id                     :bigint           not null
 #
 # Indexes
 #
@@ -49,11 +56,15 @@ class HostelBookingTest < ActiveSupport::TestCase
 
       assert_equal 3 * (8_200 + 2 * 985), payment.amount_cents
       assert_equal Date.new(2027, 3, 1), booking.priced_on
+      assert_equal 8_200, booking.double_room_price_cents
+      assert_equal 985, booking.breakfast_price_cents
+      assert_equal payment.amount_cents, booking.amount_cents
     end
 
     assert_equal 3, booking.nights
     assert_equal 2, booking.beds
     assert_equal "unpaid", booking.status
+    assert_equal 3 * (8_200 + 2 * 985), booking.price_lines.sum(&:subtotal_cents)
   end
 
   test "arrival can not be before 24 July 2027" do
@@ -127,7 +138,23 @@ class HostelBookingTest < ActiveSupport::TestCase
       assert_equal 3 * (7_900 + 2 * 985), payment.amount_cents
       assert_equal 3 * (7_900 + 2 * 985), booking.amount_cents
       assert_equal Date.new(2027, 1, 31), booking.priced_on
+      assert_equal 7_900, booking.price_lines.first.unit_price_cents
     end
+  end
+
+  test "retains the booking-time price if current room prices change" do
+    booking = nil
+    travel_to Time.zone.local(2027, 1, 31) do
+      booking = build_booking.tap(&:save!)
+    end
+    room_prices = HostelPricing::ROOM_TYPES.fetch("double_rooms").fetch(:prices)
+    original_price = room_prices.fetch(:early)
+    room_prices[:early] = original_price + 1
+
+    assert_equal 3 * (7_900 + 2 * 985), booking.reload.amount_cents
+    assert_equal 7_900, booking.price_lines.first.unit_price_cents
+  ensure
+    room_prices[:early] = original_price if room_prices && original_price
   end
 
   test "sends a confirmation email once when the booking becomes paid" do

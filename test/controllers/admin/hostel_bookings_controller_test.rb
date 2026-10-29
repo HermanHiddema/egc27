@@ -2,7 +2,7 @@ require "test_helper"
 
 class Admin::HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   test "admin sees all hostel bookings" do
-    users(:one).hostel_bookings.create!(
+    booking = users(:one).hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
       departure_date: Date.new(2027, 7, 26),
       female_dorm_beds: 1
@@ -13,6 +13,7 @@ class Admin::HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match users(:one).email, response.body
+    assert_select "td", text: booking.amount_formatted
   end
 
   test "non-admin can not see hostel bookings" do
