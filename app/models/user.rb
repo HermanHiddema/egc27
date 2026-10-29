@@ -35,6 +35,7 @@ class User < ApplicationRecord
          :trackable, :confirmable
 
   has_many :articles, dependent: :destroy
+  has_many :newsletters, dependent: :restrict_with_error
   has_many :events, dependent: :destroy
   has_many :participants, dependent: :destroy
 

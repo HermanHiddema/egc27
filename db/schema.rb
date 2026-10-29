@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_171041) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -142,6 +142,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
     t.index ["location"], name: "index_menus_on_location", unique: true
   end
 
+  create_table "newsletter_deliveries", force: :cascade do |t|
+    t.bigint "newsletter_id", null: false
+    t.bigint "newsletter_subscription_id", null: false
+    t.datetime "delivered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["newsletter_id", "newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_and_subscription", unique: true
+    t.index ["newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_subscription_id"
+  end
+
   create_table "newsletter_subscriptions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
@@ -153,6 +163,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_newsletter_subscriptions_on_email", unique: true
     t.index ["unsubscribe_token"], name: "index_newsletter_subscriptions_on_unsubscribe_token", unique: true
+  end
+
+  create_table "newsletters", force: :cascade do |t|
+    t.string "title", null: false
+    t.string "subject", null: false
+    t.text "content_html", null: false
+    t.datetime "sent_at"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sent_at"], name: "index_newsletters_on_sent_at"
+    t.index ["user_id"], name: "index_newsletters_on_user_id"
   end
 
   create_table "notices", force: :cascade do |t|
@@ -333,6 +355,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_20_200013) do
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
+  add_foreign_key "newsletter_deliveries", "newsletter_subscriptions", on_delete: :cascade
+  add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
+  add_foreign_key "newsletters", "users"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
   add_foreign_key "payments", "settlements"

@@ -3,6 +3,7 @@ class NewsletterSubscriptionsController < ApplicationController
 
   skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy]
   before_action :prepare_newsletter_subscription, only: [:create]
+  before_action :prepare_newsletter_overview, only: [:new, :create]
   before_action :verify_turnstile, only: [:create]
   before_action :require_admin!, only: [:index, :edit, :update]
   before_action :set_newsletter_subscription, only: [:edit, :update]
@@ -23,7 +24,7 @@ class NewsletterSubscriptionsController < ApplicationController
       @newsletter_subscription.unsubscribed_at = nil
 
       if @newsletter_subscription.save
-        redirect_to newsletter_path, notice: "Thanks for subscribing to the newsletter."
+        redirect_to newsletter_signup_path, notice: "Thanks for subscribing to the newsletter."
       else
         render :new, status: :unprocessable_entity
       end
@@ -85,5 +86,10 @@ class NewsletterSubscriptionsController < ApplicationController
 
   def newsletter_subscription_update_params
     params.require(:newsletter_subscription).permit(:first_name, :last_name, :email, :subscribed)
+  end
+
+  def prepare_newsletter_overview
+    @newsletters = Newsletter.sent.order(sent_at: :desc)
+    @drafts = Newsletter.drafts.order(updated_at: :desc) if current_user&.can_edit?
   end
 end
