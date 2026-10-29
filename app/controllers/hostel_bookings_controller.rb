@@ -78,7 +78,7 @@ class HostelBookingsController < ApplicationController
 
     @payment&.reload
     return redirect_to hostel_booking_path(@hostel_booking), notice: "Your hostel booking has been paid." if @payment&.paid?
-    return redirect_to hostel_booking_path(@hostel_booking), alert: "This hostel booking can not be paid anymore." if @payment && !@payment.payable?
+    return redirect_to hostel_booking_path(@hostel_booking), alert: "The payment for this hostel booking was #{@payment.status.humanize.downcase}, so it can no longer be paid. Please contact us if you have any questions." if @payment && !@payment.payable?
 
     redirect_to checkout_url, allow_other_host: true
   rescue Mollie::Exception => e
