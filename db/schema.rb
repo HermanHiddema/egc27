@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_29_184244) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -181,7 +181,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_184244) do
     t.string "first_name"
     t.string "last_name"
     t.boolean "subscribed", default: true, null: false
-    t.string "unsubscribe_token", null: false
+    t.string "unsubscribe_token"
     t.datetime "unsubscribed_at"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_newsletter_subscriptions_on_email", unique: true

@@ -3,7 +3,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= @newsletter.title %></title>
+    <title><%= @newsletter_title %></title>
     <style type="text/css">
       table.newsletter-layout-locked,
       table.newsletter-layout-locked tr,
@@ -36,7 +36,7 @@
           <table role="presentation" class="newsletter-email-container" width="1200" cellpadding="0" cellspacing="0" border="0" style="width:100%; max-width:1200px; background-color:#ffffff;">
             <tr>
               <td class="newsletter-content" style="padding:32px 28px; font-size:16px; line-height:1.6;">
-                <h1 style="margin:0 0 24px; color:#1f2937; font-size:26px; line-height:1.25;"><%= @newsletter.title %></h1>
+                <h1 style="margin:0 0 24px; color:#1f2937; font-size:26px; line-height:1.25;"><%= @newsletter_title %></h1>
                 <div style="font-size:16px; line-height:1.6;">
                   <%= @content_html %>
                 </div>
@@ -44,8 +44,13 @@
             </tr>
             <tr>
               <td style="padding:20px 28px; border-top:1px solid #e5e7eb; color:#6b7280; font-size:12px; line-height:1.5;">
-                <p style="margin:0 0 8px;">You received this email because you subscribed to the EGC newsletter.</p>
-                <p style="margin:0;"><%= link_to "Unsubscribe", unsubscribe_newsletter_url(@subscription.unsubscribe_token), style: "color:#1d4ed8;" %> · <%= link_to "View this newsletter online", newsletter_url(@newsletter), style: "color:#1d4ed8;" %></p>
+                <% if @test_delivery %>
+                  <p style="margin:0;">This is a test email for a newsletter draft. It was sent only to the test address you entered.</p>
+                  <p style="margin:8px 0 0;"><%= link_to "Unsubscribe", @test_unsubscribe_url, style: "color:#1d4ed8;" %> · <%= link_to "View this newsletter online", @test_preview_url, style: "color:#1d4ed8;" %></p>
+                <% else %>
+                  <p style="margin:0 0 8px;">You received this email because you subscribed to the EGC newsletter.</p>
+                  <p style="margin:0;"><%= link_to "Unsubscribe", unsubscribe_newsletter_url(@subscription.unsubscribe_token), style: "color:#1d4ed8;" %> · <%= link_to "View this newsletter online", newsletter_url(@newsletter), style: "color:#1d4ed8;" %></p>
+                <% end %>
               </td>
             </tr>
           </table>

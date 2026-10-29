@@ -35,4 +35,44 @@ class NewsletterMailerTest < ActionMailer::TestCase
     refute_includes email.body.to_s, "<script"
     refute_includes email.body.to_s, "onerror"
   end
+
+  test "test newsletter email is addressed only to its test recipient and has no subscriber links" do
+    newsletter = Newsletter.create!(
+      title: "Draft issue",
+      subject: "Draft subject",
+      content_html: "<p>Preview content</p>",
+      user: users(:editor)
+    )
+
+    snapshot = newsletter.attributes.slice("title", "subject", "content_html")
+    email = NewsletterMailer.test_newsletter(newsletter.id, snapshot, "test@example.com")
+
+    assert_equal ["test@example.com"], email.to
+    assert_equal "[TEST] Draft subject", email.subject
+    assert_includes email.body.to_s, "Preview content"
+    assert_includes email.body.to_s, "This is a test email for a newsletter draft"
+    assert_includes email.body.to_s, "http://example.com/newsletter/test_unsubscribe/"
+    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+  end
+
+  test "test newsletter email uses the saved snapshot when the draft changes before delivery" do
+    newsletter = Newsletter.create!(
+      title: "Saved draft",
+      subject: "Saved subject",
+      content_html: "<p>Saved body</p>",
+      user: users(:editor)
+    )
+    snapshot = newsletter.attributes.slice("title", "subject", "content_html")
+    newsletter.update!(title: "Later draft", subject: "Later subject", content_html: "<p>Later body</p>")
+
+    email = NewsletterMailer.test_newsletter(newsletter.id, snapshot, "test@example.com")
+
+    assert_equal "[TEST] Saved subject", email.subject
+    assert_includes email.body.to_s, "<h1"
+    assert_includes email.body.to_s, "Saved draft"
+    assert_includes email.body.to_s, "Saved body"
+    refute_includes email.body.to_s, "Later draft"
+    refute_includes email.body.to_s, "Later body"
+    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+  end
 end

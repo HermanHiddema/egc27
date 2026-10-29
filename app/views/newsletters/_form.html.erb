@@ -1,8 +1,9 @@
 <%= form_with model: newsletter,
               class: "space-y-6",
               data: {
-                controller: "newsletter-send",
+                controller: "newsletter-send newsletter-test-send",
                 action: "submit->newsletter-send#confirm",
+                newsletter_test_send_open_value: @test_send_modal_open || false,
                 newsletter_send_recipient_count_value: @recipient_count
               } do |form| %>
   <% if newsletter.errors.any? %>
@@ -48,7 +49,22 @@
     <%= form.hidden_field :confirmed_send, name: "confirmed_send", value: "0" %>
     <%= form.button "Preview", type: "submit", name: "intent", value: "preview", class: "btn-primary" %>
     <%= form.button "Send", type: "submit", name: "intent", value: "send", class: "btn-primary" %>
+    <%= button_tag "Send test email", type: "button", data: { action: "newsletter-test-send#open" }, class: "border border-brand-blue-600 rounded-lg px-5 py-2 text-brand-blue-700 hover:bg-blue-50 transition" %>
     <%= form.button "Save draft", type: "submit", name: "intent", value: "save", class: "border border-gray-300 rounded-lg px-5 py-2 text-gray-700 hover:bg-gray-50 transition" %>
     <%= link_to "Cancel", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
   </div>
+
+  <dialog data-newsletter-test-send-target="dialog" data-action="close->newsletter-test-send#closed click->newsletter-test-send#closeOnBackdrop" aria-labelledby="newsletter-test-send-title" class="w-[calc(100%-2rem)] max-w-lg rounded-lg border-0 p-0 shadow-xl backdrop:bg-black/50">
+    <div class="p-6">
+      <h2 id="newsletter-test-send-title" class="mb-2 text-xl font-semibold">Send a test email</h2>
+      <p id="newsletter-test-recipients-help" class="mb-4 text-sm text-gray-600">Enter one or more addresses separated by commas, spaces, or new lines. Each address receives a separate email.</p>
+      <label for="newsletter-test-recipients" class="mb-2 block text-sm font-medium text-gray-700">Email addresses *</label>
+      <textarea id="newsletter-test-recipients" name="test_recipients" rows="3" required disabled data-newsletter-test-send-target="recipients" aria-invalid="<%= @test_send_error.present? %>" aria-describedby="newsletter-test-recipients-help newsletter-test-recipients-error" class="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-brand-blue-600 focus:ring-brand-blue-600"><%= @test_recipients %></textarea>
+      <p id="newsletter-test-recipients-error" class="mb-5 mt-2 text-sm text-red-700" role="alert"><%= @test_send_error %></p>
+      <div class="flex justify-end gap-3">
+        <%= button_tag "Cancel", type: "button", data: { action: "newsletter-test-send#close" }, class: "border border-gray-300 rounded-lg px-5 py-2 text-gray-700 hover:bg-gray-50 transition" %>
+        <%= form.button "Send test", type: "submit", name: "intent", value: "test_send", class: "btn-primary" %>
+      </div>
+    </div>
+  </dialog>
 <% end %>
