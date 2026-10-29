@@ -15,6 +15,7 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'button[name="intent"][value="test_send"]', text: "Send test"
     assert_select 'button[type="button"]', text: "Send test email"
     assert_select 'form[data-controller~="newsletter-send"][data-controller~="newsletter-test-send"][data-newsletter-send-recipient-count-value="1"]'
+    assert_select "dialog[data-newsletter-test-send-target='dialog']"
   end
 
   test "editor can create a newsletter and preview its saved content" do
@@ -86,8 +87,9 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_entity
-    assert_includes response.body, "Enter valid email addresses"
-    assert_select 'textarea[name="test_recipients"]'
+    assert_select 'form[data-newsletter-test-send-open-value="true"]'
+    assert_select 'textarea[name="test_recipients"][aria-invalid="true"][aria-describedby~="newsletter-test-recipients-error"]'
+    assert_select "#newsletter-test-recipients-error[role='alert']", text: /Enter valid email addresses/
   end
 
   test "test send updates the current draft without publishing or creating subscriber deliveries" do
@@ -109,6 +111,15 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "<p>Updated test body</p>", newsletter.content_html
     assert_not newsletter.sent?
     assert_empty newsletter.newsletter_deliveries
+
+    newsletter.update!(title: "Changed after queue", subject: "Changed after queue", content_html: "<p>Changed after queue</p>")
+    perform_enqueued_jobs
+
+    email = ActionMailer::Base.deliveries.last
+    assert_equal "[TEST] Updated test subject", email.subject
+    assert_includes email.body.to_s, "Updated test draft"
+    assert_includes email.body.to_s, "Updated test body"
+    refute_includes email.body.to_s, "Changed after queue"
   end
 
   test "test preview link displays an unpublished newsletter without editor controls" do
@@ -124,25 +135,37 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'a[href*="/newsletter/preview"]', count: 0
   end
 
-  test "test unsubscribe link unsubscribes a matching address" do
+  test "test unsubscribe link shows confirmation without changing a matching subscription" do
     subscription = newsletter_subscriptions(:active)
     token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
 
     get test_newsletter_unsubscribe_path(token: token)
 
+    assert_response :success
+    assert_select "h1", text: "Confirm unsubscribe"
+    assert_select "form[action=?]", destroy_test_newsletter_unsubscribe_path(token)
+    assert subscription.reload.subscribed?
+  end
+
+  test "test unsubscribe link unsubscribes a matching address after confirmation" do
+    subscription = newsletter_subscriptions(:active)
+    token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
+
+    delete destroy_test_newsletter_unsubscribe_path(token: token)
+
     assert_redirected_to newsletter_signup_path
     assert_not subscription.reload.subscribed?
   end
 
-  test "test unsubscribe link does not create a subscription for a test-only recipient" do
+  test "test unsubscribe link confirms test-only recipients without changing subscriptions" do
     token = NewsletterTestEmailLink.unsubscribe_token("not-subscribed@example.com")
 
     assert_no_difference "NewsletterSubscription.count" do
       get test_newsletter_unsubscribe_path(token: token)
     end
 
-    assert_redirected_to newsletter_signup_path
-    assert_includes flash[:notice], "No subscription was changed"
+    assert_response :success
+    assert_includes response.body, "This test recipient is not subscribed. No subscription was changed."
   end
 
   test "editor can review subscriber count and cancel back to the draft" do

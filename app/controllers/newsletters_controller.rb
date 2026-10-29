@@ -1,5 +1,5 @@
 class NewslettersController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:show, :test_preview, :test_unsubscribe]
+  skip_before_action :authenticate_user!, only: [:show, :test_preview, :test_unsubscribe, :destroy_test_unsubscribe]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update, :preview, :confirm_send, :send_newsletter]
   before_action :set_newsletter, only: [:show, :edit, :update, :preview, :confirm_send, :send_newsletter]
@@ -74,11 +74,17 @@ class NewslettersController < ApplicationController
   end
 
   def test_unsubscribe
-    email = NewsletterTestEmailLink.email_for_unsubscribe_token(params[:token])
-    subscription = NewsletterSubscription.find_by(email: NewsletterSubscription.normalize_email(email))
-    subscription&.unsubscribe! if subscription&.subscribed?
+    @test_unsubscribe_subscription = find_test_unsubscribe_subscription
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    head :not_found
+  end
 
-    notice = subscription ? "You have been unsubscribed from the newsletter." : "This test recipient is not subscribed. No subscription was changed."
+  def destroy_test_unsubscribe
+    subscription = find_test_unsubscribe_subscription
+    was_subscribed = subscription&.subscribed?
+    subscription.unsubscribe! if was_subscribed
+
+    notice = was_subscribed ? "You have been unsubscribed from the newsletter." : "This test recipient is not subscribed. No subscription was changed."
     redirect_to newsletter_signup_path, notice: notice
   rescue ActiveSupport::MessageVerifier::InvalidSignature
     head :not_found
@@ -163,8 +169,10 @@ class NewslettersController < ApplicationController
   end
 
   def queue_test_newsletters
+    newsletter_snapshot = @newsletter.attributes.slice("title", "subject", "content_html").freeze
+
     @test_recipient_addresses.each do |address|
-      NewsletterMailer.test_newsletter(@newsletter, address).deliver_later
+      NewsletterMailer.test_newsletter(@newsletter.id, newsletter_snapshot, address).deliver_later
     end
 
     count = @test_recipient_addresses.length
@@ -172,5 +180,10 @@ class NewslettersController < ApplicationController
   rescue StandardError => error
     Rails.logger.error("Failed to queue test newsletter #{@newsletter.id}: #{error.class}: #{error.message}")
     redirect_to edit_newsletter_path(@newsletter), alert: "The test email could not be queued. Please try again."
+  end
+
+  def find_test_unsubscribe_subscription
+    email = NewsletterTestEmailLink.email_for_unsubscribe_token(params[:token])
+    NewsletterSubscription.find_by(email: NewsletterSubscription.normalize_email(email))
   end
 end

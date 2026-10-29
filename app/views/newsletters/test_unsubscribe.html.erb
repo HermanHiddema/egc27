@@ -1,0 +1,15 @@
+<div class="container-wide py-12">
+  <div class="max-w-2xl mx-auto card p-6 space-y-6">
+    <h1 class="text-3xl font-bold">Confirm unsubscribe</h1>
+    <% if @test_unsubscribe_subscription&.subscribed? %>
+      <p class="text-neutral-700">Are you sure you want to unsubscribe this test recipient from the newsletter?</p>
+      <div class="flex gap-4">
+        <%= button_to "Unsubscribe", destroy_test_newsletter_unsubscribe_path(params[:token]), method: :delete, class: "btn-primary" %>
+        <%= link_to "Keep me subscribed", newsletter_signup_path, class: "btn-secondary" %>
+      </div>
+    <% else %>
+      <p class="text-neutral-700">This test recipient is not subscribed. No subscription was changed.</p>
+      <%= link_to "Back to newsletter", newsletter_signup_path, class: "btn-secondary" %>
+    <% end %>
+  </div>
+</div>

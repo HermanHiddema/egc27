@@ -1,7 +1,7 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
-    static targets = ["panel", "recipients"]
+    static targets = ["dialog", "recipients"]
     static values = { open: Boolean }
 
     connect() {
@@ -9,13 +9,23 @@ export default class extends Controller {
     }
 
     open() {
-        this.panelTarget.hidden = false
+        if (this.dialogTarget.open) return
+
+        this.dialogTarget.showModal()
         this.recipientsTarget.disabled = false
         this.recipientsTarget.focus()
     }
 
     close() {
-        this.panelTarget.hidden = true
+        if (this.dialogTarget.open) this.dialogTarget.close()
         this.recipientsTarget.disabled = true
+    }
+
+    closed() {
+        this.recipientsTarget.disabled = true
+    }
+
+    closeOnBackdrop(event) {
+        if (event.target === this.dialogTarget) this.close()
     }
 }

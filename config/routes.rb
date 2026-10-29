@@ -123,6 +123,7 @@ Rails.application.routes.draw do
 
   get "newsletter/test_preview/:token", to: "newsletters#test_preview", as: :test_newsletter_preview
   get "newsletter/test_unsubscribe/:token", to: "newsletters#test_unsubscribe", as: :test_newsletter_unsubscribe
+  delete "newsletter/test_unsubscribe/:token", to: "newsletters#destroy_test_unsubscribe", as: :destroy_test_newsletter_unsubscribe
 
   resources :articles
   resources :newsletters, only: [:show, :new, :create, :edit, :update], path: "newsletter" do
