@@ -122,6 +122,13 @@ Rails.application.routes.draw do
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
   resources :articles
+  resources :newsletters, only: [:show, :new, :create, :edit, :update], path: "newsletter" do
+    member do
+      get :preview
+      get :confirm_send
+      post :send, action: :send_newsletter
+    end
+  end
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
@@ -171,7 +178,7 @@ Rails.application.routes.draw do
   resources :users, only: [:index, :edit, :update]
   get "users/invite", to: "users#invite", as: :invite_user
   post "users/invite", to: "users#send_invitation", as: :send_invitation_user
-  get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
+  get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter_signup
   resources :newsletter_subscriptions, only: [:index, :create, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter

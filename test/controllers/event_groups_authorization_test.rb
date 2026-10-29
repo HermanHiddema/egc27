@@ -15,9 +15,12 @@ class EventGroupsAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "admin can list event groups" do
     sign_in users(:admin)
+    EventGroup.create!(key: "portrait_actions", name: "Portrait Actions", color: "#93c5fd")
+
     get event_groups_path
     assert_response :success
     assert_select "h1", text: "Event Groups"
+    assert_select ".portrait-stack-actions a", text: "Edit"
   end
 
   test "admin can create event group" do
