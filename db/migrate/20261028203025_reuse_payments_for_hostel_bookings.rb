@@ -10,7 +10,6 @@ class ReusePaymentsForHostelBookings < ActiveRecord::Migration[8.1]
     remove_index :hostel_bookings, :mollie_payment_id
     remove_index :hostel_bookings, :status
     remove_column :hostel_bookings, :amount_cents
-    remove_column :hostel_bookings, :priced_on
     remove_column :hostel_bookings, :status
     remove_column :hostel_bookings, :mollie_payment_id
     remove_column :hostel_bookings, :payment_method
