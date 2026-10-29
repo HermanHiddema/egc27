@@ -9,6 +9,21 @@ class NewsletterMailer < ApplicationMailer
     mail(to: subscription.email, subject: newsletter.subject)
   end
 
+  def test_newsletter(newsletter, recipient)
+    @newsletter = newsletter
+    @subscription = nil
+    @test_delivery = true
+    @test_unsubscribe_url = test_newsletter_unsubscribe_url(
+      token: NewsletterTestEmailLink.unsubscribe_token(recipient)
+    )
+    @test_preview_url = test_newsletter_preview_url(
+      token: NewsletterTestEmailLink.preview_token(newsletter)
+    )
+    @content_html = ApplicationController.helpers.render_html_content(absolute_email_urls(newsletter.content_html))
+
+    mail(to: recipient, subject: "[TEST] #{newsletter.subject}", template_name: "newsletter")
+  end
+
   private
 
   def absolute_email_urls(html)

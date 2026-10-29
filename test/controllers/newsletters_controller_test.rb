@@ -12,7 +12,9 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_select 'button[name="intent"][value="preview"]', text: "Preview"
     assert_select 'button[name="intent"][value="save"]', text: "Save draft"
     assert_select 'button[name="intent"][value="send"]', text: "Send"
-    assert_select 'form[data-controller="newsletter-send"][data-newsletter-send-recipient-count-value="1"]'
+    assert_select 'button[name="intent"][value="test_send"]', text: "Send test"
+    assert_select 'button[type="button"]', text: "Send test email"
+    assert_select 'form[data-controller~="newsletter-send"][data-controller~="newsletter-test-send"][data-newsletter-send-recipient-count-value="1"]'
   end
 
   test "editor can create a newsletter and preview its saved content" do
@@ -47,6 +49,100 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Saved draft", newsletter.title
     assert_equal "Draft subject", newsletter.subject
     assert_equal "<p>Draft content</p>", newsletter.content_html
+  end
+
+  test "test send saves the draft and sends one separate email to each entered address" do
+    sign_in users(:editor)
+
+    assert_difference "Newsletter.count", 1 do
+      assert_enqueued_emails 2 do
+        post newsletters_path, params: {
+          newsletter: { title: "Test issue", subject: "Test subject", content_html: "<p>Test body</p>" },
+          intent: "test_send",
+          test_recipients: "first@example.com, SECOND@example.com"
+        }
+      end
+    end
+
+    newsletter = Newsletter.order(:id).last
+    assert_redirected_to edit_newsletter_path(newsletter)
+    assert_equal "Test issue", newsletter.title
+    assert_not newsletter.sent?
+    assert_empty newsletter.newsletter_deliveries
+    assert_includes flash[:notice], "Test email queued for 2 addresses"
+  end
+
+  test "test send rejects invalid recipient addresses without saving or enqueueing emails" do
+    sign_in users(:editor)
+
+    assert_no_difference "Newsletter.count" do
+      assert_no_enqueued_emails do
+        post newsletters_path, params: {
+          newsletter: { title: "Test issue", subject: "Test subject", content_html: "<p>Test body</p>" },
+          intent: "test_send",
+          test_recipients: "valid@example.com, not-an-email"
+        }
+      end
+    end
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "Enter valid email addresses"
+    assert_select 'textarea[name="test_recipients"]'
+  end
+
+  test "test send updates the current draft without publishing or creating subscriber deliveries" do
+    sign_in users(:editor)
+    newsletter = create_newsletter
+
+    assert_enqueued_emails 1 do
+      patch newsletter_path(newsletter), params: {
+        newsletter: { title: "Updated test draft", subject: "Updated test subject", content_html: "<p>Updated test body</p>" },
+        intent: "test_send",
+        test_recipients: "editor@example.com"
+      }
+    end
+
+    assert_redirected_to edit_newsletter_path(newsletter)
+    newsletter.reload
+    assert_equal "Updated test draft", newsletter.title
+    assert_equal "Updated test subject", newsletter.subject
+    assert_equal "<p>Updated test body</p>", newsletter.content_html
+    assert_not newsletter.sent?
+    assert_empty newsletter.newsletter_deliveries
+  end
+
+  test "test preview link displays an unpublished newsletter without editor controls" do
+    newsletter = create_newsletter
+    token = NewsletterTestEmailLink.preview_token(newsletter)
+
+    get test_newsletter_preview_path(token: token)
+
+    assert_response :success
+    assert_includes response.body, "Newsletter body"
+    assert_includes response.body, "Test preview"
+    assert_select 'button[name="intent"]', count: 0
+    assert_select 'a[href*="/newsletter/preview"]', count: 0
+  end
+
+  test "test unsubscribe link unsubscribes a matching address" do
+    subscription = newsletter_subscriptions(:active)
+    token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
+
+    get test_newsletter_unsubscribe_path(token: token)
+
+    assert_redirected_to newsletter_signup_path
+    assert_not subscription.reload.subscribed?
+  end
+
+  test "test unsubscribe link does not create a subscription for a test-only recipient" do
+    token = NewsletterTestEmailLink.unsubscribe_token("not-subscribed@example.com")
+
+    assert_no_difference "NewsletterSubscription.count" do
+      get test_newsletter_unsubscribe_path(token: token)
+    end
+
+    assert_redirected_to newsletter_signup_path
+    assert_includes flash[:notice], "No subscription was changed"
   end
 
   test "editor can review subscriber count and cancel back to the draft" do

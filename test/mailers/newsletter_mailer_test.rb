@@ -35,4 +35,22 @@ class NewsletterMailerTest < ActionMailer::TestCase
     refute_includes email.body.to_s, "<script"
     refute_includes email.body.to_s, "onerror"
   end
+
+  test "test newsletter email is addressed only to its test recipient and has no subscriber links" do
+    newsletter = Newsletter.create!(
+      title: "Draft issue",
+      subject: "Draft subject",
+      content_html: "<p>Preview content</p>",
+      user: users(:editor)
+    )
+
+    email = NewsletterMailer.test_newsletter(newsletter, "test@example.com")
+
+    assert_equal ["test@example.com"], email.to
+    assert_equal "[TEST] Draft subject", email.subject
+    assert_includes email.body.to_s, "Preview content"
+    assert_includes email.body.to_s, "This is a test email for a newsletter draft"
+    assert_includes email.body.to_s, "http://example.com/newsletter/test_unsubscribe/"
+    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+  end
 end

@@ -121,6 +121,9 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  get "newsletter/test_preview/:token", to: "newsletters#test_preview", as: :test_newsletter_preview
+  get "newsletter/test_unsubscribe/:token", to: "newsletters#test_unsubscribe", as: :test_newsletter_unsubscribe
+
   resources :articles
   resources :newsletters, only: [:show, :new, :create, :edit, :update], path: "newsletter" do
     member do
