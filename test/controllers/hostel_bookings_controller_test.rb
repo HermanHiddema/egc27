@@ -250,10 +250,11 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     new_payment = OpenStruct.new(id: "tr_new", checkout_url: "https://example.test/new")
 
     with_mollie_get_stub(remote) do
-      with_mollie_create_stub(new_payment) do
+      with_mollie_create_stub(new_payment) do |created_params|
         travel_to Time.zone.local(2027, 2, 15) do
           post pay_hostel_booking_path(booking)
         end
+        assert_equal webhook_payments_url, created_params.last[:webhook_url]
       end
     end
 
@@ -310,7 +311,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     payment = create_payment(booking, mollie_payment_id: "tr_webhook")
 
     with_mollie_get_stub(OpenStruct.new(id: "tr_webhook", status: "paid")) do
-      post webhook_hostel_bookings_path, params: { id: "tr_webhook" }
+      post webhook_payments_path, params: { id: "tr_webhook" }
     end
 
     assert_response :ok
@@ -322,7 +323,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "Mollie is down" }
 
-    post webhook_hostel_bookings_path, params: { id: "tr_unavailable" }
+    post webhook_payments_path, params: { id: "tr_unavailable" }
 
     assert_response :service_unavailable
   ensure

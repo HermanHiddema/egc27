@@ -167,9 +167,6 @@ Rails.application.routes.draw do
     member do
       post :pay
     end
-    collection do
-      post :webhook
-    end
   end
   resources :users, only: [:index, :edit, :update]
   get "users/invite", to: "users#invite", as: :invite_user

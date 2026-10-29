@@ -1,7 +1,4 @@
 class HostelBookingsController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:webhook]
-  skip_before_action :verify_authenticity_token, only: [:webhook]
-
   before_action :set_hostel_booking, only: [:show, :pay]
 
   def index
@@ -35,15 +32,6 @@ class HostelBookingsController < ApplicationController
 
   def pay
     checkout
-  end
-
-  def webhook
-    Payment.sync_from_mollie_webhook(params[:id])
-
-    head :ok
-  rescue Mollie::Exception => e
-    Rails.logger.error "[Mollie] Webhook error for hostel booking payment #{params[:id]}: #{e.message}"
-    head :service_unavailable
   end
 
   private
@@ -84,7 +72,7 @@ class HostelBookingsController < ApplicationController
       @payment.save! unless @payment.persisted?
       @payment.start_mollie_checkout!(
         redirect_url: hostel_booking_url(@hostel_booking),
-        webhook_url: webhook_hostel_bookings_url
+        webhook_url: webhook_payments_url
       )
     end
 

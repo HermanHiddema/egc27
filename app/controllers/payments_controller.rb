@@ -69,7 +69,7 @@ class PaymentsController < ApplicationController
     head :ok
   rescue Mollie::Exception => e
     Rails.logger.error "[Mollie] Webhook error for payment #{params[:id]}: #{e.message}"
-    head :ok
+    head :service_unavailable
   end
 
   private
