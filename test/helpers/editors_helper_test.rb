@@ -120,4 +120,12 @@ class EditorsHelperTest < ActionView::TestCase
     assert_includes sanitized, "float:right"
     assert_includes sanitized, "margin:0.25rem 0 0.75rem 1rem"
   end
+
+  test "render_html_content preserves the empty image-cell marker" do
+    html = '<table class="newsletter-layout-locked"><tr><td><div class="newsletter-layout-editable newsletter-layout-image-only is-empty"></div></td></tr></table>'
+
+    sanitized = render_html_content(html)
+
+    assert_includes sanitized, 'class="newsletter-layout-editable newsletter-layout-image-only is-empty"'
+  end
 end

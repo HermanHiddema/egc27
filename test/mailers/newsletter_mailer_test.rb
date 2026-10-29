@@ -21,6 +21,7 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_includes email.body.to_s, "@media only screen and (max-width: 640px)"
     assert_includes email.body.to_s, "table.newsletter-layout-locked td"
     assert_includes email.body.to_s, "table.newsletter-layout-locked tr"
+    assert_includes email.body.to_s, "table.newsletter-layout-locked figure.image.img-align-center"
     assert_includes email.body.to_s, 'class="newsletter-layout-locked"'
     assert_includes email.body.to_s, "https://example.com/rails/blobs/redirect/abc/layout.png"
     assert_includes email.body.to_s, "https://example.com/rails/blobs/redirect/abc/photo.png"

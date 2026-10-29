@@ -490,6 +490,26 @@
   height: auto;
 }
 
+.newsletter-document .newsletter-layout-locked figure.image {
+  display: table;
+  max-width: 100%;
+  margin: 0;
+}
+
+.newsletter-document .newsletter-layout-locked figure.image figcaption {
+  text-align: center;
+}
+
+.newsletter-document .newsletter-layout-image-only.is-empty::before {
+  content: "Insert an image with the Image button";
+  display: block;
+  min-height: 2.5rem;
+  padding: 0.75rem;
+  border: 1px dashed #94a3b8;
+  color: #64748b;
+  text-align: center;
+}
+
 @media (max-width: 640px) {
   .newsletter-document table.newsletter-layout-locked td {
     display: block !important;

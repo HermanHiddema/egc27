@@ -18,7 +18,7 @@ export default class extends Controller {
 
     // Stop polling for the CDN script after roughly 10 seconds.
     static MAX_INIT_ATTEMPTS = 100
-    static TEXT_ALIGN_SELECTOR = "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li"
+    static TEXT_ALIGN_SELECTOR = "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li,.newsletter-layout-editable"
     static IMAGE_ALIGNMENTS = {
         JustifyLeft: { className: "img-align-left", styles: { float: "left", margin: "0.25rem 1rem 0.75rem 0" } },
         JustifyRight: { className: "img-align-right", styles: { float: "right", margin: "0.25rem 0 0.75rem 1rem" } },
@@ -151,7 +151,7 @@ export default class extends Controller {
             toolbar_mode: this.newsletterLayoutsValue ? "wrap" : undefined,
             contextmenu: this.newsletterLayoutsValue ? false : undefined,
             quickbars_insert_toolbar: this.newsletterLayoutsValue ? false : undefined,
-            object_resizing: this.newsletterLayoutsValue ? "img" : true,
+            object_resizing: this.newsletterLayoutsValue ? "img,figure.image" : true,
             block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
             formats: {
                 alignleft: { selector: this.constructor.TEXT_ALIGN_SELECTOR, styles: { "text-align": "left" }, inherit: false },
@@ -255,14 +255,23 @@ export default class extends Controller {
                 }
 
                 .newsletter-layout-editable figure.image {
-                    display: block;
-                    width: 100%;
+                    display: table;
                     max-width: 100%;
                     margin: 0;
                 }
 
                 .newsletter-layout-editable figure.image img {
                     margin: 0;
+                }
+
+                .newsletter-layout-image-only.is-empty::before {
+                    content: "Insert an image with the Image button";
+                    display: block;
+                    min-height: 2.5rem;
+                    padding: 0.75rem;
+                    border: 1px dashed #94a3b8;
+                    color: #64748b;
+                    text-align: center;
                 }
             `,
             convert_urls: false,
@@ -333,7 +342,7 @@ export default class extends Controller {
     registerNewsletterLayoutButtons(editor) {
         const imageUrl = this.newsletterPlaceholderImageValue
         const textCell = '<div class="newsletter-layout-editable" contenteditable="true"><p>Write your text here.</p></div>'
-        const imageCell = `<div class="newsletter-layout-editable" contenteditable="true"><img class="newsletter-layout-image" src="${imageUrl}" alt="Replace this sample image with your own" width="552" style="display:block; max-width:100%;"></div>`
+        const imageCell = `<div class="newsletter-layout-editable newsletter-layout-image-only" contenteditable="true"><img class="newsletter-layout-image" src="${imageUrl}" alt="Replace this sample image with your own" width="552" style="display:block; max-width:100%;"></div>`
 
         const layoutTable = (leftContent, rightContent) => `
             <table class="newsletter-layout-locked" contenteditable="false" width="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; border-collapse:collapse; margin:16px 0;">
@@ -358,26 +367,66 @@ export default class extends Controller {
         ]
 
         const newsletterImageSources = new WeakMap()
+        const waitingForImageDimensions = new WeakMap()
+        const updateImageCellPlaceholders = () => {
+            editor.dom.select(".newsletter-layout-image-only").forEach((cell) => {
+                const isEmpty = !cell.querySelector("img") && !cell.textContent.trim()
+                if (isEmpty) {
+                    editor.dom.addClass(cell, "is-empty")
+                } else {
+                    editor.dom.removeClass(cell, "is-empty")
+                }
+            })
+        }
         const normalizeLayoutTableHeights = () => {
             editor.dom.select(".newsletter-layout-locked, .newsletter-layout-locked tr, .newsletter-layout-locked td").forEach((element) => {
                 element.removeAttribute("height")
                 element.style.removeProperty("height")
             })
         }
+        const normalizeLayoutImageFigures = () => {
+            editor.dom.select(".newsletter-layout-locked .newsletter-layout-editable figure.image").forEach((figure) => {
+                if (figure.style.width === "100%") figure.style.removeProperty("width")
+                editor.dom.setStyles(figure, { display: "table", maxWidth: "100%" })
+            })
+        }
         const sizeNewLayoutImage = (image) => {
             const source = image.getAttribute("src")
             if (!source || newsletterImageSources.get(image) === source) return
 
-            newsletterImageSources.set(image, source)
-            const sourceWidth = image.naturalWidth || Number(image.getAttribute("width"))
-            const sourceHeight = image.naturalHeight || Number(image.getAttribute("height"))
+            const sourceWidth = image.naturalWidth
+            const sourceHeight = image.naturalHeight
 
             if (!sourceWidth || !sourceHeight) {
-                newsletterImageSources.delete(image)
-                image.addEventListener("load", () => sizeNewLayoutImage(image), { once: true })
+                if (image.complete) {
+                    newsletterImageSources.set(image, source)
+                    editor.notificationManager.open({
+                        text: "This image URL could not be loaded. Check the URL or upload the image instead.",
+                        type: "warning"
+                    })
+                    return
+                }
+
+                if (waitingForImageDimensions.get(image) === source) return
+
+                waitingForImageDimensions.set(image, source)
+                image.addEventListener("load", () => {
+                    waitingForImageDimensions.delete(image)
+                    newsletterImageSources.delete(image)
+                    sizeNewLayoutImage(image)
+                }, { once: true })
+                image.addEventListener("error", () => {
+                    waitingForImageDimensions.delete(image)
+                    newsletterImageSources.set(image, source)
+                    editor.notificationManager.open({
+                        text: "This image URL could not be loaded. Check the URL or upload the image instead.",
+                        type: "warning"
+                    })
+                }, { once: true })
                 return
             }
 
+            newsletterImageSources.set(image, source)
             const cell = image.closest("td")
             const view = image.ownerDocument.defaultView
             const cellStyle = cell && view ? view.getComputedStyle(cell) : null
@@ -396,11 +445,16 @@ export default class extends Controller {
 
             const figure = image.closest("figure.image")
             if (figure) {
-                editor.dom.setStyles(figure, { display: "block", width: "100%", maxWidth: "100%", margin: "0" })
+                if (figure.style.width === "100%") figure.style.removeProperty("width")
+                editor.dom.setStyles(figure, { display: "table", maxWidth: "100%", margin: "0" })
             }
         }
 
-        editor.on("init", normalizeLayoutTableHeights)
+        editor.on("init", () => {
+            normalizeLayoutTableHeights()
+            normalizeLayoutImageFigures()
+            updateImageCellPlaceholders()
+        })
         editor.on("init", () => {
             editor.dom.select(".newsletter-layout-locked .newsletter-layout-editable img").forEach((image) => {
                 newsletterImageSources.set(image, image.getAttribute("src"))
@@ -408,7 +462,9 @@ export default class extends Controller {
         })
         editor.on("NodeChange ObjectResized", () => {
             editor.dom.select(".newsletter-layout-locked .newsletter-layout-editable img").forEach(sizeNewLayoutImage)
+            updateImageCellPlaceholders()
         })
+        editor.on("input SetContent", updateImageCellPlaceholders)
 
         layouts.forEach(([name, label, leftContent, rightContent]) => {
             editor.ui.registry.addButton(name, {
