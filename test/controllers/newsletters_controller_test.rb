@@ -147,6 +147,32 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert subscription.reload.subscribed?
   end
 
+  test "test unsubscribe confirmation includes the turnstile widget when configured" do
+    with_turnstile_configured do
+      token = NewsletterTestEmailLink.unsubscribe_token(newsletter_subscriptions(:active).email)
+
+      get test_newsletter_unsubscribe_path(token: token)
+
+      assert_response :success
+      assert_select "form[action=?]", destroy_test_newsletter_unsubscribe_path(token)
+      assert_select "div.cf-turnstile"
+    end
+  end
+
+  test "test unsubscribe requires turnstile verification" do
+    subscription = newsletter_subscriptions(:active)
+    token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
+
+    with_turnstile_configured do
+      delete destroy_test_newsletter_unsubscribe_path(token: token)
+
+      assert_response :unprocessable_entity
+      assert_includes response.body, "CAPTCHA verification failed"
+      assert subscription.reload.subscribed?
+      assert_select "div.cf-turnstile"
+    end
+  end
+
   test "test unsubscribe link unsubscribes a matching address after confirmation" do
     subscription = newsletter_subscriptions(:active)
     token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
@@ -155,9 +181,29 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to newsletter_signup_path
     assert_not subscription.reload.subscribed?
+    assert_nil subscription.unsubscribe_token
   end
 
-  test "test unsubscribe link confirms test-only recipients without changing subscriptions" do
+  test "test unsubscribe link can only be used once, including after resubscription" do
+    subscription = newsletter_subscriptions(:active)
+    token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
+
+    delete destroy_test_newsletter_unsubscribe_path(token: token)
+    assert_nil subscription.reload.unsubscribe_token
+
+    subscription.update!(subscribed: true)
+    new_token = subscription.unsubscribe_token
+    assert new_token.present?
+
+    delete destroy_test_newsletter_unsubscribe_path(token: token)
+
+    assert_redirected_to newsletter_signup_path
+    assert subscription.reload.subscribed?
+    assert_equal new_token, subscription.unsubscribe_token
+    assert_includes flash[:notice], "no longer valid"
+  end
+
+  test "test unsubscribe link confirms recipients without a matching subscription" do
     token = NewsletterTestEmailLink.unsubscribe_token("not-subscribed@example.com")
 
     assert_no_difference "NewsletterSubscription.count" do
@@ -165,7 +211,7 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_includes response.body, "This test recipient is not subscribed. No subscription was changed."
+    assert_includes response.body, "This test unsubscribe link is no longer valid. No subscription was changed."
   end
 
   test "editor can review subscriber count and cancel back to the draft" do

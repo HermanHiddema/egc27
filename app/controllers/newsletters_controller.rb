@@ -1,9 +1,13 @@
 class NewslettersController < ApplicationController
+  include TurnstileVerifiable
+
   skip_before_action :authenticate_user!, only: [:show, :test_preview, :test_unsubscribe, :destroy_test_unsubscribe]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update, :preview, :confirm_send, :send_newsletter]
   before_action :set_newsletter, only: [:show, :edit, :update, :preview, :confirm_send, :send_newsletter]
   before_action :set_recipient_count, only: [:new, :create, :edit, :update, :preview]
+  before_action :prepare_test_unsubscribe, only: [:test_unsubscribe, :destroy_test_unsubscribe]
+  before_action :verify_turnstile, only: [:destroy_test_unsubscribe]
 
   def show
     redirect_to newsletter_signup_path, alert: "That newsletter has not been sent." unless @newsletter.sent?
@@ -74,20 +78,15 @@ class NewslettersController < ApplicationController
   end
 
   def test_unsubscribe
-    @test_unsubscribe_subscription = find_test_unsubscribe_subscription
-  rescue ActiveSupport::MessageVerifier::InvalidSignature
-    head :not_found
   end
 
   def destroy_test_unsubscribe
-    subscription = find_test_unsubscribe_subscription
+    subscription = @test_unsubscribe_subscription
     was_subscribed = subscription&.subscribed?
     subscription.unsubscribe! if was_subscribed
 
-    notice = was_subscribed ? "You have been unsubscribed from the newsletter." : "This test recipient is not subscribed. No subscription was changed."
+    notice = was_subscribed ? "You have been unsubscribed from the newsletter." : "This test unsubscribe link is no longer valid. No subscription was changed."
     redirect_to newsletter_signup_path, notice: notice
-  rescue ActiveSupport::MessageVerifier::InvalidSignature
-    head :not_found
   end
 
   private
@@ -182,8 +181,13 @@ class NewslettersController < ApplicationController
     redirect_to edit_newsletter_path(@newsletter), alert: "The test email could not be queued. Please try again."
   end
 
-  def find_test_unsubscribe_subscription
-    email = NewsletterTestEmailLink.email_for_unsubscribe_token(params[:token])
-    NewsletterSubscription.find_by(email: NewsletterSubscription.normalize_email(email))
+  def prepare_test_unsubscribe
+    @test_unsubscribe_subscription = NewsletterTestEmailLink.subscription_for_unsubscribe_token(params[:token])
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    head :not_found
+  end
+
+  def turnstile_failure_template
+    :test_unsubscribe
   end
 end

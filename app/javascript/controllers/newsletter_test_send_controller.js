@@ -10,6 +10,7 @@ export default class extends Controller {
 
     open() {
         if (this.dialogTarget.open) return
+        if (!this.element.reportValidity()) return
 
         this.dialogTarget.showModal()
         this.recipientsTarget.disabled = false

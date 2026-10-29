@@ -11,11 +11,18 @@ class NewsletterTestEmailLink
   end
 
   def self.unsubscribe_token(email)
-    verifier.generate(NewsletterSubscription.normalize_email(email), purpose: TOKEN_PURPOSE, expires_in: LINK_EXPIRY)
+    subscription = NewsletterSubscription.find_by(
+      email: NewsletterSubscription.normalize_email(email),
+      subscribed: true
+    )
+    one_time_token = subscription&.unsubscribe_token || SecureRandom.urlsafe_base64(24)
+
+    verifier.generate(one_time_token, purpose: TOKEN_PURPOSE, expires_in: LINK_EXPIRY)
   end
 
-  def self.email_for_unsubscribe_token(token)
-    verifier.verify(token, purpose: TOKEN_PURPOSE)
+  def self.subscription_for_unsubscribe_token(token)
+    unsubscribe_token = verifier.verify(token, purpose: TOKEN_PURPOSE)
+    NewsletterSubscription.find_by(unsubscribe_token: unsubscribe_token) if unsubscribe_token.present?
   end
 
   def self.verifier
