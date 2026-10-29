@@ -58,6 +58,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
 
     assert_equal false, subscription.subscribed
     assert_not_nil subscription.unsubscribed_at
+    assert_nil subscription.unsubscribe_token
   end
 
   test "unsubscribe preserves existing unsubscribed_at" do

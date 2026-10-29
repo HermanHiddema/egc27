@@ -1,9 +1,13 @@
 class NewslettersController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:show]
+  include TurnstileVerifiable
+
+  skip_before_action :authenticate_user!, only: [:show, :test_preview, :test_unsubscribe, :destroy_test_unsubscribe]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update, :preview, :confirm_send, :send_newsletter]
   before_action :set_newsletter, only: [:show, :edit, :update, :preview, :confirm_send, :send_newsletter]
   before_action :set_recipient_count, only: [:new, :create, :edit, :update, :preview]
+  before_action :prepare_test_unsubscribe, only: [:test_unsubscribe, :destroy_test_unsubscribe]
+  before_action :verify_turnstile, only: [:destroy_test_unsubscribe]
 
   def show
     redirect_to newsletter_signup_path, alert: "That newsletter has not been sent." unless @newsletter.sent?
@@ -15,6 +19,7 @@ class NewslettersController < ApplicationController
 
   def create
     @newsletter = current_user.newsletters.build(newsletter_params)
+    return render_test_recipient_error(:new) if test_send_requested? && !prepare_test_recipients
 
     if @newsletter.save
       redirect_after_save
@@ -28,6 +33,11 @@ class NewslettersController < ApplicationController
   end
 
   def update
+    if test_send_requested? && !prepare_test_recipients
+      @newsletter.assign_attributes(newsletter_params)
+      return render_test_recipient_error(:edit)
+    end
+
     result = @newsletter.with_lock do
       next :sent if @newsletter.sent?
 
@@ -61,6 +71,24 @@ class NewslettersController < ApplicationController
     queue_newsletter(params[:recipient_count])
   end
 
+  def test_preview
+    @newsletter = NewsletterTestEmailLink.find_preview_newsletter(params[:token])
+  rescue ActiveSupport::MessageVerifier::InvalidSignature, ActiveRecord::RecordNotFound
+    head :not_found
+  end
+
+  def test_unsubscribe
+  end
+
+  def destroy_test_unsubscribe
+    subscription = @test_unsubscribe_subscription
+    was_subscribed = subscription&.subscribed?
+    subscription.unsubscribe! if was_subscribed
+
+    notice = was_subscribed ? "You have been unsubscribed from the newsletter." : "This test unsubscribe link is no longer valid. No subscription was changed."
+    redirect_to newsletter_signup_path, notice: notice
+  end
+
   private
 
   def set_newsletter
@@ -83,6 +111,8 @@ class NewslettersController < ApplicationController
     case params[:intent]
     when "preview"
       redirect_to preview_newsletter_path(@newsletter)
+    when "test_send"
+      queue_test_newsletters
     when "send"
       if params[:confirmed_send] == "1"
         queue_newsletter(params[:recipient_count])
@@ -113,5 +143,51 @@ class NewslettersController < ApplicationController
     end
 
     redirect_to newsletter_path(@newsletter), notice: "Newsletter queued for #{@recipient_count} #{'addressee'.pluralize(@recipient_count)}."
+  end
+
+  def test_send_requested?
+    params[:intent] == "test_send"
+  end
+
+  def prepare_test_recipients
+    @test_recipients = params[:test_recipients].to_s
+    @test_recipient_addresses = @test_recipients.split(/[,;\s]+/).reject(&:blank?).map(&:downcase).uniq
+
+    @test_send_error = if @test_recipient_addresses.empty?
+      "Enter at least one email address."
+    elsif @test_recipient_addresses.any? { |address| !URI::MailTo::EMAIL_REGEXP.match?(address) }
+      "Enter valid email addresses separated by commas, spaces, or new lines."
+    end
+
+    @test_send_error.nil?
+  end
+
+  def render_test_recipient_error(template)
+    @test_send_modal_open = true
+    render template, status: :unprocessable_entity
+  end
+
+  def queue_test_newsletters
+    newsletter_snapshot = @newsletter.attributes.slice("title", "subject", "content_html").freeze
+
+    @test_recipient_addresses.each do |address|
+      NewsletterMailer.test_newsletter(@newsletter.id, newsletter_snapshot, address).deliver_later
+    end
+
+    count = @test_recipient_addresses.length
+    redirect_to edit_newsletter_path(@newsletter), notice: "Test email queued for #{count} #{'address'.pluralize(count)}. The newsletter remains a draft."
+  rescue StandardError => error
+    Rails.logger.error("Failed to queue test newsletter #{@newsletter.id}: #{error.class}: #{error.message}")
+    redirect_to edit_newsletter_path(@newsletter), alert: "The test email could not be queued. Please try again."
+  end
+
+  def prepare_test_unsubscribe
+    @test_unsubscribe_subscription = NewsletterTestEmailLink.subscription_for_unsubscribe_token(params[:token])
+  rescue ActiveSupport::MessageVerifier::InvalidSignature
+    head :not_found
+  end
+
+  def turnstile_failure_template
+    :test_unsubscribe
   end
 end

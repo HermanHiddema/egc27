@@ -23,6 +23,7 @@ class Rack::Attack
   CONFIRMATION_PATH        = %r{\A/users/confirmation(\.[^/]+)?/?\z}
   SIGN_IN_PATH             = %r{\A/users/sign_in(\.[^/]+)?/?\z}
   NEWSLETTER_PATH          = %r{\A/newsletter_subscriptions(\.[^/]+)?/?\z}
+  TEST_NEWSLETTER_UNSUBSCRIBE_PATH = %r{\A/newsletter/test_unsubscribe/[^/]+(\.[^/]+)?/?\z}
   SEARCH_PATH              = %r{\A/search(\.[^/]+)?/?\z}
   PAYMENT_SUCCESS_PATH     = %r{\A/payments/success(\.[^/]+)?/?\z}
 
@@ -104,6 +105,11 @@ class Rack::Attack
   # Newsletter subscription: limit by IP address (10 per minute)
   throttle("newsletter/ip", limit: 10, period: 1.minute) do |req|
     req.ip if req.path.match?(NEWSLETTER_PATH) && req.post?
+  end
+
+  # Test newsletter unsubscriptions: limit by IP address (10 per minute)
+  throttle("test_newsletter_unsubscribe/ip", limit: 10, period: 1.minute) do |req|
+    req.ip if req.path.match?(TEST_NEWSLETTER_UNSUBSCRIBE_PATH) && req.delete?
   end
 
   # Site search: limit by IP address (30 per minute) to curb abuse of the
