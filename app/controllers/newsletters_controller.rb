@@ -28,9 +28,16 @@ class NewslettersController < ApplicationController
   end
 
   def update
-    return redirect_to newsletter_signup_path, alert: "Sent newsletters cannot be edited." if @newsletter.sent?
+    result = @newsletter.with_lock do
+      next :sent if @newsletter.sent?
 
-    if @newsletter.update(newsletter_params)
+      @newsletter.update(newsletter_params) ? :saved : :invalid
+    end
+
+    case result
+    when :sent
+      redirect_to newsletter_signup_path, alert: "Sent newsletters cannot be edited."
+    when :saved
       redirect_after_save
     else
       render :edit, status: :unprocessable_entity

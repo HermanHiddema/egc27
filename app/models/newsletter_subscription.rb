@@ -18,6 +18,8 @@
 #  index_newsletter_subscriptions_on_unsubscribe_token  (unsubscribe_token) UNIQUE
 #
 class NewsletterSubscription < ApplicationRecord
+  has_many :newsletter_deliveries, dependent: :delete_all
+
   before_validation :normalize_fields
   before_validation :ensure_unsubscribe_token
   before_save :sync_unsubscribed_at

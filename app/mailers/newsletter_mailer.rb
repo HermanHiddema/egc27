@@ -1,4 +1,6 @@
 class NewsletterMailer < ApplicationMailer
+  layout false
+
   def newsletter(newsletter, subscription)
     @newsletter = newsletter
     @subscription = subscription
@@ -21,7 +23,11 @@ class NewsletterMailer < ApplicationMailer
       "#{$1}=#{$2}#{base_url}#{$3}#{$2}"
     end
 
-    html.gsub(/(src|href)=(['"])(\/[^'"]*)\2/i) do
+    html = html.gsub(/(src|href)=(['"])(\/\/[^'"]*)\2/i) do
+      "#{$1}=#{$2}#{protocol}:#{$3}#{$2}"
+    end
+
+    html.gsub(/(src|href)=(['"])(\/(?!\/)[^'"]*)\2/i) do
       "#{$1}=#{$2}#{base_url}#{$3}#{$2}"
     end
   end

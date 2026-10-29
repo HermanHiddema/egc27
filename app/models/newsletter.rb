@@ -22,6 +22,7 @@
 #
 class Newsletter < ApplicationRecord
   belongs_to :user
+  has_many :newsletter_deliveries, dependent: :delete_all
 
   scope :sent, -> { where.not(sent_at: nil) }
   scope :drafts, -> { where(sent_at: nil) }

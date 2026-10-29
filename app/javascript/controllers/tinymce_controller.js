@@ -18,6 +18,13 @@ export default class extends Controller {
 
     // Stop polling for the CDN script after roughly 10 seconds.
     static MAX_INIT_ATTEMPTS = 100
+    static TEXT_ALIGN_SELECTOR = "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li"
+    static IMAGE_ALIGNMENTS = {
+        JustifyLeft: { className: "img-align-left", styles: { float: "left", margin: "0.25rem 1rem 0.75rem 0" } },
+        JustifyRight: { className: "img-align-right", styles: { float: "right", margin: "0.25rem 0 0.75rem 1rem" } },
+        JustifyCenter: { className: "img-align-center", styles: { float: "none", margin: "0.75rem auto" } },
+        JustifyNone: { className: "img-align-none", styles: { float: "none", margin: "0.75rem 0" } }
+    }
 
     connect() {
         this.initAttempts = 0
@@ -147,22 +154,10 @@ export default class extends Controller {
             object_resizing: this.newsletterLayoutsValue ? "img" : true,
             block_formats: "Paragraph=p; Heading 2=h2; Heading 3=h3; Heading 4=h4",
             formats: {
-                alignleft: [
-                    { selector: "img,figure.image", classes: "img-align-left", styles: { float: "left", margin: "0.25rem 1rem 0.75rem 0" } },
-                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "left" } }
-                ],
-                alignright: [
-                    { selector: "img,figure.image", classes: "img-align-right", styles: { float: "right", margin: "0.25rem 0 0.75rem 1rem" } },
-                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "right" } }
-                ],
-                aligncenter: [
-                    { selector: "img,figure.image", classes: "img-align-center", styles: { float: "none", margin: "0.75rem auto" } },
-                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "center" } }
-                ],
-                alignnone: [
-                    { selector: "img,figure.image", classes: "img-align-none", styles: { float: "none", margin: "0.75rem 0" } },
-                    { block: "p,h1,h2,h3,h4,h5,h6,blockquote,pre,li", styles: { "text-align": "left" } }
-                ]
+                alignleft: { selector: this.constructor.TEXT_ALIGN_SELECTOR, styles: { "text-align": "left" }, inherit: false },
+                alignright: { selector: this.constructor.TEXT_ALIGN_SELECTOR, styles: { "text-align": "right" }, inherit: false },
+                aligncenter: { selector: this.constructor.TEXT_ALIGN_SELECTOR, styles: { "text-align": "center" }, inherit: false },
+                alignnone: { selector: this.constructor.TEXT_ALIGN_SELECTOR, styles: { "text-align": "left" }, inherit: false }
             },
             image_class_list: [
                 { title: "None", value: "" },
@@ -305,11 +300,34 @@ export default class extends Controller {
             promotion: false
         }
 
-        if (this.newsletterLayoutsValue) {
-            config.setup = (editor) => this.registerNewsletterLayoutButtons(editor)
+        config.setup = (editor) => {
+            this.registerImageAlignment(editor)
+            if (this.newsletterLayoutsValue) this.registerNewsletterLayoutButtons(editor)
         }
 
         window.tinymce.init(config)
+    }
+
+    registerImageAlignment(editor) {
+        const alignments = this.constructor.IMAGE_ALIGNMENTS
+        const alignmentClasses = Object.values(alignments).map(({ className }) => className)
+
+        editor.on("BeforeExecCommand", (event) => {
+            const alignment = alignments[event.command]
+            if (!alignment) return
+
+            const node = editor.selection.getNode()
+            const image = editor.dom.getParent(node, "figure.image") || (node?.nodeName === "IMG" ? node : null)
+            if (!image) return
+
+            event.preventDefault()
+            editor.undoManager.transact(() => {
+                alignmentClasses.forEach((className) => editor.dom.removeClass(image, className))
+                editor.dom.addClass(image, alignment.className)
+                editor.dom.setStyles(image, alignment.styles)
+            })
+            editor.nodeChanged()
+        })
     }
 
     registerNewsletterLayoutButtons(editor) {

@@ -136,6 +136,16 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to newsletter_path(newsletter)
   end
 
+  test "sent newsletters cannot be updated" do
+    sign_in users(:editor)
+    newsletter = create_newsletter(sent_at: 1.hour.ago)
+
+    patch newsletter_path(newsletter), params: { newsletter: { title: "Changed", subject: "Changed", content_html: "<p>Changed</p>" } }
+
+    assert_redirected_to newsletter_signup_path
+    assert_not_equal "Changed", newsletter.reload.title
+  end
+
   test "newsletter overview lists sent newsletters and hides drafts" do
     sent = create_newsletter(sent_at: 1.hour.ago)
     draft = create_newsletter(title: "Private draft")

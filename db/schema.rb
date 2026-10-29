@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_29_171041) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -140,6 +140,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
     t.string "name", null: false
     t.datetime "updated_at", null: false
     t.index ["location"], name: "index_menus_on_location", unique: true
+  end
+
+  create_table "newsletter_deliveries", force: :cascade do |t|
+    t.bigint "newsletter_id", null: false
+    t.bigint "newsletter_subscription_id", null: false
+    t.datetime "delivered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["newsletter_id", "newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_and_subscription", unique: true
+    t.index ["newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_subscription_id"
   end
 
   create_table "newsletter_subscriptions", force: :cascade do |t|
@@ -345,6 +355,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_28_120000) do
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
+  add_foreign_key "newsletter_deliveries", "newsletter_subscriptions", on_delete: :cascade
+  add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
   add_foreign_key "newsletters", "users"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "participants"
