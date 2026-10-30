@@ -47,13 +47,22 @@ export default class extends Controller {
 
   enhanceSelect() {
     this.selectTargets.forEach((select) => {
+      const countryOptions = []
+
       for (const option of select.options) {
         const code = this.normalizeCode(option.value)
         if (!code) continue
 
         const name = this.nameFor(code)
-        if (name) option.text = `${name} (${code})`
+        if (!name) continue
+
+        option.text = `${name} (${code})`
+        countryOptions.push({ option, name })
       }
+
+      countryOptions
+        .sort((left, right) => left.name.localeCompare(right.name, "en"))
+        .forEach(({ option }) => select.append(option))
     })
   }
 

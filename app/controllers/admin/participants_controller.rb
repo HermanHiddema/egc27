@@ -9,7 +9,7 @@ class Admin::ParticipantsController < ApplicationController
   def index
     participants = Participant.includes(:payments)
 
-    @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
+    @countries = Participant.where.not(country: [nil, ""]).distinct.pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @status_filter = STATUS_FILTERS.include?(params[:status]) ? params[:status] : nil
     @type_filter = PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil
