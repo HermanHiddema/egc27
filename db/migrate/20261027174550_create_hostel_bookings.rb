@@ -10,16 +10,16 @@ class CreateHostelBookings < ActiveRecord::Migration[8.1]
       t.integer :mixed_dorm_beds, null: false, default: 0
       t.integer :female_dorm_beds, null: false, default: 0
       t.integer :breakfasts, null: false, default: 0
-      t.integer :amount_cents, null: false
       t.date :priced_on, null: false
-      t.string :status, null: false, default: "open"
-      t.string :mollie_payment_id
-      t.string :payment_method
-      t.boolean :confirmation_sent, null: false, default: false
-
       t.timestamps
+
+      t.integer :single_room_price_cents, null: false
+      t.integer :double_room_price_cents, null: false
+      t.integer :six_person_room_price_cents, null: false
+      t.integer :mixed_dorm_bed_price_cents, null: false
+      t.integer :female_dorm_bed_price_cents, null: false
+      t.integer :breakfast_price_cents, null: false
+      t.integer :amount_cents, null: false
     end
-    add_index :hostel_bookings, :mollie_payment_id, unique: true
-    add_index :hostel_bookings, :status
   end
 end
