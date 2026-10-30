@@ -7,7 +7,7 @@
 #  first_name        :string
 #  last_name         :string
 #  subscribed        :boolean          default(TRUE), not null
-#  unsubscribe_token :string           not null
+#  unsubscribe_token :string
 #  unsubscribed_at   :datetime
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
