@@ -111,7 +111,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payer</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
@@ -126,8 +126,12 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
-                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                    <% if payment.participant %>
+                      <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                      <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                    <% else %>
+                      Hostel booking #<%= payment.hostel_booking_id %>
+                    <% end %>
                   <% else %>
                     —
                   <% end %>
@@ -163,7 +167,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payer</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reversed</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Mollie ID</th>
@@ -178,8 +182,12 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
-                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                    <% if payment.participant %>
+                      <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                      <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                    <% else %>
+                      Hostel booking #<%= payment.hostel_booking_id %>
+                    <% end %>
                   <% else %>
                     —
                   <% end %>
@@ -216,7 +224,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Participant</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payer</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
@@ -229,8 +237,12 @@
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
-                  <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                  <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                  <% if payment.participant %>
+                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
+                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
+                  <% else %>
+                    Hostel booking #<%= payment.hostel_booking_id %>
+                  <% end %>
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= payment.amount_formatted %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>

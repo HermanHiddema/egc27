@@ -578,13 +578,13 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   # webhook
-  test "webhook returns ok on unknown mollie id" do
+  test "webhook asks Mollie to retry when fetching the payment fails" do
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "not found" }
 
     post webhook_payments_path, params: { id: "tr_unknown" }
 
-    assert_response :ok
+    assert_response :service_unavailable
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end

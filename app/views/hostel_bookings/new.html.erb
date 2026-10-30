@@ -1,0 +1,139 @@
+<% content_for :title, "Book hostel beds – EGC 2027" %>
+<% input_class = "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+<% arrival_dates = (HostelPricing::FIRST_ARRIVAL_DATE...HostelPricing::LAST_DEPARTURE_DATE).to_a %>
+<% departure_dates = ((HostelPricing::FIRST_ARRIVAL_DATE + 1)..HostelPricing::LAST_DEPARTURE_DATE).to_a %>
+
+<div class="container-wide py-12">
+  <h1 class="text-4xl font-bold mb-2">Book hostel beds</h1>
+  <p class="text-neutral-600 mb-8">
+    Choose your arrival and departure dates and book any combination of rooms and beds, with an optional breakfast buffet.
+    Prices are per room or bed per night.
+  </p>
+
+  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
+    <% if @hostel_booking.errors.any? %>
+      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+        <h2 class="text-red-800 font-semibold mb-2">There were errors with your booking:</h2>
+        <ul class="text-red-700 list-disc list-inside">
+          <% @hostel_booking.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+      <div class="lg:col-span-3 space-y-6">
+        <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-neutral-900">Dates</h2>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <%= form.label :arrival_date, "Arrival *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+              <%= form.select :arrival_date, arrival_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.arrival_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "arrival" } %>
+            </div>
+            <div>
+              <%= form.label :departure_date, "Departure *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+              <%= form.select :departure_date, departure_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.departure_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "departure" } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-neutral-900">Rooms and beds</h2>
+          <div class="space-y-4">
+            <% HostelPricing::ROOM_TYPES.each do |room_type, room| %>
+              <div class="flex items-center justify-between gap-4">
+                <%= form.label room_type, class: "text-sm text-neutral-900" do %>
+                  <span class="font-medium"><%= room[:label] %></span>
+                  <span class="block text-neutral-600">€ <%= @pricing.room_price_cents(room_type) / 100 %> per night</span>
+                <% end %>
+                <%= form.number_field room_type, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "quantity", room_type: room_type } %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 space-y-4">
+          <h2 class="text-lg font-semibold text-neutral-900">Breakfast buffet</h2>
+          <div class="flex items-center justify-between gap-4">
+            <%= form.label :breakfasts, class: "text-sm text-neutral-900" do %>
+              <span class="font-medium">People for breakfast</span>
+              <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
+              <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
+            <% end %>
+            <%= form.number_field :breakfasts, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "breakfasts" } %>
+          </div>
+          <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
+            On site breakfast will cost € 10,85 per day, but there is limited extra availability. 
+          </p>
+        </div>
+      </div>
+
+      <div class="lg:col-span-2">
+        <div class="rounded-lg border border-gray-200 bg-white p-4 md:p-6 shadow-sm lg:sticky lg:top-24">
+          <h2 class="text-lg font-semibold mb-4 text-brand-blue-900">Total</h2>
+          <dl class="space-y-2 text-sm mb-4">
+            <div class="flex justify-between">
+              <dt class="text-neutral-500 font-medium">Nights</dt>
+              <dd class="text-neutral-900" data-hostel-booking-target="nights"><%= @hostel_booking.nights %></dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-neutral-500 font-medium">Beds</dt>
+              <dd class="text-neutral-900" data-hostel-booking-target="beds"><%= @hostel_booking.beds %></dd>
+            </div>
+          </dl>
+          <table class="w-full text-xs mb-2">
+            <caption class="sr-only">Price calculation</caption>
+            <tbody class="divide-y divide-gray-100" data-hostel-booking-target="lines">
+              <tr><td class="py-2 text-neutral-500">Choose rooms or beds to see the price calculation.</td></tr>
+            </tbody>
+          </table>
+          <div class="bg-brand-blue-50 rounded-lg p-4 mb-4 flex justify-between items-center">
+            <span class="text-brand-blue-900 font-medium">Total price</span>
+            <span class="text-2xl font-bold text-brand-blue-900" data-hostel-booking-target="total" aria-live="polite">€ 0.00</span>
+          </div>
+          <% if (valid_until = @pricing.current_tier_valid_until) %>
+            <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
+              These prices are valid until <strong><%= eu_date(valid_until, month: :short) %></strong>. After that, the prices will go up.
+            </p>
+          <% end %>
+          <%= form.submit "Book with commitment to pay", class: "w-full btn-primary text-center block py-3" %>
+          <p class="text-xs text-neutral-500 mt-3 text-center">Hostel bookings are non-refundable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.</p>
+          <p class="text-xs text-neutral-500 mt-3 text-center">On the next page, you will be given the opportunity to pay online via Mollie, with support for iDEAL, credit card, Paypal, Bancontact, and more.</p>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+    <h3 class="text-base font-semibold mb-4 text-brand-blue-900">Hostel price overview (per night)</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm text-left">
+        <thead>
+          <tr class="bg-gray-50">
+            <th class="px-4 py-2 font-semibold text-neutral-700">Room</th>
+            <th class="px-4 py-2 font-semibold text-neutral-700">Until 31 Jan 2027</th>
+            <th class="px-4 py-2 font-semibold text-neutral-700">Until 31 May 2027</th>
+            <th class="px-4 py-2 font-semibold text-neutral-700">From 1 Jun 2027</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <% HostelPricing::ROOM_TYPES.each_value do |room| %>
+            <tr>
+              <td class="px-4 py-2 text-neutral-900"><%= room[:label] %></td>
+              <% %i[early regular late].each do |tier| %>
+                <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if tier == @pricing.tier_name %>">€ <%= room[:prices][tier] %></td>
+              <% end %>
+            </tr>
+          <% end %>
+          <tr>
+            <td class="px-4 py-2 text-neutral-900">Breakfast buffet (per person per night)</td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :early == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :regular == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+            <td class="px-4 py-2 text-neutral-700 <%= 'font-semibold' if :late == @pricing.tier_name %>">€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

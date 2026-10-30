@@ -116,6 +116,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
     t.index ["user_id"], name: "index_events_on_user_id"
   end
 
+  create_table "hostel_bookings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.date "arrival_date", null: false
+    t.date "departure_date", null: false
+    t.integer "single_rooms", default: 0, null: false
+    t.integer "double_rooms", default: 0, null: false
+    t.integer "six_person_rooms", default: 0, null: false
+    t.integer "mixed_dorm_beds", default: 0, null: false
+    t.integer "female_dorm_beds", default: 0, null: false
+    t.integer "breakfasts", default: 0, null: false
+    t.date "priced_on", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "single_room_price_cents", null: false
+    t.integer "double_room_price_cents", null: false
+    t.integer "six_person_room_price_cents", null: false
+    t.integer "mixed_dorm_bed_price_cents", null: false
+    t.integer "female_dorm_bed_price_cents", null: false
+    t.integer "breakfast_price_cents", null: false
+    t.integer "amount_cents", null: false
+    t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
+  end
+
   create_table "menu_items", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "label", null: false
@@ -239,7 +262,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
     t.datetime "created_at", null: false
     t.string "description", null: false
     t.string "mollie_payment_id"
-    t.bigint "participant_id", null: false
+    t.bigint "participant_id"
     t.string "payment_method"
     t.boolean "processed_in_bookkeeping", default: false, null: false
     t.string "provider", default: "mollie", null: false
@@ -248,12 +271,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
     t.datetime "updated_at", null: false
     t.bigint "settlement_id"
     t.date "payment_date"
+    t.bigint "hostel_booking_id"
+    t.index ["hostel_booking_id"], name: "index_payments_on_hostel_booking_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
     t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
     t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"
+    t.check_constraint "(participant_id IS NULL) <> (hostel_booking_id IS NULL)", name: "payments_have_one_payee"
   end
 
   create_table "pg_search_documents", force: :cascade do |t|
@@ -352,6 +378,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
   add_foreign_key "event_registrations", "events"
   add_foreign_key "event_registrations", "participants"
   add_foreign_key "events", "users"
+  add_foreign_key "hostel_bookings", "users"
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
@@ -359,6 +386,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_29_195500) do
   add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
   add_foreign_key "newsletters", "users"
   add_foreign_key "participants", "users"
+  add_foreign_key "payments", "hostel_bookings"
   add_foreign_key "payments", "participants"
   add_foreign_key "payments", "settlements"
   add_foreign_key "refunds", "payments", on_delete: :nullify

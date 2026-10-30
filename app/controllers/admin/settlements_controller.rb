@@ -9,7 +9,7 @@ class Admin::SettlementsController < ApplicationController
 
   def show
     @settlement = Settlement.find(params[:id])
-    @payments = @settlement.payments.includes(:participant).order(created_at: :desc, id: :desc)
+    @payments = @settlement.payments.includes(:participant, :hostel_booking).order(created_at: :desc, id: :desc)
     @configured = MollieSettlementSync.configured?
     @refunds = @settlement.refunds.includes(payment: :participant).order(:mollie_created_at, :id)
     @chargebacks = @settlement.chargebacks.includes(payment: :participant).order(:mollie_created_at, :id)

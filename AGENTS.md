@@ -37,6 +37,7 @@ This file defines project-specific guidance for AI coding agents working in this
 ## Safety and Data Integrity
 - Do not silently change persisted data semantics.
 - If data format changes are required, include migration and model normalization.
+- After adding or changing a DB migration (and after adding model tests or fixtures), run `bundle exec annotaterb models` and commit the refreshed schema annotations in models, tests, and fixtures. `db:migrate` only auto-annotates files that already exist at that moment.
 - Validate external API payloads defensively.
 
 ## Bot Protection (Cloudflare Turnstile + Rack::Attack)
@@ -83,6 +84,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - In portrait mobile footer, put Privacy, Copyright, FAQ, and Contact on the top row; place Terms and Conditions alone on the second row, left-aligned with Privacy and kept on one line.
 - Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
+- In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.
+- Fix hostel booking prices when the booking is created; later payment attempts must use that booking-time price.
 - Use `/newsletter` as the newsletter overview, with subscription in a modal; show editor/admin draft newsletters above sent issues and place Create newsletter above Subscribe.
 - Make sent newsletter tiles fully clickable and include the count-confirmed Send action in both the editor and preview.
 - Set newsletter email templates to a 1200px desktop maximum width and stack layout table cells on narrow screens.
