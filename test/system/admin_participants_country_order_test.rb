@@ -8,8 +8,12 @@ class AdminParticipantsCountryOrderTest < ApplicationSystemTestCase
     click_button "Sign in"
     visit admin_participants_path
 
-    country_options = all("#country option").map(&:text)
+    assert_text "Participants (Admin)"
+    assert_selector "#country option[value='DE']", text: "Germany (DE)"
+    assert_selector "#country option[value='CH']", text: "Switzerland (CH)"
 
-    assert_operator country_options.index("Germany (DE)"), :<, country_options.index("Switzerland (CH)")
+    country_codes = all("#country option").map { |option| option["value"] }
+
+    assert_operator country_codes.index("DE"), :<, country_codes.index("CH")
   end
 end
