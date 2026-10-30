@@ -187,7 +187,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "tbody[data-hostel-booking-target='lines']"
     assert_select "form[data-hostel-booking-labels-value*='Breakfast buffet']"
     assert_select "input[type=submit][value='Book with commitment to pay']"
-    assert_match "Review your booking and complete payment on the next page.", response.body
+    assert_select "p", text: 'Hostel bookings are non-refundable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.'
+    assert_select "p", text: "On the next page, you will be given the opportunity to pay online via Mollie, with support for iDEAL, credit card, Paypal, Bancontact, and more."
     assert_select "form[data-hostel-booking-labels-value*='mixed dorm bed']"
     assert_select "form[data-hostel-booking-labels-value*='female dorm bed']"
     assert_select "dt", text: "Beds"
