@@ -6,6 +6,7 @@ require "test_helper"
 #
 #  id           :bigint           not null, primary key
 #  content_html :text
+#  slug         :string
 #  title        :string
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -13,6 +14,7 @@ require "test_helper"
 #
 # Indexes
 #
+#  index_articles_on_slug     (slug) UNIQUE
 #  index_articles_on_user_id  (user_id)
 #
 # Foreign Keys

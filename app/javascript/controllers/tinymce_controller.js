@@ -212,8 +212,13 @@ export default class extends Controller {
                     margin: 0.25rem 0 0.75rem 1rem;
                 }
 
+                figure.image.img-align-center,
+                figure.image.image-style-align-center,
                 figure.image:has(> img.img-align-center) {
                     float: none;
+                    display: table;
+                    width: max-content;
+                    max-width: 100%;
                     margin: 0.75rem auto;
                 }
 

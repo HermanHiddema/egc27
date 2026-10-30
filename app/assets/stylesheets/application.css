@@ -201,8 +201,13 @@
   margin: 0.25rem 0 0.75rem 1rem;
 }
 
+.rich-content figure.image.img-align-center,
+.rich-content figure.image.image-style-align-center,
 .rich-content figure.image:has(> img.img-align-center) {
   float: none;
+  display: table;
+  width: max-content;
+  max-width: 100%;
   margin: 0.75rem auto;
 }
 
