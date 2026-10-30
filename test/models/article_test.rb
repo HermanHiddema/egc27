@@ -44,6 +44,18 @@ class ArticleTest < ActiveSupport::TestCase
     assert article.valid?
   end
 
+  test "prefixes slugs that conflict with reserved routes" do
+    article = Article.create!(title: "New", content_html: "<p>Details</p>", user: users(:admin))
+
+    assert_equal "article-new", article.slug
+  end
+
+  test "prefixes numeric slugs that conflict with article IDs" do
+    article = Article.create!(title: "1", content_html: "<p>Details</p>", user: users(:admin))
+
+    assert_equal "article-1", article.slug
+  end
+
   test "requires content_html" do
     article = Article.new(title: "Article", user: users(:admin))
 

@@ -25,6 +25,7 @@ class Article < ApplicationRecord
   ALLOWED_MAIN_IMAGE_CONTENT_TYPES = %w[image/png image/jpeg image/webp].freeze
   PLACEHOLDER_MAIN_IMAGES_GLOB = Rails.root.join("app/assets/images/placeholders/*").freeze
   PLACEHOLDER_MAIN_IMAGE_PATHS = Dir[PLACEHOLDER_MAIN_IMAGES_GLOB.to_s].freeze
+  RESERVED_SLUGS = %w[new].freeze
 
   belongs_to :user
   has_one_attached :main_image
@@ -48,6 +49,7 @@ class Article < ApplicationRecord
 
     base_slug = title.truncate(60, omission: "").parameterize
     return if base_slug.blank?
+    base_slug = "article-#{base_slug}" if RESERVED_SLUGS.include?(base_slug) || base_slug.match?(/\A\d+\z/)
 
     candidate = base_slug
     suffix = 2
