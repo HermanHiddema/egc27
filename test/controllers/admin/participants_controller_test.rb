@@ -43,6 +43,30 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
+  test "admin participant count reflects zero matching results" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "No matching participant")
+
+    assert_response :success
+    assert_select "#participant-count", text: "0 participants"
+  end
+
+  test "admin participant count uses singular wording for one matching result" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_select "#participant-count", text: "1 participant"
+  end
+
+  test "admin participant count uses plural wording for multiple results" do
+    sign_in users(:admin)
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "#participant-count", text: "#{Participant.count} participants"
+  end
+
   test "admin sees an add payment link when existing payments can never succeed" do
     sign_in users(:admin)
     payments(:open_payment).update!(status: "expired")
