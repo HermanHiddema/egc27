@@ -63,6 +63,9 @@
             <% end %>
             <%= form.number_field :breakfasts, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "breakfasts" } %>
           </div>
+          <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
+            On site breakfast will cost € 10,85 per day, but there is limited extra availability. 
+          </p>
         </div>
       </div>
 
@@ -95,7 +98,8 @@
             </p>
           <% end %>
           <%= form.submit "Book with commitment to pay", class: "w-full btn-primary text-center block py-3" %>
-          <p class="text-xs text-neutral-500 mt-3 text-center">Review your booking and complete payment on the next page.</p>
+          <p class="text-xs text-neutral-500 mt-3 text-center">Hostel bookings are non-refundable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.</p>
+          <p class="text-xs text-neutral-500 mt-3 text-center">On the next page, you will be given the opportunity to pay online via Mollie, with support for iDEAL, credit card, Paypal, Bancontact, and more.</p>
         </div>
       </div>
     </div>

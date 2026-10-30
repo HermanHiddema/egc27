@@ -27,7 +27,7 @@
         </div>
       </dl>
       <div class="mt-6 border-t border-gray-200 pt-4">
-        <h3 class="font-semibold text-neutral-900 mb-2">Booked</h3>
+        <h4 class="font-semibold text-neutral-900 mb-2">Booked</h4>
         <ul id="booked-items" class="space-y-1 text-sm text-neutral-700">
           <% HostelPricing::ROOM_TYPES.each do |room_type, room| %>
             <% quantity = @hostel_booking.public_send(room_type) %>
@@ -64,6 +64,9 @@
               method: :post, data: { turbo: false }, class: "w-full btn-primary text-center block py-3 text-lg" %>
         <p class="text-xs text-neutral-500 mt-3 text-center">
           You will be redirected to Mollie's secure payment page. The price is fixed when you make your booking.
+        </p>
+        <p class="text-xs text-neutral-500 mt-2 text-center">
+          If none of the payment options offered by Mollie work for you, please see our <%= link_to "FAQ", page_path("faq"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %> for other payment options (wire transfer, pin, cash).
         </p>
 
         <% if @show_simulation_controls %>
