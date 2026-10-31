@@ -54,7 +54,6 @@ export default class extends Controller {
 
     static values = {
         url: String,
-        pinUrl: String,
         registeredUrl: String,
         emailRegisteredUrl: String
     }
@@ -375,42 +374,19 @@ export default class extends Controller {
 
     buildUrl(query) {
         const normalized = query.trim()
-
-        if (this.isPinQuery(normalized)) {
-            return this.buildPinUrl(normalized)
-        }
-
-        const url = new URL(this.urlValue)
-        const parts = normalized.split(/\s+/).filter(Boolean)
-
-        if (parts.length <= 1) {
-            url.searchParams.set("lastname", this.withStartsWithPrefix(normalized))
-            return url.toString()
-        }
-
-        const lastname = parts[parts.length - 1]
-        const firstname = parts.slice(0, -1).join(" ")
-        url.searchParams.set("lastname", this.withStartsWithPrefix(lastname))
-        url.searchParams.set("name", firstname)
+        const url = new URL(this.urlValue, window.location.origin)
+        url.searchParams.set("q", normalized)
         return url.toString()
     }
 
     buildPinUrl(pin) {
-        const baseUrl = this.hasPinUrlValue ? this.pinUrlValue : this.urlValue
-        const url = new URL(baseUrl)
-        url.searchParams.set("pin", pin)
+        const url = new URL(this.urlValue, window.location.origin)
+        url.searchParams.set("q", pin)
         return url.toString()
     }
 
     isPinQuery(value) {
         return /^\d{8}$/.test(String(value || "").trim())
-    }
-
-    withStartsWithPrefix(value) {
-        const normalized = String(value || "").trim()
-        if (!normalized) return ""
-        if (normalized.startsWith("@")) return normalized
-        return `@${normalized}`
     }
 
     normalizePayload(payload) {
