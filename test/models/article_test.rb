@@ -6,6 +6,7 @@ require "test_helper"
 #
 #  id           :bigint           not null, primary key
 #  content_html :text
+#  slug         :string
 #  title        :string
 #  created_at   :datetime         not null
 #  updated_at   :datetime         not null
@@ -13,6 +14,7 @@ require "test_helper"
 #
 # Indexes
 #
+#  index_articles_on_slug     (slug) UNIQUE
 #  index_articles_on_user_id  (user_id)
 #
 # Foreign Keys
@@ -40,6 +42,18 @@ class ArticleTest < ActiveSupport::TestCase
     article = Article.new(title: "Article", content_html: "<p>Details</p>", user: users(:admin))
 
     assert article.valid?
+  end
+
+  test "prefixes slugs that conflict with reserved routes" do
+    article = Article.create!(title: "New", content_html: "<p>Details</p>", user: users(:admin))
+
+    assert_equal "article-new", article.slug
+  end
+
+  test "prefixes numeric slugs that conflict with article IDs" do
+    article = Article.create!(title: "1", content_html: "<p>Details</p>", user: users(:admin))
+
+    assert_equal "article-1", article.slug
   end
 
   test "requires content_html" do
