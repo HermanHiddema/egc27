@@ -1,5 +1,13 @@
 ---
 en:
+  activerecord:
+    errors:
+      models:
+        user:
+          attributes:
+            reset_password_token:
+              invalid: "This password reset link has already been used, has expired, or is invalid."
+              expired: "This password reset link has expired."
   devise:
     sessions:
       signed_in: "Signed in successfully."

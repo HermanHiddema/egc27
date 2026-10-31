@@ -11,13 +11,17 @@ module Users
       yield resource if block_given?
 
       if resource.errors.empty?
+        # Devise confirms the account but retains its token; clear it so the
+        # confirmation link is consumed after this successful use.
+        resource.update_columns(confirmation_token: nil, confirmation_sent_at: nil)
+
         # Sign in the user immediately
         sign_in(resource)
         set_flash_message!(:notice, :confirmed)
         # Redirect to password setup - use Devise's standard path
         redirect_to edit_user_registration_path
       else
-        self.confirmation_token = params[:confirmation_token]
+        resource.confirmation_token = params[:confirmation_token]
         render :new
       end
     end

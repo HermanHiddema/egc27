@@ -59,7 +59,26 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
       }
     }
     assert_response :unprocessable_entity
+    assert_match "This password reset link has already been used", response.body
     assert user.reload.valid_password?("newpassword123")
     refute user.valid_password?("anotherpassword123")
+  end
+
+  test "a password reset link expires after one day" do
+    user = users(:one)
+    raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)
+    user.update!(reset_password_token: hashed_token, reset_password_sent_at: 1.day.ago - 1.second)
+
+    put user_password_path, params: {
+      user: {
+        reset_password_token: raw_token,
+        password: "newpassword123",
+        password_confirmation: "newpassword123"
+      }
+    }
+
+    assert_response :unprocessable_entity
+    assert_match "This password reset link has expired", response.body
+    assert user.reload.valid_password?("password123")
   end
 end

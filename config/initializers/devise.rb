@@ -12,6 +12,9 @@ Devise.setup do |config|
 
   config.reconfirmable = true
 
+  config.reset_password_within = 1.day
+  config.confirm_within = 2.weeks
+
   config.expire_all_remember_me_on_sign_out = true
 
   config.password_length = 12..128
