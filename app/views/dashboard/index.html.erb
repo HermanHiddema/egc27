@@ -14,6 +14,12 @@
         <li>
           <%= link_to "Payments", admin_payments_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
         </li>
+        <li>
+          <%= link_to "Settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </li>
+        <li>
+          <%= link_to "Hostel bookings", admin_hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </li>
       <% end %>
       <li>
         <%= link_to "Pages", pages_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
@@ -21,6 +27,11 @@
       <li>
         <%= link_to "Notices", notices_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       </li>
+      <% if current_user.can_edit? %>
+        <li>
+          <%= link_to "Newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </li>
+      <% end %>
       <% if current_user.can_delete? %>
         <li>
           <%= link_to "Event Groups", event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>

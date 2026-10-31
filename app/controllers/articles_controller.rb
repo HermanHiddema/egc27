@@ -49,7 +49,7 @@ class ArticlesController < ApplicationController
   private
 
   def set_article
-    @article = Article.with_attached_main_image.find(params[:id])
+    @article = Article.with_attached_main_image.find_by(slug: params[:id]) || Article.with_attached_main_image.find(params[:id])
   end
 
   def article_params

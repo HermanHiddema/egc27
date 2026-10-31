@@ -9,7 +9,7 @@ require "test_helper"
 #  first_name        :string
 #  last_name         :string
 #  subscribed        :boolean          default(TRUE), not null
-#  unsubscribe_token :string           not null
+#  unsubscribe_token :string
 #  unsubscribed_at   :datetime
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -58,6 +58,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
 
     assert_equal false, subscription.subscribed
     assert_not_nil subscription.unsubscribed_at
+    assert_nil subscription.unsubscribe_token
   end
 
   test "unsubscribe preserves existing unsubscribed_at" do

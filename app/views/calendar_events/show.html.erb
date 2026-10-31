@@ -1,6 +1,6 @@
 <div class="container-wide py-12">
   <div class="mb-6">
-    <%= link_to "← Back to Calendar", calendar_path(month: @calendar_event.starts_at.strftime("%Y-%m")), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    <%= link_to "← Back to events", schedule_path(date: @calendar_event.starts_at.to_date), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
   </div>
 
   <article class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
@@ -30,7 +30,7 @@
     <% end %>
 
     <% if current_user&.can_edit? %>
-      <div class="flex gap-4">
+      <div class="portrait-stack-actions flex gap-4">
         <%= link_to "Edit", edit_calendar_event_path(@calendar_event), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
         <% if current_user&.can_delete? %>
           <%= button_to "Delete", @calendar_event, method: :delete, data: { turbo_confirm: "Are you sure you want to delete this event?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>

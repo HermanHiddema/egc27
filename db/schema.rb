@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_30_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -49,6 +49,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
+    t.string "slug"
+    t.index ["slug"], name: "index_articles_on_slug", unique: true
     t.index ["user_id"], name: "index_articles_on_user_id"
   end
 
@@ -65,6 +67,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.index ["ends_at"], name: "index_calendar_events_on_ends_at"
     t.index ["event_group_id"], name: "index_calendar_events_on_event_group_id"
     t.index ["starts_at"], name: "index_calendar_events_on_starts_at"
+  end
+
+  create_table "chargebacks", force: :cascade do |t|
+    t.bigint "settlement_id", null: false
+    t.bigint "payment_id"
+    t.string "mollie_chargeback_id", null: false
+    t.string "mollie_payment_id"
+    t.integer "amount_cents"
+    t.integer "settlement_amount_cents"
+    t.datetime "mollie_created_at"
+    t.datetime "reversed_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_chargeback_id"], name: "index_chargebacks_on_mollie_chargeback_id", unique: true
+    t.index ["payment_id"], name: "index_chargebacks_on_payment_id"
+    t.index ["settlement_id"], name: "index_chargebacks_on_settlement_id"
   end
 
   create_table "event_groups", force: :cascade do |t|
@@ -100,6 +118,29 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.index ["user_id"], name: "index_events_on_user_id"
   end
 
+  create_table "hostel_bookings", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.date "arrival_date", null: false
+    t.date "departure_date", null: false
+    t.integer "single_rooms", default: 0, null: false
+    t.integer "double_rooms", default: 0, null: false
+    t.integer "six_person_rooms", default: 0, null: false
+    t.integer "mixed_dorm_beds", default: 0, null: false
+    t.integer "female_dorm_beds", default: 0, null: false
+    t.integer "breakfasts", default: 0, null: false
+    t.date "priced_on", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.integer "single_room_price_cents", null: false
+    t.integer "double_room_price_cents", null: false
+    t.integer "six_person_room_price_cents", null: false
+    t.integer "mixed_dorm_bed_price_cents", null: false
+    t.integer "female_dorm_bed_price_cents", null: false
+    t.integer "breakfast_price_cents", null: false
+    t.integer "amount_cents", null: false
+    t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
+  end
+
   create_table "menu_items", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "label", null: false
@@ -126,17 +167,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.index ["location"], name: "index_menus_on_location", unique: true
   end
 
+  create_table "newsletter_deliveries", force: :cascade do |t|
+    t.bigint "newsletter_id", null: false
+    t.bigint "newsletter_subscription_id", null: false
+    t.datetime "delivered_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["newsletter_id", "newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_and_subscription", unique: true
+    t.index ["newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_subscription_id"
+  end
+
   create_table "newsletter_subscriptions", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.string "email", null: false
     t.string "first_name"
     t.string "last_name"
     t.boolean "subscribed", default: true, null: false
-    t.string "unsubscribe_token", null: false
+    t.string "unsubscribe_token"
     t.datetime "unsubscribed_at"
     t.datetime "updated_at", null: false
     t.index ["email"], name: "index_newsletter_subscriptions_on_email", unique: true
     t.index ["unsubscribe_token"], name: "index_newsletter_subscriptions_on_unsubscribe_token", unique: true
+  end
+
+  create_table "newsletters", force: :cascade do |t|
+    t.string "title", null: false
+    t.string "subject", null: false
+    t.text "content_html", null: false
+    t.datetime "sent_at"
+    t.bigint "user_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["sent_at"], name: "index_newsletters_on_sent_at"
+    t.index ["user_id"], name: "index_newsletters_on_user_id"
   end
 
   create_table "notices", force: :cascade do |t|
@@ -185,7 +248,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
     t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
-    t.index ["egd_pin"], name: "index_participants_on_egd_pin"
+    t.index ["egd_pin"], name: "index_participants_on_egd_pin", unique: true
     t.index ["email"], name: "index_participants_on_email"
     t.index ["gender"], name: "index_participants_on_gender"
     t.index ["participant_type"], name: "index_participants_on_participant_type"
@@ -201,18 +264,24 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.datetime "created_at", null: false
     t.string "description", null: false
     t.string "mollie_payment_id"
-    t.bigint "participant_id", null: false
+    t.bigint "participant_id"
     t.string "payment_method"
     t.boolean "processed_in_bookkeeping", default: false, null: false
     t.string "provider", default: "mollie", null: false
     t.string "reference"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
+    t.bigint "settlement_id"
+    t.date "payment_date"
+    t.bigint "hostel_booking_id"
+    t.index ["hostel_booking_id"], name: "index_payments_on_hostel_booking_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
     t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
+    t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"
+    t.check_constraint "(participant_id IS NULL) <> (hostel_booking_id IS NULL)", name: "payments_have_one_payee"
   end
 
   create_table "pg_search_documents", force: :cascade do |t|
@@ -222,6 +291,39 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
     t.string "searchable_type", null: false
     t.datetime "updated_at", null: false
     t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
+  end
+
+  create_table "refunds", force: :cascade do |t|
+    t.bigint "settlement_id", null: false
+    t.bigint "payment_id"
+    t.string "mollie_refund_id", null: false
+    t.string "mollie_payment_id"
+    t.string "description"
+    t.string "status"
+    t.integer "amount_cents"
+    t.integer "settlement_amount_cents"
+    t.datetime "mollie_created_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["mollie_refund_id"], name: "index_refunds_on_mollie_refund_id", unique: true
+    t.index ["payment_id"], name: "index_refunds_on_payment_id"
+    t.index ["settlement_id"], name: "index_refunds_on_settlement_id"
+  end
+
+  create_table "settlements", force: :cascade do |t|
+    t.string "mollie_settlement_id", null: false
+    t.string "reference"
+    t.string "status", null: false
+    t.integer "amount_cents", default: 0, null: false
+    t.datetime "settled_at"
+    t.datetime "mollie_created_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "payments_complete", default: false, null: false
+    t.string "mollie_balance_id"
+    t.jsonb "periods", default: {}, null: false
+    t.jsonb "other_payments", default: [], null: false
+    t.index ["mollie_settlement_id"], name: "index_settlements_on_mollie_settlement_id", unique: true
   end
 
   create_table "sponsors", force: :cascade do |t|
@@ -273,12 +375,22 @@ ActiveRecord::Schema[8.1].define(version: 2026_09_09_120000) do
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "articles", "users"
   add_foreign_key "calendar_events", "event_groups"
+  add_foreign_key "chargebacks", "payments", on_delete: :nullify
+  add_foreign_key "chargebacks", "settlements"
   add_foreign_key "event_registrations", "events"
   add_foreign_key "event_registrations", "participants"
   add_foreign_key "events", "users"
+  add_foreign_key "hostel_bookings", "users"
   add_foreign_key "menu_items", "menu_items", column: "parent_id"
   add_foreign_key "menu_items", "menus"
   add_foreign_key "menu_items", "pages"
+  add_foreign_key "newsletter_deliveries", "newsletter_subscriptions", on_delete: :cascade
+  add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
+  add_foreign_key "newsletters", "users"
   add_foreign_key "participants", "users"
+  add_foreign_key "payments", "hostel_bookings"
   add_foreign_key "payments", "participants"
+  add_foreign_key "payments", "settlements"
+  add_foreign_key "refunds", "payments", on_delete: :nullify
+  add_foreign_key "refunds", "settlements"
 end

@@ -27,15 +27,28 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
+    payments(:open_payment).update_column(:created_at, Time.zone.local(2026, 8, 1))
 
     travel_to Time.zone.local(2026, 8, 1) do
       get new_participant_payment_path(participant)
     end
 
     assert_response :success
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
     assert_match "This price is valid until", response.body
     assert_match "31 Aug 2026", response.body
     assert_match "After that, the price will go up.", response.body
+    assert_select "table.price-overview thead tr.bg-gray-200"
+    assert_select "table.price-overview th", count: 4
+    assert_select "table.price-overview th", text: /Pass type/
+    assert_select "table.price-overview th", text: /Special/, count: 0
+    assert_select "table.price-overview th .price-overview-label", count: 3
+    assert_select "table.price-overview th .price-overview-label + details.price-period-info", count: 3
+    assert_select "details.price-period-info summary[aria-label='Early Bird price period dates']"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 January 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 May 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "From 1 June 2027"
+    assert_select "tr.price-overview-row.bg-brand-yellow-200"
     assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options/
     assert_select "a[href=?]", page_path("faq"), text: "FAQ"
   end
@@ -55,7 +68,8 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :success
-    assert_match payment.description, response.body
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
+    assert_select ".payment-participant-overview .payment-pass-type", text: payment.description, count: 0
     assert_match "31 Aug 2026", response.body
   end
 
@@ -239,6 +253,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       amount_cents: 5_000,
       description: "Manual fallback payment",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "paid",
       created_at: paid_payment.created_at + 1.day,
@@ -399,7 +414,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     payment = participant.payments.order(created_at: :desc).first
-    assert_redirected_to success_payments_path(payment_id: payment.id)
+    assert_redirected_to_success_for payment
     assert_equal "paid", payment.status
     assert_nil payment.mollie_payment_id
   end
@@ -413,7 +428,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       end
     end
 
-    assert_redirected_to success_payments_path(payment_id: payment.id)
+    assert_redirected_to_success_for payment
     assert_equal "failed", payment.reload.status
     assert_nil payment.mollie_payment_id
   end
@@ -451,6 +466,48 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "success does not look up payments by their numeric id" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed")
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| flunk "Mollie should not be called" }
+
+    get success_payments_path(payment_id: payment.id)
+    get success_payments_path(token: payment.id)
+
+    assert_response :success
+    assert_match "Return from Payment", response.body
+    assert_no_match payment.participant.uuid, response.body
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "success ignores tampered and expired tokens" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed", mollie_payment_id: nil)
+    token = payment.return_token
+
+    get success_payments_path(token: "#{token}x")
+    assert_match "Return from Payment", response.body
+
+    travel Payment::RETURN_TOKEN_EXPIRY + 1.minute do
+      get success_payments_path(token: token)
+    end
+    assert_match "Return from Payment", response.body
+    assert_no_match payment.participant.uuid, response.body
+  end
+
+  test "success shows the payment for a valid token" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed", mollie_payment_id: nil)
+
+    get success_payments_path(token: payment.return_token)
+
+    assert_response :success
+    assert_match "Payment Not Completed", response.body
+    assert_select "a[href='#{new_participant_payment_path(payment.participant)}']", text: "Try again"
+  end
+
   test "success treats authorized payments as pending" do
     payment = payments(:open_payment)
     payment.update!(status: "authorized")
@@ -459,7 +516,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
 
-    get success_payments_path(payment_id: payment.id)
+    get success_payments_path(token: payment.return_token)
 
     assert_response :success
     assert_match "Payment Pending", response.body
@@ -473,7 +530,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     devise_sign_in users(:no_password)
 
     with_paid_mollie_stub(payment) do
-      get success_payments_path(payment_id: payment.id)
+      get success_payments_path(token: payment.return_token)
     end
 
     assert_response :success
@@ -489,7 +546,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     devise_sign_in users(:no_password)
 
     with_paid_mollie_stub(payment) do
-      get success_payments_path(payment_id: payment.id)
+      get success_payments_path(token: payment.return_token)
     end
 
     assert_response :success
@@ -502,7 +559,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:two)
 
     with_paid_mollie_stub(payment) do
-      get success_payments_path(payment_id: payment.id)
+      get success_payments_path(token: payment.return_token)
     end
 
     assert_response :success
@@ -513,7 +570,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:paid_payment)
 
     with_paid_mollie_stub(payment) do
-      get success_payments_path(payment_id: payment.id)
+      get success_payments_path(token: payment.return_token)
     end
 
     assert_response :success
@@ -521,13 +578,13 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   end
 
   # webhook
-  test "webhook returns ok on unknown mollie id" do
+  test "webhook asks Mollie to retry when fetching the payment fails" do
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "not found" }
 
     post webhook_payments_path, params: { id: "tr_unknown" }
 
-    assert_response :ok
+    assert_response :service_unavailable
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end
@@ -607,6 +664,29 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
+  test "webhook records a charged-back payment as charged back" do
+    payment = payments(:paid_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR"),
+      amount_charged_back: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    payment.reload
+    assert_equal "charged_back", payment.status
+    assert_not payment.participant.reload.paid?
+    assert_equal "Chargeback", payment.participant.registration_status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
   test "webhook keeps a payment paid when nothing was refunded" do
     payment = payments(:open_payment)
     mollie_stub = OpenStruct.new(
@@ -678,5 +758,13 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Rails.define_singleton_method(:env, &original)
+  end
+
+  def assert_redirected_to_success_for(payment)
+    assert_response :redirect
+    location = URI.parse(response.location)
+    assert_equal success_payments_path, location.path
+    token = Rack::Utils.parse_query(location.query)["token"]
+    assert_equal payment, Payment.find_by_return_token(token)
   end
 end

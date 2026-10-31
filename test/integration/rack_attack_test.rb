@@ -237,6 +237,21 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles test newsletter unsubscriptions by IP after limit" do
+    token = NewsletterTestEmailLink.unsubscribe_token("not-subscribed@example.com")
+
+    freeze_time do
+      10.times do
+        delete destroy_test_newsletter_unsubscribe_path(token: token), headers: { "REMOTE_ADDR" => "7.8.9.11" }
+        assert_response :redirect
+      end
+
+      delete destroy_test_newsletter_unsubscribe_path(token: token), headers: { "REMOTE_ADDR" => "7.8.9.11" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "does not throttle when Rack::Attack is disabled" do
     previous_enabled = Rack::Attack.enabled
     Rack::Attack.enabled = false
@@ -251,5 +266,17 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   ensure
     Rack::Attack.enabled = previous_enabled
+  end
+
+  test "throttles payment return page by IP after limit" do
+    freeze_time do
+      20.times do
+        get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+        assert_response :success
+      end
+
+      get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+      assert_response 429
+    end
   end
 end

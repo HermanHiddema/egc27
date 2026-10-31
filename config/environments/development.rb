@@ -48,7 +48,7 @@ Rails.application.configure do
       protocol: "https"
     }
   else
-    config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
+    config.action_mailer.default_url_options = { host: "localhost", port: 3000, protocol: "http" }
   end
 
   # Print deprecation notices to the Rails logger.

@@ -37,6 +37,7 @@ This file defines project-specific guidance for AI coding agents working in this
 ## Safety and Data Integrity
 - Do not silently change persisted data semantics.
 - If data format changes are required, include migration and model normalization.
+- After adding or changing a DB migration (and after adding model tests or fixtures), run `bundle exec annotaterb models` and commit the refreshed schema annotations in models, tests, and fixtures. `db:migrate` only auto-annotates files that already exist at that moment.
 - Validate external API payloads defensively.
 
 ## Bot Protection (Cloudflare Turnstile + Rack::Attack)
@@ -56,6 +57,9 @@ When the user expresses a new coding/UI/process preference in chat:
 
 ## Current User Preferences Captured
 - Keep participant date UX aligned with European day-before-month expectations.
+- Keep portrait payment price tables compact enough for Euro amounts; show only the pass type in the participant payment summary, right-aligned.
+- In mobile payment price tables, place each price-period “i” on its own right-aligned second header line.
+- In portrait, shorten the participant details return link to “Back”, stack it with Edit, and stack admin Edit/Delete actions vertically.
 - Use full strength labels: `kyu`, `dan`, `dan pro`.
 - Show stronger playing strengths first.
 - Country selector should support autocomplete with ISO alpha-2 semantics.
@@ -70,3 +74,18 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep TinyMCE HTML sanitization liberal for stylistic formatting (colors, alignment, and border styling), while still blocking script/event-handler XSS vectors.
 - When a signed-in (confirmed) user registers another participant, the email is pre-filled/locked to their own address; validate it matches, then confirm the participant immediately without sending a confirmation email and route straight to the next step (payment for players, participant page for visitors).
 - In the participant Contact Information card, show the guest email explanation and existing-account warning full width below the field row.
+- On phones, make the tournament schedule selectable by day and show a readable selected-day agenda; keep weekly calendar columns horizontally navigable.
+- On mobile, only the blue menu/search bar stays sticky; keep the red brand header compact, with smaller buttons and logo in portrait.
+- Keep event dates visible in the mobile header; in landscape, stack the dates beside a small logo and align the action buttons horizontally when space allows.
+- Make date selection update the schedule directly without a separate submit button, and show event category colors in mobile agendas.
+- Show the Fun Go explanation at the bottom of the desktop tournament schedule and in mobile agendas only on dates that include a Fun Go event; use a contextual “Back to events” link when editing calendar events.
+- Keep the month calendar page removed; use the tournament schedule and day/week/list views instead.
+- Reduce mobile page spacing above content and before the footer; keep the footer compact with a social row and responsive footer-link rows.
+- In portrait mobile footer, put Privacy, Copyright, FAQ, and Contact on the top row; place Terms and Conditions alone on the second row, left-aligned with Privacy and kept on one line.
+- Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
+- On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
+- In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.
+- Fix hostel booking prices when the booking is created; later payment attempts must use that booking-time price.
+- Use `/newsletter` as the newsletter overview, with subscription in a modal; show editor/admin draft newsletters above sent issues and place Create newsletter above Subscribe.
+- Make sent newsletter tiles fully clickable and include the count-confirmed Send action in both the editor and preview.
+- Set newsletter email templates to a 1200px desktop maximum width and stack layout table cells on narrow screens.

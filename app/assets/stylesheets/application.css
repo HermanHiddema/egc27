@@ -74,6 +74,60 @@
   width: 100%;
 }
 
+.register-another-plus {
+  display: none;
+}
+
+.participant-back-mobile {
+  display: none;
+}
+
+.price-period-info {
+  position: relative;
+  display: inline-block;
+  margin-left: 0.125rem;
+  vertical-align: middle;
+}
+
+.price-period-info summary {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 9999px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  list-style: none;
+}
+
+.price-period-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.price-period-popup {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  width: max-content;
+  max-width: min(14rem, calc(100vw - 2rem));
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--neutral-300);
+  border-radius: 0.375rem;
+  background: white;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15);
+  font-size: 0.75rem;
+  font-weight: 400;
+  white-space: normal;
+}
+
+.mobile-event-tile {
+  background-color: var(--mobile-event-color);
+}
+
 .rich-content ol {
   list-style: decimal;
   margin-left: 1.5rem;
@@ -117,6 +171,16 @@
   margin: 0.25rem 0 0.75rem 1rem;
 }
 
+.rich-content img.img-align-center {
+  float: none;
+  margin: 0.75rem auto;
+}
+
+.rich-content img.img-align-none {
+  float: none;
+  margin: 0.75rem 0;
+}
+
 .rich-content figure.image {
   max-width: 100%;
 }
@@ -137,8 +201,13 @@
   margin: 0.25rem 0 0.75rem 1rem;
 }
 
+.rich-content figure.image.img-align-center,
+.rich-content figure.image.image-style-align-center,
 .rich-content figure.image:has(> img.img-align-center) {
   float: none;
+  display: table;
+  width: max-content;
+  max-width: 100%;
   margin: 0.75rem auto;
 }
 
@@ -155,6 +224,232 @@
   content: "";
   display: block;
   clear: both;
+}
+
+@media (max-width: 1023px) and (orientation: portrait) {
+  header nav[data-header-shrink-target="nav"] {
+    height: 9rem !important;
+  }
+
+  .header-brand img {
+    height: 5.5rem !important;
+    width: auto;
+  }
+
+  .header-actions .header-action-link,
+  .header-actions .header-action-user {
+    padding: 0.4rem 1rem;
+    font-size: 0.875rem;
+  }
+
+  [data-header-shrink-menu-offset] {
+    top: 0 !important;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 600px) and (max-width: 1023px) {
+  header nav[data-header-shrink-target="nav"] {
+    height: 4.25rem !important;
+  }
+
+  .header-brand {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .header-brand img {
+    height: 3.25rem !important;
+    width: auto;
+  }
+
+  .header-mobile-event-info {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.1rem;
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  .header-mobile-event-title {
+    display: none;
+  }
+
+  [data-header-shrink-menu-offset] {
+    top: 0 !important;
+  }
+
+  .header-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: center;
+    justify-content: flex-end;
+    column-gap: 0.35rem;
+    row-gap: 0.35rem;
+  }
+
+  .header-actions .header-action-link,
+  .header-actions .header-action-user {
+    padding: 0.5rem 0.7rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .header-actions .header-action-user span:first-child {
+    display: block;
+    max-width: 8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1023px) {
+  .price-overview th:nth-child(n + 2) {
+    vertical-align: top;
+  }
+
+  .price-overview-label {
+    display: block;
+    min-height: 2.5em;
+    line-height: 1.25;
+  }
+
+  .price-overview th .price-period-info {
+    display: flex;
+    width: 100%;
+    min-height: 1rem;
+    justify-content: flex-end;
+    margin: 0;
+  }
+
+  .mobile-event-tile {
+    background-color: var(--mobile-event-color);
+    background-color: color-mix(in srgb, var(--mobile-event-color) 35%, white);
+  }
+
+  main {
+    padding-top: 0.5rem !important;
+    padding-bottom: 1rem !important;
+  }
+
+  main > .container-wide.py-12 {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  footer .container-wide.py-3 {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+
+  footer .footer-social-links {
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: portrait) {
+  .portrait-stack-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+
+  .participant-back-mobile {
+    display: inline;
+  }
+
+  .participant-back-full {
+    display: none;
+  }
+
+  .participant-show-actions .btn-primary {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.875rem;
+  }
+
+  .payment-participant-overview .payment-pass-type {
+    text-align: right;
+  }
+
+  .price-overview col:first-child {
+    width: 32%;
+  }
+
+  .price-overview col:nth-child(n + 2) {
+    width: 22.6667%;
+  }
+
+  .price-overview th,
+  .price-overview td {
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+  }
+
+  .price-overview td:nth-child(n + 2) {
+    white-space: nowrap;
+  }
+
+  .my-registrations-header {
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+
+  .my-registrations-header h1 {
+    font-size: 1.5rem;
+    line-height: 1.2;
+  }
+
+  .register-another-participant {
+    display: inline-flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    flex: 0 0 2.5rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-size: 1.5rem;
+    line-height: 1;
+  }
+
+  .register-another-label {
+    display: none;
+  }
+
+  .register-another-plus {
+    display: inline;
+  }
+
+  footer .footer-menu-links {
+    display: grid;
+    position: relative;
+    width: 100%;
+    grid-template-columns: repeat(4, max-content);
+    align-items: start;
+    justify-content: space-between;
+    column-gap: 0.5rem;
+    padding-bottom: 1.5rem;
+  }
+
+  footer .footer-menu-links li:nth-child(2) {
+    position: absolute;
+    top: 1.5rem;
+    left: 0;
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 1023px) and (orientation: landscape) {
+  footer .footer-menu-links {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+    column-gap: 0.75rem;
+    white-space: nowrap;
+  }
 }
 
 .rich-content blockquote {
@@ -174,6 +469,59 @@
 .rich-content h5,
 .rich-content h6 {
   margin-block: 0.75rem;
+}
+
+.newsletter-document {
+  width: 100%;
+  max-width: 1200px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.newsletter-document table.newsletter-layout-locked {
+  width: 100%;
+  table-layout: fixed;
+  height: auto !important;
+}
+
+.newsletter-document table.newsletter-layout-locked tr,
+.newsletter-document table.newsletter-layout-locked td {
+  height: auto !important;
+}
+
+.newsletter-document .newsletter-layout-locked img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.newsletter-document .newsletter-layout-locked figure.image {
+  display: table;
+  max-width: 100%;
+  margin: 0;
+}
+
+.newsletter-document .newsletter-layout-locked figure.image figcaption {
+  text-align: center;
+}
+
+.newsletter-document .newsletter-layout-image-only.is-empty::before {
+  content: "Insert an image with the Image button";
+  display: block;
+  min-height: 2.5rem;
+  padding: 0.75rem;
+  border: 1px dashed #94a3b8;
+  color: #64748b;
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .newsletter-document table.newsletter-layout-locked td {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box;
+  }
 }
 
 .responsive-menu-summary::-webkit-details-marker,

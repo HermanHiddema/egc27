@@ -1,6 +1,7 @@
 class Admin::ParticipantsController < ApplicationController
-  SORT_COLUMNS = %w[name email country club type rank rating status].freeze
-  STATUS_FILTERS = %w[pending confirmed paid refunded].freeze
+  SORT_COLUMNS = %w[number name email country rank status].freeze
+  STATUS_FILTERS = %w[pending confirmed paid charged_back refunded].freeze
+  PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
   before_action :set_participant, only: [:edit, :update, :destroy]
@@ -11,11 +12,21 @@ class Admin::ParticipantsController < ApplicationController
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @status_filter = STATUS_FILTERS.include?(params[:status]) ? params[:status] : nil
+    @type_filter = PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil
+    @name_filter = params[:name].to_s.strip
     @sort = permitted_sort
     @direction = permitted_direction
 
     participants = participants.where(country: @country_filter) if @country_filter.present?
     participants = filtered_by_status(participants, @status_filter) if @status_filter.present?
+    participants = participants.where(participant_type: @type_filter) if @type_filter.present?
+    if @name_filter.present?
+      name = "%#{ActiveRecord::Base.sanitize_sql_like(@name_filter)}%"
+      participants = participants.where(
+        "first_name ILIKE :name OR last_name ILIKE :name OR CONCAT_WS(' ', first_name, last_name) ILIKE :name",
+        name: name
+      )
+    end
 
     @participants = sorted_participants(participants).to_a
     @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
@@ -43,6 +54,8 @@ class Admin::ParticipantsController < ApplicationController
     unless @participant.deletable?
       alert = if @participant.paid?
         "Participants with a successful payment cannot be deleted."
+      elsif @participant.charged_back?
+        "Participants with charged-back payments cannot be deleted."
       elsif @participant.refunded?
         "Participants with refunded payments cannot be deleted."
       else
@@ -92,21 +105,25 @@ class Admin::ParticipantsController < ApplicationController
 
   # Restricts the list to participants whose derived registration_status matches
   # the requested filter, mirroring the Participant#registration_status logic:
-  # Paid takes precedence over Refund, which takes precedence over Confirmed,
-  # which takes precedence over Pending.
+  # Paid takes precedence over Chargeback, which takes precedence over Refund,
+  # which takes precedence over Confirmed, which takes precedence over Pending.
   def filtered_by_status(participants, status)
-    paid_ids = Payment.completed.select(:participant_id)
-    refunded_ids = Payment.refunded.where.not(participant_id: paid_ids).select(:participant_id)
+    paid_ids = Payment.completed.where.not(participant_id: nil).select(:participant_id)
+    charged_back_ids = Payment.charged_back.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
+    refunded_ids = Payment.refunded.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
+    reversed_ids = Payment.reversed.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
 
     case status
     when "paid"
       participants.where(id: paid_ids)
+    when "charged_back"
+      participants.where(id: charged_back_ids)
     when "refunded"
-      participants.where(id: refunded_ids)
+      participants.where(id: refunded_ids).where.not(id: charged_back_ids)
     when "confirmed"
-      participants.where.not(confirmed_at: nil).where.not(id: paid_ids).where.not(id: refunded_ids)
+      participants.where.not(confirmed_at: nil).where.not(id: paid_ids).where.not(id: reversed_ids)
     when "pending"
-      participants.where(confirmed_at: nil).where.not(id: paid_ids).where.not(id: refunded_ids)
+      participants.where(confirmed_at: nil).where.not(id: paid_ids).where.not(id: reversed_ids)
     else
       participants
     end
@@ -117,6 +134,8 @@ class Admin::ParticipantsController < ApplicationController
 
     clauses =
       case @sort
+      when "number"
+        [ordered(table[:id])]
       when "email"
         [ordered(nullif_blank(table[:email]))]
       when "country"
@@ -139,14 +158,17 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   # Registration status is derived from DB columns, expressed as a SQL CASE so
-  # sorting stays at the database level. Pending < Confirmed < Paid < Refund.
+  # sorting stays at the database level. Pending < Confirmed < Paid < Refund <
+  # Chargeback.
   def status_sorted_participants(participants)
     table = Participant.arel_table
-    paid_subquery = Payment.completed.select(:participant_id).to_sql
-    refunded_subquery = Payment.refunded.where.not(participant_id: Payment.completed.select(:participant_id)).select(:participant_id).to_sql
+    paid_subquery = Payment.completed.where.not(participant_id: nil).select(:participant_id).to_sql
+    charged_back_subquery = Payment.charged_back.where.not(participant_id: nil).where.not(participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)).select(:participant_id).to_sql
+    refunded_subquery = Payment.refunded.where.not(participant_id: nil).where.not(participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)).select(:participant_id).to_sql
     dir = @direction == :desc ? "DESC" : "ASC"
     status_order = Arel.sql(
       "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
+      "WHEN participants.id IN (#{charged_back_subquery}) THEN 4 " \
       "WHEN participants.id IN (#{refunded_subquery}) THEN 3 " \
       "WHEN participants.confirmed_at IS NOT NULL THEN 1 " \
       "ELSE 0 END #{dir}"

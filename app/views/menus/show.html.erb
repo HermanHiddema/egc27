@@ -11,7 +11,7 @@
         <p class="text-sm text-gray-600">Status: <%= @menu.active? ? "Active" : "Inactive" %></p>
       </div>
 
-      <div class="flex gap-4 shrink-0">
+      <div class="portrait-stack-actions flex gap-4 shrink-0">
         <%= link_to "Menu Items", menu_menu_items_path(@menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
         <% if current_user&.can_edit? %>
           <%= link_to "Edit", edit_menu_path(@menu), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>

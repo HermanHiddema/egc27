@@ -211,6 +211,42 @@ class UserTest < ActiveSupport::TestCase
     assert_not Participant.exists?(participant.id)
   end
 
+  test "an account with a hostel checkout can not be deleted" do
+    user = User.create!(email: "checkout_user@example.com", skip_password_validation: true)
+    assert user.account_deletable?
+
+    booking = user.hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
+      mollie_payment_id: "tr_active_checkout"
+    )
+
+    assert_not user.account_deletable?
+  end
+
+  test "an account with a paid hostel booking can not be deleted" do
+    user = User.create!(email: "paid_booking_user@example.com", skip_password_validation: true)
+    assert user.account_deletable?
+
+    booking = user.hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
+      status: "paid"
+    )
+
+    assert_not user.account_deletable?
+  end
+
   test "after_confirmation does not subscribe a user without a participant" do
     user = User.create!(
       email: "no_participant_confirm@example.com",

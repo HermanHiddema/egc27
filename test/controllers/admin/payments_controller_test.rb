@@ -13,7 +13,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "190.00", description: "Cash at the venue", payment_method: "cash", status: "paid" }
+        payment: { amount_eur: "190.00", description: "Cash at the venue", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
       }
     end
 
@@ -46,6 +46,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
           amount_eur: "123.45",
           description: "EGC 2027 Congress Pass – paid in cash",
           payment_method: "cash",
+          payment_date: "2026-10-15",
           status: "paid",
           reference: "Receipt 42"
         }
@@ -58,6 +59,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "manual", payment.provider
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 42", payment.reference
+    assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert payment.paid?
     assert_nil payment.mollie_payment_id
   end
@@ -71,6 +73,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
           amount_eur: "190.00",
           description: "Bank transfer",
           payment_method: "bank_transfer",
+          payment_date: "2026-10-15",
           status: "paid"
         }
       }
@@ -86,6 +89,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
         amount_eur: "190.00",
         description: "Cash",
         payment_method: "cash",
+        payment_date: "2026-10-15",
         status: "paid",
         provider: "mollie",
         mollie_payment_id: "tr_spoofed"
@@ -102,7 +106,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", status: "open" }
+      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "open" }
     }
 
     assert participant.payments.order(:created_at).last.paid?
@@ -125,7 +129,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "0", description: "", payment_method: "cash", status: "paid" }
+        payment: { amount_eur: "0", description: "", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
       }
     end
 
@@ -137,7 +141,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:two)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", status: "paid" }
+      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
     }
 
     assert_equal "Paid", participant.reload.registration_status
@@ -149,7 +153,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(visitor), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
       }
     end
 
@@ -171,7 +175,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
       }
     end
 
@@ -185,7 +189,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash" }
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
       }
     end
 
@@ -198,7 +202,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participants(:two)), params: {
-        payment: { amount_eur: "abc", description: "Cash", payment_method: "cash" }
+        payment: { amount_eur: "abc", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
       }
     end
 
@@ -229,6 +233,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
         amount_eur: "95.50",
         description: "EGC 2027 Congress Pass – corrected",
         payment_method: "cash",
+        payment_date: "2026-10-15",
         status: "paid",
         reference: "Receipt 7"
       }
@@ -239,7 +244,31 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal 9_550, payment.amount_cents
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 7", payment.reference
+    assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert_equal "manual", payment.provider
+  end
+
+  test "record payment form prefills the payment date with today" do
+    sign_in users(:admin)
+
+    travel_to Time.zone.local(2026, 10, 20, 12) do
+      get new_admin_participant_payment_path(participants(:three))
+    end
+
+    assert_response :success
+    assert_select "input[type='date'][name='payment[payment_date]'][value='2026-10-20']"
+  end
+
+  test "admin cannot record a manual payment without a payment date" do
+    sign_in users(:admin)
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(participants(:three)), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "" }
+      }
+    end
+
+    assert_response :unprocessable_entity
   end
 
   test "admin cannot edit a mollie payment" do
@@ -256,7 +285,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:paid_payment)
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "1.00", description: "Hacked", payment_method: "cash", status: "paid" }
+      payment: { amount_eur: "1.00", description: "Hacked", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
     }
 
     assert_redirected_to new_admin_participant_payment_path(payment.participant)
@@ -268,7 +297,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:manual_payment)
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "1.00", description: "Hacked", payment_method: "cash", status: "paid" }
+      payment: { amount_eur: "1.00", description: "Hacked", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
     }
 
     assert_redirected_to root_path
@@ -280,7 +309,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:manual_payment)
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "0", description: "", payment_method: "cash", status: "paid" }
+      payment: { amount_eur: "0", description: "", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
     }
 
     assert_response :unprocessable_entity
@@ -292,7 +321,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:manual_payment)
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", status: "open" }
+      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", payment_date: "2026-10-15", status: "open" }
     }
 
     assert_redirected_to admin_participants_path
@@ -346,6 +375,42 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "form[action='#{mark_processed_admin_payment_path(payments(:paid_payment))}']"
     # Only completed payments are listed.
     assert_select "form[action='#{mark_processed_admin_payment_path(payments(:open_payment))}']", count: 0
+  end
+
+  test "admin sees hostel booking payments in the overview" do
+    sign_in users(:admin)
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    payment = Payment.build_for_hostel_booking(booking).tap do |hostel_payment|
+      hostel_payment.status = "paid"
+      hostel_payment.save!
+    end
+
+    get admin_payments_path
+
+    assert_response :success
+    assert_select "td", text: "Hostel booking ##{booking.id}"
+    assert_select "td", text: payment.description
+    assert_select "td", text: payment.amount_formatted
+  end
+
+  test "admin sees charged-back payments in the overview" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    payment.update!(status: "charged_back")
+
+    get admin_payments_path(processed: "unprocessed")
+
+    assert_response :success
+    assert_select "td", text: payment.description
+    assert_select "span", text: "Charged back"
+    assert_select "form[action='#{mark_processed_admin_payment_path(payment, processed: "unprocessed")}']"
+
+    patch mark_processed_admin_payment_path(payment)
+    assert payment.reload.processed_in_bookkeeping?
   end
 
   test "payments overview can be filtered on the bookkeeping status" do
@@ -446,7 +511,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", processed_in_bookkeeping: "0" }
+      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "0" }
     }
 
     assert_not participant.payments.order(:created_at).last.processed_in_bookkeeping?
@@ -457,7 +522,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", processed_in_bookkeeping: "1" }
+      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
     }
 
     assert participant.payments.order(:created_at).last.processed_in_bookkeeping?
@@ -468,7 +533,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:manual_payment)
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", processed_in_bookkeeping: "1" }
+      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
     }
 
     assert_redirected_to admin_participants_path

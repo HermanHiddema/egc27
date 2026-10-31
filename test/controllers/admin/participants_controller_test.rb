@@ -27,10 +27,10 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Dave Pending", response.body
     # Shows email addresses
     assert_match "dave@example.org", response.body
-    # Status badges for the three states (now the 6th column after the number)
-    assert_select "tbody tr td:nth-child(6) span", text: "Pending"
-    assert_select "tbody tr td:nth-child(6) span", text: "Confirmed"
-    assert_select "tbody tr td:nth-child(6) span", text: "Paid"
+    # Status badges for the three states (now the 7th column after strength was added)
+    assert_select "tbody tr td:nth-child(7) span", text: "Pending"
+    assert_select "tbody tr td:nth-child(7) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "Paid"
     # Participant number (database id offset by 1000) in the first column
     assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
@@ -41,6 +41,30 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
+  end
+
+  test "admin participant count reflects zero matching results" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "No matching participant")
+
+    assert_response :success
+    assert_select "#participant-count", text: "0 participants"
+  end
+
+  test "admin participant count uses singular wording for one matching result" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_select "#participant-count", text: "1 participant"
+  end
+
+  test "admin participant count uses plural wording for multiple results" do
+    sign_in users(:admin)
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "#participant-count", text: "#{Participant.count} participants"
   end
 
   test "admin sees an add payment link when existing payments can never succeed" do
@@ -162,6 +186,15 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Alice Smith", response.body
   end
 
+  test "admin can filter by full participant name" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
   test "admin can filter by status pending" do
     sign_in users(:admin)
     get admin_participants_path(status: "pending")
@@ -209,6 +242,27 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
+  test "admin can filter by status charged back" do
+    participants(:two).payments.update_all(status: "charged_back")
+    sign_in users(:admin)
+    get admin_participants_path(status: "charged_back")
+
+    assert_response :success
+    assert_match "Bob Jones", response.body
+    assert_match "Chargeback", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+
+    get admin_participants_path(status: "confirmed")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(status: "refunded")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(sort: "status")
+    assert_response :success
+  end
+
   test "refunded participants are excluded from the confirmed filter" do
     participants(:two).payments.update_all(status: "refunded")
     sign_in users(:admin)
@@ -222,6 +276,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "refunded participants are excluded from the pending filter" do
     participants(:unconfirmed).payments.create!(
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "refunded",
       amount_cents: 5_000,
@@ -244,14 +299,16 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:one).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "charged_back")
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
-    statuses = css_select("tbody tr td:nth-child(6)").map { |td| td.text.strip }
+    statuses = css_select("tbody tr td:nth-child(7)").map { |td| td.text.strip }
+    assert_includes statuses, "Chargeback"
     assert_includes statuses, "Refund"
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3 }
+    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
   end
 
@@ -262,6 +319,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       amount_cents: 5_000,
       description: "Manual replacement payment",
       provider: "manual",
+      payment_date: Date.current,
       payment_method: "bank_transfer",
       status: "paid"
     )
@@ -272,7 +330,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
     assert_not_nil bob_row
-    assert_includes bob_row.css("td")[5].text.strip, "Paid"
+    assert_includes bob_row.css("td")[6].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do

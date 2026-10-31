@@ -24,7 +24,7 @@
 
     <%# Load Cloudflare Turnstile only on pages that render a widget %>
     <% if content_for?(:turnstile_script) && ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"].present? %>
-      <script>function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
+      <script nonce="<%= content_security_policy_nonce %>">function egc27TurnstileOnLoad() { window.dispatchEvent(new CustomEvent("turnstile:load")) }</script>
       <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=egc27TurnstileOnLoad&render=explicit" async defer></script>
     <% end %>
 
@@ -36,10 +36,15 @@
 
   <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <!-- Header -->
-    <header class="bg-brand-red-600 border-b border-brand-yellow-800 sticky top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
+    <header class="bg-brand-red-600 border-b border-brand-yellow-800 lg:sticky lg:top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
-        <div class="flex items-center gap-2">
+        <div class="header-brand flex min-w-0 flex-col items-start justify-center gap-1 lg:flex-row lg:items-center lg:gap-2">
           <%= link_to image_tag("EGC-logo.svg", alt: "DraGo's Summer Festival logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
+          <p class="header-mobile-event-info lg:hidden text-[0.7rem] leading-tight text-brand-yellow-300">
+            <span class="header-mobile-event-title">European Go Congress 2027</span>
+            <span>24 July</span>
+            <span>7 August</span>
+          </p>
           <div class="hidden lg:block">
             <%= link_to root_path, class: "text-3xl lg:text-4xl font-bold text-brand-yellow-600 hover:text-brand-yellow-700 transition-all duration-300", data: { header_shrink_target: "title" } do -%>
 DraGo's Summer Festival
@@ -49,15 +54,15 @@ DraGo's Summer Festival
           </div>
         </div>
 
-        <div class="flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
-          <%= link_to "Newsletter", newsletter_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" %>
-          <%= link_to new_participant_path, class: "btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" do %>
+        <div class="header-actions flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
+          <%= link_to "Newsletter", newsletter_signup_path, class: "header-action-link btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" %>
+          <%= link_to new_participant_path, class: "header-action-link btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" do %>
             <span class="lg:hidden">Register</span><span class="hidden lg:inline">Register now</span>
           <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
               <div class="relative" data-controller="dropdown">
-                <button class="btn-primary flex items-center gap-1"
+                <button class="header-action-user btn-primary flex items-center gap-1"
                         type="button"
                         data-dropdown-target="toggle"
                         aria-controls="user-menu"
@@ -74,6 +79,7 @@ DraGo's Summer Festival
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
+                  <%= link_to "Hostel bookings", hostel_bookings_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% if current_user.can_edit? %>
                     <%= link_to "Admin", dashboard_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
@@ -120,9 +126,9 @@ DraGo's Summer Festival
 
     <!-- Footer -->
     <footer class="bg-brand-blue-900 text-white">
-      <div class="container-wide py-12">
-        <div class="border-t border-brand-blue-800 pt-8 flex items-start justify-between gap-4">
-          <div class="grid grid-cols-2 gap-3 sm:flex sm:gap-4">
+      <div class="container-wide py-3 lg:py-8">
+        <div class="border-t border-brand-blue-800 pt-3 lg:pt-8 flex flex-col items-center gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+          <div class="footer-social-links flex items-center justify-center gap-3 sm:gap-4">
             <a href="https://www.facebook.com/share/189m4UBKsN/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Facebook">
               <%= social_media_icon("facebook", css_class: "w-6 h-6") %>
             </a>

@@ -1,0 +1,23 @@
+<p>Hello <%= @user.display_name %>,</p>
+
+<p>We have received your payment for your hostel booking at the European Go Congress 2027. Thank you!</p>
+
+<p>
+  <strong>Arrival:</strong> <%= @hostel_booking.arrival_date.strftime("%A %-d %B %Y") %><br>
+  <strong>Departure:</strong> <%= @hostel_booking.departure_date.strftime("%A %-d %B %Y") %><br>
+  <strong>Nights:</strong> <%= @hostel_booking.nights %>
+</p>
+
+<p>
+  <% @hostel_booking.price_lines.each do |line| %>
+    <%= line.quantity %> × <%= line.label %> × <%= pluralize(line.nights, "night") %> × € <%= format("%.2f", line.unit_price_cents / 100.0) %> = € <%= format("%.2f", line.subtotal_cents / 100.0) %><br>
+  <% end %>
+  <strong>Total paid:</strong> <%= @payment.amount_formatted %>
+</p>
+
+<p><%= link_to "View your hostel booking", hostel_booking_url(@hostel_booking) %></p>
+
+<p>
+  If you have any questions, please contact us at
+  <%= mail_to "info@egc2027.nl" %>.
+</p>

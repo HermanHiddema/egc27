@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 # == Schema Information
 #
@@ -35,7 +36,7 @@ require "test_helper"
 #  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
 #  index_participants_on_confirmed_at        (confirmed_at)
 #  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
+#  index_participants_on_egd_pin             (egd_pin) UNIQUE
 #  index_participants_on_email               (email)
 #  index_participants_on_gender              (gender)
 #  index_participants_on_participant_type    (participant_type)
@@ -346,12 +347,13 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
-  test "allows a duplicate EGD pin" do
+  test "rejects a duplicate EGD pin" do
     participant = participants(:one).dup
     participant.email = "different@example.org"
     participant.user = users(:two)
 
-    assert participant.valid?
+    assert_not participant.valid?
+    assert_includes participant.errors[:egd_pin], "is already registered"
   end
 
   test "club is optional" do
@@ -593,6 +595,23 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal "Paid", participant.registration_status
   end
 
+  test "registration_status is Chargeback when the payment was charged back" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    participant.reload
+    assert participant.charged_back?
+    assert_not participant.paid?
+    assert_equal "Chargeback", participant.registration_status
+  end
+
+  test "not_refunded excludes participants with a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
   test "not_refunded excludes participants with a refunded payment" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
@@ -648,6 +667,13 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_not participant.reload.deletable?
   end
 
+  test "deletable? is false for a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    assert_not participant.reload.deletable?
+  end
+
   test "deletable? is true without payments" do
     assert participants(:three).deletable?
   end
@@ -662,5 +688,95 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id, event: "destroy").count }, 1 do
       participant.destroy!
     end
+  end
+  # Payment lookups and refreshing
+  test "paid_payment returns the most recent completed payment" do
+    participant = participants(:two)
+
+    assert_equal payments(:paid_payment), participant.paid_payment
+  end
+
+  test "paid_payment is nil without a completed payment" do
+    assert_nil participants(:one).paid_payment
+  end
+
+  test "pending_payment returns the most recent in-progress payment" do
+    participant = participants(:one)
+
+    assert_equal payments(:open_payment), participant.pending_payment
+  end
+
+  test "current_payment prefers a completed payment" do
+    assert_equal payments(:paid_payment), participants(:two).current_payment
+  end
+
+  test "current_payment falls back to an in-progress payment" do
+    assert_equal payments(:open_payment), participants(:one).current_payment
+  end
+
+  test "current_payment builds a new payment when there is none" do
+    participant = participants(:three)
+
+    payment = participant.current_payment
+
+    assert_not payment.persisted?
+    assert_equal "open", payment.status
+  end
+
+  test "refresh_paid_payments! records a refund reported by Mollie" do
+    participant = participants(:two)
+    payment = payments(:paid_payment)
+    remote = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    with_mollie_get(->(_id) { remote }) { participant.refresh_paid_payments! }
+
+    assert_equal "refunded", payment.reload.status
+    assert_not participant.paid?
+  end
+
+  test "refresh_paid_payments! stops at the first payment that is still paid" do
+    participant = participants(:two)
+    newer_payment = payments(:paid_payment)
+    older_payment = participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Older Mollie payment",
+      provider: "mollie",
+      mollie_payment_id: "tr_paid_older",
+      status: "paid",
+      created_at: newer_payment.created_at - 1.day,
+      updated_at: newer_payment.updated_at - 1.day
+    )
+    fetched_ids = []
+
+    with_mollie_get(->(id) { fetched_ids << id; OpenStruct.new(id: id, status: "paid") }) do
+      participant.refresh_paid_payments!
+    end
+
+    assert_equal [newer_payment.mollie_payment_id], fetched_ids
+    assert_equal "paid", older_payment.reload.status
+  end
+
+  test "refresh_paid_payments! swallows Mollie errors" do
+    participant = participants(:two)
+
+    with_mollie_get(->(_id) { raise Mollie::Exception, "boom" }) do
+      assert_nothing_raised { participant.refresh_paid_payments! }
+    end
+
+    assert_equal "paid", payments(:paid_payment).reload.status
+  end
+
+  private
+
+  def with_mollie_get(stub)
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |id| stub.call(id) }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 end

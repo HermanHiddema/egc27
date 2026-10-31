@@ -1,0 +1,7 @@
+<div class="container-wide py-8">
+  <div class="mb-6"><%= link_to "← Back to newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></div>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+    <h1 class="text-3xl font-bold mb-6">Create newsletter</h1>
+    <%= render "form", newsletter: @newsletter %>
+  </div>
+</div>

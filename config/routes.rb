@@ -121,7 +121,18 @@ Rails.application.routes.draw do
   # get "manifest" => "rails/pwa#manifest", as: :pwa_manifest
   # get "service-worker" => "rails/pwa#service_worker", as: :pwa_service_worker
 
+  get "newsletter/test_preview/:token", to: "newsletters#test_preview", as: :test_newsletter_preview
+  get "newsletter/test_unsubscribe/:token", to: "newsletters#test_unsubscribe", as: :test_newsletter_unsubscribe
+  delete "newsletter/test_unsubscribe/:token", to: "newsletters#destroy_test_unsubscribe", as: :destroy_test_newsletter_unsubscribe
+
   resources :articles
+  resources :newsletters, only: [:show, :new, :create, :edit, :update], path: "newsletter" do
+    member do
+      get :preview
+      get :confirm_send
+      post :send, action: :send_newsletter
+    end
+  end
   resources :events do
     resources :event_registrations, only: [:new, :create, :destroy]
   end
@@ -131,9 +142,8 @@ Rails.application.routes.draw do
       patch :reactivate
     end
   end
-  get "calendar" => "calendar_events#index", as: :calendar
   get "schedule" => "schedule#index", as: :schedule
-  resources :calendar_events do
+  resources :calendar_events, except: [:index] do
     collection do
       get :day
       get :week
@@ -144,7 +154,7 @@ Rails.application.routes.draw do
   end
   resources :event_groups, except: [:show]
   resources :pages, param: :slug
-  resources :participants, only: [:index, :new, :create, :show] do
+  resources :participants, only: [:index, :new, :create, :show, :edit, :update] do
     collection do
       get :egd_search
       get :egd_registered
@@ -164,10 +174,15 @@ Rails.application.routes.draw do
       get :success
     end
   end
+  resources :hostel_bookings, only: [:index, :new, :create, :show] do
+    member do
+      post :pay
+    end
+  end
   resources :users, only: [:index, :edit, :update]
   get "users/invite", to: "users#invite", as: :invite_user
   post "users/invite", to: "users#send_invitation", as: :send_invitation_user
-  get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter
+  get "newsletter", to: "newsletter_subscriptions#new", as: :newsletter_signup
   resources :newsletter_subscriptions, only: [:index, :create, :edit, :update]
   get "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#unsubscribe", as: :unsubscribe_newsletter
   delete "newsletter/unsubscribe/:token", to: "newsletter_subscriptions#destroy", as: :destroy_unsubscribe_newsletter
@@ -195,6 +210,15 @@ Rails.application.routes.draw do
       member do
         patch :mark_processed
         patch :unmark_processed
+      end
+    end
+    resources :hostel_bookings, only: [:index]
+    resources :settlements, only: [:index, :show] do
+      collection do
+        post :sync
+      end
+      member do
+        post :resync
       end
     end
   end

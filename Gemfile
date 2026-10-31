@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.3"
+gem "rails", "~> 8.1.4"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use PostgreSQL as the database for Active Record
@@ -49,12 +49,13 @@ gem "bootsnap", require: false
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 gem "kamal", require: false
+gem "net-ssh", ">= 7.3.6"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.1"
+gem "image_processing", "~> 2.2"
 # Requires the libvips system package on non-Docker setups.
 gem "ruby-vips", ">= 2.1"
 
@@ -97,3 +98,4 @@ group :test do
 end
 
 gem "paper_trail", "~> 17.0"
+gem "crass", ">= 1.0.8"

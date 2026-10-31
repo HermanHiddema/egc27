@@ -3,7 +3,8 @@ class ParticipantsController < ApplicationController
 
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration, :confirm, :resend_confirmation]
   before_action :build_participant, only: [:create]
-  before_action :set_participant, only: [:show, :resend_confirmation]
+  before_action :set_participant, only: [:show, :edit, :update, :resend_confirmation]
+  before_action :require_participant_owner!, only: [:edit, :update]
   before_action :verify_turnstile, only: [:create, :resend_confirmation]
   before_action :refuse_registration_for_existing_account, only: [:create]
 
@@ -34,6 +35,24 @@ class ParticipantsController < ApplicationController
   end
 
   def show
+    if user_signed_in? && @participant.user_id != current_user.id
+      head :not_found
+      return
+    end
+
+    @personal_details_visible = user_signed_in? && @participant.user_id == current_user.id
+    @has_multiple_participants = @personal_details_visible && current_user.participants.count > 1
+  end
+
+  def edit
+  end
+
+  def update
+    if @participant.update(participant_profile_params)
+      redirect_to participant_path(@participant), notice: "Participant details updated."
+    else
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   # Resends the participant confirmation email for this registration, identified
@@ -65,6 +84,11 @@ class ParticipantsController < ApplicationController
       redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
     end
   rescue ActiveRecord::RecordInvalid
+    render :new, status: :unprocessable_entity
+  rescue ActiveRecord::RecordNotUnique => e
+    raise unless duplicate_egd_pin_conflict?(e)
+
+    @participant.errors.add(:egd_pin, "is already registered")
     render :new, status: :unprocessable_entity
   end
 
@@ -116,7 +140,7 @@ class ParticipantsController < ApplicationController
   # account email address on a public page.
   def alter_registration
     pin = params[:egd_pin].to_s.strip
-    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :asc, id: :asc).first : nil
+    @participant = pin.present? ? Participant.find_by(egd_pin: pin) : nil
 
     if @participant.nil?
       redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
@@ -133,6 +157,14 @@ class ParticipantsController < ApplicationController
   end
 
   private
+
+  def require_participant_owner!
+    head :not_found unless @participant.user_id == current_user.id
+  end
+
+  def participant_profile_params
+    params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
+  end
 
   # True when a signed-in (already confirmed) user is registering a participant
   # under their own account. The registration email is pre-filled and locked to
@@ -326,6 +358,23 @@ class ParticipantsController < ApplicationController
     user.skip_confirmation_notification!
     user.save!
     user
+  end
+
+  def duplicate_egd_pin_conflict?(error)
+    @participant&.egd_pin.present? &&
+      duplicate_egd_pin_constraint?(error)
+  end
+
+  def duplicate_egd_pin_constraint?(error)
+    constraint_name = unique_constraint_name_from(error)
+    constraint_name == "index_participants_on_egd_pin" || error.message.include?("index_participants_on_egd_pin")
+  end
+
+  def unique_constraint_name_from(error)
+    result = error.cause&.respond_to?(:result) ? error.cause.result : nil
+    return unless result.respond_to?(:error_field)
+
+    result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def participant_params

@@ -12,7 +12,7 @@
     </div>
   <% else %>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <div class="payment-participant-overview bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
         <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Participant Details</h2>
         <dl class="space-y-3 text-sm">
           <div class="flex justify-between">
@@ -29,7 +29,7 @@
           </div>
           <div class="flex justify-between">
             <dt class="text-neutral-500 font-medium">Congress Pass</dt>
-            <dd class="text-neutral-900"><%= @payment.description %></dd>
+            <dd class="payment-pass-type text-neutral-900 text-right"><%= CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label %></dd>
           </div>
         </dl>
       </div>
@@ -72,10 +72,10 @@
           <% end %>
           <p class="text-xs text-neutral-500 mt-3 text-center">
             You will be redirected to Mollie's secure payment page.
-            Supported methods: iDEAL, credit card, Bancontact, and more.
+            Supported methods: iDEAL, credit card, Paypal, Bancontact, and more.
           </p>
           <p class="text-xs text-neutral-500 mt-2 text-center">
-            If none of the payment options offered by Mollie work for you, please see our <%= link_to "FAQ", page_path("faq"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %> for other payment options (PayPal, wire transfer, cash).
+            If none of the payment options offered by Mollie work for you, please see our <%= link_to "FAQ", page_path("faq"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %> for other payment options (wire transfer, pin, cash).
           </p>
 
           <% if @show_simulation_controls %>
@@ -95,24 +95,47 @@
 
     <div class="mt-8 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
       <h3 class="text-base font-semibold mb-4 text-brand-blue-900">Congress Pass Price Overview</h3>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
+      <div>
+        <table class="price-overview w-full table-fixed text-xs sm:text-sm text-left">
+          <colgroup>
+            <col class="w-2/5">
+            <col class="w-1/5">
+            <col class="w-1/5">
+            <col class="w-1/5">
+          </colgroup>
           <thead>
-            <tr class="bg-gray-50">
-              <th class="px-4 py-2 font-semibold text-neutral-700">Congress Pass</th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Special<br><span class="font-normal text-xs">Until 31 Aug 2026</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Early Bird<br><span class="font-normal text-xs">Until 31 Jan 2027</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Regular<br><span class="font-normal text-xs">Until 31 May 2027</span></th>
-              <th class="px-4 py-2 font-semibold text-neutral-700">Late<br><span class="font-normal text-xs">From 1 Jun 2027</span></th>
+            <tr class="bg-gray-200">
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">Pass type</th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                <span class="price-overview-label">Early Bird</span>
+                <details class="price-period-info">
+                  <summary aria-label="Early Bird price period dates">i</summary>
+                  <span class="price-period-popup">Until 31 January 2027</span>
+                </details>
+              </th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                <span class="price-overview-label">Regular</span>
+                <details class="price-period-info">
+                  <summary aria-label="Regular price period dates">i</summary>
+                  <span class="price-period-popup">Until 31 May 2027</span>
+                </details>
+              </th>
+              <th class="px-2 sm:px-4 py-2 font-semibold text-neutral-700">
+                <span class="price-overview-label">Late</span>
+                <details class="price-period-info">
+                  <summary aria-label="Late price period dates">i</summary>
+                  <span class="price-period-popup">From 1 June 2027</span>
+                </details>
+              </th>
             </tr>
           </thead>
         <% labels = CongressPassPricing::PRICES.keys.index_with { |opt| CongressPassPricing.new(attendance_option: opt).attendance_label } %>
           <tbody class="divide-y divide-gray-100">
             <% CongressPassPricing::PRICES.each do |option, tiers| %>
-              <tr class="<%= @participant.attendance_option == option ? 'bg-brand-yellow-50 font-semibold' : '' %>">
-                <td class="px-4 py-2 text-neutral-900"><%= labels[option] %></td>
-                <% %i[special early regular late].each do |tier| %>
-                  <td class="px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
+              <tr class="price-overview-row <%= @participant.attendance_option == option ? 'bg-brand-yellow-200 font-semibold' : '' %>">
+                <td class="px-2 sm:px-4 py-2 text-neutral-900"><%= labels[option] %></td>
+                <% %i[early regular late].each do |tier| %>
+                  <td class="px-2 sm:px-4 py-2 text-neutral-700">€ <%= tiers[tier] %></td>
                 <% end %>
               </tr>
             <% end %>
