@@ -6,8 +6,8 @@
 
 Rails.application.configure do
   egd_connect_origins = [
-    ENV.fetch("EGD_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByData.php"),
-    ENV.fetch("EGD_PIN_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByPIN.php")
+    ENV.fetch("EGD_LEGACY_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByData.php"),
+    ENV.fetch("EGD_LEGACY_PIN_API_URL", "https://europeangodatabase.eu/EGD/GetPlayerDataByPIN.php")
   ].filter_map do |url|
     uri = URI.parse(url)
     uri.origin if uri.is_a?(URI::HTTP) && uri.host.present?
