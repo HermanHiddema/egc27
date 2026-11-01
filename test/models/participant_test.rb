@@ -51,6 +51,31 @@ require "ostruct"
 #
 class ParticipantTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
+  include ActiveJob::TestHelper
+
+  test "changing the egd pin queues an EGD sync for the participant" do
+    participant = participants(:one)
+
+    assert_enqueued_with(job: EgdSyncJob, args: [participant.id]) do
+      participant.update!(egd_pin: "12345678")
+    end
+  end
+
+  test "updates that keep the egd pin do not queue an EGD sync" do
+    participant = participants(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      participant.update!(club: "Another Club")
+    end
+  end
+
+  test "removing the egd pin does not queue an EGD sync" do
+    participant = participants(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      participant.update!(egd_pin: "")
+    end
+  end
 
   test "requires all public registration fields" do
     participant = Participant.new
