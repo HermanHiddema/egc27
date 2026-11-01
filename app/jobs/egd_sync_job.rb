@@ -1,14 +1,19 @@
 # Refreshes the rank and rating of every participant that has a valid EGD pin
 # from the European Go Database. Runs periodically (see config/recurring.yml)
-# and can be triggered manually by admins from the participant list.
+# and can be triggered manually by admins from the participant list. When a
+# participant id is given, only that participant is refreshed; this is used
+# whenever a participant's EGD pin changes.
 class EgdSyncJob < ApplicationJob
   queue_as :default
 
-  def perform
+  def perform(participant_id = nil)
     lookup = EgdLookupService.new
     updated = 0
 
-    Participant.where.not(egd_pin: [nil, ""]).find_each do |participant|
+    participants = Participant.where.not(egd_pin: [nil, ""])
+    participants = participants.where(id: participant_id) if participant_id
+
+    participants.find_each do |participant|
       updated += 1 if sync(participant, lookup)
     end
 

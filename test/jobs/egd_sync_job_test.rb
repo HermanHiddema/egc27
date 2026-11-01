@@ -74,6 +74,22 @@ class EgdSyncJobTest < ActiveSupport::TestCase
     assert_equal rank, participant.reload.rank
   end
 
+  test "only refreshes the given participant when an id is passed" do
+    participant = participants(:one)
+    other = Participant.where.not(egd_pin: [nil, ""]).where.not(id: participant.id).first
+    lookup = FakeLookup.new(
+      participant.egd_pin => { egd_pin: participant.egd_pin, playing_strength: 32, rating: 2255 }
+    )
+
+    with_stubbed_lookup(lookup) do
+      assert_equal 1, EgdSyncJob.perform_now(participant.id)
+    end
+
+    assert_equal [participant.egd_pin], lookup.queries
+    assert_not_includes lookup.queries, other&.egd_pin
+    assert_equal 2255, participant.reload.rating
+  end
+
   private
 
   # Replaces EgdLookupService.new with a fake for the duration of the block, in

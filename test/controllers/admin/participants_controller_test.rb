@@ -155,6 +155,18 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "alice@example.org", participant.email
   end
 
+  test "admin changing the egd pin queues an EGD sync for the participant" do
+    sign_in users(:admin)
+    participant = participants(:one)
+
+    assert_enqueued_with(job: EgdSyncJob, args: [participant.id]) do
+      patch admin_participant_path(participant), params: { participant: { egd_pin: "12345678" } }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "12345678", participant.reload.egd_pin
+  end
+
   test "admin update with invalid data re-renders the edit form" do
     sign_in users(:admin)
 

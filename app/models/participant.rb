@@ -120,6 +120,8 @@ class Participant < ApplicationRecord
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
 
+  after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
+
   def to_param
     uuid
   end
@@ -289,6 +291,11 @@ class Participant < ApplicationRecord
   end
 
   private
+
+  # Refreshes rank and rating from the European Go Database for the new pin.
+  def sync_from_egd
+    EgdSyncJob.perform_later(id)
+  end
 
   def normalize_text_fields
     self.first_name = first_name.to_s.strip
