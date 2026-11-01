@@ -10,8 +10,6 @@ require "ostruct"
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
-#  confirmation_token            :string
-#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
@@ -33,17 +31,15 @@ require "ostruct"
 #
 # Indexes
 #
-#  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
-#  index_participants_on_confirmed_at        (confirmed_at)
-#  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin) UNIQUE
-#  index_participants_on_email               (email)
-#  index_participants_on_gender              (gender)
-#  index_participants_on_participant_type    (participant_type)
-#  index_participants_on_phone               (phone)
-#  index_participants_on_rating              (rating)
-#  index_participants_on_user_id             (user_id)
-#  index_participants_on_uuid                (uuid) UNIQUE
+#  index_participants_on_created_at        (created_at)
+#  index_participants_on_egd_pin           (egd_pin) UNIQUE
+#  index_participants_on_email             (email)
+#  index_participants_on_gender            (gender)
+#  index_participants_on_participant_type  (participant_type)
+#  index_participants_on_phone             (phone)
+#  index_participants_on_rating            (rating)
+#  index_participants_on_user_id           (user_id)
+#  index_participants_on_uuid              (uuid) UNIQUE
 #
 # Foreign Keys
 #
@@ -500,44 +496,6 @@ class ParticipantTest < ActiveSupport::TestCase
 
     assert_not participant.valid?
     assert_includes participant.errors[:image_use_consent], "must be selected"
-  end
-
-  test "generate_confirmation_token! retries on token collisions for legacy invalid records and updates timestamp" do
-    participant = participants(:one)
-    participant.update_column(:gender, nil)
-    original_updated_at = participant.updated_at
-    generated_tokens = ["test_token_abc123", "replacement_token_123"]
-    singleton = SecureRandom.singleton_class
-    original_urlsafe_base64 = SecureRandom.method(:urlsafe_base64)
-
-    begin
-      singleton.define_method(:urlsafe_base64) { |_length = nil| generated_tokens.shift }
-
-      travel_to original_updated_at + 1.minute do
-        participant.generate_confirmation_token!
-      end
-    ensure
-      singleton.define_method(:urlsafe_base64, original_urlsafe_base64)
-    end
-
-    participant.reload
-    assert_equal "replacement_token_123", participant.confirmation_token
-    assert_operator participant.updated_at, :>, original_updated_at
-  end
-
-  test "confirm! clears token for legacy invalid records and updates timestamp" do
-    participant = participants(:unconfirmed)
-    participant.update_column(:gender, nil)
-    original_updated_at = participant.updated_at
-
-    travel_to original_updated_at + 1.minute do
-      participant.confirm!
-    end
-
-    participant.reload
-    assert participant.confirmed?
-    assert_nil participant.confirmation_token
-    assert_operator participant.updated_at, :>, original_updated_at
   end
 
   test "assigns a uuid on creation" do

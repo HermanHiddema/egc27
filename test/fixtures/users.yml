@@ -76,3 +76,7 @@ no_password:
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+pending:
+  email: pending@example.org
+  role: regular

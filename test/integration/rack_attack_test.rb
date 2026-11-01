@@ -135,11 +135,11 @@ class RackAttackTest < ActionDispatch::IntegrationTest
       participant = participants(:unconfirmed)
 
       2.times do
-        post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+        post resend_registration_confirmation_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
         assert_response :redirect
       end
 
-      post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+      post resend_registration_confirmation_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
     end
@@ -179,7 +179,8 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     params = { user: { email: "unconfirmed@example.com" } }
 
     freeze_time do
-      5.times do
+      5.times do |i|
+        params[:user][:email] = "unconfirmed#{i}@example.com"
         post user_confirmation_path, params: params, headers: { "REMOTE_ADDR" => "5.6.7.8" }
         assert_includes [200, 302, 422], response.status
       end

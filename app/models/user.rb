@@ -48,13 +48,24 @@ class User < ApplicationRecord
 
   def after_confirmation
     super
-    participants.each do |participant|
-      next if participant.confirmed?
-
-      participant.confirm!
-      deliver_registration_confirmation(participant) if participant.email.present?
-    end
     NewsletterSubscription.subscribe_user(self)
+  end
+
+  def self.confirm_by_token(token)
+    return super if token.blank?
+
+    transaction do
+      digest = Devise.token_generator.digest(self, :confirmation_token, token)
+      where(confirmation_token: [token, digest]).lock.load
+      super
+    end
+  end
+
+  # Each resend gets its own two-week lifetime and invalidates older links.
+  def resend_confirmation_instructions
+    self.confirmation_token = nil
+    @raw_confirmation_token = nil
+    super
   end
 
   # Invalidate the magic link after a successful sign-in so each link works
@@ -116,9 +127,4 @@ class User < ApplicationRecord
     NewsletterSubscription.update_email(old_email, normalized_email) if participants.exists?
   end
 
-  def deliver_registration_confirmation(participant)
-    ParticipantMailer.registration_confirmation(participant).deliver_now
-  rescue StandardError => e
-    Rails.logger.error("Failed to deliver registration confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
-  end
 end

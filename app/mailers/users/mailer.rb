@@ -7,7 +7,7 @@ module Users
       participant = record.registration_participant
       if participant.present?
         @participant = participant
-        opts[:subject] = "EGC 2027 – Confirm your account"
+        opts[:subject] = "EGC 2027 – Please confirm your registration"
         opts[:template_name] = "registration_confirmation_instructions"
       end
 

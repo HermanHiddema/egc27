@@ -155,11 +155,11 @@ class UserTest < ActiveSupport::TestCase
       user: user
     )
 
-    assert_nil participant.confirmed_at
+    assert_not participant.confirmed?
 
-    user.after_confirmation
+    user.confirm
 
-    assert_not_nil participant.reload.confirmed_at
+    assert participant.reload.confirmed?
   end
 
   test "after_confirmation subscribes a user with a participant to the newsletter" do
