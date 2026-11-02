@@ -74,11 +74,17 @@ class HostelBookingTest < ActiveSupport::TestCase
     assert_includes booking.errors[:arrival_date], "can not be before 24 July 2027"
   end
 
-  test "departure can not be after 7 August 2027" do
-    booking = build_booking(departure_date: Date.new(2027, 8, 8))
+  test "departure can not be after 8 August 2027" do
+    booking = build_booking(departure_date: Date.new(2027, 8, 9))
 
     assert_not booking.valid?
-    assert_includes booking.errors[:departure_date], "can not be after 7 August 2027"
+    assert_includes booking.errors[:departure_date], "can not be after 8 August 2027"
+  end
+
+  test "departure on 8 August 2027 is allowed" do
+    booking = build_booking(arrival_date: Date.new(2027, 8, 7), departure_date: Date.new(2027, 8, 8))
+
+    assert booking.valid?, booking.errors.full_messages.to_sentence
   end
 
   test "departure must be after arrival" do

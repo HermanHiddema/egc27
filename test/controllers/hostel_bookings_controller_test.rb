@@ -85,9 +85,9 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "form[data-controller='hostel-booking']"
-    assert_select "select[name='hostel_booking[arrival_date]'] option", count: 14
+    assert_select "select[name='hostel_booking[arrival_date]'] option", count: 15
     assert_select "select[name='hostel_booking[arrival_date]'] option[value='2027-07-24']", text: "Sat, 24 Jul 2027"
-    assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-07']", text: "Sat, 07 Aug 2027"
+    assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-08']", text: "Sun, 08 Aug 2027"
     assert_select "input[name='hostel_booking[female_dorm_beds]']"
     assert_select "input[name='hostel_booking[breakfasts]']"
     assert_match "€ 72 per night", response.body
@@ -126,12 +126,12 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:one)
 
     assert_no_difference("HostelBooking.count") do
-      post hostel_bookings_path, params: booking_params(arrival_date: "2027-07-23", departure_date: "2027-08-08")
+      post hostel_bookings_path, params: booking_params(arrival_date: "2027-07-23", departure_date: "2027-08-09")
     end
 
     assert_response :unprocessable_entity
     assert_match "can not be before 24 July 2027", response.body
-    assert_match "can not be after 7 August 2027", response.body
+    assert_match "can not be after 8 August 2027", response.body
   end
 
   test "index lists only the bookings of the current user" do
