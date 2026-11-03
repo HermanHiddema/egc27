@@ -46,10 +46,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   create_table "articles", force: :cascade do |t|
     t.text "content_html"
     t.datetime "created_at", null: false
+    t.string "slug"
     t.string "title"
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
-    t.string "slug"
     t.index ["slug"], name: "index_articles_on_slug", unique: true
     t.index ["user_id"], name: "index_articles_on_user_id"
   end
@@ -70,15 +70,15 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "chargebacks", force: :cascade do |t|
-    t.bigint "settlement_id", null: false
-    t.bigint "payment_id"
-    t.string "mollie_chargeback_id", null: false
-    t.string "mollie_payment_id"
     t.integer "amount_cents"
-    t.integer "settlement_amount_cents"
-    t.datetime "mollie_created_at"
-    t.datetime "reversed_at"
     t.datetime "created_at", null: false
+    t.string "mollie_chargeback_id", null: false
+    t.datetime "mollie_created_at"
+    t.string "mollie_payment_id"
+    t.bigint "payment_id"
+    t.datetime "reversed_at"
+    t.integer "settlement_amount_cents"
+    t.bigint "settlement_id", null: false
     t.datetime "updated_at", null: false
     t.index ["mollie_chargeback_id"], name: "index_chargebacks_on_mollie_chargeback_id", unique: true
     t.index ["payment_id"], name: "index_chargebacks_on_payment_id"
@@ -119,25 +119,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "hostel_bookings", force: :cascade do |t|
-    t.bigint "user_id", null: false
-    t.date "arrival_date", null: false
-    t.date "departure_date", null: false
-    t.integer "single_rooms", default: 0, null: false
-    t.integer "double_rooms", default: 0, null: false
-    t.integer "six_person_rooms", default: 0, null: false
-    t.integer "mixed_dorm_beds", default: 0, null: false
-    t.integer "female_dorm_beds", default: 0, null: false
-    t.integer "breakfasts", default: 0, null: false
-    t.date "priced_on", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.integer "single_room_price_cents", null: false
-    t.integer "double_room_price_cents", null: false
-    t.integer "six_person_room_price_cents", null: false
-    t.integer "mixed_dorm_bed_price_cents", null: false
-    t.integer "female_dorm_bed_price_cents", null: false
-    t.integer "breakfast_price_cents", null: false
     t.integer "amount_cents", null: false
+    t.date "arrival_date", null: false
+    t.integer "breakfast_price_cents", null: false
+    t.integer "breakfasts", default: 0, null: false
+    t.datetime "created_at", null: false
+    t.date "departure_date", null: false
+    t.integer "double_room_price_cents", null: false
+    t.integer "double_rooms", default: 0, null: false
+    t.integer "female_dorm_bed_price_cents", null: false
+    t.integer "female_dorm_beds", default: 0, null: false
+    t.integer "mixed_dorm_bed_price_cents", null: false
+    t.integer "mixed_dorm_beds", default: 0, null: false
+    t.date "priced_on", null: false
+    t.integer "single_room_price_cents", null: false
+    t.integer "single_rooms", default: 0, null: false
+    t.integer "six_person_room_price_cents", null: false
+    t.integer "six_person_rooms", default: 0, null: false
+    t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["user_id"], name: "index_hostel_bookings_on_user_id"
   end
 
@@ -168,10 +168,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "newsletter_deliveries", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "delivered_at"
     t.bigint "newsletter_id", null: false
     t.bigint "newsletter_subscription_id", null: false
-    t.datetime "delivered_at"
-    t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["newsletter_id", "newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_and_subscription", unique: true
     t.index ["newsletter_subscription_id"], name: "index_newsletter_deliveries_on_newsletter_subscription_id"
@@ -191,13 +191,13 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "newsletters", force: :cascade do |t|
-    t.string "title", null: false
-    t.string "subject", null: false
     t.text "content_html", null: false
-    t.datetime "sent_at"
-    t.bigint "user_id", null: false
     t.datetime "created_at", null: false
+    t.datetime "sent_at"
+    t.string "subject", null: false
+    t.string "title", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
     t.index ["sent_at"], name: "index_newsletters_on_sent_at"
     t.index ["user_id"], name: "index_newsletters_on_user_id"
   end
@@ -259,17 +259,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
     t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description", null: false
+    t.bigint "hostel_booking_id"
     t.string "mollie_payment_id"
     t.bigint "participant_id"
+    t.date "payment_date"
     t.string "payment_method"
     t.boolean "processed_in_bookkeeping", default: false, null: false
     t.string "provider", default: "mollie", null: false
     t.string "reference"
+    t.bigint "settlement_id"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
-    t.bigint "settlement_id"
-    t.date "payment_date"
-    t.bigint "hostel_booking_id"
     t.index ["hostel_booking_id"], name: "index_payments_on_hostel_booking_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["participant_id"], name: "index_payments_on_participant_id"
@@ -290,16 +290,16 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "refunds", force: :cascade do |t|
-    t.bigint "settlement_id", null: false
-    t.bigint "payment_id"
-    t.string "mollie_refund_id", null: false
-    t.string "mollie_payment_id"
-    t.string "description"
-    t.string "status"
     t.integer "amount_cents"
-    t.integer "settlement_amount_cents"
-    t.datetime "mollie_created_at"
     t.datetime "created_at", null: false
+    t.string "description"
+    t.datetime "mollie_created_at"
+    t.string "mollie_payment_id"
+    t.string "mollie_refund_id", null: false
+    t.bigint "payment_id"
+    t.integer "settlement_amount_cents"
+    t.bigint "settlement_id", null: false
+    t.string "status"
     t.datetime "updated_at", null: false
     t.index ["mollie_refund_id"], name: "index_refunds_on_mollie_refund_id", unique: true
     t.index ["payment_id"], name: "index_refunds_on_payment_id"
@@ -307,18 +307,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   end
 
   create_table "settlements", force: :cascade do |t|
-    t.string "mollie_settlement_id", null: false
-    t.string "reference"
-    t.string "status", null: false
     t.integer "amount_cents", default: 0, null: false
-    t.datetime "settled_at"
-    t.datetime "mollie_created_at"
     t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.boolean "payments_complete", default: false, null: false
     t.string "mollie_balance_id"
-    t.jsonb "periods", default: {}, null: false
+    t.datetime "mollie_created_at"
+    t.string "mollie_settlement_id", null: false
     t.jsonb "other_payments", default: [], null: false
+    t.boolean "payments_complete", default: false, null: false
+    t.jsonb "periods", default: {}, null: false
+    t.string "reference"
+    t.datetime "settled_at"
+    t.string "status", null: false
+    t.datetime "updated_at", null: false
     t.index ["mollie_settlement_id"], name: "index_settlements_on_mollie_settlement_id", unique: true
   end
 
