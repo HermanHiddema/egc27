@@ -688,6 +688,27 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match confirmation_url, body
   end
 
+  test "redirects after participant registration when confirmation email delivery fails" do
+    with_failing_confirmation_delivery do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "delivery_failure@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          gender: "female",
+          image_use_consent: false
+        }
+      }
+    end
+
+    participant = Participant.find_by!(email: "delivery_failure@example.org")
+    assert_redirected_to participant_path(participant)
+    assert_equal "Registration received, but we couldn't send a confirmation email. Please use the resend form on your registration page.", flash[:notice]
+  end
+
   test "links participant to newly created user" do
     post participants_path, params: {
       participant: {
@@ -941,6 +962,19 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "If your registration still needs confirming, we've sent a new confirmation email.", flash[:notice]
   end
 
+  test "resend_confirmation redirects and preserves the previous token when delivery fails" do
+    user = participants(:unconfirmed).user
+    user.update_columns(confirmed_at: nil, confirmation_token: "previous-token")
+
+    with_failing_confirmation_delivery do
+      post resend_registration_confirmation_path(participants(:unconfirmed))
+    end
+
+    assert_redirected_to participant_path(participants(:unconfirmed))
+    assert_equal "We couldn't send a confirmation email. Please try again later.", flash[:alert]
+    assert_equal "previous-token", user.reload.confirmation_token
+  end
+
   test "resend_confirmation does not send an email for a confirmed account" do
     assert users(:one).confirmed?, "fixture user should be confirmed"
 
@@ -961,6 +995,17 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   private
+
+  def with_failing_confirmation_delivery
+    mailer = Devise.mailer
+    original_confirmation_instructions = mailer.method(:confirmation_instructions)
+    mailer.define_singleton_method(:confirmation_instructions) do |*|
+      Object.new.tap { |message| message.define_singleton_method(:deliver_now) { raise "delivery failed" } }
+    end
+    yield
+  ensure
+    mailer.define_singleton_method(:confirmation_instructions, original_confirmation_instructions)
+  end
 
   def duplicate_pin_participant_params(email:, egd_pin:)
     {

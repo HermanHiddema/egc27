@@ -64,8 +64,15 @@ class ParticipantsController < ApplicationController
     if register_for_current_user?(@participant)
       redirect_to registration_next_step_path(@participant), notice: "Registration confirmed."
     else
-      @participant.user.send_confirmation_instructions
-      redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
+      begin
+        @participant.user.send_confirmation_instructions
+        notice = "Registration received. You will receive a confirmation email shortly."
+      rescue StandardError => error
+        Rails.logger.error("Failed to deliver participant confirmation instructions: #{error.class}")
+        notice = "Registration received, but we couldn't send a confirmation email. Please use the resend form on your registration page."
+      end
+
+      redirect_to participant_path(@participant), notice: notice
     end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity

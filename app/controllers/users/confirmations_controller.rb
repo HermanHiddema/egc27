@@ -23,8 +23,17 @@ module Users
     end
 
     def resend_registration
-      @participant.user.resend_confirmation_instructions unless @participant.user.confirmed?
-      redirect_to participant_path(@participant), notice: "If your registration still needs confirming, we've sent a new confirmation email."
+      begin
+        @participant.user.transaction do
+          @participant.user.resend_confirmation_instructions unless @participant.user.confirmed?
+        end
+        flash[:notice] = "If your registration still needs confirming, we've sent a new confirmation email."
+      rescue StandardError => error
+        Rails.logger.error("Failed to resend participant confirmation instructions: #{error.class}")
+        flash[:alert] = "We couldn't send a confirmation email. Please try again later."
+      end
+
+      redirect_to participant_path(@participant)
     end
 
     private
