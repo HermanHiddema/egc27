@@ -71,9 +71,10 @@ When the user expresses a new coding/UI/process preference in chat:
 - Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
 - On mobile, keep search as a top-level item in the menu bar, place the hamburger icon on the left, and make only the left half of the bar toggle the navigation panel.
 - Cloudflare Turnstile is required on all publicly available submission forms, including Devise auth forms (login, forgot password, resend confirmation). Every public form must ALSO have Rack::Attack backend throttling (by IP, and by email where applicable). The two protections are complementary, not alternatives.
-- For confirmation-email resends tied to a known record (e.g. a participant), resend via a backend route keyed by the record UUID rather than asking for or rendering the email address; never expose a user's email in a publicly accessible page.
+- For confirmation-email resends tied to a known record (e.g. a participant), use a backend route keyed by the record UUID rather than asking for or rendering the email address. Confirmation-link error forms may display the account email.
 - Keep TinyMCE HTML sanitization liberal for stylistic formatting (colors, alignment, and border styling), while still blocking script/event-handler XSS vectors.
 - When a signed-in (confirmed) user registers another participant, the email is pre-filled/locked to their own address; validate it matches, then confirm the participant immediately without sending a confirmation email and route straight to the next step (payment for players, participant page for visitors).
+- When migrating participant confirmation to users, treat confirmation on either record as confirmed for both instead of blocking on mismatched statuses.
 - In the participant Contact Information card, show the guest email explanation and existing-account warning full width below the field row.
 - On phones, make the tournament schedule selectable by day and show a readable selected-day agenda; keep weekly calendar columns horizontally navigable.
 - On mobile, only the blue menu/search bar stays sticky; keep the red brand header compact, with smaller buttons and logo in portrait.

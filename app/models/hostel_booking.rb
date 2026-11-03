@@ -54,7 +54,7 @@ class HostelBooking < ApplicationRecord
   validates :arrival_date, comparison: { greater_than_or_equal_to: HostelPricing::FIRST_ARRIVAL_DATE,
                                          message: "can not be before 24 July 2027" }, allow_nil: true
   validates :departure_date, comparison: { less_than_or_equal_to: HostelPricing::LAST_DEPARTURE_DATE,
-                                           message: "can not be after 7 August 2027" }, allow_nil: true
+                                           message: "can not be after 8 August 2027" }, allow_nil: true
   validates :departure_date, comparison: { greater_than: :arrival_date, message: "must be after the arrival date" },
             if: -> { arrival_date.present? && departure_date.present? }
   validates(*ROOM_TYPES, :breakfasts, numericality: { only_integer: true, greater_than_or_equal_to: 0, less_than_or_equal_to: 99 })

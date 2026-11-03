@@ -29,6 +29,10 @@ Rails.application.routes.draw do
     post "users/magic_link",      to: "users/magic_links#create",  as: :user_magic_link_session
   end
 
+  devise_scope :user do
+    post "/participants/:participant_id/resend_confirmation", to: "users/confirmations#resend_registration", as: :resend_registration_confirmation
+  end
+
   # Allow newly confirmed registration users to skip setting a password and go
   # straight to their registrations, relying on magic-link sign-in in future.
   devise_scope :user do
@@ -163,8 +167,6 @@ Rails.application.routes.draw do
       get :mine
     end
     member do
-      get :confirm
-      post :resend_confirmation
     end
     resource :payment, only: [:new, :create], controller: "payments"
   end

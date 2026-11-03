@@ -7,7 +7,7 @@ class Admin::ParticipantsController < ApplicationController
   before_action :set_participant, only: [:edit, :update, :destroy]
 
   def index
-    participants = Participant.includes(:payments)
+    participants = Participant.includes(:payments, :user)
 
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
@@ -121,9 +121,9 @@ class Admin::ParticipantsController < ApplicationController
     when "refunded"
       participants.where(id: refunded_ids).where.not(id: charged_back_ids)
     when "confirmed"
-      participants.where.not(confirmed_at: nil).where.not(id: paid_ids).where.not(id: reversed_ids)
+      participants.confirmed.where.not(id: paid_ids).where.not(id: reversed_ids)
     when "pending"
-      participants.where(confirmed_at: nil).where.not(id: paid_ids).where.not(id: reversed_ids)
+      participants.joins(:user).where(users: { confirmed_at: nil }).where.not(id: paid_ids).where.not(id: reversed_ids)
     else
       participants
     end
@@ -170,7 +170,7 @@ class Admin::ParticipantsController < ApplicationController
       "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
       "WHEN participants.id IN (#{charged_back_subquery}) THEN 4 " \
       "WHEN participants.id IN (#{refunded_subquery}) THEN 3 " \
-      "WHEN participants.confirmed_at IS NOT NULL THEN 1 " \
+      "WHEN participants.user_id IN (SELECT id FROM users WHERE confirmed_at IS NOT NULL) THEN 1 " \
       "ELSE 0 END #{dir}"
     )
     participants.order(status_order, table[:last_name].asc, table[:first_name].asc, table[:id].asc)

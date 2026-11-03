@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_30_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -225,8 +225,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_120000) do
     t.boolean "accepted_terms_and_conditions", default: false, null: false
     t.string "age_group", null: false
     t.string "club", null: false
-    t.string "confirmation_token"
-    t.datetime "confirmed_at"
     t.string "country", null: false
     t.datetime "created_at", null: false
     t.string "egd_pin"
@@ -245,8 +243,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_30_120000) do
     t.bigint "user_id", null: false
     t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
     t.boolean "weekend", default: true, null: false
-    t.index ["confirmation_token"], name: "index_participants_on_confirmation_token", unique: true
-    t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
     t.index ["egd_pin"], name: "index_participants_on_egd_pin", unique: true
     t.index ["email"], name: "index_participants_on_email"

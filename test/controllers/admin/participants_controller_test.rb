@@ -412,6 +412,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can delete the last participant of a user together with the user" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
     participants(:four).destroy!
     user_id = users(:dave).id
@@ -440,8 +441,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       accepted_terms_and_conditions: true,
       accepted_privacy_policy: true,
       image_use_consent: false,
-      participant_type: "player",
-      confirmed_at: Time.current
+      participant_type: "player"
     )
 
     assert_difference "Participant.count", -1 do
@@ -454,6 +454,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the user is kept when the delete user box is unchecked" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
     participants(:four).destroy!
 
@@ -465,6 +466,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the user is kept when other participants remain" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
 
     assert_no_difference "User.count" do
@@ -475,6 +477,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "the user is kept when they still have authored site content" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
     participants(:four).destroy!
     Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
@@ -489,6 +492,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin edit page hides the user-delete option for a user with authored site content" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
     participants(:four).destroy!
     Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
@@ -501,6 +505,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin edit page offers deletion with a warning for the last participant of a user" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
     participants(:four).destroy!
 
@@ -526,8 +531,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       accepted_terms_and_conditions: true,
       accepted_privacy_policy: true,
       image_use_consent: false,
-      participant_type: "player",
-      confirmed_at: Time.current
+      participant_type: "player"
     )
 
     get edit_admin_participant_path(participant)

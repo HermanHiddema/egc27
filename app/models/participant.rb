@@ -7,8 +7,6 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
-#  confirmation_token            :string
-#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
@@ -30,17 +28,15 @@
 #
 # Indexes
 #
-#  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
-#  index_participants_on_confirmed_at        (confirmed_at)
-#  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin) UNIQUE
-#  index_participants_on_email               (email)
-#  index_participants_on_gender              (gender)
-#  index_participants_on_participant_type    (participant_type)
-#  index_participants_on_phone               (phone)
-#  index_participants_on_rating              (rating)
-#  index_participants_on_user_id             (user_id)
-#  index_participants_on_uuid                (uuid) UNIQUE
+#  index_participants_on_created_at        (created_at)
+#  index_participants_on_egd_pin           (egd_pin) UNIQUE
+#  index_participants_on_email             (email)
+#  index_participants_on_gender            (gender)
+#  index_participants_on_participant_type  (participant_type)
+#  index_participants_on_phone             (phone)
+#  index_participants_on_rating            (rating)
+#  index_participants_on_user_id           (user_id)
+#  index_participants_on_uuid              (uuid) UNIQUE
 #
 # Foreign Keys
 #
@@ -79,6 +75,8 @@ class Participant < ApplicationRecord
   # Participants whose payment was refunded or charged back are no longer
   # attending, so they are left out of the public participant list. A later
   # successful payment reinstates them.
+  scope :confirmed, -> { joins(:user).where.not(users: { confirmed_at: nil }) }
+
   scope :not_refunded, -> {
     where.not(
       id: Payment.reversed.where.not(participant_id: nil).where.not(
@@ -138,7 +136,7 @@ class Participant < ApplicationRecord
   end
 
   def confirmed?
-    confirmed_at.present?
+    user&.confirmed? || false
   end
 
   def player?
@@ -256,23 +254,6 @@ class Participant < ApplicationRecord
 
   def visitor?
     participant_type == "visitor"
-  end
-
-  def generate_confirmation_token!
-    self.class.transaction(requires_new: true) do
-      timestamp = Time.current
-      update_columns(
-        confirmation_token: SecureRandom.urlsafe_base64(32),
-        updated_at: timestamp
-      )
-    end
-  rescue ActiveRecord::RecordNotUnique
-    retry
-  end
-
-  def confirm!
-    timestamp = Time.current
-    update_columns(confirmed_at: timestamp, confirmation_token: nil, updated_at: timestamp)
   end
 
   def rank_grade

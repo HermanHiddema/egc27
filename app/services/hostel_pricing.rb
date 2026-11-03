@@ -1,6 +1,6 @@
 class HostelPricing
   FIRST_ARRIVAL_DATE = Date.new(2027, 7, 24)
-  LAST_DEPARTURE_DATE = Date.new(2027, 8, 7)
+  LAST_DEPARTURE_DATE = Date.new(2027, 8, 8)
 
   PRICE_TIERS = [
     { name: :early,   until: Date.new(2027, 1, 31) },
