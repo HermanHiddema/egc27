@@ -56,6 +56,7 @@ When the user expresses a new coding/UI/process preference in chat:
 4. If a new preference conflicts with an existing one, replace the old rule and note the new default.
 
 ## Current User Preferences Captured
+- Show clear unknown-email feedback on the forgot-password form; account enumeration is accepted for this flow.
 - Keep participant date UX aligned with European day-before-month expectations.
 - Keep portrait payment price tables compact enough for Euro amounts; show only the pass type in the participant payment summary, right-aligned.
 - In mobile payment price tables, place each price-period “i” on its own right-aligned second header line.
