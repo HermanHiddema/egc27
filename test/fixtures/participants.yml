@@ -7,8 +7,6 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
-#  confirmation_token            :string
-#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
@@ -30,17 +28,15 @@
 #
 # Indexes
 #
-#  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
-#  index_participants_on_confirmed_at        (confirmed_at)
-#  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin) UNIQUE
-#  index_participants_on_email               (email)
-#  index_participants_on_gender              (gender)
-#  index_participants_on_participant_type    (participant_type)
-#  index_participants_on_phone               (phone)
-#  index_participants_on_rating              (rating)
-#  index_participants_on_user_id             (user_id)
-#  index_participants_on_uuid                (uuid) UNIQUE
+#  index_participants_on_created_at        (created_at)
+#  index_participants_on_egd_pin           (egd_pin) UNIQUE
+#  index_participants_on_email             (email)
+#  index_participants_on_gender            (gender)
+#  index_participants_on_participant_type  (participant_type)
+#  index_participants_on_phone             (phone)
+#  index_participants_on_rating            (rating)
+#  index_participants_on_user_id           (user_id)
+#  index_participants_on_uuid              (uuid) UNIQUE
 #
 # Foreign Keys
 #
@@ -61,7 +57,6 @@ one:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
-  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -82,7 +77,6 @@ two:
   first_week: false
   weekend: true
   second_week: false
-  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -99,7 +93,6 @@ three:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
-  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -107,7 +100,7 @@ unconfirmed:
   first_name: Dave
   last_name: Pending
   email: dave@example.org
-  user: dave
+  user: pending
   age_group: 18-49
   gender: male
   country: BE
@@ -117,7 +110,6 @@ unconfirmed:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
-  confirmation_token: "test_token_abc123"
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -135,7 +127,6 @@ four:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: player
-  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
 
@@ -152,6 +143,5 @@ visitor_one:
   accepted_terms_and_conditions: true
   accepted_privacy_policy: true
   participant_type: visitor
-  confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>

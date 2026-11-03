@@ -11,6 +11,7 @@ Devise.setup do |config|
   config.stretches = Rails.env.test? ? 1 : 12
 
   config.reconfirmable = true
+  config.confirm_within = 2.weeks
 
   config.expire_all_remember_me_on_sign_out = true
 

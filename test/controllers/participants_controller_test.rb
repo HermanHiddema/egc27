@@ -401,8 +401,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
     participant = Participant.order(:created_at).last
     assert_equal users(:one), participant.user
-    assert_not_nil participant.confirmed_at, "signed-in registration should be confirmed immediately"
-    assert_nil participant.confirmation_token, "confirmation token should be cleared on immediate confirmation"
+    assert participant.confirmed?, "signed-in registration should be confirmed immediately"
     assert_redirected_to new_participant_payment_path(participant)
   end
 
@@ -425,7 +424,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
 
     participant = Participant.order(:created_at).last
-    assert_not_nil participant.confirmed_at
+    assert participant.confirmed?
     assert_redirected_to participant_path(participant)
   end
 
@@ -545,7 +544,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Registration Received", response.body
     assert_match "Registration received", response.body
     assert_match "Didn’t receive your email?", response.body
-    assert_select "form[action='#{resend_confirmation_participant_path(participant)}'][method='post']"
+    assert_select "form[action='#{resend_registration_confirmation_path(participant)}'][method='post']"
     assert_select "input[type='email']", false,
       "resend form must not ask for or expose any email address"
     assert_select "input[name='user[email]']", false,
@@ -557,7 +556,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal false, participant.first_week
     assert_equal true, participant.weekend
     assert_equal false, participant.second_week
-    assert_nil participant.confirmed_at, "new participant with unconfirmed user should not be confirmed yet"
+    assert_not participant.confirmed?
   end
 
   test "rejects a participant with a duplicate EGD pin" do
@@ -638,35 +637,6 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_nil NewsletterSubscription.find_by(email: "newsletter_signup@example.org")
   end
 
-  test "confirm action subscribes the participant's user to the newsletter" do
-    participant = participants(:unconfirmed)
-
-    assert_difference("NewsletterSubscription.count", 1) do
-      get confirm_participant_path(participant, token: participant.confirmation_token)
-    end
-
-    subscription = NewsletterSubscription.find_by(email: participant.user.email)
-    assert_not_nil subscription
-    assert subscription.subscribed
-  end
-
-  test "confirm action does not alter an existing newsletter subscription" do
-    participant = participants(:unconfirmed)
-    existing = NewsletterSubscription.create!(
-      first_name: "Existing",
-      last_name: "Person",
-      email: participant.user.email,
-      subscribed: false
-    )
-
-    assert_no_difference("NewsletterSubscription.count") do
-      get confirm_participant_path(participant, token: participant.confirmation_token)
-    end
-
-    existing.reload
-    assert_equal false, existing.subscribed
-  end
-
   test "creates a user account when registering a new participant" do
     assert_difference("User.count", 1) do
       assert_emails 1 do
@@ -714,8 +684,29 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     body = email.body.decoded
     assert_match "Jane Doe", body
     assert_match "Utrecht", body
-    confirmation_url = confirm_participant_url(participant, token: participant.reload.confirmation_token, host: "example.com")
+    confirmation_url = user_confirmation_url(confirmation_token: participant.user.confirmation_token, host: "example.com")
     assert_match confirmation_url, body
+  end
+
+  test "redirects after participant registration when confirmation email delivery fails" do
+    with_failing_confirmation_delivery do
+      post participants_path, params: {
+        participant: {
+          first_name: "Jane",
+          last_name: "Doe",
+          email: "delivery_failure@example.org",
+          participant_type: "player",
+          age_group: "18-49",
+          country: "NL",
+          gender: "female",
+          image_use_consent: false
+        }
+      }
+    end
+
+    participant = Participant.find_by!(email: "delivery_failure@example.org")
+    assert_redirected_to participant_path(participant)
+    assert_equal "Registration received, but we couldn't send a confirmation email. Please use the resend form on your registration page.", flash[:notice]
   end
 
   test "links participant to newly created user" do
@@ -805,7 +796,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     }
 
     participant = Participant.order(:id).last
-    assert_nil participant.confirmed_at
+    assert_not participant.confirmed?
   end
 
   test "refuses a guest registration with an existing unconfirmed account email" do
@@ -838,88 +829,6 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "confirm your email address", flash[:alert]
     assert_match "confirmation email was sent", flash[:alert]
     assert_match "check your spam folder", flash[:alert]
-  end
-
-  test "confirm action confirms participant with valid token" do
-    participant = participants(:unconfirmed)
-    assert_nil participant.confirmed_at
-
-    emails = nil
-    assert_emails 1 do
-      get confirm_participant_path(participant, token: participant.confirmation_token)
-      emails = ActionMailer::Base.deliveries
-    end
-
-    participant.reload
-    assert_not_nil participant.confirmed_at
-    assert_nil participant.confirmation_token
-    assert_redirected_to new_participant_payment_path(participant)
-    assert_equal "EGC 2027 – Your registration is confirmed", emails.last.subject
-  end
-
-  test "confirm action confirms the owning user when it was not confirmed yet" do
-    user = User.create!(email: "to_confirm@example.org", skip_password_validation: true)
-    assert_not user.confirmed?, "user should start unconfirmed"
-
-    participant = Participant.create!(
-      first_name: "Uncon",
-      last_name: "Firmed",
-      email: user.email,
-      country: "NL",
-      club: "Utrecht",
-      rank: 27,
-      age_group: "18-49",
-      participant_type: "player",
-      gender: "male",
-      image_use_consent: true,
-      attendance_option: "weekend_only",
-      user: user
-    )
-    participant.generate_confirmation_token!
-
-    get confirm_participant_path(participant, token: participant.confirmation_token)
-
-    user.reload
-    assert user.confirmed?, "owning user should be confirmed after participant confirmation"
-    assert_nil user.confirmation_token, "confirmation_token should be cleared after confirmation"
-    assert_nil user.confirmation_sent_at, "confirmation_sent_at should be cleared after confirmation"
-    assert participant.reload.confirmed?
-    assert_redirected_to new_participant_payment_path(participant)
-  end
-
-  test "confirm action signs the user in so they can proceed to payment" do
-    participant = participants(:unconfirmed)
-
-    get confirm_participant_path(participant, token: participant.confirmation_token)
-
-    # The owning user (dave) has multiple participants, so an authenticated
-    # request to the members-only page renders instead of redirecting to login.
-    get mine_participants_path
-    assert_response :success
-  end
-
-  test "confirm action rejects invalid token" do
-    participant = participants(:unconfirmed)
-
-    assert_emails 0 do
-      get confirm_participant_path(participant, token: "wrong_token")
-    end
-
-    participant.reload
-    assert_nil participant.confirmed_at
-    assert_redirected_to root_path
-  end
-
-  test "confirm action rejects missing token" do
-    participant = participants(:unconfirmed)
-
-    assert_emails 0 do
-      get confirm_participant_path(participant, token: "")
-    end
-
-    participant.reload
-    assert_nil participant.confirmed_at
-    assert_redirected_to root_path
   end
 
   test "returns json from egd search" do
@@ -1028,7 +937,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "alter_registration redirects unconfirmed users to the confirmation resend page" do
-    users(:dave).update_column(:confirmed_at, nil)
+    participants(:unconfirmed).user.update_column(:confirmed_at, nil)
 
     get alter_registration_participants_path, params: { egd_pin: participants(:unconfirmed).egd_pin }
 
@@ -1043,36 +952,60 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "resend_confirmation resends the confirmation email for an unconfirmed account" do
-    users(:dave).update_column(:confirmed_at, nil)
+    participants(:unconfirmed).user.update_column(:confirmed_at, nil)
 
     assert_emails 1 do
-      post resend_confirmation_participant_path(participants(:unconfirmed))
+      post resend_registration_confirmation_path(participants(:unconfirmed))
     end
 
     assert_redirected_to participant_path(participants(:unconfirmed))
     assert_equal "If your registration still needs confirming, we've sent a new confirmation email.", flash[:notice]
   end
 
+  test "resend_confirmation redirects and preserves the previous token when delivery fails" do
+    user = participants(:unconfirmed).user
+    user.update_columns(confirmed_at: nil, confirmation_token: "previous-token")
+
+    with_failing_confirmation_delivery do
+      post resend_registration_confirmation_path(participants(:unconfirmed))
+    end
+
+    assert_redirected_to participant_path(participants(:unconfirmed))
+    assert_equal "We couldn't send a confirmation email. Please try again later.", flash[:alert]
+    assert_equal "previous-token", user.reload.confirmation_token
+  end
+
   test "resend_confirmation does not send an email for a confirmed account" do
     assert users(:one).confirmed?, "fixture user should be confirmed"
 
     assert_emails 0 do
-      post resend_confirmation_participant_path(participants(:one))
+      post resend_registration_confirmation_path(participants(:one))
     end
 
     assert_redirected_to participant_path(participants(:one))
   end
 
   test "resend_confirmation never exposes the participant email address" do
-    users(:dave).update_column(:confirmed_at, nil)
+    participants(:unconfirmed).user.update_column(:confirmed_at, nil)
 
-    post resend_confirmation_participant_path(participants(:unconfirmed))
+    post resend_registration_confirmation_path(participants(:unconfirmed))
     follow_redirect!
 
     assert_no_match participants(:unconfirmed).email, response.body
   end
 
   private
+
+  def with_failing_confirmation_delivery
+    mailer = Devise.mailer
+    original_confirmation_instructions = mailer.method(:confirmation_instructions)
+    mailer.define_singleton_method(:confirmation_instructions) do |*|
+      Object.new.tap { |message| message.define_singleton_method(:deliver_now) { raise "delivery failed" } }
+    end
+    yield
+  ensure
+    mailer.define_singleton_method(:confirmation_instructions, original_confirmation_instructions)
+  end
 
   def duplicate_pin_participant_params(email:, egd_pin:)
     {

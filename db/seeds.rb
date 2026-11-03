@@ -216,7 +216,7 @@ if seed_updates_allowed
         password_confirmation: "testpassword123",
         full_name: "#{participant_seed[:first_name]} #{participant_seed[:last_name]}",
         role: "regular",
-        confirmed_at: Time.current
+        confirmed_at: Time.current,
       )
       participant_user.save!
     end
@@ -226,7 +226,6 @@ if seed_updates_allowed
     participant.assign_attributes(
       participant_attributes.merge(
         user: participant_user,
-        confirmed_at: Time.current,
         image_use_consent: false
       )
     )

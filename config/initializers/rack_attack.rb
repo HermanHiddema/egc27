@@ -92,7 +92,14 @@ class Rack::Attack
 
   # Confirmation email resend: limit by IP address (5 per minute)
   throttle("confirmation/ip", limit: 5, period: 1.minute) do |req|
-    req.ip if req.path.match?(CONFIRMATION_PATH) && req.post?
+    req.ip if (req.path.match?(CONFIRMATION_PATH) || req.path.match?(RESEND_CONFIRMATION_PATH)) && req.post?
+  end
+
+  throttle("confirmation/email", limit: 3, period: 5.minutes) do |req|
+    if req.path.match?(CONFIRMATION_PATH) && req.post?
+      email = req.params.dig("user", "email").to_s.strip.downcase
+      OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, email) unless email.empty?
+    end
   end
 
   # Sign in attempts: limit by IP address (10 per minute)
