@@ -74,6 +74,9 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Keep db/schema.rb columns sorted alphabetically [https://github.com/denkungsart/alphabetical_schema]
+  gem "alphabetical_schema"
 end
 
 group :development do
