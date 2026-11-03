@@ -57,7 +57,7 @@
           <h2 class="text-lg font-semibold text-neutral-900">Breakfast buffet</h2>
           <div class="flex items-center justify-between gap-4">
             <%= form.label :breakfasts, class: "text-sm text-neutral-900" do %>
-              <span class="font-medium">People for breakfast</span>
+              <span class="font-medium">How many people for breakfast?</span>
               <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
               <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
             <% end %>
@@ -94,11 +94,11 @@
           </div>
           <% if (valid_until = @pricing.current_tier_valid_until) %>
             <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
-              These prices are valid until <strong><%= eu_date(valid_until, month: :short) %></strong>. After that, the prices will go up.
+              These prices are valid until <strong><%= eu_date(valid_until, month: :short) %></strong>. After that, the prices will go up. Price table below.
             </p>
           <% end %>
           <%= form.submit "Book with commitment to pay", class: "w-full btn-primary text-center block py-3" %>
-          <p class="text-xs text-neutral-500 mt-3 text-center">Hostel bookings are non-refundable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.</p>
+          <p class="text-xs text-neutral-500 mt-3 text-center">Hostel bookings are non-refundable, but are transferable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.</p>
           <p class="text-xs text-neutral-500 mt-3 text-center">On the next page, you will be given the opportunity to pay online via Mollie, with support for iDEAL, credit card, Paypal, Bancontact, and more.</p>
         </div>
       </div>
