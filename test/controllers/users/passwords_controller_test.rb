@@ -35,7 +35,7 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_response :unprocessable_entity
-    assert_select "#error_explanation", text: /Unknown email address/
+    assert_select "#error_explanation h2", text: "Unknown email address"
   end
 
   test "shows the account on the reset form and after a validation error" do
