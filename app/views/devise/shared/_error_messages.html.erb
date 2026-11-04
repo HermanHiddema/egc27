@@ -1,13 +1,18 @@
 <% if resource.errors.any? %>
+  <% unknown_email = resource.errors.of_kind?(:base, "Unknown email address.") %>
   <div id="error_explanation" class="rounded-lg bg-red-50 border border-red-200 p-4" data-turbo-temporary>
     <h2 class="text-sm font-semibold text-red-800">
-      <%= I18n.t("errors.messages.not_saved",
-                 count: resource.errors.count,
-                 resource: resource.class.model_name.human.downcase)
-       %>
+      <% if unknown_email %>
+        Unknown email address
+      <% else %>
+        <%= I18n.t("errors.messages.not_saved",
+                   count: resource.errors.count,
+                   resource: resource.class.model_name.human.downcase)
+         %>
+      <% end %>
     </h2>
     <ul class="mt-2 list-disc list-inside space-y-1 text-sm text-red-700">
-      <% resource.errors.full_messages.each do |message| %>
+      <% resource.errors.full_messages.reject { |message| unknown_email && message == "Unknown email address." }.each do |message| %>
         <li><%= message %></li>
       <% end %>
     </ul>
