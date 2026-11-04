@@ -562,6 +562,8 @@ puts "✓ Seeded user menu with #{user_menu.menu_items.count} menu items"
 
 calendar_event_seeds = [
   # Saturday 24th July
+  { title: "Jonas Welticke", starts_at: Time.zone.parse("2027-07-24 12:30"), ends_at: Time.zone.parse("2027-07-24 16:00"), color: "#6fa8dc" },
+  { title: "BBQ", starts_at: Time.zone.parse("2027-07-24 19:00"), ends_at: Time.zone.parse("2027-07-24 21:00"), color: "#6fa8dc" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-24 10:00"), ends_at: Time.zone.parse("2027-07-24 17:00"), color: "#b7b7b7" },
   { title: "Opening Ceremony", starts_at: Time.zone.parse("2027-07-24 17:00"), ends_at: Time.zone.parse("2027-07-24 18:30"), color: "#ffd966" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-24 18:30"), ends_at: Time.zone.parse("2027-07-24 22:00"), color: "#b7b7b7" },
@@ -574,9 +576,10 @@ calendar_event_seeds = [
   { title: "Rapid R1", starts_at: Time.zone.parse("2027-07-25 16:00"), ends_at: Time.zone.parse("2027-07-25 17:30"), color: "#00ffff" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-07-25 16:00"), ends_at: Time.zone.parse("2027-07-25 17:00"), color: "#fff2cc" },
   { title: "VIP Dinner", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 22:00"), color: "#ffd966" },
-  { title: "Blitz", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 21:30"), color: "#f4cccc" },
+  { title: "GoDan Blitz All", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 21:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 20:00"), color: "#b6d7a8" },
   # Monday 26th July
+  { title: "(Beer go)", starts_at: Time.zone.parse("2027-07-26 19:30"), ends_at: Time.zone.parse("2027-07-26 20:00"), color: "#6fa8dc" },
   { title: "Main Open R2", starts_at: Time.zone.parse("2027-07-26 10:00"), ends_at: Time.zone.parse("2027-07-26 14:30"), color: "#c9daf8" },
   { title: "European Championship R2", starts_at: Time.zone.parse("2027-07-26 10:00"), ends_at: Time.zone.parse("2027-07-26 16:00"), color: "#d5a6bd" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-07-26 12:00"), ends_at: Time.zone.parse("2027-07-26 17:30"), color: "#b6d7a8" },
@@ -585,7 +588,7 @@ calendar_event_seeds = [
   { title: "Lecture", starts_at: Time.zone.parse("2027-07-26 15:00"), ends_at: Time.zone.parse("2027-07-26 16:00"), color: "#fff2cc" },
   { title: "Rapid R2", starts_at: Time.zone.parse("2027-07-26 16:00"), ends_at: Time.zone.parse("2027-07-26 17:30"), color: "#00ffff" },
   { title: "EGF Annual General Meeting", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 23:00"), color: "#ffd966" },
-  { title: "Blitz Finals", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 21:30"), color: "#f4cccc" },
+  { title: "GoDan Blitz Finals", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 21:30"), color: "#f4cccc" },
   { title: "Senior Tmt R1", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 19:30"), color: "#f4cccc" },
   { title: "Youth tmt R1", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 19:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 20:00"), color: "#b6d7a8" },
@@ -632,6 +635,7 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-30 18:00"), ends_at: Time.zone.parse("2027-07-30 20:00"), color: "#b6d7a8" },
   { title: "Nations Cup R4", starts_at: Time.zone.parse("2027-07-30 20:30"), ends_at: Time.zone.parse("2027-07-30 22:00"), color: "#f4cccc" },
   # Saturday 31st July
+  { title: "Dutch dinner", starts_at: Time.zone.parse("2027-07-31 17:00"), ends_at: Time.zone.parse("2027-07-31 19:00"), color: "#6fa8dc" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-31 09:00"), ends_at: Time.zone.parse("2027-07-31 10:00"), color: "#b7b7b7" },
   { title: "European Championship Semi Finals", starts_at: Time.zone.parse("2027-07-31 10:00"), ends_at: Time.zone.parse("2027-07-31 16:00"), color: "#d5a6bd" },
   { title: "Magic The Gathering Tmt", starts_at: Time.zone.parse("2027-07-31 10:00"), ends_at: Time.zone.parse("2027-07-31 17:00"), color: "#6fa8dc" },
@@ -639,16 +643,16 @@ calendar_event_seeds = [
   { title: "Weekend Tmt R2", starts_at: Time.zone.parse("2027-07-31 14:30"), ends_at: Time.zone.parse("2027-07-31 17:30"), color: "#c9daf8" },
   { title: "Weekend Tmt R3", starts_at: Time.zone.parse("2027-07-31 19:00"), ends_at: Time.zone.parse("2027-07-31 22:00"), color: "#c9daf8" },
   # Sunday 1st August
-  { title: "Group Photo", starts_at: Time.zone.parse("2027-08-01 09:30"), ends_at: Time.zone.parse("2027-08-01 10:00"), color: "#ffd966" },
+  { title: "Photo", starts_at: Time.zone.parse("2027-08-01 13:30"), ends_at: Time.zone.parse("2027-08-01 14:00"), color: "#ffd966" },
   { title: "European Championship Finals", starts_at: Time.zone.parse("2027-08-01 10:00"), ends_at: Time.zone.parse("2027-08-01 16:00"), color: "#d5a6bd" },
   { title: "Weekend Tmt R4", starts_at: Time.zone.parse("2027-08-01 10:00"), ends_at: Time.zone.parse("2027-08-01 13:00"), color: "#c9daf8" },
   { title: "Weekend Tmt R5", starts_at: Time.zone.parse("2027-08-01 14:00"), ends_at: Time.zone.parse("2027-08-01 17:00"), color: "#c9daf8" },
   { title: "Reunion of Dutch Go Players", starts_at: Time.zone.parse("2027-08-01 16:00"), ends_at: Time.zone.parse("2027-08-01 22:30"), color: "#6fa8dc" },
   { title: "Registration 2nd week", starts_at: Time.zone.parse("2027-08-01 18:00"), ends_at: Time.zone.parse("2027-08-01 22:00"), color: "#b7b7b7" },
   { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-01 18:00"), ends_at: Time.zone.parse("2027-08-01 19:00"), color: "#ffd966" },
-  { title: "SC-CQ Arrival", starts_at: Time.zone.parse("2027-08-01 19:30"), ends_at: Time.zone.parse("2027-08-01 21:30"), color: "#00ff00" },
   # Monday 2nd August
-  { title: "SC-CQ Sightseeing", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#00ff00" },
+  { title: "Registration", starts_at: Time.zone.parse("2027-08-02 09:00"), ends_at: Time.zone.parse("2027-08-02 09:30"), color: "#b7b7b7" },
+  { title: "Opening. SC Round 1-3", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#00ff00" },
   { title: "Main Open R6", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 14:30"), color: "#c9daf8" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-02 12:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-02 13:30"), ends_at: Time.zone.parse("2027-08-02 14:30"), color: "#fff2cc" },
@@ -658,12 +662,13 @@ calendar_event_seeds = [
   { title: "Panda Team R1", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 21:00"), color: "#ff00ff" },
   { title: "Women tmt R1", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 19:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 20:00"), color: "#b6d7a8" },
-  { title: "European 13x13 Championship", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
-  { title: "SC-CQ Welcome Party", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 21:30"), color: "#00ff00" },
+  { title: "GoDan 13x13 EC", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
+  { title: "SC Welcome Party", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 20:00"), color: "#00ff00" },
   { title: "Women tmt R2", starts_at: Time.zone.parse("2027-08-02 20:30"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
   # Tuesday 3rd August
+  { title: "Beer tasting", starts_at: Time.zone.parse("2027-08-03 20:00"), ends_at: Time.zone.parse("2027-08-03 22:00"), color: "#6fa8dc" },
   { title: "Main Open R7", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 14:30"), color: "#c9daf8" },
-  { title: "Students R1-3 / ChangQi R1", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 21:30"), color: "#00ff00" },
+  { title: "SC Round 4-6", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 21:30"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-03 12:00"), ends_at: Time.zone.parse("2027-08-03 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-03 13:30"), ends_at: Time.zone.parse("2027-08-03 14:30"), color: "#fff2cc" },
   { title: "Fun go*", starts_at: Time.zone.parse("2027-08-03 15:00"), ends_at: Time.zone.parse("2027-08-03 17:30"), color: "#e06666" },
@@ -675,27 +680,26 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-03 18:00"), ends_at: Time.zone.parse("2027-08-03 20:00"), color: "#b6d7a8" },
   { title: "Women tmt R4", starts_at: Time.zone.parse("2027-08-03 20:30"), ends_at: Time.zone.parse("2027-08-03 22:00"), color: "#f4cccc" },
   # Wednesday 4th August
+  { title: "Karaoke night", starts_at: Time.zone.parse("2027-08-04 21:00"), ends_at: Time.zone.parse("2027-08-04 23:00"), color: "#6fa8dc" },
   { title: "Excursions", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 20:00"), color: "#6fa8dc" },
-  { title: "Go Conferences", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 17:00"), color: "#ffd966" },
-  { title: "Students R4-6 / ChangQi R2", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 21:30"), color: "#00ff00" },
+  { title: "SC Finals, Lectures, Simultaneous", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 21:30"), color: "#00ff00" },
   { title: "Panda Team R3", starts_at: Time.zone.parse("2027-08-04 18:00"), ends_at: Time.zone.parse("2027-08-04 21:00"), color: "#ff00ff" },
   { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-04 21:00"), ends_at: Time.zone.parse("2027-08-04 22:00"), color: "#ffd966" },
   # Thursday 5th August
   { title: "Main Open R8", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 14:30"), color: "#c9daf8" },
-  { title: "Students Final / SC-CQ Simultaneous", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 21:30"), color: "#00ff00" },
+  { title: "SC Excursion to Amsterdam", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 21:30"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-05 12:00"), ends_at: Time.zone.parse("2027-08-05 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-05 13:30"), ends_at: Time.zone.parse("2027-08-05 14:30"), color: "#fff2cc" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 16:00"), color: "#fff2cc" },
-  { title: "Fun go*", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 17:30"), color: "#e06666" },
+  { title: "Fun go*", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#e06666" },
   { title: "Rapid R8", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 16:30"), color: "#00ffff" },
   { title: "Pair go R1", starts_at: Time.zone.parse("2027-08-05 16:30"), ends_at: Time.zone.parse("2027-08-05 18:00"), color: "#f4cccc" },
-  { title: "Tsume go tmt", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 20:00"), color: "#b6d7a8" },
   { title: "Pair go R2", starts_at: Time.zone.parse("2027-08-05 18:30"), ends_at: Time.zone.parse("2027-08-05 20:00"), color: "#f4cccc" },
   { title: "Pair go R3", starts_at: Time.zone.parse("2027-08-05 20:30"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#f4cccc" },
   # Friday 6th August
   { title: "Main Open R9", starts_at: Time.zone.parse("2027-08-06 10:00"), ends_at: Time.zone.parse("2027-08-06 14:30"), color: "#c9daf8" },
-  { title: "ChangQi Finals / SC-CQ Farewell dinner", starts_at: Time.zone.parse("2027-08-06 10:00"), ends_at: Time.zone.parse("2027-08-06 21:30"), color: "#00ff00" },
+  { title: "SC Farewell dinner", starts_at: Time.zone.parse("2027-08-06 18:00"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-06 12:00"), ends_at: Time.zone.parse("2027-08-06 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-06 13:30"), ends_at: Time.zone.parse("2027-08-06 14:30"), color: "#fff2cc" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-06 15:00"), ends_at: Time.zone.parse("2027-08-06 16:00"), color: "#fff2cc" },
@@ -705,10 +709,11 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-06 18:00"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#b6d7a8" },
   { title: "Pair go Semifinal", starts_at: Time.zone.parse("2027-08-06 18:30"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#f4cccc" },
   { title: "Pair go Final", starts_at: Time.zone.parse("2027-08-06 20:30"), ends_at: Time.zone.parse("2027-08-06 22:00"), color: "#f4cccc" },
-  { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-06 22:00"), ends_at: Time.zone.parse("2027-08-06 23:00"), color: "#ffd966" },
   # Saturday 7th August
+  { title: "Lecture", starts_at: Time.zone.parse("2027-08-07 13:30"), ends_at: Time.zone.parse("2027-08-07 14:30"), color: "#fff2cc" },
+  { title: "Lecture", starts_at: Time.zone.parse("2027-08-07 15:00"), ends_at: Time.zone.parse("2027-08-07 16:00"), color: "#fff2cc" },
   { title: "Main Open R10", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 14:30"), color: "#c9daf8" },
-  { title: "SC-CQ Departure", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 13:00"), color: "#00ff00" },
+  { title: "SC Departure", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 13:00"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-07 12:00"), ends_at: Time.zone.parse("2027-08-07 15:30"), color: "#b6d7a8" },
   { title: "Closing with Prizegiving", starts_at: Time.zone.parse("2027-08-07 16:00"), ends_at: Time.zone.parse("2027-08-07 18:00"), color: "#ffd966" }
 ]
@@ -732,7 +737,7 @@ event_group_seeds = [
   { key: "fun_go", name: "Fun Go", color: "#e06666" },
   { key: "excursions", name: "Excursions", color: "#6fa8dc" },
   { key: "entertainment", name: "Entertainment", color: "#6fa8dc" },
-  { key: "student_changqi", name: "Student and ChangQi", color: "#00ff00" },
+  { key: "student_changqi", name: "Student Cup", color: "#00ff00" },
   { key: "other", name: "Other", color: CalendarEvent::DEFAULT_COLOR }
 ]
 
@@ -769,9 +774,9 @@ event_group_key_for = lambda do |title, color|
     "rapid"
   when /\Aregistration\b/
     "registration"
-  when /\Aopening ceremony\b|\Avip dinner\b|\Aegf annual general meeting\b|\Aprizegiving\b|\Aclosing with prizegiving\b|\Agroup photo\b/
+  when /\Aopening ceremony\b|\Avip dinner\b|\Aegf annual general meeting\b|\Aprizegiving\b|\Aclosing with prizegiving\b|\Aphoto\b/
     "ceremony"
-  when /professional|simultaneous games|game reviews/
+  when /professional|\Asimultaneous games|game reviews/
     "professional"
   when /\Alecture\b/
     "lectures"
@@ -779,7 +784,7 @@ event_group_key_for = lambda do |title, color|
     "panda_team"
   when /\Afun go\*/
     "fun_go"
-  when /students|changqi|sc-cq/
+  when /students|changqi|sc-cq|\Asc\b|\Aopening\. sc\b/
     "student_changqi"
   when /\Aexcursions\b/
     "excursions"
