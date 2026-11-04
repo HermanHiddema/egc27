@@ -243,8 +243,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_01_120000) do
     t.bigint "user_id", null: false
     t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
     t.boolean "weekend", default: true, null: false
-    t.datetime "confirmed_at"
-    t.index ["confirmed_at"], name: "index_participants_on_confirmed_at"
     t.index ["created_at"], name: "index_participants_on_created_at"
     t.index ["egd_pin"], name: "index_participants_on_egd_pin", unique: true
     t.index ["email"], name: "index_participants_on_email"
