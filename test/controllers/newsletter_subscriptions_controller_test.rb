@@ -89,12 +89,16 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     subscription = newsletter_subscriptions(:inactive)
     original_token = subscription.unsubscribe_token
 
-    assert_no_difference("NewsletterSubscription.count") do
-      post newsletter_subscriptions_path, params: {
-        newsletter_subscription: {
-          email: "Bob@example.com"
+    assert_enqueued_email_with NewsletterMailer, :welcome, args: ->(args) {
+      args.first.email == "bob@example.com"
+    } do
+      assert_no_difference("NewsletterSubscription.count") do
+        post newsletter_subscriptions_path, params: {
+          newsletter_subscription: {
+            email: "Bob@example.com"
+          }
         }
-      }
+      end
     end
 
     assert_redirected_to newsletter_signup_path
@@ -103,6 +107,21 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal true, subscription.subscribed
     assert_nil subscription.unsubscribed_at
     assert_not_equal original_token, subscription.unsubscribe_token
+  end
+
+  test "does not send another welcome email for an active subscription" do
+    subscription = newsletter_subscriptions(:active)
+
+    assert_no_enqueued_emails do
+      post newsletter_subscriptions_path, params: {
+        newsletter_subscription: {
+          email: subscription.email
+        }
+      }
+    end
+
+    assert_redirected_to newsletter_signup_path
+    assert subscription.reload.subscribed?
   end
 
   test "renders newsletter page with errors for invalid newsletter subscription" do

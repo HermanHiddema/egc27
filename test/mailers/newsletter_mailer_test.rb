@@ -15,7 +15,8 @@ class NewsletterMailerTest < ActionMailer::TestCase
 
     unsubscribe_url = Rails.application.routes.url_helpers.unsubscribe_newsletter_url(
       token: subscription.unsubscribe_token,
-      host: "example.com"
+      host: "example.com",
+      protocol: "https"
     )
     assert_match unsubscribe_url, body
   end
@@ -80,8 +81,8 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_equal "[TEST] Draft subject", email.subject
     assert_includes email.body.to_s, "Preview content"
     assert_includes email.body.to_s, "This is a test email for a newsletter draft"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_unsubscribe/"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_unsubscribe/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_preview/"
   end
 
   test "test newsletter email uses the saved snapshot when the draft changes before delivery" do
@@ -102,6 +103,6 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_includes email.body.to_s, "Saved body"
     refute_includes email.body.to_s, "Later draft"
     refute_includes email.body.to_s, "Later body"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_preview/"
   end
 end

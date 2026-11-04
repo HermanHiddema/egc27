@@ -122,6 +122,15 @@ class Rack::Attack
     req.ip if req.path.match?(NEWSLETTER_PATH) && req.post?
   end
 
+  # Newsletter subscriptions: limit by email address (3 per 5 minutes)
+  # Email is HMAC'd before use as a cache key to avoid persisting PII.
+  throttle("newsletter/email", limit: 3, period: 5.minutes) do |req|
+    if req.path.match?(NEWSLETTER_PATH) && req.post?
+      email = req.params.dig("newsletter_subscription", "email").to_s.strip.downcase
+      OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, email) unless email.empty?
+    end
+  end
+
   # Test newsletter unsubscriptions: limit by IP address (10 per minute)
   throttle("test_newsletter_unsubscribe/ip", limit: 10, period: 1.minute) do |req|
     req.ip if req.path.match?(TEST_NEWSLETTER_UNSUBSCRIBE_PATH) && req.delete?

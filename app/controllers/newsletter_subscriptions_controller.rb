@@ -19,12 +19,13 @@ class NewsletterSubscriptionsController < ApplicationController
     begin
       @newsletter_subscription = NewsletterSubscription.find_or_initialize_by(email: email)
       @newsletter_subscription.assign_attributes(newsletter_subscription_params)
+      send_welcome_email = !@newsletter_subscription.persisted? || !@newsletter_subscription.subscribed?
       @newsletter_subscription.unsubscribe_token = nil if @newsletter_subscription.persisted? && !@newsletter_subscription.subscribed?
       @newsletter_subscription.subscribed = true
       @newsletter_subscription.unsubscribed_at = nil
 
       if @newsletter_subscription.save
-        NewsletterMailer.welcome(@newsletter_subscription).deliver_later
+        NewsletterMailer.welcome(@newsletter_subscription).deliver_later if send_welcome_email
         redirect_to newsletter_signup_path, notice: "Thanks for subscribing to the newsletter."
       else
         render :new, status: :unprocessable_entity
