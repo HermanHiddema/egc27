@@ -222,17 +222,34 @@ class RackAttackTest < ActionDispatch::IntegrationTest
   end
 
   test "throttles newsletter subscriptions by IP after limit" do
-    params = {
-      newsletter_subscription: { first_name: "Jane", last_name: "Doe", email: "news@example.org" }
-    }
-
     freeze_time do
-      10.times do
-        post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      10.times do |i|
+        post newsletter_subscriptions_path,
+          params: { newsletter_subscription: { email: "news#{i}@example.org" } },
+          headers: { "REMOTE_ADDR" => "7.8.9.10" }
         assert_includes [200, 302, 422], response.status
       end
 
-      post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      post newsletter_subscriptions_path,
+        params: { newsletter_subscription: { email: "news10@example.org" } },
+        headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles newsletter subscriptions by normalized email after limit" do
+    freeze_time do
+      3.times do |i|
+        post newsletter_subscriptions_path,
+          params: { newsletter_subscription: { email: "  News@example.org  " } },
+          headers: { "REMOTE_ADDR" => "7.8.9.#{20 + i}" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post newsletter_subscriptions_path,
+        params: { newsletter_subscription: { email: "news@EXAMPLE.org" } },
+        headers: { "REMOTE_ADDR" => "7.8.9.99" }
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
     end

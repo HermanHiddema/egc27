@@ -20,5 +20,6 @@ class ProductionMailgunConfigurationTest < ActiveSupport::TestCase
     assert_includes production_config, "DEFAULT_URL_HOST"
     assert_includes production_config, "egc2027.nl"
     assert_includes production_config, "config.action_mailer.default_url_options"
+    assert_includes production_config, 'protocol: "https"'
   end
 end

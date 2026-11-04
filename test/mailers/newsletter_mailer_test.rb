@@ -1,6 +1,36 @@
 require "test_helper"
 
 class NewsletterMailerTest < ActionMailer::TestCase
+  test "welcome greets the subscriber and includes an unsubscribe link" do
+    subscription = newsletter_subscriptions(:active)
+    email = NewsletterMailer.welcome(subscription)
+
+    assert_equal [subscription.email], email.to
+    assert_equal "EGC 2027 – Welcome to the newsletter", email.subject
+
+    body = email.body.decoded
+    assert_match subscription.first_name, body
+    assert_match "Thank you for subscribing", body
+    assert_match "If you did not subscribe to this list", body
+
+    unsubscribe_url = Rails.application.routes.url_helpers.unsubscribe_newsletter_url(
+      token: subscription.unsubscribe_token,
+      host: "example.com",
+      protocol: "https"
+    )
+    assert_match unsubscribe_url, body
+  end
+
+  test "welcome works for a subscriber without a name" do
+    subscription = newsletter_subscriptions(:active)
+    subscription.first_name = nil
+
+    email = NewsletterMailer.welcome(subscription)
+
+    assert_includes email.body.decoded, "Hello,"
+    assert_includes email.body.decoded, subscription.unsubscribe_token
+  end
+
   test "newsletter email is addressed to one subscriber and includes archive and unsubscribe links" do
     newsletter = Newsletter.create!(
       title: "Spring update",
@@ -51,8 +81,8 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_equal "[TEST] Draft subject", email.subject
     assert_includes email.body.to_s, "Preview content"
     assert_includes email.body.to_s, "This is a test email for a newsletter draft"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_unsubscribe/"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_unsubscribe/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_preview/"
   end
 
   test "test newsletter email uses the saved snapshot when the draft changes before delivery" do
@@ -73,6 +103,6 @@ class NewsletterMailerTest < ActionMailer::TestCase
     assert_includes email.body.to_s, "Saved body"
     refute_includes email.body.to_s, "Later draft"
     refute_includes email.body.to_s, "Later body"
-    assert_includes email.body.to_s, "http://example.com/newsletter/test_preview/"
+    assert_includes email.body.to_s, "https://example.com/newsletter/test_preview/"
   end
 end

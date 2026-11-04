@@ -1,6 +1,16 @@
 class NewsletterMailer < ApplicationMailer
   layout false
 
+  def welcome(newsletter_subscription)
+    @newsletter_subscription = newsletter_subscription
+    @unsubscribe_url = unsubscribe_newsletter_url(token: newsletter_subscription.unsubscribe_token)
+
+    mail(
+      to: newsletter_subscription.email,
+      subject: "EGC 2027 – Welcome to the newsletter"
+    )
+  end
+
   def newsletter(newsletter, subscription)
     @newsletter = newsletter
     @newsletter_title = newsletter.title

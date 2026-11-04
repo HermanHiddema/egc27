@@ -28,6 +28,7 @@
 #
 # Indexes
 #
+#  index_participants_on_confirmed_at      (confirmed_at)
 #  index_participants_on_created_at        (created_at)
 #  index_participants_on_egd_pin           (egd_pin) UNIQUE
 #  index_participants_on_email             (email)
