@@ -31,8 +31,8 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "sends a welcome email when a subscription is created" do
-    assert_enqueued_email_with NewsletterMailer, :welcome, args: ->(args) {
-      args.first.email == "jane@example.com"
+    assert_enqueued_with job: NewsletterWelcomeJob, args: ->(args) {
+      args == [NewsletterSubscription.find_by(email: "jane@example.com")&.id]
     } do
       post newsletter_subscriptions_path, params: {
         newsletter_subscription: {
@@ -89,9 +89,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     subscription = newsletter_subscriptions(:inactive)
     original_token = subscription.unsubscribe_token
 
-    assert_enqueued_email_with NewsletterMailer, :welcome, args: ->(args) {
-      args.first.email == "bob@example.com"
-    } do
+    assert_enqueued_with job: NewsletterWelcomeJob, args: [subscription.id] do
       assert_no_difference("NewsletterSubscription.count") do
         post newsletter_subscriptions_path, params: {
           newsletter_subscription: {
