@@ -110,7 +110,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "does not send another welcome email for an active subscription" do
     subscription = newsletter_subscriptions(:active)
 
-    assert_no_enqueued_emails do
+    assert_no_enqueued_jobs only: NewsletterWelcomeJob do
       post newsletter_subscriptions_path, params: {
         newsletter_subscription: {
           email: subscription.email
