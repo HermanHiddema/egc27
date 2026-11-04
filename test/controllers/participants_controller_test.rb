@@ -684,7 +684,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     body = email.body.decoded
     assert_match "Jane Doe", body
     assert_match "Utrecht", body
-    confirmation_url = user_confirmation_url(confirmation_token: participant.user.confirmation_token, host: "example.com")
+    confirmation_url = user_confirmation_url(confirmation_token: participant.user.confirmation_token, host: "example.com", protocol: "https")
     assert_match confirmation_url, body
   end
 
