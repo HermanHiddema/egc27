@@ -1,27 +1,33 @@
 require "test_helper"
 
 class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
-  test "shows newsletter subscription page" do
-    get newsletter_path
+  test "shows the newsletter overview and subscribe modal" do
+    get newsletter_signup_path
 
     assert_response :success
     assert_select "h1", text: "Newsletter"
     assert_select "form[action='#{newsletter_subscriptions_path}']"
+    assert_select "dialog[data-newsletter-subscribe-target='dialog']"
+    assert_select "button", text: "Subscribe"
+    assert_select "button", text: "Cancel"
   end
 
   test "creates a newsletter subscription" do
     assert_difference("NewsletterSubscription.count", 1) do
       post newsletter_subscriptions_path, params: {
         newsletter_subscription: {
-          first_name: "Jane",
-          last_name: "Doe",
           email: "jane@example.com"
         }
       }
     end
 
-    assert_redirected_to newsletter_path
+    assert_redirected_to newsletter_signup_path
     assert_equal "Thanks for subscribing to the newsletter.", flash[:notice]
+
+    subscription = NewsletterSubscription.find_by(email: "jane@example.com")
+    assert_not_nil subscription
+    assert subscription.first_name.blank?
+    assert subscription.last_name.blank?
   end
 
   test "sends a welcome email when a subscription is created" do
@@ -41,7 +47,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "newsletter page includes turnstile widget when site key is configured" do
     previous = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
     ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"] = "1x00000000000000000000AA"
-    get newsletter_path
+    get newsletter_signup_path
     assert_select "div.cf-turnstile"
   ensure
     if previous.nil?
@@ -86,16 +92,14 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference("NewsletterSubscription.count") do
       post newsletter_subscriptions_path, params: {
         newsletter_subscription: {
-          first_name: "Bobby",
-          last_name: "Smith",
           email: "Bob@example.com"
         }
       }
     end
 
-    assert_redirected_to newsletter_path
+    assert_redirected_to newsletter_signup_path
     subscription.reload
-    assert_equal "Bobby", subscription.first_name
+    assert_equal "Bob", subscription.first_name
     assert_equal true, subscription.subscribed
     assert_nil subscription.unsubscribed_at
     assert_not_equal original_token, subscription.unsubscribe_token
@@ -104,14 +108,13 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "renders newsletter page with errors for invalid newsletter subscription" do
     post newsletter_subscriptions_path, params: {
       newsletter_subscription: {
-        first_name: "Jane",
-        last_name: "",
         email: "invalid-email"
       }
     }
 
     assert_response :unprocessable_entity
-    assert_select "h2", text: "There were errors with your submission:"
+    assert_select "h3", text: "There were errors with your submission:"
+    assert_select 'div[data-newsletter-subscribe-auto-open-value="true"]'
   end
 
   test "shows confirmation page for a valid unsubscribe token" do

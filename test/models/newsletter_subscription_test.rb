@@ -6,10 +6,10 @@ require "test_helper"
 #
 #  id                :bigint           not null, primary key
 #  email             :string           not null
-#  first_name        :string           not null
-#  last_name         :string           not null
+#  first_name        :string
+#  last_name         :string
 #  subscribed        :boolean          default(TRUE), not null
-#  unsubscribe_token :string           not null
+#  unsubscribe_token :string
 #  unsubscribed_at   :datetime
 #  created_at        :datetime         not null
 #  updated_at        :datetime         not null
@@ -32,6 +32,15 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     assert_equal "jane.doe@example.com", subscription.email
   end
 
+  test "is valid without a first and last name" do
+    subscription = NewsletterSubscription.new(email: "noname@example.com")
+
+    assert subscription.valid?
+    assert subscription.save
+    assert subscription.first_name.blank?
+    assert subscription.last_name.blank?
+  end
+
   test "generates an unsubscribe token" do
     subscription = NewsletterSubscription.create!(
       first_name: "Jane",
@@ -49,6 +58,7 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
 
     assert_equal false, subscription.subscribed
     assert_not_nil subscription.unsubscribed_at
+    assert_nil subscription.unsubscribe_token
   end
 
   test "unsubscribe preserves existing unsubscribed_at" do
@@ -107,6 +117,46 @@ class NewsletterSubscriptionTest < ActiveSupport::TestCase
     existing.reload
     assert_equal "Bob", existing.first_name
     assert_equal false, existing.subscribed
+  end
+
+  test "subscribe_user supplements blank names on an existing subscription" do
+    existing = NewsletterSubscription.create!(email: "supplement@example.com")
+    assert existing.first_name.blank?
+    assert existing.last_name.blank?
+
+    user = User.create!(email: existing.email.upcase, skip_password_validation: true)
+    user.update_column(:confirmed_at, Time.current)
+    participant = Participant.create!(
+      first_name: "Grace",
+      last_name: "Hopper",
+      email: user.email,
+      age_group: "18-49",
+      country: "NL",
+      gender: "female",
+      image_use_consent: true,
+      user: user
+    )
+
+    returned_subscription = nil
+
+    assert_no_difference("NewsletterSubscription.count") do
+      returned_subscription = NewsletterSubscription.subscribe_user(user)
+    end
+
+    existing.reload
+    assert_equal existing, returned_subscription
+    assert_equal "Grace", existing.first_name
+    assert_equal "Hopper", existing.last_name
+
+    participant.update!(first_name: "Changed", last_name: "Name")
+
+    assert_no_difference("NewsletterSubscription.count") do
+      NewsletterSubscription.subscribe_user(user)
+    end
+
+    existing.reload
+    assert_equal "Grace", existing.first_name
+    assert_equal "Hopper", existing.last_name
   end
 
   test "subscribe_user ignores users without a participant" do

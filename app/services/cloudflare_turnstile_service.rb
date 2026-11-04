@@ -9,6 +9,8 @@ class CloudflareTurnstileService
   # for verification to be active. If only one key is configured, a warning is logged and
   # the request is allowed through (to avoid silently blocking all submissions).
   def verify(token:, remote_ip: nil)
+    return true if Rails.application.config.x.bot_protection_enabled == false
+
     secret_key = ENV["CLOUDFLARE_TURNSTILE_SECRET_KEY"]
     site_key = ENV["CLOUDFLARE_TURNSTILE_SITE_KEY"]
 

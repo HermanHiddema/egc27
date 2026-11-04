@@ -6,6 +6,16 @@
     <% end %>
   </div>
 
+  <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+    <%= form_with url: users_path, method: :get, local: true, class: "flex flex-wrap items-end gap-3", data: { controller: "auto-submit" } do %>
+      <div>
+        <label for="role" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Role</label>
+        <%= select_tag :role, options_for_select([["Staff (admins & editors)", ""], ["Admins", "admin"], ["Editors", "editor"], ["Regular", "regular"], ["All roles", "all"]], @role_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+      </div>
+      <noscript><%= submit_tag "Filter", class: "btn-primary" %></noscript>
+    <% end %>
+  </div>
+
   <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-gray-200">

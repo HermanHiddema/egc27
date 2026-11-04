@@ -1,0 +1,9 @@
+<div class="container-wide py-8">
+  <article class="newsletter-document bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+    <header class="border-b border-gray-200 pb-5 mb-6">
+      <p class="mb-2 text-sm text-gray-500">Test preview</p>
+      <h1 class="text-3xl font-bold"><%= @newsletter.title %></h1>
+    </header>
+    <div class="rich-content max-w-none overflow-hidden"><%= render_html_content(@newsletter.content_html) %></div>
+  </article>
+</div>

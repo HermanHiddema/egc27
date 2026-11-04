@@ -7,15 +7,13 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
-#  confirmation_token            :string
-#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
 #  first_name                    :string           not null
 #  first_week                    :boolean          default(TRUE), not null
 #  gender                        :string
-#  image_use_consent             :boolean          default(NULL), not null
+#  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
 #  participant_type              :string           default("player"), not null
 #  phone                         :string
@@ -30,17 +28,15 @@
 #
 # Indexes
 #
-#  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
-#  index_participants_on_confirmed_at        (confirmed_at)
-#  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
-#  index_participants_on_email               (email)
-#  index_participants_on_gender              (gender)
-#  index_participants_on_participant_type    (participant_type)
-#  index_participants_on_phone               (phone)
-#  index_participants_on_rating              (rating)
-#  index_participants_on_user_id             (user_id)
-#  index_participants_on_uuid                (uuid) UNIQUE
+#  index_participants_on_created_at        (created_at)
+#  index_participants_on_egd_pin           (egd_pin) UNIQUE
+#  index_participants_on_email             (email)
+#  index_participants_on_gender            (gender)
+#  index_participants_on_participant_type  (participant_type)
+#  index_participants_on_phone             (phone)
+#  index_participants_on_rating            (rating)
+#  index_participants_on_user_id           (user_id)
+#  index_participants_on_uuid              (uuid) UNIQUE
 #
 # Foreign Keys
 #
@@ -60,6 +56,8 @@ class Participant < ApplicationRecord
   MIN_RATING = -1000
   MAX_RATING = 3000
 
+  has_paper_trail
+
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
   has_many :payments, dependent: :destroy
@@ -73,6 +71,19 @@ class Participant < ApplicationRecord
 
   attribute :image_use_consent, :boolean, default: nil
   attr_accessor :attendance_option
+
+  # Participants whose payment was refunded or charged back are no longer
+  # attending, so they are left out of the public participant list. A later
+  # successful payment reinstates them.
+  scope :confirmed, -> { joins(:user).where.not(users: { confirmed_at: nil }) }
+
+  scope :not_refunded, -> {
+    where.not(
+      id: Payment.reversed.where.not(participant_id: nil).where.not(
+        participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)
+      ).select(:participant_id)
+    )
+  }
 
   validates :first_name, :last_name, :email, :country, presence: true
   validates :user, presence: true, if: -> { email.present? }
@@ -91,7 +102,8 @@ class Participant < ApplicationRecord
     greater_than_or_equal_to: MIN_RATING,
     less_than_or_equal_to: MAX_RATING
   }, allow_nil: true
-  validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" }, allow_blank: true
+  validates :egd_pin, format: { with: /\A\d{8}\z/, message: "must be an 8 digit number" },
+                      uniqueness: { message: "is already registered" }, allow_blank: true
   validates :rank, numericality: {
     only_integer: true,
     greater_than_or_equal_to: EgdGradeMapping::MIN_GRADE_N,
@@ -106,12 +118,25 @@ class Participant < ApplicationRecord
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
 
+  after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
+
   def to_param
     uuid
   end
 
+  # A short, memorable participant number shown to participants and admins.
+  # Derived from the database id with a fixed offset so the smallest numbers
+  # are still comfortably large.
+  PARTICIPANT_NUMBER_OFFSET = 1000
+
+  def participant_number
+    return unless id
+
+    id + PARTICIPANT_NUMBER_OFFSET
+  end
+
   def confirmed?
-    confirmed_at.present?
+    user&.confirmed? || false
   end
 
   def player?
@@ -129,9 +154,99 @@ class Participant < ApplicationRecord
     end
   end
 
+  # A participant is considered refunded once one of their payments was refunded
+  # and no other payment remains paid. Uses the in-memory association when it is
+  # already loaded, like #paid?.
+  def refunded?
+    return false if paid?
+
+    if payments.loaded?
+      payments.any?(&:refunded?)
+    else
+      payments.refunded.exists?
+    end
+  end
+
+  # A participant is considered charged back once one of their payments was
+  # charged back and no other payment remains paid. Uses the in-memory
+  # association when it is already loaded, like #paid?.
+  def charged_back?
+    return false if paid?
+
+    if payments.loaded?
+      payments.any?(&:charged_back?)
+    else
+      payments.charged_back.exists?
+    end
+  end
+
+  # The most recent payment that completed successfully, if any.
+  def paid_payment
+    payments.completed.order(created_at: :desc).first
+  end
+
+  # The most recent payment that is still in progress at the provider, if any.
+  def pending_payment
+    payments.pending_or_open.order(created_at: :desc).first
+  end
+
+  # The payment to show on the payment page: a completed payment, an in-progress
+  # payment, or an unsaved payment for the current price.
+  def current_payment
+    paid_payment || pending_payment || Payment.build_for(self)
+  end
+
+  # Mollie keeps a refunded payment as "paid", so payments that are paid here
+  # are refreshed from Mollie until one of them is still paid there. Errors are
+  # logged instead of raised, so an unreachable Mollie does not block the
+  # payment page.
+  def refresh_paid_payments!
+    payments.completed.order(created_at: :desc).each do |payment|
+      next if payment.mollie_payment_id.blank?
+
+      payment.refresh_from_mollie!
+      break if payment.paid?
+    end
+
+    association(:payments).reset
+  rescue Mollie::Exception => e
+    Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{id}: #{e.message}"
+  end
+
+  # Payments that are canceled, expired, failed or refunded can never succeed
+  # anymore, so they do not block recording a manual payment. Uses the in-memory
+  # association when it is already loaded, like #paid?.
+  def blocking_payments?
+    if payments.loaded?
+      payments.any? { |payment| !payment.unsuccessful? }
+    else
+      payments.blocking.exists?
+    end
+  end
+
+  # Admins may only delete participants with no current paid, charged-back or
+  # refunded payment status and no open/pending payment. A payment that is still in
+  # flight at a provider (e.g. Mollie) could complete after the participant
+  # and its payment records are gone, leaving the app with money received but
+  # nothing to reconcile it against, so deletion is blocked until that payment
+  # resolves.
+  def deletable?
+    !charged_back? && !refunded? && !blocking_payments?
+  end
+
+  # Deleting the last participant of a user leaves an account behind that no
+  # longer has a registration, so admins are warned about that case.
+  def only_participant_for_user?
+    return false if user.blank?
+
+    user.participants.where.not(id: id).none?
+  end
+
   # High-level registration status used in the admin participant list.
   def registration_status
     return "Paid" if paid?
+    return "Chargeback" if charged_back?
+    return "Refund" if refunded?
     return "Confirmed" if confirmed?
 
     "Pending"
@@ -139,23 +254,6 @@ class Participant < ApplicationRecord
 
   def visitor?
     participant_type == "visitor"
-  end
-
-  def generate_confirmation_token!
-    self.class.transaction(requires_new: true) do
-      timestamp = Time.current
-      update_columns(
-        confirmation_token: SecureRandom.urlsafe_base64(32),
-        updated_at: timestamp
-      )
-    end
-  rescue ActiveRecord::RecordNotUnique
-    retry
-  end
-
-  def confirm!
-    timestamp = Time.current
-    update_columns(confirmed_at: timestamp, confirmation_token: nil, updated_at: timestamp)
   end
 
   def rank_grade
@@ -174,6 +272,11 @@ class Participant < ApplicationRecord
   end
 
   private
+
+  # Refreshes rank and rating from the European Go Database for the new pin.
+  def sync_from_egd
+    EgdSyncJob.perform_later(id)
+  end
 
   def normalize_text_fields
     self.first_name = first_name.to_s.strip

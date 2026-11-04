@@ -2,8 +2,14 @@ class UsersController < ApplicationController
   before_action :require_admin!
   before_action :set_user, only: [:edit, :update]
 
+  # Roles that are highlighted by default (staff), since regular users are too
+  # numerous to be useful in the default listing.
+  STAFF_ROLES = (User::ROLES - ["regular"]).freeze
+
   def index
-    @users = User.order(:email, :id)
+    @role_filter = params[:role].presence_in(User::ROLES + ["all"])
+
+    @users = filtered_users.order(:email, :id)
   end
 
   def edit
@@ -43,6 +49,18 @@ class UsersController < ApplicationController
   end
 
   private
+
+  def filtered_users
+    case @role_filter
+    when "all"
+      User.all
+    when *User::ROLES
+      User.where(role: @role_filter)
+    else
+      # Default view: show only staff (admins and editors).
+      User.where(role: STAFF_ROLES)
+    end
+  end
 
   def set_user
     @user = User.find(params[:id])

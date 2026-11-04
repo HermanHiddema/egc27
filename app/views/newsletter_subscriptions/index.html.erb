@@ -25,7 +25,7 @@
       <tbody class="divide-y divide-gray-100">
         <% @newsletter_subscriptions.each do |subscription| %>
           <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4"><%= "#{subscription.first_name} #{subscription.last_name}" %></td>
+            <td class="px-6 py-4"><%= subscription.full_name %></td>
             <td class="px-6 py-4"><%= subscription.email %></td>
             <td class="px-6 py-4">
               <% if subscription.subscribed? %>

@@ -20,13 +20,13 @@ class Users::MailerTest < ActionMailer::TestCase
 
     email = Users::Mailer.confirmation_instructions(user, "token123")
 
-    assert_equal "EGC 2027 – Confirm your account", email.subject
+    assert_equal "EGC 2027 – Please confirm your registration", email.subject
     body = email.body.decoded
     assert_match "Jane Doe", body
     assert_match "NL", body
     assert_match "Utrecht", body
-    assert_match "Weekend only", body
-    assert_match "magic link", body
+    assert_match "Weekend Only", body
+    assert_match "Confirm Registration", body
   end
 
   test "confirmation_instructions for an invited user uses the default email" do
@@ -74,7 +74,7 @@ class Users::MailerTest < ActionMailer::TestCase
 
     email = Users::Mailer.confirmation_instructions(user.reload, "token123")
 
-    assert_equal "EGC 2027 – Confirm your account", email.subject
+    assert_equal "EGC 2027 – Please confirm your registration", email.subject
     body = email.body.decoded
     assert_match "Jane Doe", body
     assert_match "Utrecht", body

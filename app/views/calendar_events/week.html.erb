@@ -1,7 +1,7 @@
 <div class="container-wide py-12">
-  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
-    <h1 class="text-4xl font-bold">Calendar — Week</h1>
-    <div class="flex items-center gap-3">
+  <div class="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+    <h1 class="text-3xl font-bold md:text-4xl">Calendar — Week</h1>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-2">
       <%= link_to "← Previous", week_calendar_events_path(date: (@period_start - 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Current Week", week_calendar_events_path(date: Date.current, show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
       <%= link_to "Next →", week_calendar_events_path(date: (@period_start + 7.days), show_early_hours: @show_early_hours), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
@@ -18,7 +18,8 @@
       <h2 class="text-2xl font-semibold"><%= eu_date_range(@period_start, @period_end) %></h2>
     </div>
 
-    <div class="grid" style="grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr));">
+    <div class="overflow-x-auto" role="region" aria-label="Weekly schedule; scroll horizontally to view each day">
+    <div class="grid min-w-[42rem]" style="grid-template-columns: 4.5rem repeat(7, minmax(0, 1fr));">
       <div class="border-r border-b border-gray-200 bg-gray-50 flex items-center justify-center">
         <% if @show_early_hours %>
           <%= link_to week_calendar_events_path(date: @period_start, show_early_hours: false), class: "text-brand-blue-700 hover:text-brand-red-600 transition", title: "Collapse 00:00–08:00", aria: { label: "Collapse 00:00 to 08:00" } do %>
@@ -91,6 +92,7 @@
           <% end %>
         </div>
       <% end %>
+    </div>
     </div>
   </div>
 </div>

@@ -68,3 +68,15 @@ dave:
   confirmed_at: <%= Time.current %>
   created_at: <%= Time.current %>
   updated_at: <%= Time.current %>
+
+no_password:
+  email: no_password@example.com
+  encrypted_password: ""
+  role: regular
+  confirmed_at: <%= Time.current %>
+  created_at: <%= Time.current %>
+  updated_at: <%= Time.current %>
+
+pending:
+  email: pending@example.org
+  role: regular

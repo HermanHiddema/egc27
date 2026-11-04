@@ -1,6 +1,19 @@
 require_relative "boot"
 
-require "rails/all"
+require "rails"
+
+# Pick the frameworks you want. Action Text is intentionally left out: rich
+# content is authored with TinyMCE and stored as HTML on the records themselves.
+require "active_model/railtie"
+require "active_job/railtie"
+require "active_record/railtie"
+require "active_storage/engine"
+require "action_controller/railtie"
+require "action_mailer/railtie"
+require "action_mailbox/engine"
+require "action_view/railtie"
+require "action_cable/engine"
+require "rails/test_unit/railtie"
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -18,6 +31,17 @@ module Egc27
 
     config.middleware.insert_after ActionDispatch::RemoteIp, Rack::Attack
     config.active_storage.variant_processor = :vips
+
+    # Do not draw the default Active Storage routes: they include an
+    # unauthenticated POST /rails/active_storage/direct_uploads endpoint that
+    # this application does not use. The routes we do need (blob and
+    # representation serving) are drawn explicitly in config/routes.rb.
+    config.active_storage.draw_routes = false
+
+    # Master switch for anonymous-form bot protection (Rack::Attack throttling and
+    # Cloudflare Turnstile). Enabled by default; individual environments (e.g.
+    # staging) may disable it.
+    config.x.bot_protection_enabled = true
 
     # Configuration for the application, engines, and railties goes here.
     #

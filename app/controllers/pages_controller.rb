@@ -1,12 +1,13 @@
 class PagesController < ApplicationController
-  skip_before_action :authenticate_user!, only: [:index, :show]
+  skip_before_action :authenticate_user!, only: [:show]
   before_action :require_creator!, only: [:new, :create]
-  before_action :require_editor!, only: [:edit, :update]
+  before_action :require_editor!, only: [:index, :edit, :update]
   before_action :require_admin!, only: [:destroy]
   before_action :set_page, only: [:show, :edit, :update, :destroy]
+  before_action :require_page_access!, only: [:show]
 
   def index
-    @pages = Page.with_attached_main_image.order(:title)
+    @pages = Page.order(:title)
   end
 
   def show
@@ -49,10 +50,16 @@ class PagesController < ApplicationController
   private
 
   def set_page
-    @page = Page.with_attached_main_image.with_rich_text_content_and_embeds.find_by!(slug: params[:slug])
+    @page = Page.with_attached_main_image.find_by!(slug: params[:slug])
+  end
+
+  def require_page_access!
+    return if @page.readable_by?(current_user)
+
+    authenticate_user!
   end
 
   def page_params
-    params.require(:page).permit(:title, :content, :content_html, :slug, :main_image, :remove_main_image)
+    params.require(:page).permit(:title, :content_html, :slug, :access_level, :main_image, :remove_main_image)
   end
 end

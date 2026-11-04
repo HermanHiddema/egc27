@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 # == Schema Information
 #
@@ -9,15 +10,13 @@ require "test_helper"
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
-#  confirmation_token            :string
-#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
 #  first_name                    :string           not null
 #  first_week                    :boolean          default(TRUE), not null
 #  gender                        :string
-#  image_use_consent             :boolean          default(NULL), not null
+#  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
 #  participant_type              :string           default("player"), not null
 #  phone                         :string
@@ -32,17 +31,15 @@ require "test_helper"
 #
 # Indexes
 #
-#  index_participants_on_confirmation_token  (confirmation_token) UNIQUE
-#  index_participants_on_confirmed_at        (confirmed_at)
-#  index_participants_on_created_at          (created_at)
-#  index_participants_on_egd_pin             (egd_pin)
-#  index_participants_on_email               (email)
-#  index_participants_on_gender              (gender)
-#  index_participants_on_participant_type    (participant_type)
-#  index_participants_on_phone               (phone)
-#  index_participants_on_rating              (rating)
-#  index_participants_on_user_id             (user_id)
-#  index_participants_on_uuid                (uuid) UNIQUE
+#  index_participants_on_created_at        (created_at)
+#  index_participants_on_egd_pin           (egd_pin) UNIQUE
+#  index_participants_on_email             (email)
+#  index_participants_on_gender            (gender)
+#  index_participants_on_participant_type  (participant_type)
+#  index_participants_on_phone             (phone)
+#  index_participants_on_rating            (rating)
+#  index_participants_on_user_id           (user_id)
+#  index_participants_on_uuid              (uuid) UNIQUE
 #
 # Foreign Keys
 #
@@ -50,6 +47,31 @@ require "test_helper"
 #
 class ParticipantTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
+  include ActiveJob::TestHelper
+
+  test "changing the egd pin queues an EGD sync for the participant" do
+    participant = participants(:one)
+
+    assert_enqueued_with(job: EgdSyncJob, args: [participant.id]) do
+      participant.update!(egd_pin: "12345678")
+    end
+  end
+
+  test "updates that keep the egd pin do not queue an EGD sync" do
+    participant = participants(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      participant.update!(club: "Another Club")
+    end
+  end
+
+  test "removing the egd pin does not queue an EGD sync" do
+    participant = participants(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      participant.update!(egd_pin: "")
+    end
+  end
 
   test "requires all public registration fields" do
     participant = Participant.new
@@ -60,6 +82,16 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:email], "can't be blank"
     assert_includes participant.errors[:age_group], "must be selected"
     assert_includes participant.errors[:country], "can't be blank"
+  end
+
+  test "participant number is the database id offset by 1000" do
+    participant = participants(:one)
+
+    assert_equal participant.id + 1000, participant.participant_number
+  end
+
+  test "participant number is nil for an unpersisted participant" do
+    assert_nil Participant.new.participant_number
   end
 
   test "age group has a single must be selected error when blank" do
@@ -336,12 +368,13 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal("visitor", participant.participant_type)
   end
 
-  test "allows a duplicate EGD pin" do
+  test "rejects a duplicate EGD pin" do
     participant = participants(:one).dup
     participant.email = "different@example.org"
     participant.user = users(:two)
 
-    assert participant.valid?
+    assert_not participant.valid?
+    assert_includes participant.errors[:egd_pin], "is already registered"
   end
 
   test "club is optional" do
@@ -490,44 +523,6 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_includes participant.errors[:image_use_consent], "must be selected"
   end
 
-  test "generate_confirmation_token! retries on token collisions for legacy invalid records and updates timestamp" do
-    participant = participants(:one)
-    participant.update_column(:gender, nil)
-    original_updated_at = participant.updated_at
-    generated_tokens = ["test_token_abc123", "replacement_token_123"]
-    singleton = SecureRandom.singleton_class
-    original_urlsafe_base64 = SecureRandom.method(:urlsafe_base64)
-
-    begin
-      singleton.define_method(:urlsafe_base64) { |_length = nil| generated_tokens.shift }
-
-      travel_to original_updated_at + 1.minute do
-        participant.generate_confirmation_token!
-      end
-    ensure
-      singleton.define_method(:urlsafe_base64, original_urlsafe_base64)
-    end
-
-    participant.reload
-    assert_equal "replacement_token_123", participant.confirmation_token
-    assert_operator participant.updated_at, :>, original_updated_at
-  end
-
-  test "confirm! clears token for legacy invalid records and updates timestamp" do
-    participant = participants(:unconfirmed)
-    participant.update_column(:gender, nil)
-    original_updated_at = participant.updated_at
-
-    travel_to original_updated_at + 1.minute do
-      participant.confirm!
-    end
-
-    participant.reload
-    assert participant.confirmed?
-    assert_nil participant.confirmation_token
-    assert_operator participant.updated_at, :>, original_updated_at
-  end
-
   test "assigns a uuid on creation" do
     participant = Participant.create!(
       user: users(:one),
@@ -561,5 +556,210 @@ class ParticipantTest < ActiveSupport::TestCase
   test "registration_status is Paid when a payment has completed" do
     assert participants(:two).paid?
     assert_equal "Paid", participants(:two).registration_status
+  end
+
+  test "registration_status is Refund when the payment was refunded" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    participant.reload
+    assert participant.refunded?
+    assert_not participant.paid?
+    assert_equal "Refund", participant.registration_status
+  end
+
+  test "registration_status is Paid when a later payment succeeded after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    participant.reload
+    assert_not participant.refunded?
+    assert_equal "Paid", participant.registration_status
+  end
+
+  test "registration_status is Chargeback when the payment was charged back" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    participant.reload
+    assert participant.charged_back?
+    assert_not participant.paid?
+    assert_equal "Chargeback", participant.registration_status
+  end
+
+  test "not_refunded excludes participants with a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
+  test "not_refunded excludes participants with a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not_includes Participant.not_refunded, participant.reload
+  end
+
+  test "not_refunded keeps participants that paid again after a refund" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+
+    assert_includes Participant.not_refunded, participant.reload
+  end
+
+  test "blocking_payments? is true for an open payment" do
+    assert participants(:one).blocking_payments?
+  end
+
+  test "blocking_payments? is false without payments" do
+    assert_not participants(:three).blocking_payments?
+  end
+
+  test "blocking_payments? is false when all payments are unsuccessful" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "expired")
+
+    assert_not participant.reload.blocking_payments?
+  end
+
+  test "blocking_payments? uses the loaded association when available" do
+    participant = participants(:one)
+    participant.payments.update_all(status: "failed")
+    participant.payments.load
+
+    assert_no_queries do
+      assert_not participant.blocking_payments?
+    end
+  end
+
+  test "deletable? is false for a successful payment" do
+    assert_not participants(:two).deletable?
+  end
+
+  test "deletable? is false for an open payment" do
+    assert_not participants(:one).deletable?
+  end
+
+  test "deletable? is false for a refunded payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+
+    assert_not participant.reload.deletable?
+  end
+
+  test "deletable? is false for a charged-back payment" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "charged_back")
+
+    assert_not participant.reload.deletable?
+  end
+
+  test "deletable? is true without payments" do
+    assert participants(:three).deletable?
+  end
+
+  test "changes and deletions are recorded by paper trail" do
+    participant = participants(:three)
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id).count }, 1 do
+      participant.update!(club: "Rotterdam Go Club")
+    end
+
+    assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id, event: "destroy").count }, 1 do
+      participant.destroy!
+    end
+  end
+  # Payment lookups and refreshing
+  test "paid_payment returns the most recent completed payment" do
+    participant = participants(:two)
+
+    assert_equal payments(:paid_payment), participant.paid_payment
+  end
+
+  test "paid_payment is nil without a completed payment" do
+    assert_nil participants(:one).paid_payment
+  end
+
+  test "pending_payment returns the most recent in-progress payment" do
+    participant = participants(:one)
+
+    assert_equal payments(:open_payment), participant.pending_payment
+  end
+
+  test "current_payment prefers a completed payment" do
+    assert_equal payments(:paid_payment), participants(:two).current_payment
+  end
+
+  test "current_payment falls back to an in-progress payment" do
+    assert_equal payments(:open_payment), participants(:one).current_payment
+  end
+
+  test "current_payment builds a new payment when there is none" do
+    participant = participants(:three)
+
+    payment = participant.current_payment
+
+    assert_not payment.persisted?
+    assert_equal "open", payment.status
+  end
+
+  test "refresh_paid_payments! records a refund reported by Mollie" do
+    participant = participants(:two)
+    payment = payments(:paid_payment)
+    remote = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    with_mollie_get(->(_id) { remote }) { participant.refresh_paid_payments! }
+
+    assert_equal "refunded", payment.reload.status
+    assert_not participant.paid?
+  end
+
+  test "refresh_paid_payments! stops at the first payment that is still paid" do
+    participant = participants(:two)
+    newer_payment = payments(:paid_payment)
+    older_payment = participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Older Mollie payment",
+      provider: "mollie",
+      mollie_payment_id: "tr_paid_older",
+      status: "paid",
+      created_at: newer_payment.created_at - 1.day,
+      updated_at: newer_payment.updated_at - 1.day
+    )
+    fetched_ids = []
+
+    with_mollie_get(->(id) { fetched_ids << id; OpenStruct.new(id: id, status: "paid") }) do
+      participant.refresh_paid_payments!
+    end
+
+    assert_equal [newer_payment.mollie_payment_id], fetched_ids
+    assert_equal "paid", older_payment.reload.status
+  end
+
+  test "refresh_paid_payments! swallows Mollie errors" do
+    participant = participants(:two)
+
+    with_mollie_get(->(_id) { raise Mollie::Exception, "boom" }) do
+      assert_nothing_raised { participant.refresh_paid_payments! }
+    end
+
+    assert_equal "paid", payments(:paid_payment).reload.status
+  end
+
+  private
+
+  def with_mollie_get(stub)
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |id| stub.call(id) }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 end

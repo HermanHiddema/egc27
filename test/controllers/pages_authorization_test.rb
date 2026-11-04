@@ -5,6 +5,78 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     Rack::Test::UploadedFile.new(Rails.root.join("test/fixtures/files/main-image.png"), "image/png")
   end
 
+  test "visitors can view public pages" do
+    get page_path(pages(:one))
+
+    assert_response :success
+  end
+
+  test "visitors are sent to sign in for pages that require authentication" do
+    get page_path(pages(:members_only))
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "signed-in users can view pages that require authentication" do
+    sign_in users(:one)
+    get page_path(pages(:members_only))
+
+    assert_response :success
+  end
+
+  test "visitors are sent to sign in for the pages index" do
+    get pages_path
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "regular users cannot access the pages index" do
+    sign_in users(:one)
+    get pages_path
+
+    assert_redirected_to root_path
+  end
+
+  test "editors see every page on the pages index" do
+    sign_in users(:editor)
+    get pages_path
+
+    assert_response :success
+    assert_select "a[href='#{page_path(pages(:one))}']"
+    assert_select "a[href='#{page_path(pages(:members_only))}']"
+  end
+
+  test "the public page view does not link to the pages index" do
+    get page_path(pages(:one))
+
+    assert_response :success
+    assert_select "a[href='#{pages_path}']", count: 0
+  end
+
+  test "menus hide items linking to pages that require authentication" do
+    get page_path(pages(:one))
+
+    assert_response :success
+    assert_select "a", text: menu_items(:members_only_item).label, count: 0
+    assert_select "a", text: menu_items(:members_only_child).label, count: 0
+  end
+
+  test "menus show items linking to pages that require authentication once signed in" do
+    sign_in users(:one)
+    get page_path(pages(:one))
+
+    assert_response :success
+    assert_select "a", text: menu_items(:members_only_item).label
+  end
+
+  test "editor can set the access level of a page" do
+    sign_in users(:editor)
+
+    post pages_path, params: { page: { title: "Restricted", slug: "restricted", content_html: "<p>Secret</p>", access_level: "authenticated" } }
+
+    assert Page.find_by(slug: "restricted").access_level_authenticated?
+  end
+
   test "regular user cannot access new page" do
     sign_in users(:one)
     get new_page_path
@@ -14,7 +86,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   test "regular user cannot create page" do
     sign_in users(:one)
     assert_no_difference "Page.count" do
-      post pages_path, params: { page: { title: "Test", slug: "test", content: "Content" } }
+      post pages_path, params: { page: { title: "Test", slug: "test", content_html: "<p>Content</p>" } }
     end
     assert_redirected_to root_path
   end
@@ -34,12 +106,6 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
 
   test "regular user does not see page management buttons" do
     sign_in users(:one)
-
-    get pages_path
-    assert_response :success
-    assert_select "a", text: "New Page", count: 0
-    assert_select "a", text: "Edit", count: 0
-    assert_select "button", text: "Delete", count: 0
 
     get page_path(pages(:one))
     assert_response :success
@@ -83,7 +149,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
   test "editor can create page" do
     sign_in users(:editor)
     assert_difference "Page.count", 1 do
-      post pages_path, params: { page: { title: "New Page", slug: "new-page", content: "Some content" } }
+      post pages_path, params: { page: { title: "New Page", slug: "new-page", content_html: "<p>Some content</p>" } }
     end
   end
 
@@ -95,7 +161,7 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
         page: {
           title: "Page with image",
           slug: "page-with-image",
-          content: "Some content",
+          content_html: "<p>Some content</p>",
           main_image: image_upload
         }
       }
@@ -104,14 +170,10 @@ class PagesAuthorizationTest < ActionDispatch::IntegrationTest
     assert Page.last.main_image.attached?
   end
 
-  test "page summaries and detail show main image when attached" do
+  test "page detail shows main image when attached" do
     sign_in users(:one)
     page = pages(:one)
     page.main_image.attach(image_upload)
-
-    get pages_path
-    assert_response :success
-    assert_select "img[alt=?]", "#{page.title} main image"
 
     get page_path(page)
     assert_response :success

@@ -1,4 +1,6 @@
 <%= form_with model: calendar_event do |form| %>
+  <%= hidden_field_tag :return_to, params[:return_to] if params[:return_to].present? %>
+  <%= hidden_field_tag :date, params[:date] if params[:date].present? %>
   <% if calendar_event.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
@@ -66,7 +68,9 @@
 
     <div class="flex gap-4">
       <%= form.submit class: "btn-primary" %>
-      <%= link_to "Cancel", schedule_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      <% if calendar_event.new_record? %>
+        <%= link_to "Cancel", schedule_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      <% end %>
     </div>
   </div>
 <% end %>

@@ -1,0 +1,10 @@
+<div class="container-wide py-8">
+  <div class="mb-6"><%= link_to "← Back to newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></div>
+  <article class="newsletter-document bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+    <header class="border-b border-gray-200 pb-5 mb-6">
+      <h1 class="text-3xl font-bold mb-2"><%= @newsletter.title %></h1>
+      <p class="text-sm text-gray-500">Sent <%= eu_datetime(@newsletter.sent_at, twelve_hour: true) %></p>
+    </header>
+    <div class="rich-content max-w-none overflow-hidden"><%= render_html_content(@newsletter.content_html) %></div>
+  </article>
+</div>

@@ -1,0 +1,46 @@
+<% content_for :title, "My hostel bookings – EGC 2027" %>
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8 gap-4">
+    <div>
+      <h1 class="text-4xl font-bold">My hostel bookings</h1>
+      <p class="mt-2 text-neutral-700">Hostel beds and breakfast booked with your account.</p>
+    </div>
+    <%= link_to "Book hostel beds", new_hostel_booking_path, class: "btn-primary" %>
+  </div>
+
+  <% if @hostel_bookings.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Dates</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Beds</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @hostel_bookings.each do |hostel_booking| %>
+              <% payment = hostel_booking.current_payment %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= eu_date_range(hostel_booking.arrival_date, hostel_booking.departure_date) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.beds %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment&.amount_formatted || hostel_booking.amount_formatted %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= hostel_booking.status.humanize %></td>
+                <td class="px-4 py-3 text-sm text-right">
+                  <%= link_to "View", hostel_booking_path(hostel_booking), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-neutral-700">
+      You have not booked any hostel beds yet.
+    </div>
+  <% end %>
+</div>

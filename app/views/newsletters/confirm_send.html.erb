@@ -1,0 +1,14 @@
+<div class="container-wide py-8">
+  <div class="mx-auto max-w-2xl bg-white border border-gray-200 rounded-lg p-6 md:p-8 shadow-sm">
+    <h1 class="text-3xl font-bold mb-4">Confirm newsletter send</h1>
+    <% if flash[:alert].present? %>
+      <p class="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900" role="alert"><%= flash[:alert] %></p>
+    <% end %>
+    <p class="mb-2">You are about to send <strong><%= @newsletter.title %></strong>.</p>
+    <p class="mb-6 text-lg font-semibold">Sending newsletter to <%= @recipient_count %> <%= "addressee".pluralize(@recipient_count) %>. Are you sure?</p>
+    <div class="flex flex-wrap gap-3">
+      <%= button_to "Send", send_newsletter_path(@newsletter), method: :post, params: { recipient_count: @recipient_count, confirmed_send: "1" }, class: "btn-primary" %>
+      <%= link_to "Cancel", edit_newsletter_path(@newsletter), class: "border border-gray-300 rounded-lg px-5 py-2 text-gray-700 hover:bg-gray-50 transition" %>
+    </div>
+  </div>
+</div>

@@ -1,4 +1,4 @@
-<p>Hello <%= @newsletter_subscription.first_name %>,</p>
+<p>Hello<%= " #{@newsletter_subscription.first_name}" if @newsletter_subscription.first_name.present? %>,</p>
 
 <p>
   Thank you for subscribing to the European Go Congress 2027 newsletter. We are
