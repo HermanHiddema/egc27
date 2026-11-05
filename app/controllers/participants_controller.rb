@@ -1,13 +1,15 @@
 class ParticipantsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :alter_registration, :confirm, :resend_confirmation]
+  skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration]
   before_action :build_participant, only: [:create]
-  before_action :set_participant, only: [:show, :resend_confirmation]
-  before_action :verify_turnstile, only: [:create, :resend_confirmation]
+  before_action :set_participant, only: [:show, :edit, :update]
+  before_action :require_participant_owner!, only: [:edit, :update]
+  before_action :verify_turnstile, only: [:create]
+  before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index
-    participants = Participant.where.not(confirmed_at: nil)
+    participants = Participant.confirmed.not_refunded
     @countries = participants.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @sort = permitted_sort
@@ -33,22 +35,24 @@ class ParticipantsController < ApplicationController
   end
 
   def show
-  end
-
-  # Resends the Devise confirmation email for the account that owns this
-  # participant, identified solely by the participant UUID so the email address
-  # is never exposed in the page. Always responds the same way regardless of
-  # whether an unconfirmed account exists, to avoid leaking registration state.
-  def resend_confirmation
-    user = @participant.user
-
-    if user && !user.confirmed?
-      user.registration_participant = @participant
-      user.send_confirmation_instructions
+    if user_signed_in? && @participant.user_id != current_user.id
+      head :not_found
+      return
     end
 
-    redirect_to participant_path(@participant),
-      notice: "If your registration still needs confirming, we've sent a new confirmation email."
+    @personal_details_visible = user_signed_in? && @participant.user_id == current_user.id
+    @has_multiple_participants = @personal_details_visible && current_user.participants.count > 1
+  end
+
+  def edit
+  end
+
+  def update
+    if @participant.update(participant_profile_params)
+      redirect_to participant_path(@participant), notice: "Participant details updated."
+    else
+      render :edit, status: :unprocessable_entity
+    end
   end
 
   def create
@@ -57,31 +61,26 @@ class ParticipantsController < ApplicationController
       @participant.save!
     end
 
-    send_registration_confirmation_email(@participant)
+    if register_for_current_user?(@participant)
+      redirect_to registration_next_step_path(@participant), notice: "Registration confirmed."
+    else
+      begin
+        @participant.user.send_confirmation_instructions
+        notice = "Registration received. You will receive a confirmation email shortly."
+      rescue StandardError => error
+        Rails.logger.error("Failed to deliver participant confirmation instructions: #{error.class}")
+        notice = "Registration received, but we couldn't send a confirmation email. Please use the resend form on your registration page."
+      end
 
-    redirect_to participant_path(@participant), notice: "Registration received. You will receive a confirmation email shortly."
+      redirect_to participant_path(@participant), notice: notice
+    end
   rescue ActiveRecord::RecordInvalid
     render :new, status: :unprocessable_entity
-  end
+  rescue ActiveRecord::RecordNotUnique => e
+    raise unless duplicate_egd_pin_conflict?(e)
 
-  def confirm
-    @participant = Participant.find_by!(uuid: params[:id])
-
-    stored = @participant.confirmation_token.to_s
-    token = params[:token].to_s
-    if stored.present? && stored.bytesize == token.bytesize && ActiveSupport::SecurityUtils.secure_compare(stored, token)
-      @participant.confirm!
-      NewsletterSubscription.subscribe_user(@participant.user)
-      deliver_registration_confirmation(@participant) if @participant.email.present?
-      notice = "Your registration has been confirmed."
-      if @participant.player?
-        redirect_to new_participant_payment_path(@participant), notice: notice
-      else
-        redirect_to participant_path(@participant), notice: notice
-      end
-    else
-      redirect_to root_path, alert: "Invalid or expired confirmation link."
-    end
+    @participant.errors.add(:egd_pin, "is already registered")
+    render :new, status: :unprocessable_entity
   end
 
   def egd_search
@@ -101,12 +100,21 @@ class ParticipantsController < ApplicationController
     render json: payload
   end
 
+  # Checks whether the entered registration email already belongs to an account
+  # so the public form can warn guests before they submit the full registration.
+  def email_registered
+    user = existing_user_for_email(params[:email])
+
+    response.set_header("Cache-Control", "no-store")
+    render json: email_registered_payload_for(user)
+  end
+
   # Entry point for someone who tried to register an EGD entry that already
   # exists. Routes them to re-access the existing account without exposing the
   # account email address on a public page.
   def alter_registration
     pin = params[:egd_pin].to_s.strip
-    @participant = pin.present? ? Participant.where(egd_pin: pin).order(created_at: :asc, id: :asc).first : nil
+    @participant = pin.present? ? Participant.find_by(egd_pin: pin) : nil
 
     if @participant.nil?
       redirect_to new_participant_path, alert: "We couldn't find a registration for that EGD entry."
@@ -124,44 +132,87 @@ class ParticipantsController < ApplicationController
 
   private
 
-  # Sends the appropriate confirmation email after a participant registers.
-  # - Confirmed account: a per-participant confirmation email so the existing
-  #   account holder can confirm this specific registration.
-  # - Existing unconfirmed account: re-sends the Devise account confirmation
-  #   instructions (a newly created account already received them on save).
-  def send_registration_confirmation_email(participant)
-    user = participant.user
-    return unless user
+  def require_participant_owner!
+    head :not_found unless @participant.user_id == current_user.id
+  end
 
+  def participant_profile_params
+    params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
+  end
+
+  # True when a signed-in (already confirmed) user is registering a participant
+  # under their own account. The registration email is pre-filled and locked to
+  # the current user's address, so the ownership is already verified and no
+  # separate email confirmation is required. The user_id match is the
+  # authoritative ownership check; the normalized email comparison is an extra
+  # guard consistent with how accounts are looked up during registration.
+  def register_for_current_user?(participant)
+    user_signed_in? &&
+      current_user.confirmed? &&
+      participant.user_id == current_user.id &&
+      normalize_email(participant.email) == normalize_email(current_user.email)
+  end
+
+  # An email address that already has an account may only be used for further
+  # registrations by the owner of that account, so guests registering with such
+  # an address are refused and asked to sign in first. Runs after the Turnstile
+  # check so the response can't be used to probe for existing accounts.
+  def refuse_registration_for_existing_account
+    return if user_signed_in?
+
+    user = existing_user_for_email(@participant.email)
+    return if user.nil?
+
+    redirect_to existing_account_action_url_for(user),
+      alert: existing_account_alert_for(user)
+  end
+
+  def normalize_email(email)
+    email.to_s.strip.downcase
+  end
+
+  def existing_user_for_email(email)
+    normalized_email = normalize_email(email)
+    return if normalized_email.blank?
+
+    User.find_by(email: normalized_email)
+  end
+
+  def existing_account_alert_for(user)
     if user.confirmed?
-      participant.generate_confirmation_token!
-      deliver_participant_confirmation(participant)
-    elsif !user.previously_new_record?
-      user.registration_participant = participant
-      user.send_confirmation_instructions
+      "An account with that email address already exists. Please log in first to register another participant."
+    else
+      "That email address is already registered, and a confirmation email was sent. Please open that email and confirm your email address to continue. If you cannot find the email, make sure to check your spam folder."
     end
   end
 
-  def deliver_registration_confirmation(participant)
-    ParticipantMailer.registration_confirmation(participant).deliver_now
-  rescue StandardError => e
-    Rails.logger.error("Failed to deliver registration confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
+  def existing_account_action_url_for(user)
+    user.confirmed? ? new_user_session_path : new_user_confirmation_path
   end
 
-  def deliver_participant_confirmation(participant)
-    ParticipantMailer.participant_confirmation(participant).deliver_now
-  rescue StandardError => e
-    Rails.logger.error("Failed to deliver participant confirmation for Participant #{participant.id}: #{e.class}: #{e.message}")
+  def email_registered_payload_for(user)
+    return { registered: false } if user.nil?
+
+    {
+      registered: true,
+      message: existing_account_alert_for(user),
+      action_url: existing_account_action_url_for(user),
+      action_label: user.confirmed? ? "Log in first" : "Resend confirmation instructions"
+    }
+  end
+
+  # Where to send a participant once their registration is confirmed: players
+  # continue to payment, visitors go to their registration page.
+  def registration_next_step_path(participant)
+    if participant.player?
+      new_participant_payment_path(participant)
+    else
+      participant_path(participant)
+    end
   end
 
   def set_participant
     @participant = Participant.find_by!(uuid: params[:id])
-  end
-
-  # Re-render the participant page (which hosts the resend form) when the
-  # Turnstile check fails on resend_confirmation; other actions use :new.
-  def turnstile_failure_template
-    action_name == "resend_confirmation" ? :show : :new
   end
 
   def permitted_sort
@@ -222,8 +273,27 @@ class ParticipantsController < ApplicationController
       skip_password_validation: true
     )
     user.registration_participant = participant
+    # Send after the participant is saved so the email includes its details.
+    user.skip_confirmation_notification!
     user.save!
     user
+  end
+
+  def duplicate_egd_pin_conflict?(error)
+    @participant&.egd_pin.present? &&
+      duplicate_egd_pin_constraint?(error)
+  end
+
+  def duplicate_egd_pin_constraint?(error)
+    constraint_name = unique_constraint_name_from(error)
+    constraint_name == "index_participants_on_egd_pin" || error.message.include?("index_participants_on_egd_pin")
+  end
+
+  def unique_constraint_name_from(error)
+    result = error.cause&.respond_to?(:result) ? error.cause.result : nil
+    return unless result.respond_to?(:error_field)
+
+    result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
   end
 
   def participant_params

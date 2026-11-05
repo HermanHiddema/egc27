@@ -34,6 +34,24 @@ class MenuItemTest < ActiveSupport::TestCase
     assert menu_items(:schedule).valid?
   end
 
+  test "items linking to an authenticated page are hidden from visitors" do
+    item = menu_items(:members_only_item)
+
+    assert_not item.visible_to?(nil)
+    assert item.visible_to?(users(:one))
+  end
+
+  test "items linking to a public page are visible to everyone" do
+    assert menu_items(:schedule).visible_to?(nil)
+  end
+
+  test "hidden items stay hidden for signed-in users" do
+    item = menu_items(:schedule)
+    item.update!(visible: false)
+
+    assert_not item.visible_to?(users(:one))
+  end
+
   test "allows empty destination for placeholder items" do
     item = MenuItem.new(menu: menus(:primary), label: "Missing destination")
 

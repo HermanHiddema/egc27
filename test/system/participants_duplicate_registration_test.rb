@@ -47,6 +47,85 @@ class ParticipantsDuplicateRegistrationTest < ApplicationSystemTestCase
       assert_text "That EGD Entry is already registered. Do you want to alter your registration?"
       link = find("a", text: "Click here to do that")
       assert_includes link[:href], "/participants/alter_registration?egd_pin=12345678"
+
+      assert_text "If you cannot get in, please contact us at info@egc2027.nl"
+      contact = find("a", text: "info@egc2027.nl")
+      assert_equal "mailto:info@egc2027.nl", contact[:href]
     end
+  end
+
+  test "warns when an email already belongs to an account before submit" do
+    visit new_participant_path
+
+    page.execute_script(<<~JS)
+      window.fetch = async (input, init) => {
+        const url = String(input)
+
+        if (url.includes("email_registered")) {
+          return {
+            ok: true,
+            json: async () => ({
+              registered: true,
+              message: "An account with that email address already exists. Please log in first to register another participant.",
+              action_url: "/users/sign_in",
+              action_label: "Log in first"
+            })
+          }
+        }
+
+        return {
+          ok: true,
+          json: async () => []
+        }
+      }
+    JS
+
+    fill_in "participant_email", with: "existing@example.org"
+
+    within("[data-egd-autocomplete-target='existingAccountNotice']") do
+      assert_text "An account with that email address already exists."
+      link = find("a", text: "Log in first")
+      assert_includes link[:href], "/users/sign_in"
+    end
+  end
+
+  test "clears an existing account warning when a new valid email lookup starts" do
+    visit new_participant_path
+
+    page.execute_script(<<~JS)
+      window.fetch = async (input, init) => {
+        const url = String(input)
+        const email = JSON.parse(init.body).email
+
+        if (url.includes("email_registered") && email === "existing@example.org") {
+          return {
+            ok: true,
+            json: async () => ({
+              registered: true,
+              message: "An account with that email address already exists. Please log in first to register another participant.",
+              action_url: "/users/sign_in",
+              action_label: "Log in first"
+            })
+          }
+        }
+
+        if (url.includes("email_registered") && email === "new@example.org") {
+          return {
+            ok: false
+          }
+        }
+
+        return {
+          ok: true,
+          json: async () => []
+        }
+      }
+    JS
+
+    fill_in "participant_email", with: "existing@example.org"
+    assert_text "An account with that email address already exists."
+
+    fill_in "participant_email", with: "new@example.org"
+    assert_no_text "An account with that email address already exists."
   end
 end

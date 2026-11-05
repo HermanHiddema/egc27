@@ -33,20 +33,20 @@ require "test_helper"
 #
 class UserTest < ActiveSupport::TestCase
   test "default role is regular" do
-    user = User.new(email: "new@example.com", password: "password123")
+    user = User.new(email: "new@example.com", password: "securepassword1")
     assert_equal "regular", user.role
     assert user.regular?
   end
 
   test "role can be set to editor" do
-    user = User.new(email: "ed@example.com", password: "password123", role: "editor")
+    user = User.new(email: "ed@example.com", password: "securepassword1", role: "editor")
     assert user.editor?
     refute user.regular?
     refute user.admin?
   end
 
   test "role can be set to admin" do
-    user = User.new(email: "adm@example.com", password: "password123", role: "admin")
+    user = User.new(email: "adm@example.com", password: "securepassword1", role: "admin")
     assert user.admin?
     refute user.editor?
     refute user.regular?
@@ -111,6 +111,17 @@ class UserTest < ActiveSupport::TestCase
     assert user.valid?, "User without password should be valid: #{user.errors.full_messages}"
   end
 
+  test "password must be at least 12 characters long" do
+    user = User.new(email: "short@example.com", password: "elevenchars")
+
+    refute user.valid?
+    assert user.errors.of_kind?(:password, :too_short)
+
+    user.password = "twelvechars1"
+    user.valid?
+    assert_empty user.errors[:password]
+  end
+
   test "password confirmation must match when setting a password" do
     user = users(:one)
 
@@ -144,11 +155,11 @@ class UserTest < ActiveSupport::TestCase
       user: user
     )
 
-    assert_nil participant.confirmed_at
+    assert_not participant.confirmed?
 
-    user.after_confirmation
+    user.confirm
 
-    assert_not_nil participant.reload.confirmed_at
+    assert participant.reload.confirmed?
   end
 
   test "after_confirmation subscribes a user with a participant to the newsletter" do
@@ -198,6 +209,42 @@ class UserTest < ActiveSupport::TestCase
     end
 
     assert_not Participant.exists?(participant.id)
+  end
+
+  test "an account with a hostel checkout can not be deleted" do
+    user = User.create!(email: "checkout_user@example.com", skip_password_validation: true)
+    assert user.account_deletable?
+
+    booking = user.hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
+      mollie_payment_id: "tr_active_checkout"
+    )
+
+    assert_not user.account_deletable?
+  end
+
+  test "an account with a paid hostel booking can not be deleted" do
+    user = User.create!(email: "paid_booking_user@example.com", skip_password_validation: true)
+    assert user.account_deletable?
+
+    booking = user.hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 26),
+      double_rooms: 1
+    )
+    booking.payments.create!(
+      amount_cents: 10_000,
+      description: booking.description,
+      status: "paid"
+    )
+
+    assert_not user.account_deletable?
   end
 
   test "after_confirmation does not subscribe a user without a participant" do

@@ -32,7 +32,7 @@
               <% end %>
             </td>
             <td class="px-6 py-4 text-right">
-              <div class="inline-flex items-center gap-3">
+              <div class="portrait-stack-actions inline-flex items-center gap-3">
                 <% if current_user&.can_edit? %>
                   <%= link_to "Edit", edit_notice_path(notice), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
                 <% end %>

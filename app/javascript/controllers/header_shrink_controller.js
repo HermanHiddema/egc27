@@ -120,18 +120,18 @@ export default class extends Controller {
   applyShrinkState(isShrunk) {
     if (this.isMobile) {
       // On mobile the header is always rendered in its shrunk (compact) state.
-      this.navTarget.classList.add("h-48")
-      this.navTarget.classList.remove("h-64", "lg:h-48", "lg:h-32")
+      this.navTarget.classList.add("h-36")
+      this.navTarget.classList.remove("h-48", "h-64", "lg:h-48", "lg:h-32")
 
-      this.logoTarget.classList.add("h-32")
-      this.logoTarget.classList.remove("h-48", "lg:h-48", "lg:h-32")
+      this.logoTarget.classList.add("h-24")
+      this.logoTarget.classList.remove("h-32", "h-48", "lg:h-48", "lg:h-32")
 
       this.titleTarget.classList.add("text-3xl")
       this.titleTarget.classList.remove("text-4xl", "lg:text-4xl", "lg:text-3xl")
 
       if (this.menuOffsetElement) {
-        this.menuOffsetElement.classList.add("top-48")
-        this.menuOffsetElement.classList.remove("top-64", "lg:top-48", "lg:top-32")
+        this.menuOffsetElement.classList.add("top-0")
+        this.menuOffsetElement.classList.remove("top-48", "top-64", "lg:top-48", "lg:top-32")
       }
     } else {
       this.navTarget.classList.toggle("lg:h-48", !isShrunk)

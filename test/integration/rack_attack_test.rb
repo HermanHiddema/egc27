@@ -104,16 +104,42 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "throttles egd player searches by IP after limit" do
+    freeze_time do
+      30.times do
+        get egd_search_participants_path, params: { q: "a" }, headers: { "REMOTE_ADDR" => "2.3.4.8" }
+        assert_response :success
+      end
+
+      get egd_search_participants_path, params: { q: "a" }, headers: { "REMOTE_ADDR" => "2.3.4.8" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles email registration lookups by IP after limit" do
+    freeze_time do
+      20.times do
+        post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+        assert_response :success
+      end
+
+      post email_registered_participants_path, params: { email: users(:one).email }, as: :json, headers: { "REMOTE_ADDR" => "2.3.4.70" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
   test "throttles confirmation resend by participant UUID after limit" do
     freeze_time do
       participant = participants(:unconfirmed)
 
       2.times do
-        post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+        post resend_registration_confirmation_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
         assert_response :redirect
       end
 
-      post resend_confirmation_participant_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
+      post resend_registration_confirmation_path(participant), headers: { "REMOTE_ADDR" => "2.3.4.8" }
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
     end
@@ -153,7 +179,8 @@ class RackAttackTest < ActionDispatch::IntegrationTest
     params = { user: { email: "unconfirmed@example.com" } }
 
     freeze_time do
-      5.times do
+      5.times do |i|
+        params[:user][:email] = "unconfirmed#{i}@example.com"
         post user_confirmation_path, params: params, headers: { "REMOTE_ADDR" => "5.6.7.8" }
         assert_includes [200, 302, 422], response.status
       end
@@ -195,19 +222,79 @@ class RackAttackTest < ActionDispatch::IntegrationTest
   end
 
   test "throttles newsletter subscriptions by IP after limit" do
-    params = {
-      newsletter_subscription: { first_name: "Jane", last_name: "Doe", email: "news@example.org" }
-    }
-
     freeze_time do
-      10.times do
-        post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      10.times do |i|
+        post newsletter_subscriptions_path,
+          params: { newsletter_subscription: { email: "news#{i}@example.org" } },
+          headers: { "REMOTE_ADDR" => "7.8.9.10" }
         assert_includes [200, 302, 422], response.status
       end
 
-      post newsletter_subscriptions_path, params: params, headers: { "REMOTE_ADDR" => "7.8.9.10" }
+      post newsletter_subscriptions_path,
+        params: { newsletter_subscription: { email: "news10@example.org" } },
+        headers: { "REMOTE_ADDR" => "7.8.9.10" }
       assert_response 429
       assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles newsletter subscriptions by normalized email after limit" do
+    freeze_time do
+      3.times do |i|
+        post newsletter_subscriptions_path,
+          params: { newsletter_subscription: { email: "  News@example.org  " } },
+          headers: { "REMOTE_ADDR" => "7.8.9.#{20 + i}" }
+        assert_includes [200, 302, 422], response.status
+      end
+
+      post newsletter_subscriptions_path,
+        params: { newsletter_subscription: { email: "news@EXAMPLE.org" } },
+        headers: { "REMOTE_ADDR" => "7.8.9.99" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "throttles test newsletter unsubscriptions by IP after limit" do
+    token = NewsletterTestEmailLink.unsubscribe_token("not-subscribed@example.com")
+
+    freeze_time do
+      10.times do
+        delete destroy_test_newsletter_unsubscribe_path(token: token), headers: { "REMOTE_ADDR" => "7.8.9.11" }
+        assert_response :redirect
+      end
+
+      delete destroy_test_newsletter_unsubscribe_path(token: token), headers: { "REMOTE_ADDR" => "7.8.9.11" }
+      assert_response 429
+      assert response.headers["Retry-After"].to_i.positive?
+    end
+  end
+
+  test "does not throttle when Rack::Attack is disabled" do
+    previous_enabled = Rack::Attack.enabled
+    Rack::Attack.enabled = false
+
+    freeze_time do
+      15.times do |i|
+        post user_magic_link_session_path,
+          params: { user: { email: "user#{i}@example.com" } },
+          headers: { "REMOTE_ADDR" => "9.9.9.9" }
+        assert_response :redirect
+      end
+    end
+  ensure
+    Rack::Attack.enabled = previous_enabled
+  end
+
+  test "throttles payment return page by IP after limit" do
+    freeze_time do
+      20.times do
+        get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+        assert_response :success
+      end
+
+      get success_payments_path(token: "invalid"), headers: { "REMOTE_ADDR" => "1.2.3.40" }
+      assert_response 429
     end
   end
 end

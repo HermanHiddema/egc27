@@ -2,27 +2,30 @@
 #
 # Table name: newsletter_subscriptions
 #
-#  id                :bigint           not null, primary key
-#  email             :string           not null
-#  first_name        :string           not null
-#  last_name         :string           not null
-#  subscribed        :boolean          default(TRUE), not null
-#  unsubscribe_token :string           not null
-#  unsubscribed_at   :datetime
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
+#  id                 :bigint           not null, primary key
+#  email              :string           not null
+#  first_name         :string
+#  last_name          :string
+#  subscribed         :boolean          default(TRUE), not null
+#  subscription_token :string           not null
+#  unsubscribed_at    :datetime
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
 #
 # Indexes
 #
-#  index_newsletter_subscriptions_on_email              (email) UNIQUE
-#  index_newsletter_subscriptions_on_unsubscribe_token  (unsubscribe_token) UNIQUE
+#  index_newsletter_subscriptions_on_email               (email) UNIQUE
+#  index_newsletter_subscriptions_on_subscription_token  (subscription_token) UNIQUE
 #
 class NewsletterSubscription < ApplicationRecord
+  has_many :newsletter_deliveries, dependent: :delete_all
+
   before_validation :normalize_fields
-  before_validation :ensure_unsubscribe_token
+  before_validation :ensure_subscription_token
   before_save :sync_unsubscribed_at
 
-  validates :first_name, :last_name, :email, :unsubscribe_token, presence: true
+  validates :email, presence: true
+  validates :subscription_token, presence: true
   validates :email, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
   validates :subscribed, inclusion: { in: [true, false] }
 
@@ -38,7 +41,12 @@ class NewsletterSubscription < ApplicationRecord
 
     email = normalize_email(user.email)
     return if email.blank?
-    return if exists?(email: email)
+
+    existing = find_by(email: email)
+    if existing
+      supplement_names(existing, participant)
+      return existing
+    end
 
     create(
       first_name: participant.first_name,
@@ -47,6 +55,15 @@ class NewsletterSubscription < ApplicationRecord
     )
   rescue ActiveRecord::RecordNotUnique
     nil
+  end
+
+  def self.supplement_names(subscription, participant)
+    attributes = {}
+    attributes[:first_name] = participant.first_name if subscription.first_name.blank?
+    attributes[:last_name] = participant.last_name if subscription.last_name.blank?
+    return if attributes.empty?
+
+    subscription.update(attributes)
   end
 
   def self.update_email(old_email, new_email)
@@ -68,11 +85,23 @@ class NewsletterSubscription < ApplicationRecord
   end
 
   def unsubscribe!
-    update!(subscribed: false)
+    with_lock do
+      next false unless subscribed?
+
+      update!(subscribed: false, subscription_token: SecureRandom.urlsafe_base64(24))
+    end
+  end
+
+  def full_name
+    [first_name, last_name].compact_blank.join(" ")
   end
 
   def resubscribe!
-    update!(subscribed: true)
+    with_lock do
+      next false if subscribed?
+
+      update!(subscribed: true, subscription_token: SecureRandom.urlsafe_base64(24))
+    end
   end
 
   private
@@ -83,8 +112,8 @@ class NewsletterSubscription < ApplicationRecord
     self.email = self.class.normalize_email(email)
   end
 
-  def ensure_unsubscribe_token
-    self.unsubscribe_token = SecureRandom.urlsafe_base64(24) if unsubscribe_token.blank?
+  def ensure_subscription_token
+    self.subscription_token = SecureRandom.urlsafe_base64(24) if subscription_token.blank?
   end
 
   def sync_unsubscribed_at

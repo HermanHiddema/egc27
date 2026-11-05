@@ -1,0 +1,85 @@
+<% content_for :title, "Hostel booking – EGC 2027" %>
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8 gap-4">
+    <h1 class="text-4xl font-bold">Hostel booking</h1>
+    <%= link_to "My hostel bookings", hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Booking details</h2>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-4">
+          <dt class="text-neutral-500 font-medium">Arrival</dt>
+          <dd class="text-neutral-900"><%= eu_date(@hostel_booking.arrival_date, weekday: :short) %></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-neutral-500 font-medium">Departure</dt>
+          <dd class="text-neutral-900"><%= eu_date(@hostel_booking.departure_date, weekday: :short) %></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-neutral-500 font-medium">Nights</dt>
+          <dd class="text-neutral-900"><%= @hostel_booking.nights %></dd>
+        </div>
+        <div class="flex justify-between gap-4">
+          <dt class="text-neutral-500 font-medium">Status</dt>
+          <dd class="text-neutral-900"><%= @hostel_booking.status.humanize %></dd>
+        </div>
+      </dl>
+      <div class="mt-6 border-t border-gray-200 pt-4">
+        <h4 class="font-semibold text-neutral-900 mb-2">Booked</h4>
+        <ul id="booked-items" class="space-y-1 text-sm text-neutral-700">
+          <% HostelPricing::ROOM_TYPES.each do |room_type, room| %>
+            <% quantity = @hostel_booking.public_send(room_type) %>
+            <% if quantity.positive? %>
+              <li><%= quantity %> × <%= room[:label] %></li>
+            <% end %>
+          <% end %>
+          <% if @hostel_booking.breakfasts.positive? %>
+            <li>Breakfast buffet for <%= pluralize(@hostel_booking.breakfasts, "person") %></li>
+          <% end %>
+        </ul>
+      </div>
+    </div>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Payment</h2>
+
+      <%= render "price_calculation", hostel_booking: @hostel_booking %>
+
+      <% if @payment&.paid? %>
+        <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">
+          Your hostel booking has been paid. Thank you!
+        </div>
+      <% elsif @payment&.status&.in?(%w[pending authorized]) %>
+        <div class="bg-brand-yellow-50 border border-brand-yellow-200 text-brand-yellow-900 rounded-lg p-4">
+          Your payment is being processed. You will receive a confirmation once it is complete.
+        </div>
+      <% elsif !@hostel_booking.payable? %>
+        <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">
+          The payment for this booking was <%= @hostel_booking.status.humanize.downcase %>.
+        </div>
+      <% else %>
+        <%= button_to "Pay #{@hostel_booking.amount_formatted} via Mollie", pay_hostel_booking_path(@hostel_booking),
+              method: :post, data: { turbo: false }, class: "w-full btn-primary text-center block py-3 text-lg" %>
+        <p class="text-xs text-neutral-500 mt-3 text-center">
+          You will be redirected to Mollie's secure payment page. The price is fixed when you make your booking.
+        </p>
+        <p class="text-xs text-neutral-500 mt-2 text-center">
+          If none of the payment options offered by Mollie work for you, please see our <%= link_to "FAQ", page_path("faq"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %> for other payment options (wire transfer, pin, cash).
+        </p>
+
+        <% if @show_simulation_controls %>
+          <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
+            <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <% %w[paid pending failed canceled].each do |simulated_status| %>
+                <%= button_to "Simulate #{simulated_status}", pay_hostel_booking_path(@hostel_booking), method: :post, params: { simulate_status: simulated_status }, data: { turbo: false }, class: simulated_status == "paid" ? "btn-primary w-full" : "btn-secondary w-full" %>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

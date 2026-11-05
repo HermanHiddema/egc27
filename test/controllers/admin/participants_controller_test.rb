@@ -27,21 +27,110 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Dave Pending", response.body
     # Shows email addresses
     assert_match "dave@example.org", response.body
-    # Status badges for the three states
-    assert_select "tbody tr td:nth-child(5) span", text: "Pending"
-    assert_select "tbody tr td:nth-child(5) span", text: "Confirmed"
-    assert_select "tbody tr td:nth-child(5) span", text: "Paid"
+    # Status badges for the three states (now the 7th column after strength was added)
+    assert_select "tbody tr td:nth-child(7) span", text: "Pending"
+    assert_select "tbody tr td:nth-child(7) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "Paid"
+    # Participant number (database id offset by 1000) in the first column
+    assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
     assert_select "a[href='#{edit_admin_participant_path(participants(:one))}']", text: "Edit"
+    # Payment action depends on existing payment provider.
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Add payment"
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
-  test "admin can open the edit form" do
+  test "admin participant count reflects zero matching results" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "No matching participant")
+
+    assert_response :success
+    assert_select "#participant-count", text: "0 participants"
+  end
+
+  test "admin participant count uses singular wording for one matching result" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_select "#participant-count", text: "1 participant"
+  end
+
+  test "admin participant count uses plural wording for multiple results" do
+    sign_in users(:admin)
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "#participant-count", text: "#{Participant.count} participants"
+  end
+
+  test "admin sees an add payment link when existing payments can never succeed" do
+    sign_in users(:admin)
+    payments(:open_payment).update!(status: "expired")
+
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Add payment"
+  end
+
+  test "admin sees an add payment link when the latest manual payment failed" do
+    sign_in users(:admin)
+    payments(:manual_payment).update!(status: "failed")
+
+    get admin_participants_path
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:four))}']", text: "Add payment"
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", count: 0
+  end
+
+  test "admin can open the edit form when no payment exists" do
+    sign_in users(:admin)
+    get edit_admin_participant_path(participants(:three))
+
+    assert_response :success
+    assert_select "form[action='#{admin_participant_path(participants(:three))}']"
+    assert_select "input[name='participant[email]'][readonly]"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Record payment"
+  end
+
+  test "admin edit page for participant with mollie payment does not show payment link" do
     sign_in users(:admin)
     get edit_admin_participant_path(participants(:one))
 
     assert_response :success
-    assert_select "form[action='#{admin_participant_path(participants(:one))}']"
-    assert_select "input[name='participant[email]'][readonly]"
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
+  end
+
+  test "admin edit page for participant with manual payment shows edit payment link" do
+    sign_in users(:admin)
+    get edit_admin_participant_path(participants(:four))
+
+    assert_response :success
+    assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
+  end
+
+  test "admin edit page for participant with only canceled payments shows record payment link" do
+    sign_in users(:admin)
+    payments(:open_payment).update!(status: "canceled")
+
+    get edit_admin_participant_path(participants(:one))
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Record payment"
+  end
+
+  test "admin edit page for visitor does not show record payment link" do
+    sign_in users(:admin)
+    get edit_admin_participant_path(participants(:visitor_one))
+
+    assert_response :success
+    assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
   test "admin can update participant details" do
@@ -64,6 +153,18 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Alicia", participant.first_name
     assert_equal "Rotterdam Go Club", participant.club
     assert_equal "alice@example.org", participant.email
+  end
+
+  test "admin changing the egd pin queues an EGD sync for the participant" do
+    sign_in users(:admin)
+    participant = participants(:one)
+
+    assert_enqueued_with(job: EgdSyncJob, args: [participant.id]) do
+      patch admin_participant_path(participant), params: { participant: { egd_pin: "12345678" } }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "12345678", participant.reload.egd_pin
   end
 
   test "admin update with invalid data re-renders the edit form" do
@@ -95,6 +196,15 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match "Bob Jones", response.body
     assert_no_match "Alice Smith", response.body
+  end
+
+  test "admin can filter by full participant name" do
+    sign_in users(:admin)
+    get admin_participants_path(name: "Alice Smith")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
   end
 
   test "admin can filter by status pending" do
@@ -131,6 +241,66 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
+  test "admin can filter by status refunded" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "refunded")
+
+    assert_response :success
+    # Bob's payment was refunded
+    assert_match "Bob Jones", response.body
+    assert_match "Refund", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+  end
+
+  test "admin can filter by status charged back" do
+    participants(:two).payments.update_all(status: "charged_back")
+    sign_in users(:admin)
+    get admin_participants_path(status: "charged_back")
+
+    assert_response :success
+    assert_match "Bob Jones", response.body
+    assert_match "Chargeback", response.body
+    assert_no_match "Alice Smith", response.body
+    assert_no_match "Dave Pending", response.body
+
+    get admin_participants_path(status: "confirmed")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(status: "refunded")
+    assert_no_match "Bob Jones", response.body
+
+    get admin_participants_path(sort: "status")
+    assert_response :success
+  end
+
+  test "refunded participants are excluded from the confirmed filter" do
+    participants(:two).payments.update_all(status: "refunded")
+    sign_in users(:admin)
+    get admin_participants_path(status: "confirmed")
+
+    assert_response :success
+    assert_match "Alice Smith", response.body
+    assert_no_match "Bob Jones", response.body
+  end
+
+  test "refunded participants are excluded from the pending filter" do
+    participants(:unconfirmed).payments.create!(
+      provider: "manual",
+      payment_date: Date.current,
+      payment_method: "bank_transfer",
+      status: "refunded",
+      amount_cents: 5_000,
+      description: "Refunded manual payment"
+    )
+    sign_in users(:admin)
+    get admin_participants_path(status: "pending")
+
+    assert_response :success
+    assert_no_match "Dave Pending", response.body
+  end
+
   test "admin can sort by email ascending" do
     sign_in users(:admin)
     get admin_participants_path(sort: "email", direction: "asc")
@@ -141,13 +311,38 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
+    participants(:one).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "charged_back")
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
 
     assert_response :success
-    statuses = css_select("tbody tr td:nth-child(5)").map { |td| td.text.strip }
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2 }
+    statuses = css_select("tbody tr td:nth-child(7)").map { |td| td.text.strip }
+    assert_includes statuses, "Chargeback"
+    assert_includes statuses, "Refund"
+    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
+  end
+
+  test "admin status sort keeps repaid participants in paid state" do
+    participant = participants(:two)
+    participant.payments.update_all(status: "refunded")
+    participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Manual replacement payment",
+      provider: "manual",
+      payment_date: Date.current,
+      payment_method: "bank_transfer",
+      status: "paid"
+    )
+    sign_in users(:admin)
+
+    get admin_participants_path(sort: "status", direction: "asc")
+
+    assert_response :success
+    bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
+    assert_not_nil bob_row
+    assert_includes bob_row.css("td")[6].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do
@@ -158,5 +353,243 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     # Default sort is by name; all participants remain visible
     assert_match "Alice Smith", response.body
     assert_match "Dave Pending", response.body
+  end
+  test "non-admins cannot delete participants" do
+    sign_in users(:editor)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:three))
+    end
+
+    assert_redirected_to root_path
+  end
+
+  test "admin can delete a participant without successful payments" do
+    sign_in users(:admin)
+
+    assert_difference "Participant.count", -1 do
+      delete admin_participant_path(participants(:three))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted.", flash[:notice]
+    assert_not Participant.exists?(participants(:three).id)
+    assert User.exists?(users(:one).id)
+  end
+
+  test "admin cannot delete a participant with a successful payment" do
+    sign_in users(:admin)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:two))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with a successful payment cannot be deleted.", flash[:alert]
+  end
+
+  test "admin cannot delete a participant with an open payment" do
+    sign_in users(:admin)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:one))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with an open or pending payment cannot be deleted.", flash[:alert]
+  end
+
+  test "admin cannot delete a participant with refunded payments" do
+    sign_in users(:admin)
+    participants(:two).payments.update_all(status: "refunded")
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:two))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants with refunded payments cannot be deleted.", flash[:alert]
+  end
+
+  test "admin can delete the last participant of a user together with the user" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+    participants(:four).destroy!
+    user_id = users(:dave).id
+
+    assert_difference ["Participant.count", "User.count"], -1 do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant and user account were successfully deleted.", flash[:notice]
+    assert_not User.exists?(user_id)
+  end
+
+  test "admin deleting their own last participant keeps the user account" do
+    sign_in users(:admin)
+    participant = Participant.create!(
+      user: users(:admin),
+      first_name: "Admin",
+      last_name: "Self",
+      email: "admin-self@example.com",
+      age_group: "18-49",
+      gender: "female",
+      country: "NL",
+      club: "Amsterdam Go Club",
+      rank: 27,
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      image_use_consent: false,
+      participant_type: "player"
+    )
+
+    assert_difference "Participant.count", -1 do
+      delete admin_participant_path(participant), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted. The user account was kept.", flash[:notice]
+    assert User.exists?(users(:admin).id)
+  end
+
+  test "the user is kept when the delete user box is unchecked" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+    participants(:four).destroy!
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed))
+    end
+
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "the user is kept when other participants remain" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "the user is kept when they still have authored site content" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+    participants(:four).destroy!
+    Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
+
+    assert_no_difference "User.count" do
+      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participant was successfully deleted. The user account was kept.", flash[:notice]
+    assert User.exists?(users(:dave).id)
+  end
+
+  test "admin edit page hides the user-delete option for a user with authored site content" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+    participants(:four).destroy!
+    Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
+
+    get edit_admin_participant_path(participants(:unconfirmed))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "not eligible for deletion", response.body
+  end
+
+  test "admin edit page offers deletion with a warning for the last participant of a user" do
+    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
+    sign_in users(:admin)
+    participants(:four).destroy!
+
+    get edit_admin_participant_path(participants(:unconfirmed))
+
+    assert_response :success
+    assert_select "form[action='#{admin_participant_path(participants(:unconfirmed))}'] input[name='delete_user']"
+    assert_match "last participant registered by", response.body
+  end
+
+  test "admin edit page hides the user-delete option for their own last participant" do
+    sign_in users(:admin)
+    participant = Participant.create!(
+      user: users(:admin),
+      first_name: "Own",
+      last_name: "Admin",
+      email: "admin-own@example.com",
+      age_group: "18-49",
+      gender: "female",
+      country: "DE",
+      club: "Berlin Go Club",
+      rank: 30,
+      accepted_terms_and_conditions: true,
+      accepted_privacy_policy: true,
+      image_use_consent: false,
+      participant_type: "player"
+    )
+
+    get edit_admin_participant_path(participant)
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "signed-in admin account", response.body
+  end
+
+  test "admin edit page hides deletion for participants with a successful payment" do
+    sign_in users(:admin)
+
+    get edit_admin_participant_path(participants(:two))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "successful payment", response.body
+  end
+
+  test "admin edit page hides deletion for participants with an open payment" do
+    sign_in users(:admin)
+
+    get edit_admin_participant_path(participants(:one))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "open or pending payment", response.body
+  end
+
+  test "admin edit page hides deletion for participants with refunded payments" do
+    sign_in users(:admin)
+    participants(:two).payments.update_all(status: "refunded")
+
+    get edit_admin_participant_path(participants(:two))
+
+    assert_response :success
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "refunded payments", response.body
+  end
+
+  test "admin can trigger an EGD synchronization" do
+    sign_in users(:admin)
+
+    assert_enqueued_with(job: EgdSyncJob) do
+      post sync_egd_admin_participants_path
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "EGD synchronization has been started.", flash[:notice]
+  end
+
+  test "regular user cannot trigger an EGD synchronization" do
+    sign_in users(:one)
+
+    assert_no_enqueued_jobs(only: EgdSyncJob) do
+      post sync_egd_admin_participants_path
+    end
+
+    assert_redirected_to root_path
   end
 end

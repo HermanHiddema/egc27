@@ -1,7 +1,7 @@
 source "https://rubygems.org"
 
 # Bundle edge Rails instead: gem "rails", github: "rails/rails", branch: "main"
-gem "rails", "~> 8.1.3"
+gem "rails", "~> 8.1.4", ">= 8.1.4.1"
 # The modern asset pipeline for Rails [https://github.com/rails/propshaft]
 gem "propshaft"
 # Use PostgreSQL as the database for Active Record
@@ -49,12 +49,13 @@ gem "bootsnap", require: false
 
 # Deploy this application anywhere as a Docker container [https://kamal-deploy.org]
 gem "kamal", require: false
+gem "net-ssh", ">= 7.3.6"
 
 # Add HTTP asset caching/compression and X-Sendfile acceleration to Puma [https://github.com/basecamp/thruster/]
 gem "thruster", require: false
 
 # Use Active Storage variants [https://guides.rubyonrails.org/active_storage_overview.html#transforming-images]
-gem "image_processing", "~> 2.0"
+gem "image_processing", "~> 2.2"
 # Requires the libvips system package on non-Docker setups.
 gem "ruby-vips", ">= 2.1"
 
@@ -73,6 +74,9 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  # Keep db/schema.rb columns sorted alphabetically [https://github.com/denkungsart/alphabetical_schema]
+  gem "alphabetical_schema"
 end
 
 group :development do
@@ -95,3 +99,6 @@ group :test do
   gem "capybara"
   gem "selenium-webdriver"
 end
+
+gem "paper_trail", "~> 17.0"
+gem "crass", ">= 1.0.8"

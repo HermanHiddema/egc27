@@ -4,27 +4,27 @@
 #
 # Table name: newsletter_subscriptions
 #
-#  id                :bigint           not null, primary key
-#  email             :string           not null
-#  first_name        :string           not null
-#  last_name         :string           not null
-#  subscribed        :boolean          default(TRUE), not null
-#  unsubscribe_token :string           not null
-#  unsubscribed_at   :datetime
-#  created_at        :datetime         not null
-#  updated_at        :datetime         not null
+#  id                 :bigint           not null, primary key
+#  email              :string           not null
+#  first_name         :string
+#  last_name          :string
+#  subscribed         :boolean          default(TRUE), not null
+#  subscription_token :string           not null
+#  unsubscribed_at    :datetime
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
 #
 # Indexes
 #
-#  index_newsletter_subscriptions_on_email              (email) UNIQUE
-#  index_newsletter_subscriptions_on_unsubscribe_token  (unsubscribe_token) UNIQUE
+#  index_newsletter_subscriptions_on_email               (email) UNIQUE
+#  index_newsletter_subscriptions_on_subscription_token  (subscription_token) UNIQUE
 #
 active:
   first_name: Alice
   last_name: Jones
   email: alice@example.com
   subscribed: true
-  unsubscribe_token: token-active
+  subscription_token: token-active
   unsubscribed_at:
 
 inactive:
@@ -32,5 +32,5 @@ inactive:
   last_name: Smith
   email: bob@example.com
   subscribed: false
-  unsubscribe_token: token-inactive
+  subscription_token: token-inactive
   unsubscribed_at: <%= 2.days.ago %>

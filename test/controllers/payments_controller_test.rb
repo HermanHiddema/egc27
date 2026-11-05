@@ -3,6 +3,7 @@ require "ostruct"
 
 class PaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
+  include ActiveSupport::Testing::TimeHelpers
 
   # new
   test "new redirects visitors to participant page" do
@@ -26,19 +27,129 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
+    payments(:open_payment).update_column(:created_at, Time.zone.local(2026, 8, 1))
 
-    get new_participant_payment_path(participant)
+    travel_to Time.zone.local(2026, 8, 1) do
+      get new_participant_payment_path(participant)
+    end
 
     assert_response :success
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
+    assert_match "This price is valid until", response.body
+    assert_match "31 Aug 2026", response.body
+    assert_match "After that, the price will go up.", response.body
+    assert_select "table.price-overview thead tr.bg-gray-200"
+    assert_select "table.price-overview th", count: 4
+    assert_select "table.price-overview th", text: /Pass type/
+    assert_select "table.price-overview th", text: /Special/, count: 0
+    assert_select "table.price-overview th .price-overview-label", count: 3
+    assert_select "table.price-overview th .price-overview-label + details.price-period-info", count: 3
+    assert_select "details.price-period-info summary[aria-label='Early Bird price period dates']"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 January 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "Until 31 May 2027"
+    assert_select "details.price-period-info .price-period-popup", text: "From 1 June 2027"
+    assert_select "tr.price-overview-row.bg-brand-yellow-200"
+    assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options/
+    assert_select "a[href=?]", page_path("faq"), text: "FAQ"
+  end
+
+  test "new reuses an in-progress payment for pricing and display" do
+    participant = participants(:three)
+    payment = participant.payments.create!(
+      amount_cents: 12_345,
+      description: "Existing pending payment",
+      status: "pending",
+      created_at: Time.zone.local(2026, 8, 15),
+      updated_at: Time.zone.local(2026, 8, 15)
+    )
+
+    travel_to Time.zone.local(2026, 9, 10) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
+    assert_select ".payment-participant-overview .payment-pass-type", text: payment.description, count: 0
+    assert_match "31 Aug 2026", response.body
+  end
+
+  test "new does not show price validity notice in final pricing period" do
+    participant = participants(:three)
+
+    travel_to Time.zone.local(2027, 6, 1) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_no_match "This price is valid until", response.body
+    assert_no_match "After that, the price will go up.", response.body
+  end
+
+  test "new uses persisted payment date for price validity text" do
+    participant = participants(:one)
+    payment = payments(:open_payment)
+    payment.update!(
+      participant: participant,
+      amount_cents: 19_000,
+      description: "EGC 2027 All events",
+      status: "pending",
+      created_at: Time.zone.local(2026, 8, 15)
+    )
+
+    travel_to Time.zone.local(2026, 9, 10) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_match "This price is valid until", response.body
+    assert_match "31 Aug 2026", response.body
+  end
+
+  test "new hides Mollie simulation controls outside development and test environments" do
+    participant = participants(:one)
+
+    with_mollie_simulation_enabled do
+      with_rails_env("production") do
+        get new_participant_payment_path(participant)
+      end
+    end
+
+    assert_response :success
+    assert_no_match "Development: Simulate Mollie Response", response.body
   end
 
   test "new shows paid state for participant with completed payment" do
     participant = participants(:two)
 
-    get new_participant_payment_path(participant)
+    with_paid_mollie_stub(payments(:paid_payment)) do
+      get new_participant_payment_path(participant)
+    end
 
     assert_response :success
     assert_match "already been paid", response.body
+    assert_no_match "This price is valid until", response.body
+  end
+
+  test "new allows retry when local paid payment is remotely refunded" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
+
+    get new_participant_payment_path(participant)
+
+    assert_response :success
+    assert_equal "refunded", paid_payment.reload.status
+    assert_no_match "already been paid", response.body
+    assert_select "form[action='#{participant_payment_path(participant)}']"
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   # create
@@ -62,24 +173,163 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects to success page when payment already completed" do
     participant = participants(:two)
 
-    post participant_payment_path(participant)
+    with_paid_mollie_stub(payments(:paid_payment)) do
+      post participant_payment_path(participant)
+    end
 
     assert_redirected_to success_payments_path
   end
 
-  test "create starts a single payment when no in-progress payment exists" do
-    participant = participants(:three)
-    mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
+  test "create retries payment when local paid payment is remotely refunded" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+    retry_mollie = OpenStruct.new(id: "tr_retry_123", checkout_url: "https://example.test/retry-checkout")
 
-    original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| retry_mollie }
 
     assert_difference("Payment.count", 1) do
       post participant_payment_path(participant)
     end
 
+    assert_redirected_to "https://example.test/retry-checkout"
+    assert_equal "refunded", paid_payment.reload.status
+    assert_equal "open", participant.payments.order(created_at: :desc).first.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create retries payment when consecutive local paid Mollie payments are remotely refunded" do
+    participant = participants(:two)
+    newer_paid_payment = payments(:paid_payment)
+    older_paid_payment = participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Older Mollie payment",
+      provider: "mollie",
+      payment_method: "ideal",
+      mollie_payment_id: "tr_paid_older",
+      status: "paid",
+      created_at: newer_paid_payment.created_at - 1.day,
+      updated_at: newer_paid_payment.updated_at - 1.day
+    )
+    retry_mollie = OpenStruct.new(id: "tr_retry_multi_123", checkout_url: "https://example.test/retry-multi-checkout")
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) do |id|
+      OpenStruct.new(
+        id: id,
+        status: "paid",
+        amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+      )
+    end
+    Mollie::Payment.define_singleton_method(:create) { |**_params| retry_mollie }
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to "https://example.test/retry-multi-checkout"
+    assert_equal "refunded", newer_paid_payment.reload.status
+    assert_equal "refunded", older_paid_payment.reload.status
+    assert_equal "open", participant.payments.order(created_at: :desc).first.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create keeps existing successful registration when another payment remains paid" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    participant.payments.create!(
+      amount_cents: 5_000,
+      description: "Manual fallback payment",
+      provider: "manual",
+      payment_date: Date.current,
+      payment_method: "bank_transfer",
+      status: "paid",
+      created_at: paid_payment.created_at + 1.day,
+      updated_at: paid_payment.updated_at + 1.day
+    )
+    refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| flunk("should not create a new payment") }
+
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to success_payments_path
+    assert_equal "refunded", paid_payment.reload.status
+    assert_equal 1, participant.payments.completed.count
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create retries payment when local paid payment is partially refunded" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    partially_refunded_mollie = OpenStruct.new(
+      id: paid_payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR")
+    )
+    retry_mollie = OpenStruct.new(id: "tr_retry_partial_123", checkout_url: "https://example.test/retry-partial-checkout")
+
+    original_get = Mollie::Payment.method(:get)
+    original_create = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:get) { |_id| partially_refunded_mollie }
+    Mollie::Payment.define_singleton_method(:create) { |**_params| retry_mollie }
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(participant)
+    end
+
+    assert_redirected_to "https://example.test/retry-partial-checkout"
+    assert_equal "refunded", paid_payment.reload.status
+    assert_equal "open", participant.payments.order(created_at: :desc).first.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original_get)
+    Mollie::Payment.define_singleton_method(:create, &original_create)
+  end
+
+  test "create starts a single payment when no in-progress payment exists" do
+    participant = participants(:three)
+    mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
+    mollie_create_params = nil
+
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) do |**params|
+      mollie_create_params = params
+      mollie_stub
+    end
+
+    assert_difference("Payment.count", 1) do
+      post participant_payment_path(participant)
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+
     assert_redirected_to "https://example.test/new-checkout"
-    assert_equal "tr_new_attempt_123", participant.payments.order(created_at: :desc).first.mollie_payment_id
+    assert_equal "tr_new_attempt_123", payment.mollie_payment_id
+    assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
+    assert_equal payment.description, mollie_create_params[:description]
   ensure
     Mollie::Payment.define_singleton_method(:create, &original)
   end
@@ -154,6 +404,55 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create, &original_create)
   end
 
+  test "create can simulate a paid Mollie status when enabled" do
+    participant = participants(:three)
+
+    with_mollie_simulation_enabled do
+      assert_difference("Payment.count", 1) do
+        post participant_payment_path(participant), params: { simulate_status: "paid" }
+      end
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+    assert_redirected_to_success_for payment
+    assert_equal "paid", payment.status
+    assert_nil payment.mollie_payment_id
+  end
+
+  test "create can simulate failed status on an existing in-progress payment" do
+    payment = payments(:open_payment)
+
+    with_mollie_simulation_enabled do
+      assert_no_difference("Payment.count") do
+        post participant_payment_path(payment.participant), params: { simulate_status: "failed" }
+      end
+    end
+
+    assert_redirected_to_success_for payment
+    assert_equal "failed", payment.reload.status
+    assert_nil payment.mollie_payment_id
+  end
+
+  test "create ignores simulate_status outside development and test environments" do
+    participant = participants(:three)
+    mollie_stub = OpenStruct.new(id: "tr_live_123", checkout_url: "https://example.test/live-checkout")
+    original = Mollie::Payment.method(:create)
+    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
+
+    with_mollie_simulation_enabled do
+      with_rails_env("production") do
+        post participant_payment_path(participant), params: { simulate_status: "paid" }
+      end
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+    assert_redirected_to "https://example.test/live-checkout"
+    assert_equal "open", payment.status
+    assert_equal "tr_live_123", payment.mollie_payment_id
+  ensure
+    Mollie::Payment.define_singleton_method(:create, &original)
+  end
+
   # success
   test "success renders page without payment_id" do
     get success_payments_path
@@ -167,6 +466,48 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
   end
 
+  test "success does not look up payments by their numeric id" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed")
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| flunk "Mollie should not be called" }
+
+    get success_payments_path(payment_id: payment.id)
+    get success_payments_path(token: payment.id)
+
+    assert_response :success
+    assert_match "Return from Payment", response.body
+    assert_no_match payment.participant.uuid, response.body
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "success ignores tampered and expired tokens" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed", mollie_payment_id: nil)
+    token = payment.return_token
+
+    get success_payments_path(token: "#{token}x")
+    assert_match "Return from Payment", response.body
+
+    travel Payment::RETURN_TOKEN_EXPIRY + 1.minute do
+      get success_payments_path(token: token)
+    end
+    assert_match "Return from Payment", response.body
+    assert_no_match payment.participant.uuid, response.body
+  end
+
+  test "success shows the payment for a valid token" do
+    payment = payments(:open_payment)
+    payment.update!(status: "failed", mollie_payment_id: nil)
+
+    get success_payments_path(token: payment.return_token)
+
+    assert_response :success
+    assert_match "Payment Not Completed", response.body
+    assert_select "a[href='#{new_participant_payment_path(payment.participant)}']", text: "Try again"
+  end
+
   test "success treats authorized payments as pending" do
     payment = payments(:open_payment)
     payment.update!(status: "authorized")
@@ -175,7 +516,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
 
-    get success_payments_path(payment_id: payment.id)
+    get success_payments_path(token: payment.return_token)
 
     assert_response :success
     assert_match "Payment Pending", response.body
@@ -183,14 +524,67 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
+  test "success offers to set a password when the signed-in user has none" do
+    payment = payments(:paid_payment)
+    payment.participant.update!(user: users(:no_password), email: users(:no_password).email)
+    devise_sign_in users(:no_password)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(token: payment.return_token)
+    end
+
+    assert_response :success
+    assert_match "Payment Successful", response.body
+    assert_match "Set a password?", response.body
+    assert_select "a[href='#{edit_user_registration_path}']", text: "Set a password"
+    assert_select "form[action='#{skip_user_password_path}']"
+  end
+
+  test "success does not offer a password when paid payment belongs to another user" do
+    payment = payments(:paid_payment)
+    payment.participant.update!(user: users(:two), email: users(:two).email)
+    devise_sign_in users(:no_password)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(token: payment.return_token)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
+  end
+
+  test "success does not offer a password when the signed-in user already has one" do
+    payment = payments(:paid_payment)
+    assert users(:two).password_set?, "fixture user should already have a password"
+    sign_in users(:two)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(token: payment.return_token)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
+  end
+
+  test "success does not offer a password to anonymous visitors" do
+    payment = payments(:paid_payment)
+
+    with_paid_mollie_stub(payment) do
+      get success_payments_path(token: payment.return_token)
+    end
+
+    assert_response :success
+    assert_no_match "Set a password?", response.body
+  end
+
   # webhook
-  test "webhook returns ok on unknown mollie id" do
+  test "webhook asks Mollie to retry when fetching the payment fails" do
     original = Mollie::Payment.method(:get)
     Mollie::Payment.define_singleton_method(:get) { |_id| raise Mollie::Exception, "not found" }
 
     post webhook_payments_path, params: { id: "tr_unknown" }
 
-    assert_response :ok
+    assert_response :service_unavailable
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end
@@ -210,7 +604,109 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get, &original)
   end
 
-  test "webhook is not blocked by the modern browser guard" do
+  test "webhook records the payment method reported by mollie" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      attributes: { "method" => "ideal" }
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    payment.reload
+    assert_equal "paid", payment.status
+    assert_equal "ideal", payment.payment_method
+    assert_equal "mollie", payment.provider
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook keeps the existing payment method when mollie reports none" do
+    payment = payments(:open_payment)
+    payment.update_columns(payment_method: "ideal")
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    assert_equal "ideal", payment.reload.payment_method
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook records a refunded payment as refunded" do
+    payment = payments(:paid_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    payment.reload
+    assert_equal "refunded", payment.status
+    assert_not payment.participant.reload.paid?
+    assert_equal "Refund", payment.participant.registration_status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook records a charged-back payment as charged back" do
+    payment = payments(:paid_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR"),
+      amount_charged_back: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    payment.reload
+    assert_equal "charged_back", payment.status
+    assert_not payment.participant.reload.paid?
+    assert_equal "Chargeback", payment.participant.registration_status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook keeps a payment paid when nothing was refunded" do
+    payment = payments(:open_payment)
+    mollie_stub = OpenStruct.new(
+      id: payment.mollie_payment_id,
+      status: "paid",
+      amount_refunded: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR")
+    )
+
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+
+    post webhook_payments_path, params: { id: payment.mollie_payment_id }
+
+    assert_response :ok
+    assert_equal "paid", payment.reload.status
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  test "webhook is not blocked for outdated browser user agents" do
     payment = payments(:open_payment)
     mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
 
@@ -231,5 +727,44 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "paid", payment.reload.status
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  private
+
+  # Stubs Mollie::Payment.get so the success action can refresh the payment
+  # status without making a network call, returning the payment as paid.
+  def with_paid_mollie_stub(payment)
+    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
+  end
+
+  def with_mollie_simulation_enabled
+    original = Rails.application.config.x.payments.simulate_mollie
+    Rails.application.config.x.payments.simulate_mollie = true
+    yield
+  ensure
+    Rails.application.config.x.payments.simulate_mollie = original
+  end
+
+  # Temporarily switches Rails.env for the duration of the block so environment
+  # guards (e.g. the dev/test-only Mollie simulation path) can be exercised.
+  def with_rails_env(env_name)
+    original = Rails.method(:env).to_proc
+    Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new(env_name) }
+    yield
+  ensure
+    Rails.define_singleton_method(:env, &original)
+  end
+
+  def assert_redirected_to_success_for(payment)
+    assert_response :redirect
+    location = URI.parse(response.location)
+    assert_equal success_payments_path, location.path
+    token = Rack::Utils.parse_query(location.query)["token"]
+    assert_equal payment, Payment.find_by_return_token(token)
   end
 end

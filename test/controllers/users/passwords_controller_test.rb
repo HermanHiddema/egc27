@@ -29,6 +29,41 @@ class Users::PasswordsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to new_user_session_path
   end
 
+  test "reports an unknown email without sending instructions" do
+    assert_emails 0 do
+      post user_password_path, params: { user: { email: "unknown@example.org" } }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "#error_explanation h2", text: "Unknown email address"
+  end
+
+  test "shows the account on the reset form and after a validation error" do
+    user = users(:one)
+    raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)
+    user.update!(reset_password_token: hashed_token, reset_password_sent_at: Time.current)
+
+    get edit_user_password_path(reset_password_token: raw_token)
+    assert_response :success
+    assert_select "strong", text: user.email
+
+    put user_password_path, params: { user: { reset_password_token: raw_token, password: "short", password_confirmation: "short" } }
+    assert_response :unprocessable_entity
+    assert_select "strong", text: user.email
+  end
+
+  test "does not identify an account for an expired or invalid reset token" do
+    user = users(:one)
+    raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)
+    user.update!(reset_password_token: hashed_token, reset_password_sent_at: 1.year.ago)
+
+    [raw_token, "invalid-token"].each do |token|
+      get edit_user_password_path(reset_password_token: token)
+      assert_response :success
+      assert_select "strong", text: user.email, count: 0
+    end
+  end
+
   test "a password reset link can only be used once" do
     user = users(:one)
     raw_token, hashed_token = Devise.token_generator.generate(User, :reset_password_token)

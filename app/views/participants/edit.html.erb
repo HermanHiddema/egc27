@@ -1,0 +1,57 @@
+<div class="container-wide py-12">
+  <div class="max-w-3xl mx-auto">
+    <h1 class="text-4xl font-bold mb-4">Edit Participant Details</h1>
+    <p class="text-neutral-700 mb-8">You can update your gender, country, club, and photo privacy choice here.</p>
+
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <% if @participant.errors.any? %>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+          <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
+          <ul class="text-red-700 list-disc list-inside">
+            <% @participant.errors.full_messages.each do |message| %>
+              <li><%= message %></li>
+            <% end %>
+          </ul>
+        </div>
+      <% end %>
+
+      <%= form_with model: @participant, class: "space-y-6", data: { controller: "egd-autocomplete" } do |form| %>
+        <div class="space-y-4">
+          <h2 class="text-lg font-semibold text-neutral-900">Participant</h2>
+          <div>
+            <%= form.label :country, "Country *", for: "participant_country_display", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.hidden_field :country, data: { egd_autocomplete_target: "countryCode" } %>
+            <div class="relative" data-action="focusout->egd-autocomplete#countryFocusOut">
+              <input id="participant_country_display" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" placeholder="Start typing country name or code" role="combobox" aria-expanded="false" aria-autocomplete="list" aria-controls="iso-country-options" data-egd-autocomplete-target="countryInput" data-action="input->egd-autocomplete#countryInputChanged focus->egd-autocomplete#showCountryOptions click->egd-autocomplete#showCountryOptions keydown->egd-autocomplete#countryKeydown" autocomplete="off">
+              <div id="iso-country-options" role="listbox" class="hidden absolute z-20 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg" data-egd-autocomplete-target="countryOptions"></div>
+            </div>
+          </div>
+          <div>
+            <%= form.label :gender, "Gender *", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.select :gender, options_for_select([["Male", "male"], ["Female", "female"], ["Non-Binary", "non_binary"], ["Prefer not to say", "prefer_not_to_say"]], @participant.gender), { prompt: "Select gender" }, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          </div>
+          <div>
+            <%= form.label :club, "Club", class: "block text-sm font-medium text-gray-700 mb-2" %>
+            <%= form.text_field :club, class: "w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600" %>
+          </div>
+          <fieldset class="space-y-2">
+            <legend class="text-sm font-medium text-gray-700">Photo privacy choice *</legend>
+            <label class="flex items-center gap-3 text-sm text-gray-800">
+              <%= form.radio_button :image_use_consent, true, class: "h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+              <span>I consent to the use of images.</span>
+            </label>
+            <label class="flex items-center gap-3 text-sm text-gray-800">
+              <%= form.radio_button :image_use_consent, false, class: "h-4 w-4 border-gray-300 text-brand-blue-600 focus:ring-brand-blue-600" %>
+              <span>I do not consent to the use of images.</span>
+            </label>
+          </fieldset>
+        </div>
+
+        <div class="flex gap-4">
+          <%= form.submit "Save changes", class: "btn-primary" %>
+          <%= link_to "Cancel", participant_path(@participant), class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

@@ -10,8 +10,8 @@ if seed_updates_allowed
   user = User.find_or_initialize_by(email: "test@example.com")
   user.update!(
     email: "test@example.com",
-    password: "password123",
-    password_confirmation: "password123",
+    password: "testpassword123",
+    password_confirmation: "testpassword123",
     full_name: "Test Admin",
     role: "admin",
     confirmed_at: Time.current,
@@ -20,7 +20,7 @@ if seed_updates_allowed
     unconfirmed_email: nil
   )
 
-  puts "✓ Test admin user created: test@example.com / password123"
+  puts "✓ Test admin user created: test@example.com / testpassword123"
 else
   user = User.find_by(email: "test@example.com")
 end
@@ -46,7 +46,6 @@ if File.exist?(static_pages_path)
 
     page.assign_attributes(
       title: title,
-      content: content,
       content_html: "<p>#{ERB::Util.html_escape(content)}</p>"
     )
     next unless page.new_record? || page.changed?
@@ -56,6 +55,8 @@ if File.exist?(static_pages_path)
     seeded_pages += 1
   end
 end
+
+Page.find_by(slug: "sponsors")&.destroy! if seed_updates_allowed
 
 puts "✓ Seeded #{seeded_pages} static content pages"
 
@@ -73,7 +74,6 @@ legal_pages.each do |legal_page|
 
   page.assign_attributes(
     title: legal_page[:title],
-    content: legal_page[:content],
     content_html: "<p>#{ERB::Util.html_escape(legal_page[:content])}</p>"
   )
   next unless page.new_record? || page.changed?
@@ -112,7 +112,6 @@ article_seeds.each do |article_seed|
 
   article.assign_attributes(
     user: article_user,
-    content: article_seed[:content],
     content_html: "<p>#{ERB::Util.html_escape(article_seed[:content])}</p>"
   )
   next unless article.new_record? || article.changed?
@@ -123,32 +122,218 @@ end
 
 puts "✓ Seeded #{seeded_articles} news articles"
 
+if seed_updates_allowed && user
+  newsletter_title = "Newsletter: A Week of Go in Scotland"
+  newsletter_images = [
+    ["EGC2027-goborddraakje2.jpg", "Go board and congress mascot", "Players gather around the board before the first round.", "right"],
+    ["EGC2027-liggenddraakje.jpg", "European Go Congress mascot", "The congress mascot welcomes players from across Europe.", "left"],
+    ["EGC2027-schilddraak-zondertekst.png", "Congress dragon emblem", "A keepsake emblem for a memorable summer of Go.", "right"]
+  ]
+  newsletter_figures = newsletter_images.map do |filename, alt_text, caption, float_side|
+    image_path = Rails.root.join("app/assets/images/placeholders", filename)
+    blob_key = "seed-newsletter/#{filename}"
+    blob = ActiveStorage::Blob.find_by(key: blob_key)
+    unless blob
+      File.open(image_path) do |image_file|
+        blob = ActiveStorage::Blob.create_and_upload!(
+          key: blob_key,
+          io: image_file,
+          filename: filename,
+          content_type: Marcel::MimeType.for(Pathname.new(image_path))
+        )
+      end
+    end
+    image_src = Rails.application.routes.url_helpers.rails_blob_path(blob, only_path: true)
+
+    <<~HTML.strip
+      <figure style="float: #{float_side}; width: 50%; margin: 0 1.5rem 1rem #{float_side == 'left' ? '0' : '1.5rem'};">
+        <img src="#{image_src}" alt="#{ERB::Util.html_escape(alt_text)}" style="width: 100%; height: auto;">
+        <figcaption style="text-align: center;">#{ERB::Util.html_escape(caption)}</figcaption>
+      </figure>
+    HTML
+  end
+  newsletter_content = <<~HTML
+    <p>Scotland will welcome Go players from across Europe and beyond for a summer of competition, study, and new friendships. The European Go Congress brings together people of every age and playing strength, from first-time tournament players to professionals and long-time champions.</p>
+    #{newsletter_figures[0]}
+    <p>Each day offers a full program of games, with the main tournaments at its heart. Players can test their reading and strategy over the board, then review key positions with fellow competitors after the round. Side tournaments offer a change of pace, whether you prefer a quick game, a team event, or a different board size.</p>
+    <p>Between rounds, take time to enjoy the setting. Scotland is known for its dramatic landscapes, historic towns, and warm welcome. The congress is a chance to share that experience with visitors and local players alike, and to discover what makes the Go community so welcoming wherever it meets.</p>
+    #{newsletter_figures[1]}
+    <p>The professional program adds another perspective to the week. Game reviews, lectures, and simultaneous games give participants the chance to learn directly from strong players, ask questions, and see familiar positions in a new light. Sessions are suitable for curious beginners as well as experienced players looking to deepen their understanding.</p>
+    #{newsletter_figures[2]}
+    <p>There is plenty to enjoy away from the boards too. Meet old friends over a meal, make plans for an excursion, or simply continue a conversation that began during a game. These informal moments are part of the congress tradition and often become some of the most memorable parts of the week.</p>
+    <p>We look forward to welcoming you to Scotland. Keep an eye on the schedule and news pages for program updates, and start planning the games, events, and conversations you most want to be part of.</p>
+  HTML
+  newsletter = Article.find_or_initialize_by(title: newsletter_title)
+  newsletter.update!(user: user, content_html: newsletter_content)
+end
+
+participant_seeds = [
+  { first_name: "Alex", last_name: "Morgan", email: "alex.morgan@example.com", country: "GB", club: "Edinburgh Go Club", rank: "3 dan", gender: "prefer_not_to_say", age_group: "18-49", participant_type: "player" },
+  { first_name: "Sofia", last_name: "van Dijk", email: "sofia.vandijk@example.com", country: "NL", club: "Amsterdam Go Club", rank: "2 kyu", gender: "female", age_group: "18-49", participant_type: "player" },
+  { first_name: "Min-jun", last_name: "Kim", email: "minjun.kim@example.com", country: "KR", club: "Seoul Baduk Club", rank: "5 dan", gender: "male", age_group: "18-49", participant_type: "player" },
+  { first_name: "Jamie", last_name: "Taylor", email: "jamie.taylor@example.com", country: "IE", club: "Dublin Go Club", gender: "non_binary", age_group: "12-17", participant_type: "visitor" }
+]
+
+additional_participant_names = %w[Avery Bailey Charlie Dakota Elliott Finley Harper Jordan Morgan Quinn Riley Sasha Taylor]
+additional_participant_surnames = %w[Anderson Brown Chen Dubois Eriksson Fischer Garcia Hassan Ivanov Jensen Kowalski Laurent Müller Novak O'Connor Patel Rossi Suzuki]
+additional_participant_countries = %w[GB NL KR IE DE FR BE DK SE NO FI IT ES PL CZ UA JP US CA AU]
+additional_participant_clubs = [
+  "Edinburgh Go Club", "Amsterdam Go Club", "Seoul Baduk Club", "Dublin Go Club", "Berlin Go Club",
+  "Paris Go Club", "Brussels Go Club", "Copenhagen Go Club", "Stockholm Go Club", "Helsinki Go Club",
+  "Rome Go Club", "Madrid Go Club", "Warsaw Go Club", "Prague Go Club", "Kyiv Go Club"
+]
+additional_participant_ranks = ["30 kyu", "20 kyu", "10 kyu", "5 kyu", "1 kyu", "1 dan", "3 dan", "5 dan", "7 dan"]
+additional_participant_genders = Participant::GENDERS
+additional_participant_age_groups = Participant::AGE_GROUPS
+additional_participant_attendance_options = Participant::ATTENDANCE_OPTIONS.keys
+
+48.times do |index|
+  number = index + 1
+  first_name = additional_participant_names[index % additional_participant_names.length]
+  last_name = additional_participant_surnames[index % additional_participant_surnames.length]
+  participant_seeds << {
+    first_name: first_name,
+    last_name: "#{last_name}#{number}",
+    email: "seed.participant.#{number}@example.com",
+    country: additional_participant_countries[index % additional_participant_countries.length],
+    club: additional_participant_clubs[index % additional_participant_clubs.length],
+    rank: additional_participant_ranks[index % additional_participant_ranks.length],
+    gender: additional_participant_genders[index % additional_participant_genders.length],
+    age_group: additional_participant_age_groups[index % additional_participant_age_groups.length],
+    participant_type: (index.to_i % 4).zero? ? "visitor" : "player",
+    attendance_option: additional_participant_attendance_options[index % additional_participant_attendance_options.length],
+    phone: "+44#{format('%010d', number)}".then { |phone| (index % 3).zero? ? nil : phone },
+    egd_pin: (index % 5).zero? ? nil : format("%08d", 1_000_000 + number)
+  }
+end
+
+if seed_updates_allowed
+  participant_seeds.each do |participant_seed|
+    participant_user = User.find_or_initialize_by(email: participant_seed[:email])
+    if participant_user.new_record?
+      participant_user.assign_attributes(
+        password: "testpassword123",
+        password_confirmation: "testpassword123",
+        full_name: "#{participant_seed[:first_name]} #{participant_seed[:last_name]}",
+        role: "regular",
+        confirmed_at: Time.current,
+      )
+      participant_user.save!
+    end
+
+    participant = Participant.find_or_initialize_by(email: participant_seed[:email])
+    participant_attributes = participant_seed.except(:attendance_option)
+    participant.assign_attributes(
+      participant_attributes.merge(
+        user: participant_user,
+        image_use_consent: false
+      )
+    )
+    participant.attendance_option = participant_seed[:attendance_option] if participant_seed[:attendance_option].present?
+    participant.save!
+  end
+
+  puts "✓ Seeded #{participant_seeds.size} participants"
+
+  notice = Notice.find_or_initialize_by(title: "Welcome to the European Go Congress")
+  notice.update!(
+    body: "Explore the schedule, meet fellow participants, and check back for the latest congress news.",
+    active: true
+  )
+end
+
 sponsor_seeds = [
   {
-    name: "Nordic Tech Systems",
-    website: "https://www.nordictechsystems.example",
-    description: "Nordic Tech Systems supports live pairing displays and on-site connectivity for tournament operations.",
+    name: "Lenovo",
+    website: "https://www.lenovo.com",
+    description: "Lenovo supports live pairing displays and on-site connectivity for tournament operations.",
     social_media_links: {
-      linkedin: "https://www.linkedin.com/company/nordictechsystems",
-      x: "https://x.com/nordictechsys"
+      linkedin: "https://www.linkedin.com/company/lenovo",
+      x: "https://x.com/lenovo",
+      facebook: "https://www.facebook.com/lenovo",
+      instagram: "https://www.instagram.com/lenovo",
+      youtube: "https://www.youtube.com/user/lenovovision"
     }
   },
   {
-    name: "Harbor Bank",
-    website: "https://www.harborbank.example",
-    description: "Harbor Bank is the financial partner for participant services, helping fund youth activities and volunteer support.",
+    name: "Lloyds Bank",
+    website: "https://www.lloydsbank.com",
+    description: "Lloyds Bank is the financial partner for participant services, helping fund youth activities and volunteer support.",
     social_media_links: {
-      facebook: "https://www.facebook.com/harborbank",
-      instagram: "https://www.instagram.com/harborbank"
+      facebook: "https://www.facebook.com/LloydsBank",
+      instagram: "https://www.instagram.com/lloydsbank"
     }
   },
   {
-    name: "GreenRoute Travel",
-    website: "https://www.greenroute.example",
-    description: "GreenRoute Travel co-sponsors excursion logistics and sustainable transport options during congress week.",
+    name: "EarthDay.org",
+    website: "https://www.earthday.org",
+    description: "EarthDay.org co-sponsors excursion logistics and sustainable transport options during congress week.",
     social_media_links: {
-      instagram: "https://www.instagram.com/greenroute.travel",
-      youtube: "https://www.youtube.com/@greenroutetravel"
+      facebook: "https://www.facebook.com/EarthDayNetwork",
+      instagram: "https://www.instagram.com/earthdaynetwork",
+      x: "https://x.com/EarthDay",
+      linkedin: "https://www.linkedin.com/company/earthdaynetwork",
+      youtube: "https://www.youtube.com/user/earthdaynetwork"
+    }
+  },
+  {
+    name: "OpenAI",
+    website: "https://openai.com",
+    description: "OpenAI builds AI tools that help people solve problems and create new things.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/openai",
+      instagram: "https://www.instagram.com/openai",
+      x: "https://x.com/OpenAI",
+      linkedin: "https://www.linkedin.com/company/openai",
+      youtube: "https://www.youtube.com/@OpenAI"
+    }
+  },
+  {
+    name: "The British Museum",
+    website: "https://www.britishmuseum.org",
+    description: "The British Museum brings people together through a collection spanning world history and culture.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/britishmuseum",
+      instagram: "https://www.instagram.com/britishmuseum",
+      x: "https://x.com/britishmuseum",
+      linkedin: "https://www.linkedin.com/company/the-british-museum",
+      youtube: "https://www.youtube.com/user/britishmuseum"
+    }
+  },
+  {
+    name: "VisitScotland",
+    website: "https://www.visitscotland.com",
+    description: "VisitScotland shares the landscapes, culture, and experiences of Scotland with visitors from around the world.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/VisitScotland",
+      instagram: "https://www.instagram.com/visitscotland",
+      x: "https://x.com/VisitScotland",
+      linkedin: "https://www.linkedin.com/company/visitscotland",
+      youtube: "https://www.youtube.com/user/visitscotland"
+    }
+  },
+  {
+    name: "BBC",
+    website: "https://www.bbc.com",
+    description: "The BBC is a public service broadcaster providing news, learning, and entertainment.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/bbcnews",
+      instagram: "https://www.instagram.com/bbcnews",
+      x: "https://x.com/BBCNews",
+      linkedin: "https://www.linkedin.com/company/bbc",
+      youtube: "https://www.youtube.com/user/bbcnews"
+    }
+  },
+  {
+    name: "Wikipedia",
+    website: "https://www.wikipedia.org",
+    description: "Wikipedia is the free encyclopedia that anyone can edit, supported by the Wikimedia Foundation.",
+    social_media_links: {
+      facebook: "https://www.facebook.com/wikipedia",
+      instagram: "https://www.instagram.com/wikipedia",
+      x: "https://x.com/Wikipedia",
+      linkedin: "https://www.linkedin.com/company/wikimedia-foundation",
+      youtube: "https://www.youtube.com/user/wikimediafoundation"
     }
   }
 ]
@@ -157,6 +342,8 @@ placeholder_logo_paths = Dir[Rails.root.join("app/assets/images/placeholders/*")
 
 seeded_sponsors = 0
 sponsor_seeds.each_with_index do |sponsor_seed, index|
+  next unless seed_updates_allowed
+
   sponsor = Sponsor.find_or_initialize_by(name: sponsor_seed[:name])
   should_save = sponsor.new_record? || seed_updates_allowed
   next unless should_save
@@ -316,7 +503,7 @@ who_is_here = create_menu_item.call(menu: header_menu, label: "Who is here", pos
   )
 end
 
-create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, page_slug: "sponsors")
+create_menu_item.call(menu: header_menu, label: "Sponsors", position: 9, url: "/sponsors")
 create_menu_item.call(menu: header_menu, label: "Venue", position: 10, page_slug: "venue")
 
 sleep = create_menu_item.call(menu: header_menu, label: "Sleep", position: 11, url: "#")
@@ -362,8 +549,21 @@ end
 
 puts "✓ Seeded footer menu with #{footer_menu.menu_items.count} menu items"
 
+# Links added to this menu show up in the account dropdown for signed-in users.
+# No items are seeded, so existing ones are left untouched for admins to manage.
+user_menu = Menu.find_or_initialize_by(location: "user")
+if user_menu.new_record?
+  user_menu.name = "User Menu"
+  user_menu.active = true
+end
+user_menu.save!
+
+puts "✓ Seeded user menu with #{user_menu.menu_items.count} menu items"
+
 calendar_event_seeds = [
   # Saturday 24th July
+  { title: "Jonas Welticke", starts_at: Time.zone.parse("2027-07-24 12:30"), ends_at: Time.zone.parse("2027-07-24 16:00"), color: "#6fa8dc" },
+  { title: "BBQ", starts_at: Time.zone.parse("2027-07-24 19:00"), ends_at: Time.zone.parse("2027-07-24 21:00"), color: "#6fa8dc" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-24 10:00"), ends_at: Time.zone.parse("2027-07-24 17:00"), color: "#b7b7b7" },
   { title: "Opening Ceremony", starts_at: Time.zone.parse("2027-07-24 17:00"), ends_at: Time.zone.parse("2027-07-24 18:30"), color: "#ffd966" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-24 18:30"), ends_at: Time.zone.parse("2027-07-24 22:00"), color: "#b7b7b7" },
@@ -376,9 +576,10 @@ calendar_event_seeds = [
   { title: "Rapid R1", starts_at: Time.zone.parse("2027-07-25 16:00"), ends_at: Time.zone.parse("2027-07-25 17:30"), color: "#00ffff" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-07-25 16:00"), ends_at: Time.zone.parse("2027-07-25 17:00"), color: "#fff2cc" },
   { title: "VIP Dinner", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 22:00"), color: "#ffd966" },
-  { title: "Blitz", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 21:30"), color: "#f4cccc" },
+  { title: "GoDan Blitz All", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 21:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-25 18:00"), ends_at: Time.zone.parse("2027-07-25 20:00"), color: "#b6d7a8" },
   # Monday 26th July
+  { title: "(Beer go)", starts_at: Time.zone.parse("2027-07-26 19:30"), ends_at: Time.zone.parse("2027-07-26 20:00"), color: "#6fa8dc" },
   { title: "Main Open R2", starts_at: Time.zone.parse("2027-07-26 10:00"), ends_at: Time.zone.parse("2027-07-26 14:30"), color: "#c9daf8" },
   { title: "European Championship R2", starts_at: Time.zone.parse("2027-07-26 10:00"), ends_at: Time.zone.parse("2027-07-26 16:00"), color: "#d5a6bd" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-07-26 12:00"), ends_at: Time.zone.parse("2027-07-26 17:30"), color: "#b6d7a8" },
@@ -387,7 +588,7 @@ calendar_event_seeds = [
   { title: "Lecture", starts_at: Time.zone.parse("2027-07-26 15:00"), ends_at: Time.zone.parse("2027-07-26 16:00"), color: "#fff2cc" },
   { title: "Rapid R2", starts_at: Time.zone.parse("2027-07-26 16:00"), ends_at: Time.zone.parse("2027-07-26 17:30"), color: "#00ffff" },
   { title: "EGF Annual General Meeting", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 23:00"), color: "#ffd966" },
-  { title: "Blitz Finals", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 21:30"), color: "#f4cccc" },
+  { title: "GoDan Blitz Finals", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 21:30"), color: "#f4cccc" },
   { title: "Senior Tmt R1", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 19:30"), color: "#f4cccc" },
   { title: "Youth tmt R1", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 19:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-26 18:00"), ends_at: Time.zone.parse("2027-07-26 20:00"), color: "#b6d7a8" },
@@ -434,6 +635,7 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-07-30 18:00"), ends_at: Time.zone.parse("2027-07-30 20:00"), color: "#b6d7a8" },
   { title: "Nations Cup R4", starts_at: Time.zone.parse("2027-07-30 20:30"), ends_at: Time.zone.parse("2027-07-30 22:00"), color: "#f4cccc" },
   # Saturday 31st July
+  { title: "Dutch dinner", starts_at: Time.zone.parse("2027-07-31 17:00"), ends_at: Time.zone.parse("2027-07-31 19:00"), color: "#6fa8dc" },
   { title: "Registration", starts_at: Time.zone.parse("2027-07-31 09:00"), ends_at: Time.zone.parse("2027-07-31 10:00"), color: "#b7b7b7" },
   { title: "European Championship Semi Finals", starts_at: Time.zone.parse("2027-07-31 10:00"), ends_at: Time.zone.parse("2027-07-31 16:00"), color: "#d5a6bd" },
   { title: "Magic The Gathering Tmt", starts_at: Time.zone.parse("2027-07-31 10:00"), ends_at: Time.zone.parse("2027-07-31 17:00"), color: "#6fa8dc" },
@@ -441,16 +643,16 @@ calendar_event_seeds = [
   { title: "Weekend Tmt R2", starts_at: Time.zone.parse("2027-07-31 14:30"), ends_at: Time.zone.parse("2027-07-31 17:30"), color: "#c9daf8" },
   { title: "Weekend Tmt R3", starts_at: Time.zone.parse("2027-07-31 19:00"), ends_at: Time.zone.parse("2027-07-31 22:00"), color: "#c9daf8" },
   # Sunday 1st August
-  { title: "Group Photo", starts_at: Time.zone.parse("2027-08-01 09:30"), ends_at: Time.zone.parse("2027-08-01 10:00"), color: "#ffd966" },
+  { title: "Photo", starts_at: Time.zone.parse("2027-08-01 13:30"), ends_at: Time.zone.parse("2027-08-01 14:00"), color: "#ffd966" },
   { title: "European Championship Finals", starts_at: Time.zone.parse("2027-08-01 10:00"), ends_at: Time.zone.parse("2027-08-01 16:00"), color: "#d5a6bd" },
   { title: "Weekend Tmt R4", starts_at: Time.zone.parse("2027-08-01 10:00"), ends_at: Time.zone.parse("2027-08-01 13:00"), color: "#c9daf8" },
   { title: "Weekend Tmt R5", starts_at: Time.zone.parse("2027-08-01 14:00"), ends_at: Time.zone.parse("2027-08-01 17:00"), color: "#c9daf8" },
   { title: "Reunion of Dutch Go Players", starts_at: Time.zone.parse("2027-08-01 16:00"), ends_at: Time.zone.parse("2027-08-01 22:30"), color: "#6fa8dc" },
   { title: "Registration 2nd week", starts_at: Time.zone.parse("2027-08-01 18:00"), ends_at: Time.zone.parse("2027-08-01 22:00"), color: "#b7b7b7" },
   { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-01 18:00"), ends_at: Time.zone.parse("2027-08-01 19:00"), color: "#ffd966" },
-  { title: "SC-CQ Arrival", starts_at: Time.zone.parse("2027-08-01 19:30"), ends_at: Time.zone.parse("2027-08-01 21:30"), color: "#00ff00" },
   # Monday 2nd August
-  { title: "SC-CQ Sightseeing", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#00ff00" },
+  { title: "Registration", starts_at: Time.zone.parse("2027-08-02 09:00"), ends_at: Time.zone.parse("2027-08-02 09:30"), color: "#b7b7b7" },
+  { title: "Opening. SC Round 1-3", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#00ff00" },
   { title: "Main Open R6", starts_at: Time.zone.parse("2027-08-02 10:00"), ends_at: Time.zone.parse("2027-08-02 14:30"), color: "#c9daf8" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-02 12:00"), ends_at: Time.zone.parse("2027-08-02 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-02 13:30"), ends_at: Time.zone.parse("2027-08-02 14:30"), color: "#fff2cc" },
@@ -460,12 +662,13 @@ calendar_event_seeds = [
   { title: "Panda Team R1", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 21:00"), color: "#ff00ff" },
   { title: "Women tmt R1", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 19:30"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 20:00"), color: "#b6d7a8" },
-  { title: "European 13x13 Championship", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
-  { title: "SC-CQ Welcome Party", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 21:30"), color: "#00ff00" },
+  { title: "GoDan 13x13 EC", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
+  { title: "SC Welcome Party", starts_at: Time.zone.parse("2027-08-02 18:00"), ends_at: Time.zone.parse("2027-08-02 20:00"), color: "#00ff00" },
   { title: "Women tmt R2", starts_at: Time.zone.parse("2027-08-02 20:30"), ends_at: Time.zone.parse("2027-08-02 22:00"), color: "#f4cccc" },
   # Tuesday 3rd August
+  { title: "Beer tasting", starts_at: Time.zone.parse("2027-08-03 20:00"), ends_at: Time.zone.parse("2027-08-03 22:00"), color: "#6fa8dc" },
   { title: "Main Open R7", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 14:30"), color: "#c9daf8" },
-  { title: "Students R1-3 / ChangQi R1", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 21:30"), color: "#00ff00" },
+  { title: "SC Round 4-6", starts_at: Time.zone.parse("2027-08-03 10:00"), ends_at: Time.zone.parse("2027-08-03 21:30"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-03 12:00"), ends_at: Time.zone.parse("2027-08-03 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-03 13:30"), ends_at: Time.zone.parse("2027-08-03 14:30"), color: "#fff2cc" },
   { title: "Fun go*", starts_at: Time.zone.parse("2027-08-03 15:00"), ends_at: Time.zone.parse("2027-08-03 17:30"), color: "#e06666" },
@@ -477,27 +680,26 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-03 18:00"), ends_at: Time.zone.parse("2027-08-03 20:00"), color: "#b6d7a8" },
   { title: "Women tmt R4", starts_at: Time.zone.parse("2027-08-03 20:30"), ends_at: Time.zone.parse("2027-08-03 22:00"), color: "#f4cccc" },
   # Wednesday 4th August
+  { title: "Karaoke night", starts_at: Time.zone.parse("2027-08-04 21:00"), ends_at: Time.zone.parse("2027-08-04 23:00"), color: "#6fa8dc" },
   { title: "Excursions", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 20:00"), color: "#6fa8dc" },
-  { title: "Go Conferences", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 17:00"), color: "#ffd966" },
-  { title: "Students R4-6 / ChangQi R2", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 21:30"), color: "#00ff00" },
+  { title: "SC Finals, Lectures, Simultaneous", starts_at: Time.zone.parse("2027-08-04 10:00"), ends_at: Time.zone.parse("2027-08-04 21:30"), color: "#00ff00" },
   { title: "Panda Team R3", starts_at: Time.zone.parse("2027-08-04 18:00"), ends_at: Time.zone.parse("2027-08-04 21:00"), color: "#ff00ff" },
   { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-04 21:00"), ends_at: Time.zone.parse("2027-08-04 22:00"), color: "#ffd966" },
   # Thursday 5th August
   { title: "Main Open R8", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 14:30"), color: "#c9daf8" },
-  { title: "Students Final / SC-CQ Simultaneous", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 21:30"), color: "#00ff00" },
+  { title: "SC Excursion to Amsterdam", starts_at: Time.zone.parse("2027-08-05 10:00"), ends_at: Time.zone.parse("2027-08-05 21:30"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-05 12:00"), ends_at: Time.zone.parse("2027-08-05 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-05 13:30"), ends_at: Time.zone.parse("2027-08-05 14:30"), color: "#fff2cc" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 16:00"), color: "#fff2cc" },
-  { title: "Fun go*", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 17:30"), color: "#e06666" },
+  { title: "Fun go*", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#e06666" },
   { title: "Rapid R8", starts_at: Time.zone.parse("2027-08-05 15:00"), ends_at: Time.zone.parse("2027-08-05 16:30"), color: "#00ffff" },
   { title: "Pair go R1", starts_at: Time.zone.parse("2027-08-05 16:30"), ends_at: Time.zone.parse("2027-08-05 18:00"), color: "#f4cccc" },
-  { title: "Tsume go tmt", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#f4cccc" },
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-05 18:00"), ends_at: Time.zone.parse("2027-08-05 20:00"), color: "#b6d7a8" },
   { title: "Pair go R2", starts_at: Time.zone.parse("2027-08-05 18:30"), ends_at: Time.zone.parse("2027-08-05 20:00"), color: "#f4cccc" },
   { title: "Pair go R3", starts_at: Time.zone.parse("2027-08-05 20:30"), ends_at: Time.zone.parse("2027-08-05 22:00"), color: "#f4cccc" },
   # Friday 6th August
   { title: "Main Open R9", starts_at: Time.zone.parse("2027-08-06 10:00"), ends_at: Time.zone.parse("2027-08-06 14:30"), color: "#c9daf8" },
-  { title: "ChangQi Finals / SC-CQ Farewell dinner", starts_at: Time.zone.parse("2027-08-06 10:00"), ends_at: Time.zone.parse("2027-08-06 21:30"), color: "#00ff00" },
+  { title: "SC Farewell dinner", starts_at: Time.zone.parse("2027-08-06 18:00"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-06 12:00"), ends_at: Time.zone.parse("2027-08-06 17:30"), color: "#b6d7a8" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-06 13:30"), ends_at: Time.zone.parse("2027-08-06 14:30"), color: "#fff2cc" },
   { title: "Lecture", starts_at: Time.zone.parse("2027-08-06 15:00"), ends_at: Time.zone.parse("2027-08-06 16:00"), color: "#fff2cc" },
@@ -507,10 +709,11 @@ calendar_event_seeds = [
   { title: "Simultaneous games", starts_at: Time.zone.parse("2027-08-06 18:00"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#b6d7a8" },
   { title: "Pair go Semifinal", starts_at: Time.zone.parse("2027-08-06 18:30"), ends_at: Time.zone.parse("2027-08-06 20:00"), color: "#f4cccc" },
   { title: "Pair go Final", starts_at: Time.zone.parse("2027-08-06 20:30"), ends_at: Time.zone.parse("2027-08-06 22:00"), color: "#f4cccc" },
-  { title: "Prizegiving", starts_at: Time.zone.parse("2027-08-06 22:00"), ends_at: Time.zone.parse("2027-08-06 23:00"), color: "#ffd966" },
   # Saturday 7th August
+  { title: "Lecture", starts_at: Time.zone.parse("2027-08-07 13:30"), ends_at: Time.zone.parse("2027-08-07 14:30"), color: "#fff2cc" },
+  { title: "Lecture", starts_at: Time.zone.parse("2027-08-07 15:00"), ends_at: Time.zone.parse("2027-08-07 16:00"), color: "#fff2cc" },
   { title: "Main Open R10", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 14:30"), color: "#c9daf8" },
-  { title: "SC-CQ Departure", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 13:00"), color: "#00ff00" },
+  { title: "SC Departure", starts_at: Time.zone.parse("2027-08-07 10:00"), ends_at: Time.zone.parse("2027-08-07 13:00"), color: "#00ff00" },
   { title: "Game reviews by professionals", starts_at: Time.zone.parse("2027-08-07 12:00"), ends_at: Time.zone.parse("2027-08-07 15:30"), color: "#b6d7a8" },
   { title: "Closing with Prizegiving", starts_at: Time.zone.parse("2027-08-07 16:00"), ends_at: Time.zone.parse("2027-08-07 18:00"), color: "#ffd966" }
 ]
@@ -534,7 +737,7 @@ event_group_seeds = [
   { key: "fun_go", name: "Fun Go", color: "#e06666" },
   { key: "excursions", name: "Excursions", color: "#6fa8dc" },
   { key: "entertainment", name: "Entertainment", color: "#6fa8dc" },
-  { key: "student_changqi", name: "Student and ChangQi", color: "#00ff00" },
+  { key: "student_changqi", name: "Student Cup", color: "#00ff00" },
   { key: "other", name: "Other", color: CalendarEvent::DEFAULT_COLOR }
 ]
 
@@ -571,9 +774,9 @@ event_group_key_for = lambda do |title, color|
     "rapid"
   when /\Aregistration\b/
     "registration"
-  when /\Aopening ceremony\b|\Avip dinner\b|\Aegf annual general meeting\b|\Aprizegiving\b|\Aclosing with prizegiving\b|\Agroup photo\b/
+  when /\Aopening ceremony\b|\Avip dinner\b|\Aegf annual general meeting\b|\Aprizegiving\b|\Aclosing with prizegiving\b|\Aphoto\b/
     "ceremony"
-  when /professional|simultaneous games|game reviews/
+  when /professional|\Asimultaneous games|game reviews/
     "professional"
   when /\Alecture\b/
     "lectures"
@@ -581,7 +784,7 @@ event_group_key_for = lambda do |title, color|
     "panda_team"
   when /\Afun go\*/
     "fun_go"
-  when /students|changqi|sc-cq/
+  when /students|changqi|sc-cq|\Asc\b|\Aopening\. sc\b/
     "student_changqi"
   when /\Aexcursions\b/
     "excursions"

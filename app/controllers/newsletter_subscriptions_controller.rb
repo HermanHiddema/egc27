@@ -3,6 +3,7 @@ class NewsletterSubscriptionsController < ApplicationController
 
   skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy, :resubscribe]
   before_action :prepare_newsletter_subscription, only: [:create]
+  before_action :prepare_newsletter_overview, only: [:new, :create]
   before_action :verify_turnstile, only: [:create]
   before_action :require_admin!, only: [:index, :edit, :update]
   before_action :set_newsletter_subscription, only: [:edit, :update]
@@ -15,40 +16,38 @@ class NewsletterSubscriptionsController < ApplicationController
     @newsletter_subscription = NewsletterSubscription.new(newsletter_subscription_params)
 
     if @newsletter_subscription.save
-      redirect_to newsletter_path, notice: "Thanks for subscribing to the newsletter."
+      NewsletterWelcomeJob.perform_later(@newsletter_subscription.id)
+      redirect_to newsletter_signup_path, notice: "Thanks for subscribing to the newsletter."
     else
       render :new, status: :unprocessable_entity
     end
   end
 
   def unsubscribe
-    @newsletter_subscription = NewsletterSubscription.find_by(unsubscribe_token: params[:token].to_s)
+    @newsletter_subscription = NewsletterSubscription.find_by(subscription_token: params[:token].to_s)
 
-    return if @newsletter_subscription
+    return if @newsletter_subscription&.subscribed?
 
     redirect_to root_path, alert: "Invalid unsubscribe link."
   end
 
   def destroy
-    subscription = NewsletterSubscription.find_by(unsubscribe_token: params[:token].to_s)
+    subscription = NewsletterSubscription.find_by(subscription_token: params[:token].to_s)
 
-    return redirect_to root_path, alert: "Invalid unsubscribe link." unless subscription
+    return redirect_to root_path, alert: "Invalid unsubscribe link." unless subscription&.unsubscribe!
 
-    if subscription.subscribed?
-      subscription.unsubscribe!
-      NewsletterMailer.goodbye(subscription).deliver_now
-    end
+    NewsletterMailer.goodbye(subscription).deliver_now
 
     redirect_to root_path, notice: "You have been unsubscribed from the newsletter."
   end
 
   def resubscribe
-    subscription = NewsletterSubscription.find_by(unsubscribe_token: params[:token].to_s)
+    subscription = NewsletterSubscription.find_by(subscription_token: params[:token].to_s)
 
-    return redirect_to root_path, alert: "Invalid resubscribe link." unless subscription
+    return redirect_to root_path, alert: "Invalid resubscribe link." unless subscription&.resubscribe!
 
-    subscription.resubscribe!
-    redirect_to newsletter_path, notice: "You have been resubscribed to the newsletter."
+    NewsletterMailer.welcome_back(subscription).deliver_now
+    redirect_to newsletter_signup_path, notice: "You have been resubscribed to the newsletter."
   end
 
   def index
@@ -79,10 +78,15 @@ class NewsletterSubscriptionsController < ApplicationController
   end
 
   def newsletter_subscription_params
-    params.require(:newsletter_subscription).permit(:first_name, :last_name, :email)
+    params.require(:newsletter_subscription).permit(:email)
   end
 
   def newsletter_subscription_update_params
     params.require(:newsletter_subscription).permit(:first_name, :last_name, :email, :subscribed)
+  end
+
+  def prepare_newsletter_overview
+    @newsletters = Newsletter.sent.order(sent_at: :desc)
+    @drafts = Newsletter.drafts.order(updated_at: :desc) if current_user&.can_edit?
   end
 end

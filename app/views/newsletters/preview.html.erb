@@ -1,0 +1,26 @@
+<div class="container-wide py-8">
+  <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+    <div>
+      <p class="text-sm text-gray-500">Newsletter preview</p>
+      <h1 class="text-3xl font-bold"><%= @newsletter.title %></h1>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      <%= link_to "Back to editor", edit_newsletter_path(@newsletter), class: "btn-primary bg-brand-blue-600 hover:bg-brand-blue-700" %>
+      <%= form_with url: send_newsletter_path(@newsletter), method: :post,
+                    data: {
+                      controller: "newsletter-send",
+                      action: "submit->newsletter-send#confirm",
+                      newsletter_send_recipient_count_value: @recipient_count
+                    } do %>
+        <%= hidden_field_tag :recipient_count, @recipient_count %>
+        <%= hidden_field_tag :confirmed_send, "0" %>
+        <%= button_tag "Send", type: "submit", name: "intent", value: "send", class: "btn-primary" %>
+      <% end %>
+    </div>
+  </div>
+  <div class="newsletter-document bg-white border border-gray-200 shadow-sm px-6 py-8 md:px-8">
+    <p class="text-sm text-gray-500 border-b border-gray-200 pb-4 mb-6">Email subject: <strong class="text-gray-800"><%= @newsletter.subject %></strong></p>
+    <h2 class="text-2xl font-bold mb-6"><%= @newsletter.title %></h2>
+    <div class="rich-content max-w-none overflow-hidden"><%= render_html_content(@newsletter.content_html) %></div>
+  </div>
+</div>

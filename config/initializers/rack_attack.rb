@@ -4,6 +4,10 @@ require "openssl"
 # across all Puma workers and app replicas.
 Rack::Attack.cache.store = Rails.cache
 
+# Allow environments (e.g. staging during a pentest) to turn throttling off
+# entirely via the shared bot-protection switch.
+Rack::Attack.enabled = false if Rails.application.config.x.bot_protection_enabled == false
+
 class Rack::Attack
   ### Throttle public endpoints that trigger emails ###
 
@@ -12,13 +16,17 @@ class Rack::Attack
   MAGIC_LINK_PATH          = %r{\A/users/magic_link(\.[^/]+)?/?\z}
   PARTICIPANTS_PATH        = %r{\A/participants(\.[^/]+)?/?\z}
   EGD_REGISTERED_PATH      = %r{\A/participants/egd_registered(\.[^/]+)?/?\z}
+  EGD_SEARCH_PATH          = %r{\A/participants/egd_search(\.[^/]+)?/?\z}
+  EMAIL_REGISTERED_PATH    = %r{\A/participants/email_registered(\.[^/]+)?/?\z}
   ALTER_REGISTRATION_PATH  = %r{\A/participants/alter_registration(\.[^/]+)?/?\z}
   RESEND_CONFIRMATION_PATH = %r{\A/participants/(?<uuid>[^/]+)/resend_confirmation(\.[^/]+)?/?\z}
   PASSWORD_PATH            = %r{\A/users/password(\.[^/]+)?/?\z}
   CONFIRMATION_PATH        = %r{\A/users/confirmation(\.[^/]+)?/?\z}
   SIGN_IN_PATH             = %r{\A/users/sign_in(\.[^/]+)?/?\z}
   NEWSLETTER_PATH          = %r{\A/newsletter_subscriptions(\.[^/]+)?/?\z}
+  TEST_NEWSLETTER_UNSUBSCRIBE_PATH = %r{\A/newsletter/test_unsubscribe/[^/]+(\.[^/]+)?/?\z}
   SEARCH_PATH              = %r{\A/search(\.[^/]+)?/?\z}
+  PAYMENT_SUCCESS_PATH     = %r{\A/payments/success(\.[^/]+)?/?\z}
 
   # Magic link requests: limit by IP address (10 per minute)
   throttle("magic_link/ip", limit: 10, period: 1.minute) do |req|
@@ -42,6 +50,18 @@ class Rack::Attack
   # EGD registration lookups: limit by IP address (60 per minute)
   throttle("egd_registered/ip", limit: 60, period: 1.minute) do |req|
     req.ip if req.path.match?(EGD_REGISTERED_PATH) && req.get?
+  end
+
+  # EGD player searches: limit by IP address (30 per minute). This public
+  # endpoint proxies queries to the European Go Database with our API token, so
+  # it is throttled to keep anonymous traffic from exhausting that credential.
+  throttle("egd_search/ip", limit: 30, period: 1.minute) do |req|
+    req.ip if req.path.match?(EGD_SEARCH_PATH) && req.get?
+  end
+
+  # Email registration lookups: limit by IP address (20 per minute)
+  throttle("email_registered/ip", limit: 20, period: 1.minute) do |req|
+    req.ip if req.path.match?(EMAIL_REGISTERED_PATH) && req.post?
   end
 
   # Alter-registration lookups: limit by IP address (20 per minute)
@@ -72,7 +92,14 @@ class Rack::Attack
 
   # Confirmation email resend: limit by IP address (5 per minute)
   throttle("confirmation/ip", limit: 5, period: 1.minute) do |req|
-    req.ip if req.path.match?(CONFIRMATION_PATH) && req.post?
+    req.ip if (req.path.match?(CONFIRMATION_PATH) || req.path.match?(RESEND_CONFIRMATION_PATH)) && req.post?
+  end
+
+  throttle("confirmation/email", limit: 3, period: 5.minutes) do |req|
+    if req.path.match?(CONFIRMATION_PATH) && req.post?
+      email = req.params.dig("user", "email").to_s.strip.downcase
+      OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, email) unless email.empty?
+    end
   end
 
   # Sign in attempts: limit by IP address (10 per minute)
@@ -95,10 +122,30 @@ class Rack::Attack
     req.ip if req.path.match?(NEWSLETTER_PATH) && req.post?
   end
 
+  # Newsletter subscriptions: limit by email address (3 per 5 minutes)
+  # Email is HMAC'd before use as a cache key to avoid persisting PII.
+  throttle("newsletter/email", limit: 3, period: 5.minutes) do |req|
+    if req.path.match?(NEWSLETTER_PATH) && req.post?
+      email = req.params.dig("newsletter_subscription", "email").to_s.strip.downcase
+      OpenSSL::HMAC.hexdigest("SHA256", Rails.application.secret_key_base, email) unless email.empty?
+    end
+  end
+
+  # Test newsletter unsubscriptions: limit by IP address (10 per minute)
+  throttle("test_newsletter_unsubscribe/ip", limit: 10, period: 1.minute) do |req|
+    req.ip if req.path.match?(TEST_NEWSLETTER_UNSUBSCRIBE_PATH) && req.delete?
+  end
+
   # Site search: limit by IP address (30 per minute) to curb abuse of the
   # public, query-driven endpoint.
   throttle("search/ip", limit: 30, period: 1.minute) do |req|
     req.ip if req.path.match?(SEARCH_PATH) && req.get?
+  end
+
+  # Payment return page: limit by IP address (20 per minute) to blunt
+  # enumeration and the Mollie API calls it triggers.
+  throttle("payment_success/ip", limit: 20, period: 1.minute) do |req|
+    req.ip if req.path.match?(PAYMENT_SUCCESS_PATH) && req.get?
   end
 
   ### Response for throttled requests ###
