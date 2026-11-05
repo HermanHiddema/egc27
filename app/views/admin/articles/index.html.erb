@@ -1,0 +1,51 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8">
+    <h1 class="text-4xl font-bold">Articles</h1>
+    <% if current_user.can_create? %>
+      <%= link_to "New Article", new_article_path, class: "bg-brand-blue-600 text-white px-6 py-2 rounded-lg hover:bg-brand-blue-700 transition" %>
+    <% end %>
+  </div>
+
+  <% if @articles.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Title</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Created</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @articles.each do |article| %>
+              <tr>
+                <td class="px-4 py-2 text-sm font-medium text-neutral-900">
+                  <%= link_to article.title, article_path(article, return_to: "admin"), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                </td>
+                <td class="px-4 py-2 text-sm text-neutral-700"><%= l article.created_at.to_date %></td>
+                <td class="px-4 py-2 text-sm">
+                  <div class="portrait-stack-actions flex justify-end items-center gap-4">
+                    <%= link_to "Edit", edit_article_path(article, return_to: "admin"), class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+                    <% if current_user.can_delete? %>
+                      <%= button_to "Delete", article_path(article), method: :delete, data: { turbo_confirm: "Are you sure?" }, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                    <% end %>
+                  </div>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="text-center text-gray-500 py-12">
+      <p class="text-xl">No articles yet.</p>
+      <% if current_user.can_create? %>
+        <p class="mt-4">
+          <%= link_to "Create the first article", new_article_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+        </p>
+      <% end %>
+    </div>
+  <% end %>
+</div>
