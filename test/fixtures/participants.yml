@@ -7,6 +7,7 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
+#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
@@ -28,6 +29,7 @@
 #
 # Indexes
 #
+#  index_participants_on_confirmed_at      (confirmed_at)
 #  index_participants_on_created_at        (created_at)
 #  index_participants_on_egd_pin           (egd_pin) UNIQUE
 #  index_participants_on_email             (email)

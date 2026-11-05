@@ -12,8 +12,14 @@ class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
     get dashboard_path
 
     assert_response :success
-    assert_select "a[href='#{pages_path}']", text: "Pages"
-    assert_select "a[href='#{notices_path}']", text: "Notices"
+    assert_select "section[aria-labelledby=site-content-heading] a[href='#{pages_path}']", text: "Pages"
+    assert_select "section[aria-labelledby=site-content-heading] a[href='#{admin_articles_path}']", text: "Articles"
+    assert_select "section[aria-labelledby=communication-heading] a[href='#{notices_path}']", text: "Notices"
+    assert_select "section[aria-labelledby=communication-heading] a[href='#{newsletter_signup_path}']", text: "Newsletters"
+    assert_select "section[aria-labelledby=financial-heading]", count: 0
+    assert_select "section[aria-labelledby=site-structure-heading]", count: 0
+    assert_select "section[aria-labelledby=people-heading]", count: 0
+    assert_select "a[href='#{admin_hostel_bookings_path}']", count: 0
     assert_select "a[href='#{users_path}']", count: 0
     assert_select "a[href='#{admin_participants_path}']", count: 0
     assert_select "a[href='#{admin_payments_path}']", count: 0
@@ -48,5 +54,17 @@ class DashboardAuthorizationTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{menus_path}']", text: "Menus"
     assert_select "a[href='#{newsletter_subscriptions_path}']", text: "Newsletter subscriptions"
     assert_select "a[href='#{sponsors_path}']", text: "Sponsors"
+    assert_select "section[aria-labelledby=people-heading] h2", text: "People"
+    {
+      "site-content" => [pages_path, admin_articles_path, event_groups_path, sponsors_path],
+      "financial" => [admin_payments_path, admin_settlements_path],
+      "site-structure" => [menus_path],
+      "people" => [users_path, admin_participants_path, admin_hostel_bookings_path],
+      "communication" => [notices_path, newsletter_signup_path, newsletter_subscriptions_path]
+    }.each do |section, paths|
+      paths.each do |path|
+        assert_select "section[aria-labelledby=#{section}-heading] a[href='#{path}']", count: 1
+      end
+    end
   end
 end

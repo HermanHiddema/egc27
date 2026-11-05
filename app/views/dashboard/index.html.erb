@@ -1,51 +1,56 @@
 <div class="container-wide py-12">
   <h1 class="text-4xl font-bold mb-6">Admin</h1>
 
-  <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
-    <h2 class="text-2xl font-semibold mb-3">Content</h2>
-    <ul class="space-y-2">
-      <% if current_user.can_delete? %>
-        <li>
-          <%= link_to "Users", users_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Participants", admin_participants_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Payments", admin_payments_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Hostel bookings", admin_hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-      <% end %>
-      <li>
-        <%= link_to "Pages", pages_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      </li>
-      <li>
-        <%= link_to "Notices", notices_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-      </li>
-      <% if current_user.can_edit? %>
-        <li>
-          <%= link_to "Newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-      <% end %>
-      <% if current_user.can_delete? %>
-        <li>
-          <%= link_to "Event Groups", event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Menus", menus_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Newsletter subscriptions", newsletter_subscriptions_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-        <li>
-          <%= link_to "Sponsors", sponsors_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
-        </li>
-      <% end %>
-    </ul>
+  <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="site-content-heading">
+      <h2 id="site-content-heading" class="text-2xl font-semibold mb-3">Site content</h2>
+      <ul class="space-y-2">
+        <li><%= link_to "Pages", pages_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <li><%= link_to "Articles", admin_articles_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <% if current_user.can_delete? %>
+          <li><%= link_to "Event Groups", event_groups_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+          <li><%= link_to "Sponsors", sponsors_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <% end %>
+      </ul>
+    </section>
+
+    <% if current_user.can_delete? %>
+      <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="financial-heading">
+        <h2 id="financial-heading" class="text-2xl font-semibold mb-3">Financial</h2>
+        <ul class="space-y-2">
+          <li><%= link_to "Payments", admin_payments_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+          <li><%= link_to "Settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        </ul>
+      </section>
+
+      <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="site-structure-heading">
+        <h2 id="site-structure-heading" class="text-2xl font-semibold mb-3">Site structure</h2>
+        <ul class="space-y-2">
+          <li><%= link_to "Menus", menus_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        </ul>
+      </section>
+
+      <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="people-heading">
+        <h2 id="people-heading" class="text-2xl font-semibold mb-3">People</h2>
+        <ul class="space-y-2">
+          <li><%= link_to "Users", users_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+          <li><%= link_to "Participants", admin_participants_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+          <li><%= link_to "Hostel bookings", admin_hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        </ul>
+      </section>
+    <% end %>
+
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="communication-heading">
+      <h2 id="communication-heading" class="text-2xl font-semibold mb-3">Communication</h2>
+      <ul class="space-y-2">
+        <li><%= link_to "Notices", notices_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <% if current_user.can_edit? %>
+          <li><%= link_to "Newsletters", newsletter_signup_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <% end %>
+        <% if current_user.can_delete? %>
+          <li><%= link_to "Newsletter subscriptions", newsletter_subscriptions_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
+        <% end %>
+      </ul>
+    </section>
   </div>
 </div>

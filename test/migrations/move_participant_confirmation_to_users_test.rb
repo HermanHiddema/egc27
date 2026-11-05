@@ -5,8 +5,19 @@ class MoveParticipantConfirmationToUsersTest < ActiveSupport::TestCase
   parallelize(workers: 1)
 
   setup do
+    connection = ActiveRecord::Base.connection
+    [:confirmation_token, :confirmed_at].each do |column|
+      connection.remove_column(:participants, column) if connection.column_exists?(:participants, column)
+    end
+    connection.clear_cache!
+
     @migration = MoveParticipantConfirmationToUsers.new
     @migration.migrate(:down)
+  end
+
+  def after_teardown
+    super
+    ActiveRecord::Base.connection.clear_cache!
   end
 
   test "preserves confirmed users when their participants are unconfirmed" do

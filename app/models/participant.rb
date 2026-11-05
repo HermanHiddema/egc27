@@ -7,6 +7,7 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
+#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
