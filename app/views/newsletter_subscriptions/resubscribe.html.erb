@@ -1,0 +1,11 @@
+<div class="container-wide py-12">
+  <div class="max-w-2xl mx-auto card p-6 space-y-6">
+    <h1 class="text-3xl font-bold">Confirm resubscribe</h1>
+    <p class="text-neutral-700">Would you like to resubscribe to the newsletter?</p>
+
+    <div class="flex gap-4">
+      <%= button_to "Resubscribe", confirm_resubscribe_newsletter_path(@newsletter_subscription.subscription_token), method: :post, class: "btn-primary" %>
+      <%= link_to "Cancel", newsletter_signup_path, class: "btn-secondary" %>
+    </div>
+  </div>
+</div>

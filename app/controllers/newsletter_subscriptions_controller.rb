@@ -1,7 +1,7 @@
 class NewsletterSubscriptionsController < ApplicationController
   include TurnstileVerifiable
 
-  skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy, :resubscribe]
+  skip_before_action :authenticate_user!, only: [:new, :create, :unsubscribe, :destroy, :resubscribe, :destroy_resubscribe]
   before_action :prepare_newsletter_subscription, only: [:create]
   before_action :prepare_newsletter_overview, only: [:new, :create]
   before_action :verify_turnstile, only: [:create]
@@ -21,6 +21,11 @@ class NewsletterSubscriptionsController < ApplicationController
     else
       render :new, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotUnique
+    raise unless NewsletterSubscription.exists?(email: NewsletterSubscription.normalize_email(@newsletter_subscription.email))
+
+    @newsletter_subscription.errors.add(:email, :taken)
+    render :new, status: :unprocessable_entity
   end
 
   def unsubscribe
@@ -36,12 +41,20 @@ class NewsletterSubscriptionsController < ApplicationController
 
     return redirect_to root_path, alert: "Invalid unsubscribe link." unless subscription&.unsubscribe!
 
-    NewsletterMailer.goodbye(subscription).deliver_now
+    NewsletterGoodbyeJob.perform_later(subscription.id, subscription.subscription_token)
 
     redirect_to root_path, notice: "You have been unsubscribed from the newsletter."
   end
 
   def resubscribe
+    subscription = NewsletterSubscription.find_by(subscription_token: params[:token].to_s)
+
+    return redirect_to root_path, alert: "Invalid resubscribe link." unless subscription && !subscription.subscribed?
+
+    @newsletter_subscription = subscription
+  end
+
+  def destroy_resubscribe
     subscription = NewsletterSubscription.find_by(subscription_token: params[:token].to_s)
 
     return redirect_to root_path, alert: "Invalid resubscribe link." unless subscription&.resubscribe!

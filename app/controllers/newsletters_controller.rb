@@ -83,7 +83,9 @@ class NewslettersController < ApplicationController
   def destroy_test_unsubscribe
     subscription = @test_unsubscribe_subscription
     was_subscribed = subscription&.subscribed?
-    subscription.unsubscribe! if was_subscribed
+    if was_subscribed && subscription.unsubscribe!
+      NewsletterGoodbyeJob.perform_later(subscription.id, subscription.subscription_token)
+    end
 
     notice = was_subscribed ? "You have been unsubscribed from the newsletter." : "This test unsubscribe link is no longer valid. No subscription was changed."
     redirect_to newsletter_signup_path, notice: notice

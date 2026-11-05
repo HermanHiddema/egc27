@@ -3,7 +3,8 @@ require "test_helper"
 class NewsletterMailerTest < ActionMailer::TestCase
   test "goodbye is sent to the subscriber with a resubscribe link" do
     subscription = newsletter_subscriptions(:active)
-    email = NewsletterMailer.goodbye(subscription)
+    resubscribe_token = "resubscribe-token"
+    email = NewsletterMailer.goodbye(subscription, resubscribe_token: resubscribe_token)
 
     assert_equal [subscription.email], email.to
     assert_equal "EGC 2027 – You have been unsubscribed", email.subject
@@ -11,7 +12,7 @@ class NewsletterMailerTest < ActionMailer::TestCase
     body = email.body.decoded
     assert_match subscription.first_name, body
     resubscribe_url = Rails.application.routes.url_helpers.resubscribe_newsletter_url(
-      subscription.subscription_token, host: "example.com", protocol: "https"
+      resubscribe_token, host: "example.com", protocol: "https"
     )
     assert_match resubscribe_url, body
   end

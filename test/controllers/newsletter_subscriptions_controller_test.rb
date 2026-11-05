@@ -119,6 +119,30 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
   end
 
+  test "renders newsletter page with an email-taken error after a concurrent insert" do
+    subscription = newsletter_subscriptions(:inactive)
+    attempted_subscription = NewsletterSubscription.new(email: subscription.email)
+    original_new = NewsletterSubscription.method(:new)
+    original_save = attempted_subscription.method(:save)
+    NewsletterSubscription.define_singleton_method(:new) { |*| attempted_subscription }
+    attempted_subscription.define_singleton_method(:save) { raise ActiveRecord::RecordNotUnique }
+
+    post newsletter_subscriptions_path, params: {
+      newsletter_subscription: {
+        email: subscription.email
+      }
+    }
+    assert_response :unprocessable_entity
+    assert_includes attempted_subscription.errors.full_messages, "Email has already been taken"
+    assert_not subscription.reload.subscribed?
+    assert_equal "Bob", subscription.first_name
+  ensure
+    if original_new
+      NewsletterSubscription.define_singleton_method(:new, original_new)
+      attempted_subscription.define_singleton_method(:save, original_save)
+    end
+  end
+
   test "rejects an active subscription without another welcome email" do
     subscription = newsletter_subscriptions(:active)
 
@@ -170,7 +194,9 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     used_token = subscription.subscription_token
 
     assert_difference("ActionMailer::Base.deliveries.size", 1) do
-      delete destroy_unsubscribe_newsletter_path(used_token)
+      perform_enqueued_jobs do
+        delete destroy_unsubscribe_newsletter_path(used_token)
+      end
     end
 
     assert_redirected_to root_path
@@ -198,12 +224,24 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Invalid unsubscribe link.", flash[:alert]
   end
 
-  test "resubscribes a valid token" do
+  test "shows confirmation for a valid resubscribe token without changing the subscription" do
+    subscription = newsletter_subscriptions(:inactive)
+    used_token = subscription.subscription_token
+
+    get resubscribe_newsletter_path(used_token)
+
+    assert_response :success
+    assert_select "h1", text: "Confirm resubscribe"
+    assert_select "form[action=?][method=post]", confirm_resubscribe_newsletter_path(used_token)
+    assert_not subscription.reload.subscribed?
+  end
+
+  test "resubscribes only after explicit confirmation" do
     subscription = newsletter_subscriptions(:inactive)
     used_token = subscription.subscription_token
 
     assert_difference("ActionMailer::Base.deliveries.size", 1) do
-      get resubscribe_newsletter_path(used_token)
+      post confirm_resubscribe_newsletter_path(used_token)
     end
 
     assert_redirected_to newsletter_signup_path
@@ -220,14 +258,21 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
     subscription = newsletter_subscriptions(:inactive)
     used_token = subscription.subscription_token
 
-    get resubscribe_newsletter_path(used_token)
-    get resubscribe_newsletter_path(used_token)
+    post confirm_resubscribe_newsletter_path(used_token)
+    post confirm_resubscribe_newsletter_path(used_token)
 
     assert_redirected_to root_path
     assert_equal "Invalid resubscribe link.", flash[:alert]
   end
 
   test "rejects invalid resubscribe token" do
+    post confirm_resubscribe_newsletter_path("missing-token")
+
+    assert_redirected_to root_path
+    assert_equal "Invalid resubscribe link.", flash[:alert]
+  end
+
+  test "rejects an invalid resubscribe token in the confirmation page" do
     get resubscribe_newsletter_path("missing-token")
 
     assert_redirected_to root_path

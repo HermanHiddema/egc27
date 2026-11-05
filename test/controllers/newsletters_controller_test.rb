@@ -178,12 +178,19 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     original_token = subscription.subscription_token
     token = NewsletterTestEmailLink.unsubscribe_token(subscription.email)
 
-    delete destroy_test_newsletter_unsubscribe_path(token: token)
+    assert_difference("ActionMailer::Base.deliveries.size", 1) do
+      perform_enqueued_jobs do
+        delete destroy_test_newsletter_unsubscribe_path(token: token)
+      end
+    end
 
     assert_redirected_to newsletter_signup_path
     assert_not subscription.reload.subscribed?
     assert subscription.subscription_token.present?
     assert_not_equal original_token, subscription.subscription_token
+    goodbye = ActionMailer::Base.deliveries.last
+    assert_equal [subscription.email], goodbye.to
+    assert_match resubscribe_newsletter_path(subscription.subscription_token), goodbye.body.decoded
   end
 
   test "test unsubscribe link can only be used once, including after resubscription" do

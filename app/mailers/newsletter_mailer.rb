@@ -1,9 +1,9 @@
 class NewsletterMailer < ApplicationMailer
   layout false
 
-  def goodbye(newsletter_subscription)
+  def goodbye(newsletter_subscription, resubscribe_token: nil)
     @newsletter_subscription = newsletter_subscription
-    @resubscribe_url = resubscribe_newsletter_url(newsletter_subscription.subscription_token)
+    @resubscribe_url = resubscribe_newsletter_url(resubscribe_token || newsletter_subscription.subscription_token)
 
     mail(
       to: newsletter_subscription.email,
