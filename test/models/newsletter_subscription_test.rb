@@ -20,6 +20,20 @@ require "test_helper"
 #  index_newsletter_subscriptions_on_subscription_token  (subscription_token) UNIQUE
 #
 class NewsletterSubscriptionTest < ActiveSupport::TestCase
+  test "requires an email domain suffix" do
+    %w[john@example john@examplecom john@.com john@example..com john@example.].each do |email|
+      record = NewsletterSubscription.new(email: email)
+      record.valid?
+      assert record.errors.of_kind?(:email, :invalid), "expected #{email} to be invalid"
+    end
+
+    %w[john@example.com john@sub.example.co.uk john@example.museum john@example.ext].each do |email|
+      record = NewsletterSubscription.new(email: email)
+      record.valid?
+      assert_empty record.errors[:email], "expected #{email} to be valid"
+    end
+  end
+
   test "normalizes names and email" do
     subscription = NewsletterSubscription.create!(
       first_name: "  Jane ",

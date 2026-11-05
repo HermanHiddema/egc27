@@ -32,6 +32,20 @@ require "test_helper"
 #  index_users_on_reset_password_token  (reset_password_token) UNIQUE
 #
 class UserTest < ActiveSupport::TestCase
+  test "requires an email domain suffix" do
+    %w[john@example john@examplecom john@.com john@example..com john@example.].each do |email|
+      record = User.new(email: email, skip_password_validation: true)
+      record.valid?
+      assert record.errors.of_kind?(:email, :invalid), "expected #{email} to be invalid"
+    end
+
+    %w[john@example.com john@sub.example.co.uk john@example.museum john@example.ext].each do |email|
+      record = User.new(email: email, skip_password_validation: true)
+      record.valid?
+      assert_empty record.errors[:email], "expected #{email} to be valid"
+    end
+  end
+
   test "default role is regular" do
     user = User.new(email: "new@example.com", password: "securepassword1")
     assert_equal "regular", user.role

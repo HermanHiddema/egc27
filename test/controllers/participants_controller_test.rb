@@ -355,6 +355,21 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.md\\:col-span-2 [data-egd-autocomplete-target='existingAccountNotice']"
   end
 
+  test "registration displays an error for a missing email suffix" do
+    assert_no_difference ["User.count", "Participant.count"] do
+      params = duplicate_pin_participant_params(email: "john@example", egd_pin: nil)
+      params[:participant][:gender] = ""
+      params[:participant][:age_group] = ""
+      post participants_path, params: params
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "li", text: "Email is invalid", count: 1
+    assert_select "li", text: "Gender must be selected"
+    assert_select "li", text: "Age group must be selected"
+    assert_select "li", text: /User/, count: 0
+  end
+
   test "create forces the signed in user's email even if a different one is submitted" do
     sign_in users(:one)
 

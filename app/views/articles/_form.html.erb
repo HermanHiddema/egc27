@@ -1,4 +1,6 @@
 <%= form_with model: article do |form| %>
+  <%= hidden_field_tag :return_to, params[:return_to] if %w[admin article].include?(params[:return_to]) %>
+  <%= hidden_field_tag :overview, "admin" if params[:return_to] == "article" && params[:overview] == "admin" %>
   <% if article.errors.any? %>
     <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
       <h2 class="text-red-800 font-semibold mb-2">There were errors with your submission:</h2>
@@ -44,7 +46,7 @@
 
     <div class="flex gap-4">
       <%= form.submit class: "btn-primary" %>
-      <%= link_to "Cancel", articles_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
+      <%= link_to "Cancel", article.persisted? ? article_edit_return_path : articles_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition px-4 py-2" %>
     </div>
   </div>
 <% end %>
