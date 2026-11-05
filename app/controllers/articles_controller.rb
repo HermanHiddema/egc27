@@ -1,4 +1,5 @@
 class ArticlesController < ApplicationController
+  helper_method :article_overview_path, :article_edit_return_path, :article_overview_context
   skip_before_action :authenticate_user!, only: [:index, :show]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update]
@@ -35,7 +36,7 @@ class ArticlesController < ApplicationController
     end
 
     if @article.update(article_params.except(:remove_main_image))
-      redirect_to @article, notice: "Article was successfully updated."
+      redirect_to article_path(@article, return_to: article_overview_context), notice: "Article was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -47,6 +48,22 @@ class ArticlesController < ApplicationController
   end
 
   private
+
+  def article_overview_context
+    "admin" if params[:return_to] == "admin" || (params[:return_to] == "article" && params[:overview] == "admin")
+  end
+
+  def article_overview_path
+    article_overview_context == "admin" ? admin_articles_path : articles_path
+  end
+
+  def article_edit_return_path
+    if params[:return_to] == "article"
+      article_path(@article, return_to: article_overview_context)
+    else
+      article_overview_path
+    end
+  end
 
   def set_article
     @article = Article.with_attached_main_image.find_by(slug: params[:id]) || Article.with_attached_main_image.find(params[:id])

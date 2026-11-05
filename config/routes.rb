@@ -202,6 +202,7 @@ Rails.application.routes.draw do
   resources :sponsors, except: [:show]
 
   namespace :admin do
+    resources :articles, only: [:index]
     resources :participants, only: [:index, :edit, :update, :destroy] do
       collection do
         post :sync_egd
