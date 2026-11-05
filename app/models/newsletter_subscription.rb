@@ -26,7 +26,7 @@ class NewsletterSubscription < ApplicationRecord
 
   validates :email, presence: true
   validates :unsubscribe_token, presence: true, if: :subscribed?
-  validates :email, uniqueness: { case_sensitive: false }, format: { with: URI::MailTo::EMAIL_REGEXP }
+  validates :email, uniqueness: { case_sensitive: false }, email_address: true
   validates :subscribed, inclusion: { in: [true, false] }
 
   def self.normalize_email(email)

@@ -91,3 +91,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Use `/newsletter` as the newsletter overview, with subscription in a modal; show editor/admin draft newsletters above sent issues and place Create newsletter above Subscribe.
 - Make sent newsletter tiles fully clickable and include the count-confirmed Send action in both the editor and preview.
 - Set newsletter email templates to a 1200px desktop maximum width and stack layout table cells on narrow screens.
+- Require an email domain suffix without checking it against a list of valid extensions.

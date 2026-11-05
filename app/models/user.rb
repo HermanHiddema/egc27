@@ -40,6 +40,8 @@ class User < ApplicationRecord
   has_many :participants, dependent: :destroy
   has_many :hostel_bookings, dependent: :destroy
 
+  validates :email, email_address: true, if: :devise_will_save_change_to_email?
+
   ROLES = %w[regular editor admin].freeze
 
   enum :role, ROLES.index_with(&:itself), validate: true, default: "regular"

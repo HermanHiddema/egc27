@@ -74,7 +74,11 @@ class ParticipantsController < ApplicationController
 
       redirect_to participant_path(@participant), notice: notice
     end
-  rescue ActiveRecord::RecordInvalid
+  rescue ActiveRecord::RecordInvalid => error
+    if error.record.is_a?(User)
+      @participant.user = error.record
+      @participant.valid?
+    end
     render :new, status: :unprocessable_entity
   rescue ActiveRecord::RecordNotUnique => e
     raise unless duplicate_egd_pin_conflict?(e)
