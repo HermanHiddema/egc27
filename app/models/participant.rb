@@ -7,6 +7,7 @@
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
 #  age_group                     :string           not null
 #  club                          :string           not null
+#  confirmed_at                  :datetime
 #  country                       :string           not null
 #  egd_pin                       :string
 #  email                         :string           not null
@@ -94,7 +95,7 @@ class Participant < ApplicationRecord
   validates :accepted_privacy_policy, inclusion: { in: [true], message: "must be accepted" }
   validates :image_use_consent, inclusion: { in: [true, false], message: "must be selected" }
   validates :attendance_option, inclusion: { in: ATTENDANCE_OPTIONS.keys, message: "must be selected" }, allow_blank: true
-  validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, allow_nil: true
+  validates :email, email_address: true
   validates :phone, format: { with: /\A\+\d{6,15}\z/, message: "must be a valid international phone number" }, allow_blank: true
   validates :country, format: { with: /\A[A-Z]{2}\z/, message: "must be an ISO 3166-1 alpha-2 code" }
   validates :rating, numericality: {

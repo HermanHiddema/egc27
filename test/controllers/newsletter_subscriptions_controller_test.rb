@@ -125,7 +125,7 @@ class NewsletterSubscriptionsControllerTest < ActionDispatch::IntegrationTest
   test "renders newsletter page with errors for invalid newsletter subscription" do
     post newsletter_subscriptions_path, params: {
       newsletter_subscription: {
-        email: "invalid-email"
+        email: "john@example"
       }
     }
 
