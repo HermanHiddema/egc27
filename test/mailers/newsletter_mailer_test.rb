@@ -9,7 +9,7 @@ class NewsletterMailerTest < ActionMailer::TestCase
     [NewsletterMailer.newsletter(newsletter, newsletter_subscriptions(:active)),
      NewsletterMailer.test_newsletter(newsletter.id, snapshot, "test@example.com")].each do |email|
       body = email.html_part.body.decoded
-      assert_includes body, 'href="mailto:info@egc27.nl"'
+      assert_includes body, 'href="mailto:info@egc2027.nl"'
       ApplicationHelper::SOCIAL_MEDIA_LINKS.each_key do |platform|
         attachment = email.attachments["#{platform}.png"]
         assert attachment.inline?
