@@ -99,7 +99,7 @@ class Payment < ApplicationRecord
   # Mollie payments get their payment date once they become paid. Refunded and
   # charged-back payments were paid before, so they get one too.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
-  after_create :record_ticket_price, unless: :unsuccessful?
+  after_commit :sync_ticket_price, on: [:create, :update]
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -313,9 +313,28 @@ class Payment < ApplicationRecord
   # only reports the refunded and charged-back amounts separately, so these are
   # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
   # takes precedence, because it needs follow-up by an admin.
-  def record_ticket_price
+  def sync_ticket_price
     ticket = participant_tickets.first
-    ticket&.update!(price_cents: amount_cents)
+    return unless ticket
+    return if a_later_payment_exists?
+
+    if previously_new_record?
+      ticket.update!(price_cents: amount_cents) unless unsuccessful?
+    elsif saved_change_to_status? && unsuccessful?
+      latest_paid_payment = order.payments.completed.order(created_at: :desc, id: :desc).first
+      ticket.update!(price_cents: latest_paid_payment&.amount_cents)
+    elsif !unsuccessful? && saved_change_to_amount_cents?
+      ticket.update!(price_cents: amount_cents)
+    end
+  end
+
+  def a_later_payment_exists?
+    order.payments.where(
+      "created_at > ? OR (created_at = ? AND id > ?)",
+      created_at,
+      created_at,
+      id
+    ).exists?
   end
 
   def mollie_status(mollie_payment)

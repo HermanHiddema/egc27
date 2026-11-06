@@ -166,6 +166,96 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not payment.processed_in_bookkeeping?
   end
 
+  test "updates the ticket price when the current payment amount changes" do
+    participant = participants(:three)
+    payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Updated price"
+    )
+
+    payment.update!(amount_cents: 9_550)
+
+    assert_equal 9_550, participant.participant_ticket.reload.price_cents
+  end
+
+  test "does not update the ticket price for a status-only change" do
+    participant = participants(:three)
+    payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Status change"
+    )
+    participant.participant_ticket.update!(price_cents: 9_550)
+
+    payment.update!(status: "pending")
+
+    assert_equal 9_550, participant.participant_ticket.reload.price_cents
+  end
+
+  test "clears the ticket price when the latest payment fails without another successful payment" do
+    participant = participants(:three)
+    payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Failed payment"
+    )
+
+    payment.update!(status: "failed")
+
+    assert_nil participant.participant_ticket.reload.price_cents
+  end
+
+  test "restores a successful payment price when a later payment fails" do
+    participant = participants(:three)
+    successful_payment = Payment.create!(
+      participant: participant,
+      provider: "manual",
+      payment_method: "cash",
+      payment_date: Date.current,
+      status: "paid",
+      amount_cents: 9_550,
+      description: "Successful payment"
+    )
+    failed_payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Later failed payment"
+    )
+
+    failed_payment.update!(status: "expired")
+
+    assert_equal successful_payment.amount_cents, participant.participant_ticket.reload.price_cents
+  end
+
+  test "amount changes on older payment attempts do not update the ticket price" do
+    participant = participants(:three)
+    older_payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Older payment"
+    )
+    latest_payment = Payment.create!(
+      participant: participant,
+      provider: "manual",
+      payment_method: "cash",
+      payment_date: Date.current,
+      status: "paid",
+      amount_cents: 19_000,
+      description: "Latest payment"
+    )
+
+    older_payment.update!(amount_cents: 9_550)
+    older_payment.update!(status: "failed")
+
+    assert_equal latest_payment.amount_cents, participant.participant_ticket.reload.price_cents
+  end
+
   test "sends payment confirmation email when status changes to paid" do
     payment = payments(:open_payment)
     assert_emails 1 do
