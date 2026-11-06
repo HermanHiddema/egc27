@@ -1,6 +1,24 @@
 require "test_helper"
 
 class NewsletterMailerTest < ActionMailer::TestCase
+  test "default footer icons are embedded in sent and test emails" do
+    footer = ApplicationController.render(partial: "newsletters/default_footer")
+    newsletter = Newsletter.create!(title: "Issue", subject: "News", content_html: footer, user: users(:editor))
+    snapshot = newsletter.attributes.slice("title", "subject", "content_html")
+
+    [NewsletterMailer.newsletter(newsletter, newsletter_subscriptions(:active)),
+     NewsletterMailer.test_newsletter(newsletter.id, snapshot, "test@example.com")].each do |email|
+      body = email.html_part.body.decoded
+      assert_includes body, 'href="mailto:info@egc27.nl"'
+      ApplicationHelper::SOCIAL_MEDIA_LINKS.each_key do |platform|
+        attachment = email.attachments["#{platform}.png"]
+        assert attachment.inline?
+        assert_includes body, attachment.url
+        assert_equal File.binread(Rails.root.join("public/newsletter-social", "#{platform}.png")), attachment.decoded
+      end
+    end
+  end
+
   test "welcome greets the subscriber and includes an unsubscribe link" do
     subscription = newsletter_subscriptions(:active)
     email = NewsletterMailer.welcome(subscription)

@@ -7,6 +7,13 @@ class NewslettersControllerTest < ActionDispatch::IntegrationTest
     get new_newsletter_path
 
     assert_response :success
+    content = Nokogiri::HTML.fragment(css_select('textarea[name="newsletter[content_html]"]').first.text)
+    assert_includes content.text, "For questions or additional information, you're welcome to contact"
+    assert_equal "info@egc27.nl", content.at_css('a[href="mailto:info@egc27.nl"]').text
+    ApplicationHelper::SOCIAL_MEDIA_LINKS.each do |platform, (label, url)|
+      assert_equal url, content.at_css("img[alt='#{label}']").parent["href"]
+      assert_equal "/newsletter-social/#{platform}.png", content.at_css("img[alt='#{label}']")["src"]
+    end
     assert_select 'textarea[name="newsletter[content_html]"][required]', count: 0
     assert_select 'textarea[data-tinymce-plugins-value="lists link image autoresize"]'
     assert_select 'button[name="intent"][value="preview"]', text: "Preview"
