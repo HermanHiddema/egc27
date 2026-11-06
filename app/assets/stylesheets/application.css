@@ -478,6 +478,11 @@
   margin-left: auto;
 }
 
+.newsletter-document .newsletter-social-links {
+  display: flex;
+  align-items: center;
+}
+
 .newsletter-document table.newsletter-layout-locked {
   width: 100%;
   table-layout: fixed;

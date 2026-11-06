@@ -14,7 +14,7 @@ class NewslettersController < ApplicationController
   end
 
   def new
-    @newsletter = current_user.newsletters.build
+    @newsletter = current_user.newsletters.build(content_html: render_to_string(partial: "newsletters/default_footer", formats: [:html]))
   end
 
   def create

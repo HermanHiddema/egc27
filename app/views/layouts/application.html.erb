@@ -129,21 +129,11 @@ DraGo's Summer Festival
       <div class="container-wide py-3 lg:py-8">
         <div class="border-t border-brand-blue-800 pt-3 lg:pt-8 flex flex-col items-center gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
           <div class="footer-social-links flex items-center justify-center gap-3 sm:gap-4">
-            <a href="https://www.facebook.com/share/189m4UBKsN/?mibextid=wwXIfr" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Facebook">
-              <%= social_media_icon("facebook", css_class: "w-6 h-6") %>
-            </a>
-            <a href="https://www.instagram.com/egc2027?igsh=eGlzeTN0MWJtZmc5&utm_source=qr" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Instagram">
-              <%= social_media_icon("instagram", css_class: "w-6 h-6") %>
-            </a>
-            <a href="https://x.com/egc2027?s=21" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="X (Twitter)">
-              <%= social_media_icon("x", css_class: "w-6 h-6") %>
-            </a>
-            <a href="https://discord.gg/m8cpSVbhMY" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="Discord">
-              <%= social_media_icon("discord", css_class: "w-6 h-6") %>
-            </a>
-            <a href="https://chat.whatsapp.com/LPdN50HJlFaFvcaRVhmkPC" target="_blank" rel="noopener noreferrer" class="text-neutral-400 hover:text-brand-yellow-400 transition-colors" aria-label="WhatsApp">
-              <%= social_media_icon("whatsapp", css_class: "w-6 h-6") %>
-            </a>
+            <% ApplicationHelper::SOCIAL_MEDIA_LINKS.each do |platform, (label, url)| %>
+              <%= link_to url, target: "_blank", rel: "noopener noreferrer", class: "text-neutral-400 hover:text-brand-yellow-400 transition-colors", aria: { label: label } do %>
+                <%= social_media_icon(platform, css_class: "w-6 h-6") %>
+              <% end %>
+            <% end %>
           </div>
 
           <%= render "layouts/footer_menu", menu: @footer_menu, root_items: @footer_menu_root_items || [] %>
