@@ -12,7 +12,7 @@
 #  egd_pin                       :string
 #  email                         :string           not null
 #  first_name                    :string           not null
-#  first_week                    :boolean          default(TRUE), not null
+#  first_week                    :boolean          default(TRUE)
 #  gender                        :string
 #  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
@@ -20,15 +20,16 @@
 #  phone                         :string
 #  rank                          :integer
 #  rating                        :integer
-#  second_week                   :boolean          default(TRUE), not null
+#  second_week                   :boolean          default(TRUE)
 #  uuid                          :uuid             not null
-#  weekend                       :boolean          default(TRUE), not null
+#  weekend                       :boolean          default(TRUE)
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
 #  user_id                       :bigint           not null
 #
 # Indexes
 #
+#  index_participants_on_confirmed_at      (confirmed_at)
 #  index_participants_on_created_at        (created_at)
 #  index_participants_on_egd_pin           (egd_pin) UNIQUE
 #  index_participants_on_email             (email)
@@ -61,7 +62,10 @@ class Participant < ApplicationRecord
 
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
-  has_many :payments, dependent: :destroy
+  has_one :participant_ticket, inverse_of: :participant, dependent: :destroy, autosave: true
+  has_one :product, through: :participant_ticket
+  has_one :order, through: :product
+  has_many :payments, through: :order
   # The user is always derived from the email during registration, so a missing
   # user can only result from a missing email. The association is marked optional
   # here only to suppress the framework's "User must exist" error; user presence
@@ -79,11 +83,9 @@ class Participant < ApplicationRecord
   scope :confirmed, -> { joins(:user).where.not(users: { confirmed_at: nil }) }
 
   scope :not_refunded, -> {
-    where.not(
-      id: Payment.reversed.where.not(participant_id: nil).where.not(
-        participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)
-      ).select(:participant_id)
-    )
+    paid_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.completed).select(:participant_id)
+    reversed_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.reversed).select(:participant_id)
+    where.not(id: reversed_ids).or(where(id: paid_ids))
   }
 
   validates :first_name, :last_name, :email, :country, presence: true
@@ -113,13 +115,19 @@ class Participant < ApplicationRecord
 
   before_validation :normalize_text_fields
   before_validation :normalize_participant_type
+  before_validation :ensure_participant_ticket
   before_validation :normalize_gender
   before_validation :normalize_rank
   before_validation :normalize_rating
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
+  before_validation :refresh_unpaid_ticket_price
 
   after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
+
+  def ticket
+    participant_ticket || (build_participant_ticket if player?)
+  end
 
   def to_param
     uuid
@@ -273,6 +281,20 @@ class Participant < ApplicationRecord
   end
 
   private
+
+  def refresh_unpaid_ticket_price
+    return unless player? && participant_ticket
+    return unless participant_ticket.new_record? || will_save_change_to_age_group? ||
+      will_save_change_to_first_week? || will_save_change_to_weekend? || will_save_change_to_second_week?
+    return unless ATTENDANCE_OPTIONS.key?(attendance_option) && AGE_GROUPS.include?(age_group)
+    return if persisted? && payments.blocking.exists?
+
+    participant_ticket.price_cents = participant_ticket.price_for
+  end
+
+  def ensure_participant_ticket
+    ticket if player?
+  end
 
   # Refreshes rank and rating from the European Go Database for the new pin.
   def sync_from_egd

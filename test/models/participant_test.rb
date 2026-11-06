@@ -15,7 +15,7 @@ require "ostruct"
 #  egd_pin                       :string
 #  email                         :string           not null
 #  first_name                    :string           not null
-#  first_week                    :boolean          default(TRUE), not null
+#  first_week                    :boolean          default(TRUE)
 #  gender                        :string
 #  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
@@ -23,9 +23,9 @@ require "ostruct"
 #  phone                         :string
 #  rank                          :integer
 #  rating                        :integer
-#  second_week                   :boolean          default(TRUE), not null
+#  second_week                   :boolean          default(TRUE)
 #  uuid                          :uuid             not null
-#  weekend                       :boolean          default(TRUE), not null
+#  weekend                       :boolean          default(TRUE)
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
 #  user_id                       :bigint           not null
@@ -573,7 +573,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "registration_status is Paid when a later payment succeeded after a refund" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
-    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+    participant.order.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
 
     participant.reload
     assert_not participant.refunded?
@@ -607,7 +607,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "not_refunded keeps participants that paid again after a refund" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
-    participant.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+    participant.order.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
 
     assert_includes Participant.not_refunded, participant.reload
   end
@@ -726,7 +726,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "refresh_paid_payments! stops at the first payment that is still paid" do
     participant = participants(:two)
     newer_payment = payments(:paid_payment)
-    older_payment = participant.payments.create!(
+    older_payment = participant.order.payments.create!(
       amount_cents: 5_000,
       description: "Older Mollie payment",
       provider: "mollie",
@@ -763,5 +763,42 @@ class ParticipantTest < ActiveSupport::TestCase
     yield
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
+  end
+  test "a visitor needs no ticket, product, or order, even when admission fields are read" do
+    visitor = participants(:visitor_one)
+    assert_nil visitor.participant_ticket
+    assert_equal "all_events", visitor.attendance_option
+    assert visitor.first_week
+    assert_not visitor.paid?
+    assert visitor.deletable?
+    assert_nil visitor.reload.participant_ticket
+    assert_nil visitor.product
+    assert_nil visitor.order
+    assert_empty visitor.payments
+  end
+
+  test "a visitor cannot acquire a newly created player ticket" do
+    ticket = ParticipantTicket.new(participant: participants(:visitor_one))
+    assert_not ticket.valid?
+    assert_includes ticket.errors[:participant], "must be a player"
+  end
+
+  test "changing a visitor into a player creates the ticket and order" do
+    participant = participants(:visitor_one)
+    assert_difference ["ParticipantTicket.count", "Product.count", "Order.count"], 1 do
+      participant.update!(participant_type: "player", attendance_option: "weekend_only")
+    end
+    assert_equal "weekend_only", participant.reload.attendance_option
+    assert_equal participant.participant_ticket, participant.order.products.sole.productable
+  end
+
+  test "changing a player into a visitor preserves payment history" do
+    participant = participants(:two)
+    ticket = participant.participant_ticket
+    payment = payments(:paid_payment)
+    participant.update!(participant_type: "visitor")
+    assert_equal ticket, participant.reload.participant_ticket
+    assert_equal payment.order_id, participant.order.id
+    assert_includes participant.payments, payment
   end
 end

@@ -14,16 +14,14 @@
 #  status                   :string           default("open"), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
-#  hostel_booking_id        :bigint
 #  mollie_payment_id        :string
-#  participant_id           :bigint
+#  order_id                 :bigint           not null
 #  settlement_id            :bigint
 #
 # Indexes
 #
-#  index_payments_on_hostel_booking_id         (hostel_booking_id)
 #  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
-#  index_payments_on_participant_id            (participant_id)
+#  index_payments_on_order_id                  (order_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
 #  index_payments_on_provider                  (provider)
 #  index_payments_on_settlement_id             (settlement_id)
@@ -31,8 +29,7 @@
 #
 # Foreign Keys
 #
-#  fk_rails_...  (hostel_booking_id => hostel_bookings.id)
-#  fk_rails_...  (participant_id => participants.id)
+#  fk_rails_...  (order_id => orders.id)
 #  fk_rails_...  (settlement_id => settlements.id)
 #
 class Payment < ApplicationRecord
@@ -66,8 +63,11 @@ class Payment < ApplicationRecord
 
   has_paper_trail
 
-  belongs_to :participant, optional: true
-  belongs_to :hostel_booking, optional: true
+  belongs_to :order
+  has_many :products, through: :order
+  has_many :participant_tickets, through: :products, source: :productable, source_type: "ParticipantTicket"
+  has_many :participants, through: :participant_tickets
+  has_many :hostel_bookings, through: :products, source: :productable, source_type: "HostelBooking"
   # The Mollie payout this payment was paid out in, once Mollie settled it.
   belongs_to :settlement, optional: true
   has_many :refunds, dependent: :nullify
@@ -81,7 +81,6 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
-  validate :has_exactly_one_payee
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
@@ -100,6 +99,7 @@ class Payment < ApplicationRecord
   # Mollie payments get their payment date once they become paid. Refunded and
   # charged-back payments were paid before, so they get one too.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
+  after_create :record_ticket_price, unless: :unsuccessful?
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -120,8 +120,8 @@ class Payment < ApplicationRecord
       participant_number: participant.participant_number
     )
 
-    participant.payments.build(
-      amount_cents: pricing.price_cents,
+    participant.order.payments.build(
+      amount_cents: participant.participant_ticket.price_for,
       description: pricing.description,
       status: "open"
     )
@@ -130,7 +130,7 @@ class Payment < ApplicationRecord
   # Builds a payment for the price fixed when the hostel booking was made.
   def self.build_for_hostel_booking(hostel_booking)
     new(
-      hostel_booking: hostel_booking,
+      order: hostel_booking.order,
       amount_cents: hostel_booking.amount_cents,
       description: hostel_booking.description,
       status: "open"
@@ -158,6 +158,31 @@ class Payment < ApplicationRecord
   # returns to after a checkout instead of the guessable numeric id.
   def return_token
     signed_id(purpose: :payment_return, expires_in: RETURN_TOKEN_EXPIRY)
+  end
+
+  # Compatibility readers for the current single-product order.
+  def participant
+    participants.first
+  end
+
+  def hostel_booking
+    hostel_bookings.first
+  end
+
+  def participant_id
+    participant&.id
+  end
+
+  def hostel_booking_id
+    hostel_booking&.id
+  end
+
+  def participant=(participant)
+    self.order = participant&.order
+  end
+
+  def hostel_booking=(booking)
+    self.order = booking&.order
   end
 
   def paid?
@@ -288,6 +313,11 @@ class Payment < ApplicationRecord
   # only reports the refunded and charged-back amounts separately, so these are
   # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
   # takes precedence, because it needs follow-up by an admin.
+  def record_ticket_price
+    ticket = participant_tickets.first
+    ticket&.update!(price_cents: amount_cents)
+  end
+
   def mollie_status(mollie_payment)
     return "charged_back" if mollie_amount_positive?(mollie_payment.try(:amount_charged_back))
     return "refunded" if mollie_amount_positive?(mollie_payment.try(:amount_refunded))
@@ -356,11 +386,5 @@ class Payment < ApplicationRecord
     end
   rescue StandardError => e
     Rails.logger.error("Failed to deliver payment confirmation for Payment #{id}: #{e.class}: #{e.message}")
-  end
-
-  def has_exactly_one_payee
-    return if participant.present? ^ hostel_booking.present?
-
-    errors.add(:base, "A payment must belong to exactly one participant or hostel booking")
   end
 end

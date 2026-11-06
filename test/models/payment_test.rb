@@ -17,16 +17,14 @@ require "ostruct"
 #  status                   :string           default("open"), not null
 #  created_at               :datetime         not null
 #  updated_at               :datetime         not null
-#  hostel_booking_id        :bigint
 #  mollie_payment_id        :string
-#  participant_id           :bigint
+#  order_id                 :bigint           not null
 #  settlement_id            :bigint
 #
 # Indexes
 #
-#  index_payments_on_hostel_booking_id         (hostel_booking_id)
 #  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
-#  index_payments_on_participant_id            (participant_id)
+#  index_payments_on_order_id                  (order_id)
 #  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
 #  index_payments_on_provider                  (provider)
 #  index_payments_on_settlement_id             (settlement_id)
@@ -34,8 +32,7 @@ require "ostruct"
 #
 # Foreign Keys
 #
-#  fk_rails_...  (hostel_booking_id => hostel_bookings.id)
-#  fk_rails_...  (participant_id => participants.id)
+#  fk_rails_...  (order_id => orders.id)
 #  fk_rails_...  (settlement_id => settlements.id)
 #
 class PaymentTest < ActiveSupport::TestCase
@@ -52,10 +49,10 @@ class PaymentTest < ActiveSupport::TestCase
     assert payment.valid?
   end
 
-  test "requires exactly one participant or hostel booking" do
+  test "requires an order" do
     payment = Payment.new(status: "open", amount_cents: 19_000, description: "Test")
     assert_not payment.valid?
-    assert_includes payment.errors[:base], "A payment must belong to exactly one participant or hostel booking"
+    assert_includes payment.errors[:order], "must exist"
   end
 
   test "requires description" do
@@ -635,5 +632,20 @@ class PaymentTest < ActiveSupport::TestCase
     yield
   ensure
     Mollie::Payment.define_singleton_method(:create, &original)
+  end
+  test "preloaded participant and hostel payment payees need no extra queries" do
+    participant = participants(:two)
+    booking = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 27), double_rooms: 1)
+    hostel_payment = Payment.build_for_hostel_booking(booking)
+    hostel_payment.save!
+    participant_payment = payments(:paid_payment)
+    loaded = Payment.includes(:participants, :hostel_bookings).where(id: [participant_payment.id, hostel_payment.id]).index_by(&:id)
+
+    assert_no_queries do
+      assert_equal participant, loaded.fetch(participant_payment.id).participant
+      assert_nil loaded.fetch(participant_payment.id).hostel_booking
+      assert_equal booking, loaded.fetch(hostel_payment.id).hostel_booking
+      assert_nil loaded.fetch(hostel_payment.id).participant
+    end
   end
 end

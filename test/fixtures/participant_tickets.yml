@@ -1,0 +1,39 @@
+# == Schema Information
+#
+# Table name: participant_tickets
+#
+#  id             :bigint           not null, primary key
+#  price_cents    :integer
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#  participant_id :bigint           not null
+#
+# Indexes
+#
+#  index_participant_tickets_on_participant_id  (participant_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (participant_id => participants.id)
+#
+one:
+  participant: one
+  price_cents: 19000
+
+two:
+  participant: two
+  price_cents: 5000
+
+three:
+  participant: three
+  price_cents: 19000
+
+unconfirmed:
+  participant: unconfirmed
+  price_cents: 19000
+
+four:
+  participant: four
+  price_cents: 19000
+
+

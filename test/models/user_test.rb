@@ -234,7 +234,7 @@ class UserTest < ActiveSupport::TestCase
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
-    booking.payments.create!(
+    booking.order.payments.create!(
       amount_cents: 10_000,
       description: booking.description,
       mollie_payment_id: "tr_active_checkout"
@@ -252,7 +252,7 @@ class UserTest < ActiveSupport::TestCase
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
-    booking.payments.create!(
+    booking.order.payments.create!(
       amount_cents: 10_000,
       description: booking.description,
       status: "paid"

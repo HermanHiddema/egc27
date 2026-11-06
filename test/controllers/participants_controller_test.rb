@@ -432,6 +432,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
           age_group: "18-49",
           country: "NL",
           participant_type: "visitor",
+          attendance_option: "weekend_only",
           image_use_consent: false,
           email: users(:one).email
         }
@@ -441,6 +442,11 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = Participant.order(:created_at).last
     assert participant.confirmed?
     assert_redirected_to participant_path(participant)
+    assert_nil participant.participant_ticket
+    assert_nil participant.product
+    assert_nil participant.order
+    assert_equal "weekend_only", participant.reload.attendance_option
+    assert_equal [false, true, false], [participant.first_week, participant.weekend, participant.second_week]
   end
 
   test "registration agreement references only the Terms and Conditions" do
