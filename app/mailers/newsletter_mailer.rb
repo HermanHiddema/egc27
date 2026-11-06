@@ -15,7 +15,7 @@ class NewsletterMailer < ApplicationMailer
     @newsletter = newsletter
     @newsletter_title = newsletter.title
     @subscription = subscription
-    @content_html = ApplicationController.helpers.render_html_content(absolute_email_urls(newsletter.content_html))
+    @content_html = email_content(newsletter.content_html)
 
     mail(to: subscription.email, subject: newsletter.subject)
   end
@@ -31,12 +31,34 @@ class NewsletterMailer < ApplicationMailer
     @test_preview_url = test_newsletter_preview_url(
       token: NewsletterTestEmailLink.preview_token(@newsletter)
     )
-    @content_html = ApplicationController.helpers.render_html_content(absolute_email_urls(newsletter_snapshot.fetch("content_html")))
+    @content_html = email_content(newsletter_snapshot.fetch("content_html"))
 
     mail(to: recipient, subject: "[TEST] #{newsletter_snapshot.fetch("subject")}", template_name: "newsletter")
   end
 
   private
+
+  def email_content(html)
+    content = ApplicationController.helpers.render_html_content(absolute_email_urls(html))
+    fragment = Nokogiri::HTML.fragment(content)
+    allowed_hosts = [Rails.application.config.action_mailer.default_url_options.fetch(:host), "localhost", "127.0.0.1"]
+
+    fragment.css("img[src]").each do |image|
+      uri = URI.parse(image["src"])
+      next unless allowed_hosts.include?(uri.host)
+
+      match = uri.path.to_s.match(%r{\A/newsletter-social/(facebook|instagram|x|discord|whatsapp)\.png\z})
+      next unless match && uri.query.nil? && uri.fragment.nil?
+
+      filename = "#{match[1]}.png"
+      attachments.inline[filename] ||= File.binread(Rails.root.join("public/newsletter-social", filename))
+      image["src"] = attachments[filename].url
+    rescue URI::InvalidURIError
+      next
+    end
+
+    fragment.to_html.html_safe
+  end
 
   def absolute_email_urls(html)
     url_options = Rails.application.config.action_mailer.default_url_options
