@@ -55,7 +55,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new reuses an in-progress payment for pricing and display" do
     participant = participants(:three)
-    payment = participant.payments.create!(
+    payment = participant.order.payments.create!(
       amount_cents: 12_345,
       description: "Existing pending payment",
       status: "pending",
@@ -210,7 +210,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create retries payment when consecutive local paid Mollie payments are remotely refunded" do
     participant = participants(:two)
     newer_paid_payment = payments(:paid_payment)
-    older_paid_payment = participant.payments.create!(
+    older_paid_payment = participant.order.payments.create!(
       amount_cents: 5_000,
       description: "Older Mollie payment",
       provider: "mollie",
@@ -249,7 +249,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create keeps existing successful registration when another payment remains paid" do
     participant = participants(:two)
     paid_payment = payments(:paid_payment)
-    participant.payments.create!(
+    participant.order.payments.create!(
       amount_cents: 5_000,
       description: "Manual fallback payment",
       provider: "manual",
@@ -417,6 +417,22 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to_success_for payment
     assert_equal "paid", payment.status
     assert_nil payment.mollie_payment_id
+  end
+
+  test "a new attempt uses the current tier and records its price on the ticket" do
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+    assert_equal 19000, ticket.price_cents
+
+    travel_to Time.zone.local(2026, 9, 1) do
+      with_mollie_simulation_enabled do
+        post participant_payment_path(participant), params: { simulate_status: "pending" }
+      end
+    end
+
+    payment = participant.payments.order(created_at: :desc).first
+    assert_equal 22000, payment.amount_cents
+    assert_equal payment.amount_cents, ticket.reload.price_cents
   end
 
   test "create can simulate failed status on an existing in-progress payment" do

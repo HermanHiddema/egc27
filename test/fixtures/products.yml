@@ -1,0 +1,41 @@
+# == Schema Information
+#
+# Table name: products
+#
+#  id               :bigint           not null, primary key
+#  productable_type :string           not null
+#  created_at       :datetime         not null
+#  updated_at       :datetime         not null
+#  order_id         :bigint           not null
+#  productable_id   :bigint           not null
+#
+# Indexes
+#
+#  index_products_on_order_id     (order_id) UNIQUE
+#  index_products_on_productable  (productable_type,productable_id) UNIQUE
+#
+# Foreign Keys
+#
+#  fk_rails_...  (order_id => orders.id)
+#
+one:
+  order: one
+  productable: one (ParticipantTicket)
+
+two:
+  order: two
+  productable: two (ParticipantTicket)
+
+three:
+  order: three
+  productable: three (ParticipantTicket)
+
+unconfirmed:
+  order: unconfirmed
+  productable: unconfirmed (ParticipantTicket)
+
+four:
+  order: four
+  productable: four (ParticipantTicket)
+
+

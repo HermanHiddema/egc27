@@ -286,7 +286,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "refunded participants are excluded from the pending filter" do
-    participants(:unconfirmed).payments.create!(
+    participants(:unconfirmed).order.payments.create!(
       provider: "manual",
       payment_date: Date.current,
       payment_method: "bank_transfer",
@@ -327,7 +327,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "admin status sort keeps repaid participants in paid state" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
-    participant.payments.create!(
+    participant.order.payments.create!(
       amount_cents: 5_000,
       description: "Manual replacement payment",
       provider: "manual",

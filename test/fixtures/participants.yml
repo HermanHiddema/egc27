@@ -12,7 +12,7 @@
 #  egd_pin                       :string
 #  email                         :string           not null
 #  first_name                    :string           not null
-#  first_week                    :boolean          default(TRUE), not null
+#  first_week                    :boolean          default(TRUE)
 #  gender                        :string
 #  image_use_consent             :boolean          default(FALSE), not null
 #  last_name                     :string           not null
@@ -20,9 +20,9 @@
 #  phone                         :string
 #  rank                          :integer
 #  rating                        :integer
-#  second_week                   :boolean          default(TRUE), not null
+#  second_week                   :boolean          default(TRUE)
 #  uuid                          :uuid             not null
-#  weekend                       :boolean          default(TRUE), not null
+#  weekend                       :boolean          default(TRUE)
 #  created_at                    :datetime         not null
 #  updated_at                    :datetime         not null
 #  user_id                       :bigint           not null

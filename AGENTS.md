@@ -94,3 +94,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - Require an email domain suffix without checking it against a list of valid extensions.
 - Group admin overview links into themed cards for site content, financial matters, site structure, people, and communication; place hostel bookings under people.
 - Preserve the originating article overview or article page for Back and Cancel links when viewing or editing news articles.
+
+- Use `Order.has_many :products` with the one-product constraint; do not add a duplicate singular product association.
+- Visitors do not require participant tickets, products, or orders; preserve existing payment history when participant type changes.
+- Store attendance periods on participants, including visitors; participant tickets belong to players and have a price.
+- Keep the congress ticket price current until a payment attempt starts; replacement attempts use the current price tier.

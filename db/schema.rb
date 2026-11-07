@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_06_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -210,6 +210,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "orders", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "pages", force: :cascade do |t|
     t.string "access_level", default: "public", null: false
     t.text "content_html"
@@ -218,6 +223,14 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.index ["slug"], name: "index_pages_on_slug", unique: true
+  end
+
+  create_table "participant_tickets", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "participant_id", null: false
+    t.integer "price_cents"
+    t.datetime "updated_at", null: false
+    t.index ["participant_id"], name: "index_participant_tickets_on_participant_id", unique: true
   end
 
   create_table "participants", force: :cascade do |t|
@@ -230,7 +243,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.string "egd_pin"
     t.string "email", null: false
     t.string "first_name", null: false
-    t.boolean "first_week", default: true, null: false
+    t.boolean "first_week", default: true
     t.string "gender"
     t.boolean "image_use_consent", default: false, null: false
     t.string "last_name", null: false
@@ -238,11 +251,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.string "phone"
     t.integer "rank"
     t.integer "rating"
-    t.boolean "second_week", default: true, null: false
+    t.boolean "second_week", default: true
     t.datetime "updated_at", null: false
     t.bigint "user_id", null: false
     t.uuid "uuid", default: -> { "gen_random_uuid()" }, null: false
-    t.boolean "weekend", default: true, null: false
+    t.boolean "weekend", default: true
     t.index ["created_at"], name: "index_participants_on_created_at"
     t.index ["egd_pin"], name: "index_participants_on_egd_pin", unique: true
     t.index ["email"], name: "index_participants_on_email"
@@ -259,9 +272,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description", null: false
-    t.bigint "hostel_booking_id"
     t.string "mollie_payment_id"
-    t.bigint "participant_id"
+    t.bigint "order_id", null: false
     t.date "payment_date"
     t.string "payment_method"
     t.boolean "processed_in_bookkeeping", default: false, null: false
@@ -270,14 +282,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.bigint "settlement_id"
     t.string "status", default: "open", null: false
     t.datetime "updated_at", null: false
-    t.index ["hostel_booking_id"], name: "index_payments_on_hostel_booking_id"
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
-    t.index ["participant_id"], name: "index_payments_on_participant_id"
+    t.index ["order_id"], name: "index_payments_on_order_id"
     t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
     t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"
-    t.check_constraint "(participant_id IS NULL) <> (hostel_booking_id IS NULL)", name: "payments_have_one_payee"
   end
 
   create_table "pg_search_documents", force: :cascade do |t|
@@ -287,6 +297,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
     t.string "searchable_type", null: false
     t.datetime "updated_at", null: false
     t.index ["searchable_type", "searchable_id"], name: "index_pg_search_documents_on_searchable"
+  end
+
+  create_table "products", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.bigint "order_id", null: false
+    t.bigint "productable_id", null: false
+    t.string "productable_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_id"], name: "index_products_on_order_id", unique: true
+    t.index ["productable_type", "productable_id"], name: "index_products_on_productable", unique: true
+    t.check_constraint "productable_type::text = ANY (ARRAY['ParticipantTicket'::character varying, 'HostelBooking'::character varying]::text[])", name: "products_supported_productable_types"
   end
 
   create_table "refunds", force: :cascade do |t|
@@ -383,10 +404,11 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_04_130000) do
   add_foreign_key "newsletter_deliveries", "newsletter_subscriptions", on_delete: :cascade
   add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
   add_foreign_key "newsletters", "users"
+  add_foreign_key "participant_tickets", "participants"
   add_foreign_key "participants", "users"
-  add_foreign_key "payments", "hostel_bookings"
-  add_foreign_key "payments", "participants"
+  add_foreign_key "payments", "orders"
   add_foreign_key "payments", "settlements"
+  add_foreign_key "products", "orders"
   add_foreign_key "refunds", "payments", on_delete: :nullify
   add_foreign_key "refunds", "settlements"
 end
