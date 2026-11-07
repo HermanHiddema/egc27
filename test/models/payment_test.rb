@@ -230,6 +230,14 @@ class PaymentTest < ActiveSupport::TestCase
     failed_payment.update!(status: "expired")
 
     assert_equal successful_payment.amount_cents, participant.participant_ticket.reload.price_cents
+
+    successful_payment.update!(amount_cents: 10_000)
+
+    assert_equal 10_000, participant.participant_ticket.reload.price_cents
+
+    successful_payment.update!(status: "refunded")
+
+    assert_nil participant.participant_ticket.reload.price_cents
   end
 
   test "amount changes on older payment attempts do not update the ticket price" do

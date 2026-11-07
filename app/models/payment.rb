@@ -329,7 +329,7 @@ class Payment < ApplicationRecord
   end
 
   def a_later_payment_exists?
-    order.payments.where(
+    order.payments.blocking.where(
       "created_at > ? OR (created_at = ? AND id > ?)",
       created_at,
       created_at,
