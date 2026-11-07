@@ -314,26 +314,38 @@ class Payment < ApplicationRecord
   # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
   # takes precedence, because it needs follow-up by an admin.
   def sync_ticket_price
-    ticket = participant_tickets.first
-    return unless ticket
-    return if a_later_payment_exists?
+    was_created = previously_new_record?
+    status_changed = saved_change_to_status?
+    amount_changed = saved_change_to_amount_cents?
+    return unless was_created ||
+      (status_changed && (unsuccessful? || paid?)) ||
+      (amount_changed && !unsuccessful?)
 
-    if previously_new_record?
-      ticket.update!(price_cents: amount_cents) unless unsuccessful?
-    elsif saved_change_to_status? && unsuccessful?
-      latest_paid_payment = order.payments.completed.order(created_at: :desc, id: :desc).first
-      ticket.update!(price_cents: latest_paid_payment&.amount_cents)
-    elsif !unsuccessful? && saved_change_to_amount_cents?
-      ticket.update!(price_cents: amount_cents)
+    order.with_lock do
+      current_payment = self.class.find(id)
+      ticket = participant_tickets.first&.reload
+      next unless ticket
+      next if a_later_payment_exists?(current_payment)
+
+      if was_created
+        ticket.update!(price_cents: current_payment.amount_cents) unless current_payment.unsuccessful?
+      elsif status_changed && current_payment.unsuccessful?
+        latest_paid_payment = current_payment.order.payments.completed.order(created_at: :desc, id: :desc).first
+        ticket.update!(price_cents: latest_paid_payment&.amount_cents)
+      elsif amount_changed && !current_payment.unsuccessful?
+        ticket.update!(price_cents: current_payment.amount_cents)
+      elsif status_changed && current_payment.paid? && ticket.price_cents.nil?
+        ticket.update!(price_cents: current_payment.amount_cents)
+      end
     end
   end
 
-  def a_later_payment_exists?
-    order.payments.blocking.where(
+  def a_later_payment_exists?(payment)
+    payment.order.payments.blocking.where(
       "created_at > ? OR (created_at = ? AND id > ?)",
-      created_at,
-      created_at,
-      id
+      payment.created_at,
+      payment.created_at,
+      payment.id
     ).exists?
   end
 

@@ -240,6 +240,29 @@ class PaymentTest < ActiveSupport::TestCase
     assert_nil participant.participant_ticket.reload.price_cents
   end
 
+  test "records the price when an older attempt becomes paid after a newer one expires" do
+    participant = participants(:three)
+    older_payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 9_550,
+      description: "Older payment"
+    )
+    newer_payment = Payment.create!(
+      participant: participant,
+      status: "open",
+      amount_cents: 12_345,
+      description: "Newer payment"
+    )
+
+    newer_payment.update!(status: "expired")
+    assert_nil participant.participant_ticket.reload.price_cents
+
+    older_payment.update!(status: "paid")
+
+    assert_equal older_payment.amount_cents, participant.participant_ticket.reload.price_cents
+  end
+
   test "amount changes on older payment attempts do not update the ticket price" do
     participant = participants(:three)
     older_payment = Payment.create!(

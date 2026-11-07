@@ -284,8 +284,6 @@ class Participant < ApplicationRecord
 
   def refresh_unpaid_ticket_price
     return unless player? && participant_ticket
-    return unless participant_ticket.new_record? || will_save_change_to_age_group? ||
-      will_save_change_to_first_week? || will_save_change_to_weekend? || will_save_change_to_second_week?
     return unless ATTENDANCE_OPTIONS.key?(attendance_option) && AGE_GROUPS.include?(age_group)
     return if persisted? && payments.blocking.exists?
 
