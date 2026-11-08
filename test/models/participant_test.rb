@@ -650,6 +650,20 @@ class ParticipantTest < ActiveSupport::TestCase
     end
   end
 
+  test "registration status uses preloaded order and payment data without queries" do
+    payments(:manual_payment).update!(status: "refunded")
+    participant_ids = [participants(:one).id, participants(:two).id, participants(:four).id]
+    loaded_participants = Participant.includes(:payments, :user)
+      .preload(order: [:payments, { products: :productable }])
+      .where(id: participant_ids).index_by(&:id)
+
+    assert_no_queries do
+      assert_equal "Confirmed", loaded_participants.fetch(participant_ids[0]).registration_status
+      assert_equal "Paid", loaded_participants.fetch(participant_ids[1]).registration_status
+      assert_equal "Refund", loaded_participants.fetch(participant_ids[2]).registration_status
+    end
+  end
+
   test "deletable? is false for a successful payment" do
     assert_not participants(:two).deletable?
   end

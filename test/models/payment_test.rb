@@ -12,6 +12,7 @@ require "ostruct"
 #  payment_date             :date
 #  payment_method           :string
 #  processed_in_bookkeeping :boolean          default(FALSE), not null
+#  product_prices_cents     :jsonb
 #  provider                 :string           default("mollie"), not null
 #  reference                :string
 #  status                   :string           default("open"), not null
@@ -94,6 +95,17 @@ class PaymentTest < ActiveSupport::TestCase
 
     assert_not payment.valid?
     assert_includes payment.errors[:amount_cents], "must equal the full order amount"
+  end
+
+  test "a historical paid payment with a different current order total accepts bookkeeping changes" do
+    payment = payments(:paid_payment)
+    payment.participant.participant_ticket.update!(price_cents: payment.amount_cents + 1_000)
+
+    assert_not payment.paid?
+    payment.update!(processed_in_bookkeeping: true)
+
+    assert payment.reload.processed_in_bookkeeping?
+    assert_raises(ActiveRecord::RecordInvalid) { payment.update!(amount_cents: payment.amount_cents - 1) }
   end
 
   test "amount_eur divides cents by 100" do
@@ -275,6 +287,62 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal older_payment.amount_cents, participant.participant_ticket.reload.price_cents
   end
 
+  test "Mollie restores an older full-order attempt across a pricing boundary" do
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
+    )
+    order = participant.order
+    booking.product.update!(order: order)
+    order.reload
+
+    older_payment = travel_to(Time.zone.local(2026, 8, 30)) do
+      Payment.create!(order: order, status: "open", amount_cents: order.amount_cents_for_payment,
+        description: "Older checkout")
+    end
+    original_ticket_price = older_payment.product_prices_cents.fetch(ticket.product.id.to_s)
+    original_booking_price = older_payment.product_prices_cents.fetch(booking.product.id.to_s)
+    assert_equal older_payment.amount_cents, original_ticket_price + original_booking_price
+
+    travel_to(Time.zone.local(2026, 9, 1)) do
+      newer_payment = Payment.create!(order: order, status: "open", amount_cents: order.amount_cents_for_payment,
+        description: "Newer checkout")
+      assert_operator newer_payment.amount_cents, :>, older_payment.amount_cents
+      newer_payment.update!(status: "expired")
+      assert_nil ticket.reload.price_cents
+
+      older_payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: { "method" => "ideal" }))
+    end
+
+    assert_equal original_ticket_price, ticket.reload.price_cents
+    assert_equal original_booking_price, booking.reload.amount_cents
+    assert_equal older_payment.amount_cents, order.reload.amount_cents
+    assert_equal older_payment, order.successful_payment
+    assert order.paid?
+  end
+
+  test "an older partial checkout cannot become paid using its product price snapshot" do
+    participant = participants(:three)
+    order = participant.order
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
+    )
+    booking.product.update!(order: order)
+    order.reload
+    full_amount = order.amount_cents_for_payment
+    partial_payment = Payment.create!(order: order, status: "open", amount_cents: full_amount - 1,
+      description: "Partial checkout")
+
+    assert_raises(ActiveRecord::RecordInvalid) do
+      partial_payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: {}))
+    end
+
+    assert_equal "open", partial_payment.reload.status
+    assert_equal full_amount, order.reload.amount_cents
+    assert_not order.reload.paid?
+  end
+
   test "amount changes on older payment attempts do not update the ticket price" do
     participant = participants(:three)
     participant.participant_ticket.update!(price_cents: 19_000)
@@ -298,6 +366,74 @@ class PaymentTest < ActiveSupport::TestCase
     older_payment.update!(status: "failed")
 
     assert_equal latest_payment.amount_cents, participant.participant_ticket.reload.price_cents
+  end
+
+  test "a newly created paid multi-product payment preserves the validated order total" do
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+    ticket.update!(price_cents: 30_000)
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
+    )
+    order = participant.order
+    booking.product.update!(order: order)
+    order.reload
+    order_total = order.amount_cents
+
+    payment = Payment.create!(
+      order: order,
+      provider: "manual",
+      payment_method: "cash",
+      payment_date: Date.new(2026, 8, 1),
+      status: "paid",
+      amount_cents: order_total,
+      description: "Manual full-order payment"
+    )
+
+    assert payment.paid?
+    assert_equal order_total, order.reload.amount_cents
+    assert_equal 30_000, ticket.reload.price_cents
+  end
+
+  test "a later expired attempt preserves paid multi-product ticket amounts after participant details change" do
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+    ticket.update!(price_cents: 30_000)
+    second_participant = participants(:unconfirmed)
+    second_ticket = second_participant.participant_ticket
+    second_ticket.update!(price_cents: 15_000)
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
+    )
+    order = participant.order
+    second_ticket.product.update!(order: order)
+    booking.product.update!(order: order)
+    order_total = order.reload.amount_cents
+
+    successful_payment = Payment.create!(
+      order: order, provider: "manual", payment_method: "cash", payment_date: Date.current,
+      status: "paid", amount_cents: order_total, description: "Full-order payment"
+    )
+    original_price_for_ticket = ticket.price_for(date: successful_payment.payment_date)
+    original_price_for_second_ticket = second_ticket.price_for(date: successful_payment.payment_date)
+    participant.update!(attendance_option: "weekend_only", age_group: "12-17")
+    second_participant.update!(attendance_option: "weekend_only", age_group: "0-11")
+    assert_not_equal original_price_for_ticket, ticket.reload.price_for(date: successful_payment.payment_date)
+    assert_not_equal original_price_for_second_ticket, second_ticket.reload.price_for(date: successful_payment.payment_date)
+
+    later_payment = Payment.create!(
+      order: order, status: "open", amount_cents: order_total, description: "Later attempt"
+    )
+    assert_equal 30_000, ticket.reload.price_cents
+    assert_equal 15_000, second_ticket.reload.price_cents
+
+    later_payment.update!(status: "expired")
+
+    assert_equal 30_000, ticket.reload.price_cents
+    assert_equal 15_000, second_ticket.reload.price_cents
+    assert_equal order_total, order.reload.amount_cents
+    assert_equal successful_payment, order.successful_payment
+    assert order.paid?
   end
 
   test "sends payment confirmation email when status changes to paid" do

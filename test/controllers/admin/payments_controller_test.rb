@@ -36,6 +36,72 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
 
+  test "manual payment form refreshes unattempted ticket prices for the current tier" do
+    sign_in users(:admin)
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
+    )
+    booking.product.update!(order: participant.order)
+    original_booking_price = booking.amount_cents
+
+    travel_to Time.zone.local(2026, 9, 1) do
+      expected_ticket_price = ticket.price_for
+      get new_admin_participant_payment_path(participant)
+
+      assert_response :success
+      assert_equal expected_ticket_price, ticket.reload.price_cents
+      assert_equal original_booking_price, booking.reload.amount_cents
+      assert_select "input[name='payment[amount_eur]'][value='#{format('%.2f', (expected_ticket_price + original_booking_price) / 100.0)}']"
+    end
+  end
+
+  test "direct manual payment submission validates the refreshed full order amount" do
+    sign_in users(:admin)
+    participant = participants(:three)
+    ticket = participant.participant_ticket
+
+    travel_to Time.zone.local(2026, 9, 1) do
+      current_price = ticket.price_for
+      assert_operator current_price, :>, ticket.price_cents
+
+      assert_no_difference "Payment.count" do
+        post admin_participant_payments_path(participant), params: {
+          payment: { amount_eur: "190.00", description: "Old price", payment_method: "cash", payment_date: "2026-09-01" }
+        }
+      end
+      assert_response :unprocessable_entity
+      assert_equal current_price, ticket.reload.price_cents
+
+      assert_difference "Payment.count", 1 do
+        post admin_participant_payments_path(participant), params: {
+          payment: { amount_eur: format("%.2f", current_price / 100.0), description: "Current price",
+            payment_method: "cash", payment_date: "2026-09-01" }
+        }
+      end
+      assert_redirected_to admin_participants_path
+      assert_equal current_price, participant.order.payments.order(:id).last.amount_cents
+      assert participant.order.reload.paid?
+    end
+  end
+
+  test "manual payment form preserves ticket prices after an attempt exists" do
+    sign_in users(:admin)
+    participant = participants(:one)
+    ticket = participant.participant_ticket
+    stored_price = ticket.price_cents
+
+    travel_to Time.zone.local(2026, 9, 1) do
+      assert_not_equal stored_price, ticket.price_for
+      get new_admin_participant_payment_path(participant)
+    end
+
+    assert_response :success
+    assert_equal stored_price, ticket.reload.price_cents
+    assert_select "input[name='payment[amount_eur]'][value='#{format('%.2f', stored_price / 100.0)}']"
+  end
+
   test "admin can record a manual payment" do
     sign_in users(:admin)
     participant = participants(:three)
@@ -43,7 +109,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
         payment: {
-          amount_eur: format("%.2f", participant.order.amount_cents / 100.0),
+          amount_eur: current_order_amount_eur(participant),
           description: "EGC 2027 Congress Pass – paid in cash",
           payment_method: "cash",
           payment_date: "2026-10-15",
@@ -55,7 +121,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     payment = participant.payments.order(:created_at).last
-    assert_equal participant.order.amount_cents, payment.amount_cents
+    assert_equal participant.order.reload.amount_cents, payment.amount_cents
     assert_equal "manual", payment.provider
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 42", payment.reference
@@ -70,7 +136,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_emails 1 do
       post admin_participant_payments_path(participants(:three)), params: {
         payment: {
-          amount_eur: "190.00",
+          amount_eur: current_order_amount_eur(participants(:three)),
           description: "Bank transfer",
           payment_method: "bank_transfer",
           payment_date: "2026-10-15",
@@ -86,7 +152,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     post admin_participant_payments_path(participant), params: {
       payment: {
-        amount_eur: "190.00",
+        amount_eur: current_order_amount_eur(participant),
         description: "Cash",
         payment_method: "cash",
         payment_date: "2026-10-15",
@@ -106,7 +172,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "open" }
+      payment: { amount_eur: current_order_amount_eur(participant), description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "open" }
     }
 
     assert participant.payments.order(:created_at).last.paid?
@@ -450,6 +516,17 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert payment.reload.processed_in_bookkeeping?
   end
 
+  test "admin can mark a historical paid receipt as processed when its order total changed" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    payment.participant.participant_ticket.update!(price_cents: payment.amount_cents + 1_000)
+
+    patch mark_processed_admin_payment_path(payment)
+
+    assert_redirected_to admin_payments_path
+    assert payment.reload.processed_in_bookkeeping?
+  end
+
   test "marking a payment as processed keeps the selected filter" do
     sign_in users(:admin)
 
@@ -523,7 +600,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "0" }
+      payment: { amount_eur: current_order_amount_eur(participant), description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "0" }
     }
 
     assert_not participant.payments.order(:created_at).last.processed_in_bookkeeping?
@@ -534,7 +611,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:three)
 
     post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
+      payment: { amount_eur: current_order_amount_eur(participant), description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
     }
 
     assert participant.payments.order(:created_at).last.processed_in_bookkeeping?
@@ -550,5 +627,11 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     assert payment.reload.processed_in_bookkeeping?
+  end
+
+  private
+
+  def current_order_amount_eur(participant)
+    format("%.2f", participant.order.amount_cents_for_payment / 100.0)
   end
 end

@@ -9,6 +9,7 @@
 #  payment_date             :date
 #  payment_method           :string
 #  processed_in_bookkeeping :boolean          default(FALSE), not null
+#  product_prices_cents     :jsonb
 #  provider                 :string           default("mollie"), not null
 #  reference                :string
 #  status                   :string           default("open"), not null
@@ -81,7 +82,10 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
-  validate :amount_matches_full_order, if: -> { status == "paid" }
+  validate :amount_matches_full_order, if: -> {
+    status == "paid" && (new_record? || will_save_change_to_status? || will_save_change_to_amount_cents? || will_save_change_to_order_id?)
+  }
+  validate :product_prices_cents_cannot_change, on: :update
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
@@ -99,6 +103,8 @@ class Payment < ApplicationRecord
 
   # Mollie payments get their payment date once they become paid. Refunded and
   # charged-back payments were paid before, so they get one too.
+  before_validation :capture_product_prices, on: :create
+  before_save :restore_product_prices, if: :becoming_paid?
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
   after_commit :sync_ticket_price, on: [:create, :update]
 
@@ -370,18 +376,18 @@ class Payment < ApplicationRecord
   end
 
   def sync_multi_product_ticket_prices(payment, tickets, was_created:, status_changed:, amount_changed:)
+    # A successful payment already fixed these ticket amounts. Later attempts
+    # must not recalculate them from participant details that may have changed.
+    return if payment.order.payments.completed.where.not(id: payment.id).exists?
+
     if was_created
-      unless payment.unsuccessful?
+      unless payment.unsuccessful? || payment.status == "paid"
         tickets.each do |ticket|
           ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date))
         end
       end
     elsif status_changed && payment.unsuccessful?
-      latest_paid_payment = payment.order.payments.completed.order(created_at: :desc, id: :desc).first
-      tickets.each do |ticket|
-        price = latest_paid_payment&.then { |successful| ticket.price_for(date: successful.payment_date || successful.created_at.to_date) }
-        ticket.update!(price_cents: price)
-      end
+      tickets.each { |ticket| ticket.update!(price_cents: nil) }
     elsif amount_changed && !payment.unsuccessful?
       tickets.each { |ticket| ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date)) }
     elsif status_changed && payment.paid?
@@ -455,9 +461,55 @@ class Payment < ApplicationRecord
   end
 
   def amount_matches_full_order
-    return if order && amount_cents == order.amount_cents
+    if order
+      if product_prices_cents.present?
+        return if valid_product_prices? && amount_cents == product_prices_cents.values.sum
+      elsif amount_cents == order.amount_cents
+        # Payments created before snapshots were introduced have no historical
+        # per-product prices to restore.
+        return
+      end
+    end
 
     errors.add(:amount_cents, "must equal the full order amount")
+  end
+
+  def capture_product_prices
+    return unless order
+
+    date = created_at&.to_date || Date.current
+    self.product_prices_cents = order.products.to_h do |product|
+      price = if status == "paid"
+        product.amount_cents
+      else
+        product.amount_cents_for_payment(date: date)
+      end
+      [product.id.to_s, price]
+    end
+  end
+
+  def valid_product_prices?
+    product_prices_cents.is_a?(Hash) &&
+      product_prices_cents.keys.sort == order.products.pluck(:id).map(&:to_s).sort &&
+      product_prices_cents.values.all? { |price| price.is_a?(Integer) && price.positive? }
+  end
+
+  def product_prices_cents_cannot_change
+    errors.add(:product_prices_cents, "cannot change") if will_save_change_to_product_prices_cents?
+  end
+
+  def becoming_paid?
+    status == "paid" && (new_record? || will_save_change_to_status?)
+  end
+
+  def restore_product_prices
+    return unless product_prices_cents.present? && valid_product_prices?
+
+    order.products.each do |product|
+      next unless product.productable_type == "ParticipantTicket"
+
+      product.productable.update!(price_cents: product_prices_cents.fetch(product.id.to_s))
+    end
   end
 
   def send_payment_confirmation

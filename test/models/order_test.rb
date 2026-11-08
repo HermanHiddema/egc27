@@ -73,6 +73,19 @@ class OrderTest < ActiveSupport::TestCase
     assert_not fresh_order.paid?
   end
 
+  test "paid state uses preloaded payments and product prices without queries" do
+    paid_order = Order.includes(:payments, products: :productable).find(orders(:two).id)
+    unpaid_order = Order.includes(:payments, products: :productable).find(orders(:one).id)
+    expected_payment = payments(:paid_payment)
+
+    assert_no_queries do
+      assert_equal expected_payment, paid_order.successful_payment
+      assert paid_order.paid?
+      assert_nil unpaid_order.successful_payment
+      assert_not unpaid_order.paid?
+    end
+  end
+
   test "failed and canceled attempts do not pay an order" do
     order = fresh_order
     order.payments.create!(status: "failed", amount_cents: order.amount_cents, description: "Failed attempt")

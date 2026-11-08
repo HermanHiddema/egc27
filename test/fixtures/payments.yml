@@ -9,6 +9,7 @@
 #  payment_date             :date
 #  payment_method           :string
 #  processed_in_bookkeeping :boolean          default(FALSE), not null
+#  product_prices_cents     :jsonb
 #  provider                 :string           default("mollie"), not null
 #  reference                :string
 #  status                   :string           default("open"), not null

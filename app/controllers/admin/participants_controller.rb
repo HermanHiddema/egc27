@@ -8,6 +8,7 @@ class Admin::ParticipantsController < ApplicationController
 
   def index
     participants = Participant.includes(:payments, :user)
+      .preload(order: [:payments, { products: :productable }])
 
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence

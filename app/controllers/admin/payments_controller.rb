@@ -32,6 +32,7 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
+    @participant.order.refresh_unattempted_ticket_prices!
     @payment = @participant.order.payments.build(default_payment_attributes)
   end
 
@@ -42,6 +43,7 @@ class Admin::PaymentsController < ApplicationController
       return
     end
 
+    @participant.order.refresh_unattempted_ticket_prices!
     @payment = @participant.order.payments.build(payment_params)
     # Manually recorded payments never belong to a Mollie transaction, and are
     # only recorded once the money has actually been received.
