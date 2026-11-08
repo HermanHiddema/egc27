@@ -108,10 +108,10 @@ class Admin::ParticipantsController < ApplicationController
   # Paid takes precedence over Chargeback, which takes precedence over Refund,
   # which takes precedence over Confirmed, which takes precedence over Pending.
   def filtered_by_status(participants, status)
-    paid_ids = Payment.completed.where.not(participant_id: nil).select(:participant_id)
-    charged_back_ids = Payment.charged_back.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
-    refunded_ids = Payment.refunded.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
-    reversed_ids = Payment.reversed.where.not(participant_id: nil).where.not(participant_id: paid_ids).select(:participant_id)
+    paid_ids = participant_ids_for(Payment.completed)
+    charged_back_ids = participant_ids_for(Payment.charged_back).where.not(participant_id: paid_ids)
+    refunded_ids = participant_ids_for(Payment.refunded).where.not(participant_id: paid_ids)
+    reversed_ids = participant_ids_for(Payment.reversed).where.not(participant_id: paid_ids)
 
     case status
     when "paid"
@@ -162,9 +162,9 @@ class Admin::ParticipantsController < ApplicationController
   # Chargeback.
   def status_sorted_participants(participants)
     table = Participant.arel_table
-    paid_subquery = Payment.completed.where.not(participant_id: nil).select(:participant_id).to_sql
-    charged_back_subquery = Payment.charged_back.where.not(participant_id: nil).where.not(participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)).select(:participant_id).to_sql
-    refunded_subquery = Payment.refunded.where.not(participant_id: nil).where.not(participant_id: Payment.completed.where.not(participant_id: nil).select(:participant_id)).select(:participant_id).to_sql
+    paid_subquery = participant_ids_for(Payment.completed).to_sql
+    charged_back_subquery = participant_ids_for(Payment.charged_back).to_sql
+    refunded_subquery = participant_ids_for(Payment.refunded).to_sql
     dir = @direction == :desc ? "DESC" : "ASC"
     status_order = Arel.sql(
       "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
@@ -174,6 +174,10 @@ class Admin::ParticipantsController < ApplicationController
       "ELSE 0 END #{dir}"
     )
     participants.order(status_order, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
+  end
+
+  def participant_ids_for(payments)
+    ParticipantTicket.joins(product: { order: :payments }).merge(payments).select(:participant_id)
   end
 
   def ordered(column)
@@ -194,9 +198,11 @@ class Admin::ParticipantsController < ApplicationController
     return {} if participant_ids.empty?
 
     Payment
-      .select(Arel.sql("DISTINCT ON (participant_id) payments.*"))
-      .where(participant_id: participant_ids)
-      .order(Arel.sql("participant_id, created_at DESC, id DESC"))
-      .index_by(&:participant_id)
+      .joins(order: :products)
+      .joins("INNER JOIN participant_tickets ON participant_tickets.id = products.productable_id AND products.productable_type = 'ParticipantTicket'")
+      .select(Arel.sql("DISTINCT ON (participant_tickets.participant_id) payments.*, participant_tickets.participant_id AS payee_id"))
+      .where(participant_tickets: { participant_id: participant_ids })
+      .order(Arel.sql("participant_tickets.participant_id, payments.created_at DESC, payments.id DESC"))
+      .index_by(&:payee_id)
   end
 end

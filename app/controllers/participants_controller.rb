@@ -9,7 +9,7 @@ class ParticipantsController < ApplicationController
   before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index
-    participants = Participant.confirmed.not_refunded
+    participants = Participant.confirmed.not_refunded.includes(:participant_ticket)
     @countries = participants.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
     @sort = permitted_sort

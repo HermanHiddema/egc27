@@ -45,10 +45,13 @@ class HostelBooking < ApplicationRecord
   attr_readonly :priced_on, *ROOM_PRICE_COLUMNS.values, :breakfast_price_cents, :amount_cents
 
   belongs_to :user
-  has_many :payments, -> { order(created_at: :desc, id: :desc) }, dependent: :restrict_with_error
+  has_one :product, as: :productable, dependent: :destroy
+  has_one :order, through: :product
+  has_many :payments, -> { order(created_at: :desc, id: :desc) }, through: :order
 
+  after_create :create_order_and_product!
   before_create :lock_price
-  before_destroy :prevent_destruction_with_financial_history
+  before_destroy :prevent_destruction_with_financial_history, prepend: true
 
   validates :arrival_date, :departure_date, presence: true
   validates :arrival_date, comparison: { greater_than_or_equal_to: HostelPricing::FIRST_ARRIVAL_DATE,
@@ -119,6 +122,10 @@ class HostelBooking < ApplicationRecord
   end
 
   private
+
+  def create_order_and_product!
+    Order.create!(products: [Product.new(productable: self)])
+  end
 
   def lock_price
     self.priced_on = Date.current

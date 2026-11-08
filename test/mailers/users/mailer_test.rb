@@ -29,6 +29,16 @@ class Users::MailerTest < ActionMailer::TestCase
     assert_match "Confirm Registration", body
   end
 
+  test "visitor confirmation describes attendance without a ticket" do
+    user = User.new(email: "visitor@example.org", skip_password_validation: true)
+    user.registration_participant = Participant.new(first_name: "Visitor", last_name: "Example", participant_type: "visitor", attendance_option: "weekend_only")
+    email = Users::Mailer.confirmation_instructions(user, "token123")
+
+    assert_match "Attendance:", email.body.decoded
+    assert_match "Weekend Only", email.body.decoded
+    assert_no_match "Congress Pass:", email.body.decoded
+  end
+
   test "confirmation_instructions for an invited user uses the default email" do
     user = User.new(email: "invitee@example.org", full_name: "Invitee", skip_password_validation: true)
 

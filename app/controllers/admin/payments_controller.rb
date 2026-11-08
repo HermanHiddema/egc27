@@ -13,7 +13,7 @@ class Admin::PaymentsController < ApplicationController
   def index
     @processed_filter = permitted_processed_filter
 
-    payments = Payment.for_bookkeeping.includes(:participant, :hostel_booking, :settlement)
+    payments = Payment.for_bookkeeping.includes(:participants, :hostel_bookings, :settlement)
     payments = payments.processed if @processed_filter == "processed"
     payments = payments.unprocessed if @processed_filter == "unprocessed"
 
@@ -32,7 +32,7 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
-    @payment = @participant.payments.build(default_payment_attributes)
+    @payment = @participant.order.payments.build(default_payment_attributes)
   end
 
   def create
@@ -42,7 +42,7 @@ class Admin::PaymentsController < ApplicationController
       return
     end
 
-    @payment = @participant.payments.build(payment_params)
+    @payment = @participant.order.payments.build(payment_params)
     # Manually recorded payments never belong to a Mollie transaction, and are
     # only recorded once the money has actually been received.
     @payment.provider = "manual"
