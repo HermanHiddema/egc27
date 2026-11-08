@@ -235,7 +235,7 @@ class UserTest < ActiveSupport::TestCase
       double_rooms: 1
     )
     booking.order.payments.create!(
-      amount_cents: 10_000,
+      amount_cents: booking.order.amount_cents,
       description: booking.description,
       mollie_payment_id: "tr_active_checkout"
     )
@@ -253,7 +253,7 @@ class UserTest < ActiveSupport::TestCase
       double_rooms: 1
     )
     booking.order.payments.create!(
-      amount_cents: 10_000,
+      amount_cents: booking.order.amount_cents,
       description: booking.description,
       status: "paid"
     )

@@ -34,6 +34,10 @@ class ParticipantTicket < ApplicationRecord
     CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group, payment_date: date).price_cents
   end
 
+  def amount_cents
+    price_cents || price_for
+  end
+
   private
 
   def set_initial_price

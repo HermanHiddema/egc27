@@ -81,6 +81,7 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
+  validate :amount_matches_full_order, if: -> { status == "paid" }
 
   scope :completed, -> { where(status: "paid") }
   scope :refunded, -> { where(status: "refunded") }
@@ -121,7 +122,7 @@ class Payment < ApplicationRecord
     )
 
     participant.order.payments.build(
-      amount_cents: participant.participant_ticket.price_for,
+      amount_cents: participant.order.amount_cents_for_payment,
       description: pricing.description,
       status: "open"
     )
@@ -131,7 +132,7 @@ class Payment < ApplicationRecord
   def self.build_for_hostel_booking(hostel_booking)
     new(
       order: hostel_booking.order,
-      amount_cents: hostel_booking.amount_cents,
+      amount_cents: hostel_booking.order.amount_cents_for_payment,
       description: hostel_booking.description,
       status: "open"
     )
@@ -177,6 +178,22 @@ class Payment < ApplicationRecord
     hostel_booking&.id
   end
 
+  def order_items_summary
+    order_item_summaries.join(", ")
+  end
+
+  def order_item_summaries
+    products.map do |product|
+      case item = product.productable
+      when ParticipantTicket
+        participant = item.participant
+        "EGC 2027 Ticket #{participant.first_name} #{participant.last_name} (#{participant.participant_number})"
+      when HostelBooking
+        "EGC 2027 Hostel Booking #{item.id}"
+      end
+    end
+  end
+
   def participant=(participant)
     self.order = participant&.order
   end
@@ -186,11 +203,15 @@ class Payment < ApplicationRecord
   end
 
   def paid?
-    status == "paid"
+    status == "paid" && amount_cents == order&.amount_cents
+  end
+
+  def valid_full_payment?
+    paid?
   end
 
   def payable?
-    !paid? && !REVERSED_STATUSES.include?(status)
+    !order.paid? && !paid? && !REVERSED_STATUSES.include?(status)
   end
 
   def refunded?
@@ -323,10 +344,18 @@ class Payment < ApplicationRecord
 
     order.with_lock do
       current_payment = self.class.find(id)
-      ticket = participant_tickets.first&.reload
-      next unless ticket
       next if a_later_payment_exists?(current_payment)
 
+      tickets = current_payment.participant_tickets.to_a.each(&:reload)
+      next if tickets.empty?
+
+      if current_payment.order.products.count > 1
+        sync_multi_product_ticket_prices(current_payment, tickets, was_created: was_created,
+          status_changed: status_changed, amount_changed: amount_changed)
+        next
+      end
+
+      ticket = tickets.first
       if was_created
         ticket.update!(price_cents: current_payment.amount_cents) unless current_payment.unsuccessful?
       elsif status_changed && current_payment.unsuccessful?
@@ -336,6 +365,28 @@ class Payment < ApplicationRecord
         ticket.update!(price_cents: current_payment.amount_cents)
       elsif status_changed && current_payment.paid? && ticket.price_cents.nil?
         ticket.update!(price_cents: current_payment.amount_cents)
+      end
+    end
+  end
+
+  def sync_multi_product_ticket_prices(payment, tickets, was_created:, status_changed:, amount_changed:)
+    if was_created
+      unless payment.unsuccessful?
+        tickets.each do |ticket|
+          ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date))
+        end
+      end
+    elsif status_changed && payment.unsuccessful?
+      latest_paid_payment = payment.order.payments.completed.order(created_at: :desc, id: :desc).first
+      tickets.each do |ticket|
+        price = latest_paid_payment&.then { |successful| ticket.price_for(date: successful.payment_date || successful.created_at.to_date) }
+        ticket.update!(price_cents: price)
+      end
+    elsif amount_changed && !payment.unsuccessful?
+      tickets.each { |ticket| ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date)) }
+    elsif status_changed && payment.paid?
+      tickets.each do |ticket|
+        ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date)) if ticket.price_cents.nil?
       end
     end
   end
@@ -401,6 +452,12 @@ class Payment < ApplicationRecord
 
   def became_paid?
     saved_change_to_status? && paid?
+  end
+
+  def amount_matches_full_order
+    return if order && amount_cents == order.amount_cents
+
+    errors.add(:amount_cents, "must equal the full order amount")
   end
 
   def send_payment_confirmation

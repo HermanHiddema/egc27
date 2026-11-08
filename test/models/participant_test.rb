@@ -586,7 +586,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "registration_status is Paid when a later payment succeeded after a refund" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
-    participant.order.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+    participant.order.payments.create!(amount_cents: participant.order.amount_cents, description: "New payment", status: "paid")
 
     participant.reload
     assert_not participant.refunded?
@@ -620,7 +620,7 @@ class ParticipantTest < ActiveSupport::TestCase
   test "not_refunded keeps participants that paid again after a refund" do
     participant = participants(:two)
     participant.payments.update_all(status: "refunded")
-    participant.order.payments.create!(amount_cents: 19_000, description: "New payment", status: "paid")
+    participant.order.payments.create!(amount_cents: participant.order.amount_cents, description: "New payment", status: "paid")
 
     assert_includes Participant.not_refunded, participant.reload
   end

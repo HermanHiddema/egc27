@@ -154,11 +154,7 @@ class Participant < ApplicationRecord
   # Uses the in-memory association when it is already loaded (e.g. eager loaded
   # in the admin list) to avoid an extra query per participant.
   def paid?
-    if payments.loaded?
-      payments.any?(&:paid?)
-    else
-      payments.completed.exists?
-    end
+    order&.paid? || false
   end
 
   # A participant is considered refunded once one of their payments was refunded
@@ -189,7 +185,7 @@ class Participant < ApplicationRecord
 
   # The most recent payment that completed successfully, if any.
   def paid_payment
-    payments.completed.order(created_at: :desc).first
+    order&.successful_payment
   end
 
   # The most recent payment that is still in progress at the provider, if any.

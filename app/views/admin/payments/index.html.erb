@@ -24,9 +24,10 @@
           <thead class="bg-neutral-50">
             <tr>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payer</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Order ID</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Order Summary</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment description</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Provider</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reference</th>
@@ -39,12 +40,10 @@
             <% @payments.each do |payment| %>
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
-                <td class="px-4 py-3 text-sm text-neutral-900">
-                  <% if payment.participant %>
-                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
-                  <% else %>
-                    Hostel booking #<%= payment.hostel_booking_id %>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.order_id %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700">
+                  <% payment.order_item_summaries.each do |item_summary| %>
+                    <div><%= item_summary %></div>
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-900">

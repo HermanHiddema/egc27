@@ -43,7 +43,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
         payment: {
-          amount_eur: "123.45",
+          amount_eur: format("%.2f", participant.order.amount_cents / 100.0),
           description: "EGC 2027 Congress Pass – paid in cash",
           payment_method: "cash",
           payment_date: "2026-10-15",
@@ -55,7 +55,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     payment = participant.payments.order(:created_at).last
-    assert_equal 12_345, payment.amount_cents
+    assert_equal participant.order.amount_cents, payment.amount_cents
     assert_equal "manual", payment.provider
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 42", payment.reference
@@ -175,7 +175,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_no_difference "Payment.count" do
       post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
+        payment: {
+          amount_eur: format("%.2f", participant.order.amount_cents / 100.0),
+          description: "Cash", payment_method: "cash", payment_date: "2026-10-15"
+        }
       }
     end
 
@@ -189,7 +192,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
+        payment: {
+          amount_eur: format("%.2f", participant.order.amount_cents / 100.0),
+          description: "Cash", payment_method: "cash", payment_date: "2026-10-15"
+        }
       }
     end
 
@@ -230,7 +236,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     patch admin_participant_payment_path(payment.participant, payment), params: {
       payment: {
-        amount_eur: "95.50",
+          amount_eur: format("%.2f", payment.order.amount_cents / 100.0),
         description: "EGC 2027 Congress Pass – corrected",
         payment_method: "cash",
         payment_date: "2026-10-15",
@@ -241,12 +247,12 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     payment.reload
-    assert_equal 9_550, payment.amount_cents
+    assert_equal payment.order.amount_cents, payment.amount_cents
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 7", payment.reference
     assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert_equal "manual", payment.provider
-    assert_equal 9_550, payment.participant.participant_ticket.reload.price_cents
+    assert_equal payment.order.amount_cents, payment.participant.participant_ticket.reload.price_cents
   end
 
   test "record payment form prefills the payment date with today" do
@@ -372,6 +378,11 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     get admin_payments_path
 
     assert_response :success
+    headers = css_select("thead th").map(&:text)
+    assert_equal ["Date", "Order ID", "Order Summary", "Amount", "Payment description", "Provider", "Method", "Reference", "Settlement", "Bookkeeping", "Actions"], headers
+    assert_select "td", text: payments(:paid_payment).order_id.to_s
+    participant = payments(:paid_payment).participant
+    assert_select "td", text: "EGC 2027 Ticket #{participant.first_name} #{participant.last_name} (#{participant.participant_number})"
     assert_select "td", text: payments(:paid_payment).description
     assert_select "form[action='#{mark_processed_admin_payment_path(payments(:paid_payment))}']"
     # Only completed payments are listed.
@@ -393,7 +404,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     get admin_payments_path
 
     assert_response :success
-    assert_select "td", text: "Hostel booking ##{booking.id}"
+    assert_select "td", text: "EGC 2027 Hostel Booking #{booking.id}"
     assert_select "td", text: payment.description
     assert_select "td", text: payment.amount_formatted
   end

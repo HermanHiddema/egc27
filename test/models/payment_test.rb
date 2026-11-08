@@ -86,6 +86,16 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not payments(:open_payment).paid?
   end
 
+  test "a paid payment must equal the full order amount" do
+    payment = Payment.new(
+      order: participants(:one).order, status: "paid", amount_cents: participants(:one).order.amount_cents - 1,
+      description: "Partial payment"
+    )
+
+    assert_not payment.valid?
+    assert_includes payment.errors[:amount_cents], "must equal the full order amount"
+  end
+
   test "amount_eur divides cents by 100" do
     payment = payments(:open_payment)
     assert_equal 190.0, payment.amount_eur
@@ -114,10 +124,11 @@ class PaymentTest < ActiveSupport::TestCase
       assert payment.unsuccessful?, "expected #{status} to be unsuccessful"
     end
 
-    %w[open pending authorized paid].each do |status|
+    %w[open pending authorized].each do |status|
       payment.update!(status: status)
       assert_not payment.unsuccessful?, "expected #{status} not to be unsuccessful"
     end
+    assert_not payments(:paid_payment).unsuccessful?
   end
 
   test "refunded payment is no longer paid and does not block a new payment" do
@@ -211,6 +222,7 @@ class PaymentTest < ActiveSupport::TestCase
 
   test "restores a successful payment price when a later payment fails" do
     participant = participants(:three)
+    participant.participant_ticket.update!(price_cents: 9_550)
     successful_payment = Payment.create!(
       participant: participant,
       provider: "manual",
@@ -231,9 +243,8 @@ class PaymentTest < ActiveSupport::TestCase
 
     assert_equal successful_payment.amount_cents, participant.participant_ticket.reload.price_cents
 
-    successful_payment.update!(amount_cents: 10_000)
-
-    assert_equal 10_000, participant.participant_ticket.reload.price_cents
+    assert_raises(ActiveRecord::RecordInvalid) { successful_payment.update!(amount_cents: 10_000) }
+    assert_equal 9_550, participant.participant_ticket.reload.price_cents
 
     successful_payment.update!(status: "refunded")
 
@@ -242,16 +253,17 @@ class PaymentTest < ActiveSupport::TestCase
 
   test "records the price when an older attempt becomes paid after a newer one expires" do
     participant = participants(:three)
+    price = participant.participant_ticket.price_for
     older_payment = Payment.create!(
       participant: participant,
       status: "open",
-      amount_cents: 9_550,
+      amount_cents: price,
       description: "Older payment"
     )
     newer_payment = Payment.create!(
       participant: participant,
       status: "open",
-      amount_cents: 12_345,
+      amount_cents: price,
       description: "Newer payment"
     )
 
@@ -265,10 +277,11 @@ class PaymentTest < ActiveSupport::TestCase
 
   test "amount changes on older payment attempts do not update the ticket price" do
     participant = participants(:three)
+    participant.participant_ticket.update!(price_cents: 19_000)
     older_payment = Payment.create!(
       participant: participant,
       status: "open",
-      amount_cents: 12_345,
+      amount_cents: 19_000,
       description: "Older payment"
     )
     latest_payment = Payment.create!(

@@ -98,7 +98,7 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
     get admin_settlement_path(settlements(:paid_out))
 
     assert_response :success
-    assert_select "td", text: "Hostel booking ##{booking.id}"
+    assert_select "td", text: "EGC 2027 Hostel Booking #{booking.id}"
     assert_select "td", text: payment.description
   end
 

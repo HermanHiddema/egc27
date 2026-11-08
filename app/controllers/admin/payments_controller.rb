@@ -13,7 +13,7 @@ class Admin::PaymentsController < ApplicationController
   def index
     @processed_filter = permitted_processed_filter
 
-    payments = Payment.for_bookkeeping.includes(:participants, :hostel_bookings, :settlement)
+    payments = Payment.for_bookkeeping.includes(:participants, :hostel_bookings, :settlement, order: { products: :productable })
     payments = payments.processed if @processed_filter == "processed"
     payments = payments.unprocessed if @processed_filter == "unprocessed"
 
@@ -115,7 +115,7 @@ class Admin::PaymentsController < ApplicationController
     )
 
     {
-      amount_cents: pricing.price_cents,
+      amount_cents: @participant.order.amount_cents,
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",

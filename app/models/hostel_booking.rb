@@ -97,10 +97,12 @@ class HostelBooking < ApplicationRecord
   end
 
   def paid?
-    current_payment&.paid? || false
+    order&.paid? || false
   end
 
   def payable?
+    return false if paid?
+
     payment = current_payment
     payment.nil? || payment.payable?
   end
