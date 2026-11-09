@@ -16,6 +16,10 @@ class OrderRepricingService
       product = @order.products.includes(:productable).sole
       return @order unless product.productable.is_a?(ParticipantTicket)
 
+      participant = product.productable.participant
+      return @order unless Participant::ATTENDANCE_OPTIONS.key?(participant.attendance_option) &&
+        Participant::AGE_GROUPS.include?(participant.age_group)
+
       price_cents = product.productable.price_for(date: @date)
       product.reprice!(price_cents) if product.price_cents != price_cents
       @order

@@ -41,7 +41,7 @@ class StoreProductPrices < ActiveRecord::Migration[8.1]
 
     change_column_null :products, :price_cents, false
     remove_column :participant_tickets, :price_cents, :integer
-    remove_column :payments, :product_prices_cents, :jsonb
+    remove_column :payments, :product_prices_cents, :jsonb, if_exists: true
   end
 
   def down
@@ -101,7 +101,7 @@ class StoreProductPrices < ActiveRecord::Migration[8.1]
   end
 
   def snapshot_amount(payment, product)
-    return unless payment&.product_prices_cents.is_a?(Hash)
+    return unless payment&.has_attribute?(:product_prices_cents) && payment.product_prices_cents.is_a?(Hash)
 
     payment.product_prices_cents[product.id.to_s] || payment.product_prices_cents[product.id]
   end
