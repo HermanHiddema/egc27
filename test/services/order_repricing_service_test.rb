@@ -27,6 +27,24 @@ class OrderRepricingServiceTest < ActiveSupport::TestCase
     assert_equal old_price, product.reload.price_cents
   end
 
+  test "refunds and chargebacks leave the paid order closed and its price unchanged" do
+    order = participants(:two).order
+    product = order.products.sole
+    payment = payments(:paid_payment)
+    original_price = product.price_cents
+    original_amount = payment.amount_cents
+
+    [[:amount_refunded, "10.00"], [:amount_charged_back, "50.00"]].each do |field, amount|
+      payment.sync_from_mollie!(OpenStruct.new(status: "paid", field => OpenStruct.new(value: amount)))
+      OrderRepricingService.call(order:, date: Date.new(2027, 6, 1))
+
+      assert order.closed?
+      assert_equal "paid", payment.reload.status
+      assert_equal original_price, product.reload.price_cents
+      assert_equal original_amount, payment.amount_cents
+    end
+  end
+
   test "does not reprice hostel booking products" do
     booking = users(:one).hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
@@ -57,21 +75,23 @@ class OrderRepricingServiceTest < ActiveSupport::TestCase
     assert_equal old_price, payment.reload.amount_cents
   end
 
-  test "a failed Mollie attempt triggers repricing while preserving the attempt amount" do
-    participant = participants(:three)
-    order = participant.order
-    product = order.products.sole
-    old_price = product.price_cents
-    payment = Payment.create!(order:, amount_cents: old_price, description: "Pending attempt", status: "pending")
-    current_price = participant.participant_ticket.price_for(date: Date.new(2027, 2, 1))
+  %w[failed expired canceled].each do |status|
+    test "a #{status} Mollie attempt triggers repricing while preserving the attempt amount" do
+      participant = participants(:three)
+      order = participant.order
+      product = order.products.sole
+      old_price = product.price_cents
+      payment = Payment.create!(order:, amount_cents: old_price, description: "Pending attempt", status: "pending")
+      current_price = participant.participant_ticket.price_for(date: Date.new(2027, 2, 1))
 
-    travel_to Date.new(2027, 2, 1) do
-      payment.update!(status: "failed")
+      travel_to Date.new(2027, 2, 1) do
+        payment.update!(status: status)
+      end
+
+      assert_equal current_price, product.reload.price_cents
+      assert_equal old_price, payment.reload.amount_cents
+      assert_equal current_price, Payment.build_for(participant).amount_cents
     end
-
-    assert_equal current_price, product.reload.price_cents
-    assert_equal old_price, payment.reload.amount_cents
-    assert_equal current_price, Payment.build_for(participant).amount_cents
   end
 
   test "participant ticket and hostel booking products store their prices at creation" do

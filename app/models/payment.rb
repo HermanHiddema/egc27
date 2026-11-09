@@ -2,21 +2,23 @@
 #
 # Table name: payments
 #
-#  id                       :bigint           not null, primary key
-#  amount_cents             :integer          not null
-#  confirmation_sent        :boolean          default(FALSE), not null
-#  description              :string           not null
-#  payment_date             :date
-#  payment_method           :string
-#  processed_in_bookkeeping :boolean          default(FALSE), not null
-#  provider                 :string           default("mollie"), not null
-#  reference                :string
-#  status                   :string           default("open"), not null
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  mollie_payment_id        :string
-#  order_id                 :bigint           not null
-#  settlement_id            :bigint
+#  id                        :bigint           not null, primary key
+#  amount_cents              :integer          not null
+#  amount_charged_back_cents :integer          default(0)
+#  amount_refunded_cents     :integer          default(0)
+#  confirmation_sent         :boolean          default(FALSE), not null
+#  description               :string           not null
+#  payment_date              :date
+#  payment_method            :string
+#  processed_in_bookkeeping  :boolean          default(FALSE), not null
+#  provider                  :string           default("mollie"), not null
+#  reference                 :string
+#  status                    :string           default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  mollie_payment_id         :string
+#  order_id                  :bigint           not null
+#  settlement_id             :bigint
 #
 # Indexes
 #
@@ -33,19 +35,8 @@
 #  fk_rails_...  (settlement_id => settlements.id)
 #
 class Payment < ApplicationRecord
-  # "refunded" is not reported by Mollie as a payment status (Mollie keeps a
-  # refunded payment as "paid" and reports the refunded amount separately), but
-  # is recorded as a status of our own so refunds are visible everywhere a
-  # payment status is used. "charged_back" is recorded the same way for payments
-  # that Mollie reports a chargeback amount for.
-  STATUSES = %w[open canceled pending authorized expired failed paid refunded charged_back].freeze
-  # Payments in these statuses can never succeed anymore, so they do not stand
-  # in the way of recording a new (manual) payment. A refunded payment is
-  # included because the money was returned to the payer, so the participant may
-  # pay again. The same holds for a charged-back payment.
-  UNSUCCESSFUL_STATUSES = %w[canceled expired failed refunded charged_back].freeze
-  # Payments whose money was returned to the payer after they were paid.
-  REVERSED_STATUSES = %w[refunded charged_back].freeze
+  STATUSES = %w[open canceled pending authorized expired failed paid].freeze
+  UNSUCCESSFUL_STATUSES = %w[canceled expired failed].freeze
   # Payments are normally handled by Mollie, but admins can also record payments
   # that were received outside of Mollie (e.g. cash or bank transfer).
   PROVIDERS = %w[mollie manual].freeze
@@ -77,18 +68,21 @@ class Payment < ApplicationRecord
   validates :provider, inclusion: { in: PROVIDERS }
   validates :payment_method, inclusion: { in: MANUAL_PAYMENT_METHODS }, if: :manual?
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
+  validates :amount_refunded_cents, :amount_charged_back_cents,
+    numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :description, presence: true
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
+  validate :paid_status_is_final, on: :update
 
   scope :completed, -> { where(status: "paid") }
-  scope :refunded, -> { where(status: "refunded") }
-  scope :charged_back, -> { where(status: "charged_back") }
-  scope :reversed, -> { where(status: REVERSED_STATUSES) }
-  # Payments shown in the admin bookkeeping overview: completed payments, and
-  # charged-back payments whose bookkeeping must be corrected.
-  scope :for_bookkeeping, -> { where(status: %w[paid charged_back]) }
+  # NULL denotes a legacy reversal whose amount is unknown.
+  scope :refunded, -> { where("amount_refunded_cents IS NULL OR amount_refunded_cents > 0") }
+  scope :charged_back, -> { where("amount_charged_back_cents IS NULL OR amount_charged_back_cents > 0") }
+  scope :reversed, -> { refunded.or(charged_back) }
+  scope :unreversed, -> { where(amount_refunded_cents: 0, amount_charged_back_cents: 0) }
+  scope :for_bookkeeping, -> { completed }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
   scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
@@ -96,10 +90,11 @@ class Payment < ApplicationRecord
   scope :processed, -> { where(processed_in_bookkeeping: true) }
   scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
 
-  # Mollie payments get their payment date once they become paid. Refunded and
-  # charged-back payments were paid before, so they get one too.
+  # Mollie payments get their payment date once they become paid.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
   around_save :with_order_lock
+  before_create :prevent_creation_on_closed_order
+  before_update :prevent_reopening_paid_payment
   after_commit :reprice_order_after_terminal_attempt, on: :update
 
   # Payments recorded manually by an admin can be created directly as paid, so
@@ -190,15 +185,15 @@ class Payment < ApplicationRecord
   end
 
   def payable?
-    !paid? && !REVERSED_STATUSES.include?(status)
+    !paid?
   end
 
   def refunded?
-    status == "refunded"
+    amount_refunded_cents.nil? || amount_refunded_cents.positive?
   end
 
   def charged_back?
-    status == "charged_back"
+    amount_charged_back_cents.nil? || amount_charged_back_cents.positive?
   end
 
   def manual?
@@ -251,9 +246,11 @@ class Payment < ApplicationRecord
   def sync_from_mollie!(mollie_payment)
     order.with_lock do
       reload
-      self.status = mollie_status(mollie_payment)
+      self.status = mollie_payment.status unless paid?
+      update_mollie_amount(:amount_refunded_cents, mollie_payment.try(:amount_refunded))
+      update_mollie_amount(:amount_charged_back_cents, mollie_payment.try(:amount_charged_back))
       self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
-      self.processed_in_bookkeeping = false if status_changed? && charged_back?
+      self.processed_in_bookkeeping = false if will_save_change_to_amount_charged_back_cents? && charged_back?
       save!
     end
   end
@@ -312,6 +309,24 @@ class Payment < ApplicationRecord
 
   private
 
+  def paid_status_is_final
+    errors.add(:status, "cannot change after payment is paid") if status_in_database == "paid" && !paid?
+  end
+
+  def prevent_creation_on_closed_order
+    return unless order.closed?
+
+    errors.add(:base, "A closed order cannot accept another payment")
+    throw :abort
+  end
+
+  def prevent_reopening_paid_payment
+    return if paid? || !self.class.where(id:, status: "paid").exists?
+
+    errors.add(:status, "cannot change after payment is paid")
+    throw :abort
+  end
+
   def with_order_lock
     order.with_lock { yield }
   end
@@ -323,15 +338,9 @@ class Payment < ApplicationRecord
     OrderRepricingService.call(order: order, date: Date.current)
   end
 
-  def mollie_status(mollie_payment)
-    return "charged_back" if mollie_amount_positive?(mollie_payment.try(:amount_charged_back))
-    return "refunded" if mollie_amount_positive?(mollie_payment.try(:amount_refunded))
-
-    mollie_payment.status
-  end
-
-  def mollie_amount_positive?(amount)
-    mollie_amount_value(amount)&.positive?
+  def update_mollie_amount(attribute, amount)
+    value = mollie_amount_value(amount)
+    self[attribute] = (value * 100).round if value
   end
 
   def mollie_amount_value(amount)
@@ -358,7 +367,7 @@ class Payment < ApplicationRecord
   end
 
   def needs_mollie_payment_date?
-    !manual? && payment_date.blank? && (paid? || REVERSED_STATUSES.include?(status))
+    !manual? && payment_date.blank? && paid?
   end
 
   def mollie_metadata

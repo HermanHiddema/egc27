@@ -99,3 +99,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Visitors do not require participant tickets, products, or orders; preserve existing payment history when participant type changes.
 - Store attendance periods on participants, including visitors; participant tickets belong to players and have a price.
 - Keep the congress ticket price current until a payment attempt starts; replacement attempts use the current price tier.
+- Keep successful payments paid after refunds or chargebacks; their orders remain closed and any new payment requires a new order.

@@ -52,12 +52,12 @@ class Admin::ParticipantsController < ApplicationController
 
   def destroy
     unless @participant.deletable?
-      alert = if @participant.paid?
-        "Participants with a successful payment cannot be deleted."
-      elsif @participant.charged_back?
+      alert = if @participant.charged_back?
         "Participants with charged-back payments cannot be deleted."
       elsif @participant.refunded?
         "Participants with refunded payments cannot be deleted."
+      elsif @participant.paid?
+        "Participants with a successful payment cannot be deleted."
       else
         "Participants with an open or pending payment cannot be deleted."
       end
@@ -108,7 +108,7 @@ class Admin::ParticipantsController < ApplicationController
   # Paid takes precedence over Chargeback, which takes precedence over Refund,
   # which takes precedence over Confirmed, which takes precedence over Pending.
   def filtered_by_status(participants, status)
-    paid_ids = participant_ids_for(Payment.completed)
+    paid_ids = participant_ids_for(Payment.completed.unreversed)
     charged_back_ids = participant_ids_for(Payment.charged_back).where.not(participant_id: paid_ids)
     refunded_ids = participant_ids_for(Payment.refunded).where.not(participant_id: paid_ids)
     reversed_ids = participant_ids_for(Payment.reversed).where.not(participant_id: paid_ids)
@@ -162,7 +162,7 @@ class Admin::ParticipantsController < ApplicationController
   # Chargeback.
   def status_sorted_participants(participants)
     table = Participant.arel_table
-    paid_subquery = participant_ids_for(Payment.completed).to_sql
+    paid_subquery = participant_ids_for(Payment.completed.unreversed).to_sql
     charged_back_subquery = participant_ids_for(Payment.charged_back).to_sql
     refunded_subquery = participant_ids_for(Payment.refunded).to_sql
     dir = @direction == :desc ? "DESC" : "ASC"

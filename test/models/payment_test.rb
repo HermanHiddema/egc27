@@ -5,21 +5,23 @@ require "ostruct"
 #
 # Table name: payments
 #
-#  id                       :bigint           not null, primary key
-#  amount_cents             :integer          not null
-#  confirmation_sent        :boolean          default(FALSE), not null
-#  description              :string           not null
-#  payment_date             :date
-#  payment_method           :string
-#  processed_in_bookkeeping :boolean          default(FALSE), not null
-#  provider                 :string           default("mollie"), not null
-#  reference                :string
-#  status                   :string           default("open"), not null
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  mollie_payment_id        :string
-#  order_id                 :bigint           not null
-#  settlement_id            :bigint
+#  id                        :bigint           not null, primary key
+#  amount_cents              :integer          not null
+#  amount_charged_back_cents :integer          default(0)
+#  amount_refunded_cents     :integer          default(0)
+#  confirmation_sent         :boolean          default(FALSE), not null
+#  description               :string           not null
+#  payment_date              :date
+#  payment_method            :string
+#  processed_in_bookkeeping  :boolean          default(FALSE), not null
+#  provider                  :string           default("mollie"), not null
+#  reference                 :string
+#  status                    :string           default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  mollie_payment_id         :string
+#  order_id                  :bigint           not null
+#  settlement_id             :bigint
 #
 # Indexes
 #
@@ -120,16 +122,27 @@ class PaymentTest < ActiveSupport::TestCase
     end
   end
 
-  test "refunded payment is no longer paid and does not block a new payment" do
+  test "a refunded payment remains paid and blocks a new payment" do
     payment = payments(:paid_payment)
-    payment.update!(status: "refunded")
+    payment.update!(amount_refunded_cents: 1_000)
 
     assert payment.refunded?
-    assert_not payment.paid?
-    assert payment.unsuccessful?
+    assert payment.paid?
+    assert_not payment.unsuccessful?
     assert_includes Payment.refunded, payment
-    assert_not_includes Payment.completed, payment
-    assert_not_includes Payment.blocking, payment
+    assert_includes Payment.completed, payment
+    assert_includes Payment.blocking, payment
+  end
+
+  test "a paid payment cannot change status or accept another attempt on its order" do
+    payment = payments(:paid_payment)
+    assert_not payment.update(status: "failed")
+    assert_equal "paid", payment.reload.status
+
+    payment.update!(amount_refunded_cents: 500)
+    attempt = Payment.new(order: payment.order, amount_cents: payment.amount_cents, description: "Another attempt")
+    assert_not attempt.save
+    assert_includes attempt.errors[:base], "A closed order cannot accept another payment"
   end
 
   test "unsuccessful and blocking scopes filter on the status" do
@@ -418,7 +431,8 @@ class PaymentTest < ActiveSupport::TestCase
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: "50.00"), attributes: {}))
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_charged_back_cents
     assert_equal Date.new(2026, 9, 1), payment.payment_date
   end
 
@@ -428,7 +442,8 @@ class PaymentTest < ActiveSupport::TestCase
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "50.00"), attributes: {}))
 
-    assert_equal "refunded", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_refunded_cents
     assert_equal Date.new(2026, 8, 1), payment.payment_date
   end
 
@@ -458,27 +473,28 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "ideal", payment.reload.payment_method
   end
 
-  test "sync_from_mollie! records a refunded Mollie payment as refunded" do
+  test "sync_from_mollie! records a refund while keeping the payment paid" do
     payment = payments(:paid_payment)
 
     payment.sync_from_mollie!(
       OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR"))
     )
 
-    assert_equal "refunded", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 1_000, payment.amount_refunded_cents
   end
 
-  test "charged-back payment is no longer paid and does not block a new payment" do
+  test "a charged-back payment remains paid and blocks a new payment" do
     payment = payments(:paid_payment)
-    payment.update!(status: "charged_back")
+    payment.update!(amount_charged_back_cents: 5_000)
 
     assert payment.charged_back?
-    assert_not payment.paid?
-    assert payment.unsuccessful?
+    assert payment.paid?
+    assert_not payment.unsuccessful?
     assert_includes Payment.charged_back, payment
     assert_includes Payment.reversed, payment
-    assert_not_includes Payment.completed, payment
-    assert_not_includes Payment.blocking, payment
+    assert_includes Payment.completed, payment
+    assert_includes Payment.blocking, payment
   end
 
   test "sync_from_mollie! records a charged-back Mollie payment as charged back" do
@@ -494,7 +510,8 @@ class PaymentTest < ActiveSupport::TestCase
     )
 
     payment.reload
-    assert_equal "charged_back", payment.status
+    assert_equal "paid", payment.status
+    assert_equal 5_000, payment.amount_charged_back_cents
     # The bookkeeping must be corrected, so the payment is flagged again.
     assert_not payment.processed_in_bookkeeping?
   end
@@ -510,10 +527,11 @@ class PaymentTest < ActiveSupport::TestCase
       )
     )
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_charged_back_cents
   end
 
-  test "sync_from_mollie! prefers a chargeback over a refund" do
+  test "sync_from_mollie! records both a refund and a chargeback" do
     payment = payments(:paid_payment)
 
     payment.sync_from_mollie!(
@@ -524,7 +542,9 @@ class PaymentTest < ActiveSupport::TestCase
       )
     )
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 1_000, payment.amount_refunded_cents
+    assert_equal 4_000, payment.amount_charged_back_cents
   end
 
   test "sync_from_mollie! keeps a payment paid when nothing was charged back" do

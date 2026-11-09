@@ -74,15 +74,16 @@ class StoreProductPrices < ActiveRecord::Migration[8.1]
   def ticket_price(product)
     order = MigrationOrder.find(product.order_id)
     payments = MigrationPayment.where(order_id: order.id)
-    # Preserve a live Mollie quote and any historical successful amount.
-    active_amount = payments.where(provider: "mollie", status: %w[open pending authorized])
-      .order(created_at: :desc, id: :desc).pick(:amount_cents)
-    return active_amount if active_amount.to_i.positive?
-
-    paid_payment = payments.where(status: %w[paid refunded charged_back])
+    # A paid order is closed even if an older attempt remains active.
+    paid_payment = payments.where(status: "paid")
       .order(created_at: :desc, id: :desc).first
     paid_amount = snapshot_amount(paid_payment, product) || paid_payment&.amount_cents
     return paid_amount if paid_amount.to_i.positive?
+
+    # Preserve a live Mollie quote on an open order.
+    active_amount = payments.where(provider: "mollie", status: %w[open pending authorized])
+      .order(created_at: :desc, id: :desc).pick(:amount_cents)
+    return active_amount if active_amount.to_i.positive?
 
     participant = MigrationParticipant.find(MigrationTicket.find(product.productable_id).participant_id)
     option = case [participant.first_week, participant.weekend, participant.second_week]

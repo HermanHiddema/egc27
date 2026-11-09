@@ -79,7 +79,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin sees an add payment link when the latest manual payment failed" do
     sign_in users(:admin)
-    payments(:manual_payment).update!(status: "failed")
+    payments(:manual_payment).update_columns(status: "failed")
 
     get admin_participants_path
 
@@ -242,7 +242,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can filter by status refunded" do
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
     sign_in users(:admin)
     get admin_participants_path(status: "refunded")
 
@@ -255,7 +255,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can filter by status charged back" do
-    participants(:two).payments.update_all(status: "charged_back")
+    participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
     sign_in users(:admin)
     get admin_participants_path(status: "charged_back")
 
@@ -276,7 +276,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "refunded participants are excluded from the confirmed filter" do
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
     sign_in users(:admin)
     get admin_participants_path(status: "confirmed")
 
@@ -290,7 +290,8 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       provider: "manual",
       payment_date: Date.current,
       payment_method: "bank_transfer",
-      status: "refunded",
+      status: "paid",
+      amount_refunded_cents: 5_000,
       amount_cents: 5_000,
       description: "Refunded manual payment"
     )
@@ -311,8 +312,8 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
-    participants(:one).payments.update_all(status: "refunded")
-    participants(:two).payments.update_all(status: "charged_back")
+    participants(:one).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
+    participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
 
@@ -322,27 +323,6 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_includes statuses, "Refund"
     order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
     assert_equal statuses.sort_by { |status| order[status] }, statuses
-  end
-
-  test "admin status sort keeps repaid participants in paid state" do
-    participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
-    participant.order.payments.create!(
-      amount_cents: 5_000,
-      description: "Manual replacement payment",
-      provider: "manual",
-      payment_date: Date.current,
-      payment_method: "bank_transfer",
-      status: "paid"
-    )
-    sign_in users(:admin)
-
-    get admin_participants_path(sort: "status", direction: "asc")
-
-    assert_response :success
-    bob_row = css_select("tbody tr").find { |row| row.text.include?("Bob Jones") }
-    assert_not_nil bob_row
-    assert_includes bob_row.css("td")[6].text.strip, "Paid"
   end
 
   test "invalid sort and status params fall back to defaults" do
@@ -401,7 +381,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin cannot delete a participant with refunded payments" do
     sign_in users(:admin)
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     assert_no_difference "Participant.count" do
       delete admin_participant_path(participants(:two))
@@ -563,7 +543,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin edit page hides deletion for participants with refunded payments" do
     sign_in users(:admin)
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     get edit_admin_participant_path(participants(:two))
 

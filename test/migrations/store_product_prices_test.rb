@@ -26,7 +26,7 @@ class StoreProductPricesTest < ActiveSupport::TestCase
 
   test "prefers the amount of an active Mollie attempt and leaves payment amounts unchanged" do
     payment = payments(:open_payment)
-    legacy_payment.update_all(amount_cents: 22_000)
+    legacy_payment.where(id: payment.id).update_all(amount_cents: 22_000)
     legacy_ticket_price(products(:one), 12_000)
 
     run_up
@@ -48,6 +48,18 @@ class StoreProductPricesTest < ActiveSupport::TestCase
     assert_equal snapshot_cents, migrated_product(products(:two)).price_cents
     assert_equal amount_payment.amount_cents, migrated_product(products(:four)).price_cents
     payment_amounts.each { |payment, amount| assert_equal amount, payment.reload.amount_cents }
+  end
+
+  test "a successful payment takes precedence over an active attempt on the same order" do
+    pending = payments(:open_payment)
+    paid = legacy_payment.create!(order_id: pending.order_id, status: "paid", provider: "manual",
+      amount_cents: 17_000, description: "Historical payment")
+
+    run_up
+
+    assert_equal 17_000, migrated_product(products(:one)).price_cents
+    assert_equal 17_000, paid.reload.amount_cents
+    assert_equal 19_000, pending.reload.amount_cents
   end
 
   test "uses current ticket pricing when there is no payment history" do

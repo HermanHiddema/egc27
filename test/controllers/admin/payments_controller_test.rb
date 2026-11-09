@@ -401,7 +401,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "admin sees charged-back payments in the overview" do
     sign_in users(:admin)
     payment = payments(:paid_payment)
-    payment.update!(status: "charged_back")
+    payment.update!(amount_charged_back_cents: 5_000)
 
     get admin_payments_path(processed: "unprocessed")
 

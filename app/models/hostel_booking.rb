@@ -93,7 +93,7 @@ class HostelBooking < ApplicationRecord
   end
 
   def current_payment
-    payments.first
+    payments.completed.first || payments.first
   end
 
   def paid?

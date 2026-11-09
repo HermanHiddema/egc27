@@ -20,7 +20,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "participants index hides participants whose payment was charged back" do
-    participants(:two).payments.update_all(status: "charged_back")
+    participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
 
     get participants_path
 
@@ -30,7 +30,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "participants index hides participants whose payment was refunded" do
-    participants(:two).payments.update_all(status: "refunded")
+    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     get participants_path
 

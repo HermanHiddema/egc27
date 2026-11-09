@@ -268,6 +268,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
 
   create_table "payments", force: :cascade do |t|
     t.integer "amount_cents", null: false
+    t.integer "amount_charged_back_cents", default: 0
+    t.integer "amount_refunded_cents", default: 0
     t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description", null: false
