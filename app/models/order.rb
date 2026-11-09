@@ -19,6 +19,6 @@ class Order < ApplicationRecord
   alias amount_cents total_cents
 
   def closed?
-    payments.where(status: %w[paid refunded charged_back]).exists?
+    payments.completed.exists?
   end
 end
