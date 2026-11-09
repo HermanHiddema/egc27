@@ -49,19 +49,20 @@ class ParticipantTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
   include ActiveJob::TestHelper
 
-  test "refreshes an unpaid ticket price after the pricing tier changes" do
+  test "explicit repricing updates an unpaid ticket after the pricing tier changes" do
     participant = participants(:three)
+    order = participant.order
 
     travel_to Date.new(2026, 8, 31) do
-      participant.valid?
-      assert_equal 19_000, participant.participant_ticket.price_cents
+      OrderRepricingService.call(order:, date: Date.current)
+      assert_equal 19_000, order.products.sole.price_cents
     end
 
     travel_to Date.new(2026, 9, 1) do
-      participant.update!(club: "Another Club")
+      OrderRepricingService.call(order:, date: Date.current)
     end
 
-    assert_equal 22_000, participant.participant_ticket.reload.price_cents
+    assert_equal 22_000, order.products.sole.reload.price_cents
   end
 
   test "changing the egd pin queues an EGD sync for the participant" do

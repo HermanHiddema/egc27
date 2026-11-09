@@ -12,6 +12,9 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
+    @participant.order.with_lock do
+      OrderRepricingService.call(order: @participant.order, date: Date.current)
+    end
     @participant.refresh_paid_payments!
 
     @payment = @participant.current_payment
@@ -92,9 +95,12 @@ class PaymentsController < ApplicationController
   end
 
   def start_new_payment_attempt
-    Payment.build_for(@participant).tap do |payment|
-      payment.save!
-      @started_payment_attempt = payment
+    @participant.order.with_lock do
+      OrderRepricingService.call(order: @participant.order, date: Date.current)
+      Payment.build_for(@participant).tap do |payment|
+        payment.save!
+        @started_payment_attempt = payment
+      end
     end
   end
 

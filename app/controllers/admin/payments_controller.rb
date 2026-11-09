@@ -115,7 +115,7 @@ class Admin::PaymentsController < ApplicationController
     )
 
     {
-      amount_cents: pricing.price_cents,
+      amount_cents: @participant.order.total_cents,
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",

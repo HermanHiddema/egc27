@@ -5,7 +5,6 @@ require "test_helper"
 # Table name: participant_tickets
 #
 #  id             :bigint           not null, primary key
-#  price_cents    :integer
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
 #  participant_id :bigint           not null
@@ -34,7 +33,7 @@ class ParticipantTicketTest < ActiveSupport::TestCase
     assert_equal "weekend_only", participant.attendance_option
   end
 
-  test "changes to attendance or age update the price before payment starts" do
+  test "changes to attendance or age reprice an open product through the pricing service" do
     participant = participants(:three)
     travel_to Time.zone.local(2026, 9, 1) do
       participant.update!(age_group: "12-17", attendance_option: "weekend_only")
@@ -51,18 +50,12 @@ class ParticipantTicketTest < ActiveSupport::TestCase
     assert_equal 5000, payments(:paid_payment).reload.amount_cents
   end
 
-  test "ticket prices must be positive integers" do
-    ticket = participants(:three).participant_ticket
-    [0, -100, 1.5].each do |invalid_price|
-      ticket.price_cents = invalid_price
-      assert_not ticket.valid?
-      assert ticket.errors[:price_cents].any?
-    end
-  end
-  test "a newly recorded payment locks the ticket price" do
+  test "payment status does not establish or clear the product price" do
     participant = participants(:three)
-    payment = participant.order.payments.create!(amount_cents: 12345, description: "Payment", status: "pending")
-    assert_equal 12345, participant.participant_ticket.reload.price_cents
-    assert_equal 12345, payment.reload.amount_cents
+    product = participant.order.products.sole
+    original_price = product.price_cents
+    payment = participant.order.payments.create!(amount_cents: original_price, description: "Payment", status: "pending")
+    payment.update!(status: "paid")
+    assert_equal original_price, product.reload.price_cents
   end
 end

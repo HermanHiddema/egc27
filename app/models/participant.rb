@@ -119,7 +119,7 @@ class Participant < ApplicationRecord
   before_validation :normalize_rating
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
-  before_validation :refresh_unpaid_ticket_price
+  after_commit :reprice_open_ticket_order, on: [:create, :update], if: :pricing_inputs_changed?
 
   after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
 
@@ -280,12 +280,15 @@ class Participant < ApplicationRecord
 
   private
 
-  def refresh_unpaid_ticket_price
-    return unless player? && participant_ticket
-    return unless ATTENDANCE_OPTIONS.key?(attendance_option) && AGE_GROUPS.include?(age_group)
-    return if persisted? && payments.blocking.exists?
+  def reprice_open_ticket_order
+    return unless player? && order
 
-    participant_ticket.price_cents = participant_ticket.price_for
+    OrderRepricingService.call(order: order, date: Date.current)
+  end
+
+  def pricing_inputs_changed?
+    saved_change_to_participant_type? || saved_change_to_age_group? || saved_change_to_first_week? ||
+      saved_change_to_weekend? || saved_change_to_second_week?
   end
 
   def ensure_participant_ticket

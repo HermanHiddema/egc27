@@ -99,7 +99,8 @@ class Payment < ApplicationRecord
   # Mollie payments get their payment date once they become paid. Refunded and
   # charged-back payments were paid before, so they get one too.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
-  after_commit :sync_ticket_price, on: [:create, :update]
+  around_save :with_order_lock
+  after_commit :reprice_order_after_terminal_attempt, on: :update
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -111,8 +112,7 @@ class Payment < ApplicationRecord
     PAYMENT_METHOD_LABELS.fetch(payment_method) { payment_method.humanize }
   end
 
-  # Builds an unsaved payment for the current price of the participant's
-  # congress pass.
+  # Builds an unsaved payment for the stored Product price.
   def self.build_for(participant)
     pricing = CongressPassPricing.new(
       attendance_option: participant.attendance_option,
@@ -121,17 +121,17 @@ class Payment < ApplicationRecord
     )
 
     participant.order.payments.build(
-      amount_cents: participant.participant_ticket.price_for,
+      amount_cents: participant.order.total_cents,
       description: pricing.description,
       status: "open"
     )
   end
 
-  # Builds a payment for the price fixed when the hostel booking was made.
+  # Builds a payment for the price stored on the hostel booking's Product.
   def self.build_for_hostel_booking(hostel_booking)
     new(
       order: hostel_booking.order,
-      amount_cents: hostel_booking.amount_cents,
+      amount_cents: hostel_booking.order.total_cents,
       description: hostel_booking.description,
       status: "open"
     )
@@ -249,10 +249,13 @@ class Payment < ApplicationRecord
   # bookkeeping again, so admins notice it in the payments overview and can
   # correct the bookkeeping.
   def sync_from_mollie!(mollie_payment)
-    self.status = mollie_status(mollie_payment)
-    self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
-    self.processed_in_bookkeeping = false if status_changed? && charged_back?
-    save!
+    order.with_lock do
+      reload
+      self.status = mollie_status(mollie_payment)
+      self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
+      self.processed_in_bookkeeping = false if status_changed? && charged_back?
+      save!
+    end
   end
 
   # Records the current state of this payment at Mollie. Returns the Mollie
@@ -287,7 +290,7 @@ class Payment < ApplicationRecord
   # Starts a checkout at Mollie for this payment and returns its checkout URL.
   def start_mollie_checkout!(redirect_url:, webhook_url:)
     mollie_payment = Mollie::Payment.create(
-      amount: { value: format("%.2f", amount_eur), currency: "EUR" },
+      amount: { value: format("%d.%02d", amount_cents / 100, amount_cents % 100), currency: "EUR" },
       description: description,
       redirect_url: redirect_url,
       webhook_url: webhook_url,
@@ -304,49 +307,20 @@ class Payment < ApplicationRecord
   # Records a simulated Mollie status, used by the development-only simulation
   # controls so a payment flow can be exercised without calling Mollie.
   def simulate_mollie_status!(status)
-    update!(status: status, mollie_payment_id: nil)
+    order.with_lock { update!(status: status, mollie_payment_id: nil) }
   end
 
   private
 
-  # A refunded or charged-back payment keeps the "paid" status at Mollie, which
-  # only reports the refunded and charged-back amounts separately, so these are
-  # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
-  # takes precedence, because it needs follow-up by an admin.
-  def sync_ticket_price
-    was_created = previously_new_record?
-    status_changed = saved_change_to_status?
-    amount_changed = saved_change_to_amount_cents?
-    return unless was_created ||
-      (status_changed && (unsuccessful? || paid?)) ||
-      (amount_changed && !unsuccessful?)
-
-    order.with_lock do
-      current_payment = self.class.find(id)
-      ticket = participant_tickets.first&.reload
-      next unless ticket
-      next if a_later_payment_exists?(current_payment)
-
-      if was_created
-        ticket.update!(price_cents: current_payment.amount_cents) unless current_payment.unsuccessful?
-      elsif status_changed && current_payment.unsuccessful?
-        latest_paid_payment = current_payment.order.payments.completed.order(created_at: :desc, id: :desc).first
-        ticket.update!(price_cents: latest_paid_payment&.amount_cents)
-      elsif amount_changed && !current_payment.unsuccessful?
-        ticket.update!(price_cents: current_payment.amount_cents)
-      elsif status_changed && current_payment.paid? && ticket.price_cents.nil?
-        ticket.update!(price_cents: current_payment.amount_cents)
-      end
-    end
+  def with_order_lock
+    order.with_lock { yield }
   end
 
-  def a_later_payment_exists?(payment)
-    payment.order.payments.blocking.where(
-      "created_at > ? OR (created_at = ? AND id > ?)",
-      payment.created_at,
-      payment.created_at,
-      payment.id
-    ).exists?
+  def reprice_order_after_terminal_attempt
+    return unless saved_change_to_status?
+    return unless provider == "mollie" && status.in?(%w[canceled expired failed])
+
+    OrderRepricingService.call(order: order, date: Date.current)
   end
 
   def mollie_status(mollie_payment)

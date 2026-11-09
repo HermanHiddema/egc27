@@ -45,6 +45,15 @@ class OrderTest < ActiveSupport::TestCase
     assert_equal participant, payment.participant
     assert_includes participant.payments.reload, payment
   end
+
+  test "order total is the sum of stored product prices" do
+    order = participants(:one).order
+    product = order.products.sole
+    product.update_column(:price_cents, 20_345)
+
+    assert_equal 20_345, order.reload.total_cents
+    assert_equal order.total_cents, order.amount_cents
+  end
   test "removing a new unpaid registration also removes its product and order" do
     participant = participants(:three).dup
     participant.egd_pin = nil

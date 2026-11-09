@@ -246,7 +246,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Receipt 7", payment.reference
     assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert_equal "manual", payment.provider
-    assert_equal 9_550, payment.participant.participant_ticket.reload.price_cents
+    assert_equal 19_000, payment.participant.order.products.sole.reload.price_cents
   end
 
   test "record payment form prefills the payment date with today" do
