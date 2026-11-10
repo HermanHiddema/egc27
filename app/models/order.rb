@@ -11,4 +11,14 @@ class Order < ApplicationRecord
   has_many :payments, dependent: :destroy
 
   validates :products, length: { is: 1 }
+
+  def total_cents
+    Product.where(order_id: id).sum(:price_cents)
+  end
+
+  alias amount_cents total_cents
+
+  def closed?
+    payments.completed.exists?
+  end
 end

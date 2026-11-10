@@ -3,6 +3,7 @@
 # Table name: products
 #
 #  id               :bigint           not null, primary key
+#  price_cents      :integer          not null
 #  productable_type :string           not null
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
@@ -23,18 +24,47 @@ class Product < ApplicationRecord
   belongs_to :productable, polymorphic: true
 
   after_destroy :destroy_order
+  before_validation :set_initial_price, on: :create
 
   validates :productable_type, inclusion: { in: %w[ParticipantTicket HostelBooking] }
   validates :order_id, uniqueness: true, allow_nil: true
   validates :productable_id, uniqueness: { scope: :productable_type }
+  validates :price_cents, numericality: { only_integer: true, greater_than: 0 }
   validate :links_unchanged, on: :update
+  validate :price_changes_only_when_repricing, on: :update
+
+  def amount_cents
+    price_cents
+  end
+
+  def reprice!(new_price_cents)
+    @repricing = true
+    update!(price_cents: new_price_cents)
+  ensure
+    @repricing = false
+  end
 
   private
+
+  def set_initial_price
+    return if price_cents.present? || productable.blank?
+
+    self.price_cents = case productable
+    when ParticipantTicket then productable.price_for
+    when HostelBooking then productable.amount_cents
+    end
+  end
 
   def links_unchanged
     if will_save_change_to_order_id? || will_save_change_to_productable_id? || will_save_change_to_productable_type?
       errors.add(:base, "A product cannot be moved to another order or item")
     end
+  end
+
+  def price_changes_only_when_repricing
+    return unless will_save_change_to_price_cents? && !@repricing
+
+    errors.add(:price_cents, "can only be changed by the order repricing service")
   end
 
   def destroy_order

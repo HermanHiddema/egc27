@@ -246,7 +246,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Receipt 7", payment.reference
     assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert_equal "manual", payment.provider
-    assert_equal 9_550, payment.participant.participant_ticket.reload.price_cents
+    assert_equal 19_000, payment.participant.order.products.sole.reload.price_cents
   end
 
   test "record payment form prefills the payment date with today" do
@@ -401,7 +401,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "admin sees charged-back payments in the overview" do
     sign_in users(:admin)
     payment = payments(:paid_payment)
-    payment.update!(status: "charged_back")
+    payment.update!(amount_charged_back_cents: 5_000)
 
     get admin_payments_path(processed: "unprocessed")
 

@@ -93,7 +93,10 @@ class HostelBooking < ApplicationRecord
   end
 
   def current_payment
-    payments.first
+    return payments.detect(&:paid?) ||
+      payments.first if payments.loaded?
+
+    payments.completed.first || payments.first
   end
 
   def paid?

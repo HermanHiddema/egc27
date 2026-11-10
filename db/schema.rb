@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -228,7 +228,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
   create_table "participant_tickets", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "participant_id", null: false
-    t.integer "price_cents"
     t.datetime "updated_at", null: false
     t.index ["participant_id"], name: "index_participant_tickets_on_participant_id", unique: true
   end
@@ -269,6 +268,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
 
   create_table "payments", force: :cascade do |t|
     t.integer "amount_cents", null: false
+    t.integer "amount_charged_back_cents", default: 0
+    t.integer "amount_refunded_cents", default: 0
     t.boolean "confirmation_sent", default: false, null: false
     t.datetime "created_at", null: false
     t.string "description", null: false
@@ -302,6 +303,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_06_120000) do
   create_table "products", force: :cascade do |t|
     t.datetime "created_at", null: false
     t.bigint "order_id", null: false
+    t.integer "price_cents", null: false
     t.bigint "productable_id", null: false
     t.string "productable_type", null: false
     t.datetime "updated_at", null: false

@@ -3,6 +3,7 @@
 # Table name: products
 #
 #  id               :bigint           not null, primary key
+#  price_cents      :integer          not null
 #  productable_type :string           not null
 #  created_at       :datetime         not null
 #  updated_at       :datetime         not null
@@ -21,21 +22,26 @@
 one:
   order: one
   productable: one (ParticipantTicket)
+  price_cents: 19000
 
 two:
   order: two
   productable: two (ParticipantTicket)
+  price_cents: 5000
 
 three:
   order: three
   productable: three (ParticipantTicket)
+  price_cents: 19000
 
 unconfirmed:
   order: unconfirmed
   productable: unconfirmed (ParticipantTicket)
+  price_cents: 19000
 
 four:
   order: four
   productable: four (ParticipantTicket)
+  price_cents: 19000
 
 
