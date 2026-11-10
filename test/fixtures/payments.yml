@@ -2,22 +2,23 @@
 #
 # Table name: payments
 #
-#  id                       :bigint           not null, primary key
-#  amount_cents             :integer          not null
-#  confirmation_sent        :boolean          default(FALSE), not null
-#  description              :string           not null
-#  payment_date             :date
-#  payment_method           :string
-#  processed_in_bookkeeping :boolean          default(FALSE), not null
-#  product_prices_cents     :jsonb
-#  provider                 :string           default("mollie"), not null
-#  reference                :string
-#  status                   :string           default("open"), not null
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  mollie_payment_id        :string
-#  order_id                 :bigint           not null
-#  settlement_id            :bigint
+#  id                        :bigint           not null, primary key
+#  amount_cents              :integer          not null
+#  amount_charged_back_cents :integer          default(0)
+#  amount_refunded_cents     :integer          default(0)
+#  confirmation_sent         :boolean          default(FALSE), not null
+#  description               :string           not null
+#  payment_date              :date
+#  payment_method            :string
+#  processed_in_bookkeeping  :boolean          default(FALSE), not null
+#  provider                  :string           default("mollie"), not null
+#  reference                 :string
+#  status                    :string           default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  mollie_payment_id         :string
+#  order_id                  :bigint           not null
+#  settlement_id             :bigint
 #
 # Indexes
 #

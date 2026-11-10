@@ -81,7 +81,7 @@ class Participant < ApplicationRecord
   scope :confirmed, -> { joins(:user).where.not(users: { confirmed_at: nil }) }
 
   scope :not_refunded, -> {
-    paid_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.completed).select(:participant_id)
+    paid_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.completed.unreversed).select(:participant_id)
     reversed_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.reversed).select(:participant_id)
     where.not(id: reversed_ids).or(where(id: paid_ids))
   }
@@ -119,7 +119,7 @@ class Participant < ApplicationRecord
   before_validation :normalize_rating
   before_validation :set_implicit_policy_acceptance
   before_validation :apply_attendance_option
-  before_validation :refresh_unpaid_ticket_price
+  after_commit :reprice_open_ticket_order, on: [:create, :update], if: :pricing_inputs_changed?
 
   after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
 
@@ -157,11 +157,10 @@ class Participant < ApplicationRecord
     order&.paid? || false
   end
 
-  # A participant is considered refunded once one of their payments was refunded
-  # and no other payment remains paid. Uses the in-memory association when it is
-  # already loaded, like #paid?.
+  # A participant is considered refunded when a payment has a refund and no
+  # other paid payment is without a refund or chargeback.
   def refunded?
-    return false if paid?
+    return false if registration_paid?
 
     if payments.loaded?
       payments.any?(&:refunded?)
@@ -170,11 +169,9 @@ class Participant < ApplicationRecord
     end
   end
 
-  # A participant is considered charged back once one of their payments was
-  # charged back and no other payment remains paid. Uses the in-memory
-  # association when it is already loaded, like #paid?.
+  # Chargebacks use the same registration status precedence as refunds.
   def charged_back?
-    return false if paid?
+    return false if registration_paid?
 
     if payments.loaded?
       payments.any?(&:charged_back?)
@@ -199,24 +196,17 @@ class Participant < ApplicationRecord
     paid_payment || pending_payment || Payment.build_for(self)
   end
 
-  # Mollie keeps a refunded payment as "paid", so payments that are paid here
-  # are refreshed from Mollie until one of them is still paid there. Errors are
-  # logged instead of raised, so an unreachable Mollie does not block the
-  # payment page.
+  # Refresh refund and chargeback amounts without changing the paid status.
   def refresh_paid_payments!
-    payments.completed.order(created_at: :desc).each do |payment|
-      next if payment.mollie_payment_id.blank?
-
-      payment.refresh_from_mollie!
-      break if payment.paid?
-    end
+    payment = payments.completed.where.not(mollie_payment_id: [nil, ""]).order(created_at: :desc).first
+    payment&.refresh_from_mollie!
 
     association(:payments).reset
   rescue Mollie::Exception => e
     Rails.logger.error "[Mollie] Error refreshing paid payments for participant #{id}: #{e.message}"
   end
 
-  # Payments that are canceled, expired, failed or refunded can never succeed
+  # Payments that are canceled, expired or failed can never succeed
   # anymore, so they do not block recording a manual payment. Uses the in-memory
   # association when it is already loaded, like #paid?.
   def blocking_payments?
@@ -247,7 +237,7 @@ class Participant < ApplicationRecord
 
   # High-level registration status used in the admin participant list.
   def registration_status
-    return "Paid" if paid?
+    return "Paid" if registration_paid?
     return "Chargeback" if charged_back?
     return "Refund" if refunded?
     return "Confirmed" if confirmed?
@@ -276,12 +266,23 @@ class Participant < ApplicationRecord
 
   private
 
-  def refresh_unpaid_ticket_price
-    return unless player? && participant_ticket
-    return unless ATTENDANCE_OPTIONS.key?(attendance_option) && AGE_GROUPS.include?(age_group)
-    return if persisted? && payments.blocking.exists?
+  def registration_paid?
+    if payments.loaded?
+      payments.any? { |payment| payment.paid? && !payment.refunded? && !payment.charged_back? }
+    else
+      payments.completed.unreversed.exists?
+    end
+  end
 
-    participant_ticket.price_cents = participant_ticket.price_for
+  def reprice_open_ticket_order
+    return unless player? && order
+
+    OrderRepricingService.call(order: order, date: Date.current)
+  end
+
+  def pricing_inputs_changed?
+    saved_change_to_participant_type? || saved_change_to_age_group? || saved_change_to_first_week? ||
+      saved_change_to_weekend? || saved_change_to_second_week?
   end
 
   def ensure_participant_ticket

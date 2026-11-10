@@ -32,7 +32,7 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
-    @participant.order.refresh_unattempted_ticket_prices!
+    OrderRepricingService.call(order: @participant.order, date: Date.current)
     @payment = @participant.order.payments.build(default_payment_attributes)
   end
 
@@ -43,7 +43,7 @@ class Admin::PaymentsController < ApplicationController
       return
     end
 
-    @participant.order.refresh_unattempted_ticket_prices!
+    OrderRepricingService.call(order: @participant.order, date: Date.current)
     @payment = @participant.order.payments.build(payment_params)
     # Manually recorded payments never belong to a Mollie transaction, and are
     # only recorded once the money has actually been received.
@@ -117,7 +117,7 @@ class Admin::PaymentsController < ApplicationController
     )
 
     {
-      amount_cents: @participant.order.amount_cents,
+      amount_cents: @participant.order.total_cents,
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",

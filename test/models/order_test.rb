@@ -35,38 +35,16 @@ class OrderTest < ActiveSupport::TestCase
     assert_not Product.new(order: participants(:one).order, productable: users(:one)).valid?
   end
 
-  test "an order supports multiple products" do
+  test "an order is limited to one product" do
     participant = duplicate_ticket_participant
     another_participant = duplicate_ticket_participant
     order = participant.order
+    another_product = another_participant.order.products.sole
 
-    another_participant.order.products.sole.update!(order: order)
+    assert_not another_product.update(order:)
 
-    assert_equal 2, order.products.count
-    assert_equal participant.participant_ticket.price_cents + another_participant.participant_ticket.price_cents,
-      order.reload.amount_cents
-    assert_not Order.exists?(another_participant.order.id)
-  end
-
-  test "an order can contain participant tickets and hostel bookings" do
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 27), double_rooms: 1
-    )
-    participant = duplicate_ticket_participant
-    order = participant.order
-    booking.product.update!(order: order)
-
-    order.reload
-    assert_includes order.products.map(&:productable), participant.participant_ticket
-    assert_includes order.products.map(&:productable), booking
-    assert_equal participant.participant_ticket.amount_cents + booking.amount_cents, order.amount_cents
-
-    payment = Payment.create!(
-      order: order, provider: "manual", payment_method: "bank_transfer", payment_date: Date.current,
-      status: "paid", amount_cents: order.amount_cents, description: "Combined order"
-    )
-    assert payment.paid?
-    assert order.reload.paid?
+    assert_equal 1, order.reload.products.count
+    assert_equal 1, another_participant.order.reload.products.count
   end
 
   test "an order without payments is unpaid" do
@@ -153,6 +131,15 @@ class OrderTest < ActiveSupport::TestCase
     assert_equal participant.order, payment.order
     assert_equal participant, payment.participant
     assert_includes participant.payments.reload, payment
+  end
+
+  test "order total is the sum of stored product prices" do
+    order = participants(:one).order
+    product = order.products.sole
+    product.update_column(:price_cents, 20_345)
+
+    assert_equal 20_345, order.reload.total_cents
+    assert_equal order.total_cents, order.amount_cents
   end
   test "removing a new unpaid registration also removes its product and order" do
     participant = participants(:three).dup

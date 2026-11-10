@@ -12,6 +12,9 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
+    @participant.order.with_lock do
+      OrderRepricingService.call(order: @participant.order, date: Date.current)
+    end
     @participant.refresh_paid_payments!
 
     @payment = @participant.current_payment
@@ -26,6 +29,7 @@ class PaymentsController < ApplicationController
     return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @participant.paid_payment.present?
 
     @payment = @participant.pending_payment || start_new_payment_attempt
+    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
 
     if simulate_mollie_payment?
       @payment.simulate_mollie_status!(params[:simulate_status])
@@ -40,6 +44,7 @@ class PaymentsController < ApplicationController
       # A Mollie payment that cannot be completed anymore is replaced by a new
       # payment attempt, because Mollie owns the state of its own payments.
       @payment = start_new_payment_attempt if @payment.mollie_payment_id.present?
+      return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
       checkout_url = @payment.start_mollie_checkout!(
         redirect_url: success_payments_url(token: @payment.return_token),
         webhook_url: webhook_payments_url
@@ -92,9 +97,14 @@ class PaymentsController < ApplicationController
   end
 
   def start_new_payment_attempt
-    Payment.build_for(@participant).tap do |payment|
-      payment.save!
-      @started_payment_attempt = payment
+    @participant.order.with_lock do
+      return @participant.order.payments.completed.order(created_at: :desc).first if @participant.order.closed?
+
+      OrderRepricingService.call(order: @participant.order, date: Date.current)
+      Payment.build_for(@participant).tap do |payment|
+        payment.save!
+        @started_payment_attempt = payment
+      end
     end
   end
 

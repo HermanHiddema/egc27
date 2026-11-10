@@ -36,15 +36,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
 
-  test "manual payment form refreshes unattempted ticket prices for the current tier" do
+  test "manual payment form refreshes the ticket price for the current tier" do
     sign_in users(:admin)
     participant = participants(:three)
     ticket = participant.participant_ticket
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
-    )
-    booking.product.update!(order: participant.order)
-    original_booking_price = booking.amount_cents
 
     travel_to Time.zone.local(2026, 9, 1) do
       expected_ticket_price = ticket.price_for
@@ -52,8 +47,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
       assert_response :success
       assert_equal expected_ticket_price, ticket.reload.price_cents
-      assert_equal original_booking_price, booking.reload.amount_cents
-      assert_select "input[name='payment[amount_eur]'][value='#{format('%.2f', (expected_ticket_price + original_booking_price) / 100.0)}']"
+      assert_select "input[name='payment[amount_eur]'][value='#{format('%.2f', expected_ticket_price / 100.0)}']"
     end
   end
 
@@ -318,7 +312,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Receipt 7", payment.reference
     assert_equal Date.new(2026, 10, 15), payment.payment_date
     assert_equal "manual", payment.provider
-    assert_equal payment.order.amount_cents, payment.participant.participant_ticket.reload.price_cents
+    assert_equal 19_000, payment.participant.order.products.sole.reload.price_cents
   end
 
   test "record payment form prefills the payment date with today" do
@@ -478,7 +472,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "admin sees charged-back payments in the overview" do
     sign_in users(:admin)
     payment = payments(:paid_payment)
-    payment.update!(status: "charged_back")
+    payment.update!(amount_charged_back_cents: 5_000)
 
     get admin_payments_path(processed: "unprocessed")
 
@@ -519,7 +513,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "admin can mark a historical paid receipt as processed when its order total changed" do
     sign_in users(:admin)
     payment = payments(:paid_payment)
-    payment.participant.participant_ticket.update!(price_cents: payment.amount_cents + 1_000)
+    payment.participant.order.products.sole.reprice!(payment.amount_cents + 1_000)
 
     patch mark_processed_admin_payment_path(payment)
 

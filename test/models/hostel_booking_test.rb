@@ -182,7 +182,7 @@ class HostelBookingTest < ActiveSupport::TestCase
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "10.00")))
 
-    assert_equal "refunded", booking.reload.status
+    assert_equal "paid", booking.reload.status
     assert_not booking.payable?
   end
 

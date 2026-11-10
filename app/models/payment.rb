@@ -2,22 +2,23 @@
 #
 # Table name: payments
 #
-#  id                       :bigint           not null, primary key
-#  amount_cents             :integer          not null
-#  confirmation_sent        :boolean          default(FALSE), not null
-#  description              :string           not null
-#  payment_date             :date
-#  payment_method           :string
-#  processed_in_bookkeeping :boolean          default(FALSE), not null
-#  product_prices_cents     :jsonb
-#  provider                 :string           default("mollie"), not null
-#  reference                :string
-#  status                   :string           default("open"), not null
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  mollie_payment_id        :string
-#  order_id                 :bigint           not null
-#  settlement_id            :bigint
+#  id                        :bigint           not null, primary key
+#  amount_cents              :integer          not null
+#  amount_charged_back_cents :integer          default(0)
+#  amount_refunded_cents     :integer          default(0)
+#  confirmation_sent         :boolean          default(FALSE), not null
+#  description               :string           not null
+#  payment_date              :date
+#  payment_method            :string
+#  processed_in_bookkeeping  :boolean          default(FALSE), not null
+#  provider                  :string           default("mollie"), not null
+#  reference                 :string
+#  status                    :string           default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  mollie_payment_id         :string
+#  order_id                  :bigint           not null
+#  settlement_id             :bigint
 #
 # Indexes
 #
@@ -34,19 +35,8 @@
 #  fk_rails_...  (settlement_id => settlements.id)
 #
 class Payment < ApplicationRecord
-  # "refunded" is not reported by Mollie as a payment status (Mollie keeps a
-  # refunded payment as "paid" and reports the refunded amount separately), but
-  # is recorded as a status of our own so refunds are visible everywhere a
-  # payment status is used. "charged_back" is recorded the same way for payments
-  # that Mollie reports a chargeback amount for.
-  STATUSES = %w[open canceled pending authorized expired failed paid refunded charged_back].freeze
-  # Payments in these statuses can never succeed anymore, so they do not stand
-  # in the way of recording a new (manual) payment. A refunded payment is
-  # included because the money was returned to the payer, so the participant may
-  # pay again. The same holds for a charged-back payment.
-  UNSUCCESSFUL_STATUSES = %w[canceled expired failed refunded charged_back].freeze
-  # Payments whose money was returned to the payer after they were paid.
-  REVERSED_STATUSES = %w[refunded charged_back].freeze
+  STATUSES = %w[open canceled pending authorized expired failed paid].freeze
+  UNSUCCESSFUL_STATUSES = %w[canceled expired failed].freeze
   # Payments are normally handled by Mollie, but admins can also record payments
   # that were received outside of Mollie (e.g. cash or bank transfer).
   PROVIDERS = %w[mollie manual].freeze
@@ -78,6 +68,8 @@ class Payment < ApplicationRecord
   validates :provider, inclusion: { in: PROVIDERS }
   validates :payment_method, inclusion: { in: MANUAL_PAYMENT_METHODS }, if: :manual?
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
+  validates :amount_refunded_cents, :amount_charged_back_cents,
+    numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :description, presence: true
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
@@ -85,15 +77,15 @@ class Payment < ApplicationRecord
   validate :amount_matches_full_order, if: -> {
     status == "paid" && (new_record? || will_save_change_to_status? || will_save_change_to_amount_cents? || will_save_change_to_order_id?)
   }
-  validate :product_prices_cents_cannot_change, on: :update
+  validate :paid_status_is_final, on: :update
 
   scope :completed, -> { where(status: "paid") }
-  scope :refunded, -> { where(status: "refunded") }
-  scope :charged_back, -> { where(status: "charged_back") }
-  scope :reversed, -> { where(status: REVERSED_STATUSES) }
-  # Payments shown in the admin bookkeeping overview: completed payments, and
-  # charged-back payments whose bookkeeping must be corrected.
-  scope :for_bookkeeping, -> { where(status: %w[paid charged_back]) }
+  # NULL denotes a legacy reversal whose amount is unknown.
+  scope :refunded, -> { where("amount_refunded_cents IS NULL OR amount_refunded_cents > 0") }
+  scope :charged_back, -> { where("amount_charged_back_cents IS NULL OR amount_charged_back_cents > 0") }
+  scope :reversed, -> { refunded.or(charged_back) }
+  scope :unreversed, -> { where(amount_refunded_cents: 0, amount_charged_back_cents: 0) }
+  scope :for_bookkeeping, -> { completed }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
   scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
@@ -101,12 +93,12 @@ class Payment < ApplicationRecord
   scope :processed, -> { where(processed_in_bookkeeping: true) }
   scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
 
-  # Mollie payments get their payment date once they become paid. Refunded and
-  # charged-back payments were paid before, so they get one too.
-  before_validation :capture_product_prices, on: :create
-  before_save :restore_product_prices, if: :becoming_paid?
+  # Mollie payments get their payment date once they become paid.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
-  after_commit :sync_ticket_price, on: [:create, :update]
+  around_save :with_order_lock
+  before_create :prevent_creation_on_closed_order
+  before_update :prevent_reopening_paid_payment
+  after_commit :reprice_order_after_terminal_attempt, on: :update
 
   # Payments recorded manually by an admin can be created directly as paid, so
   # confirmations are sent both on create and on update.
@@ -118,8 +110,7 @@ class Payment < ApplicationRecord
     PAYMENT_METHOD_LABELS.fetch(payment_method) { payment_method.humanize }
   end
 
-  # Builds an unsaved payment for the current price of the participant's
-  # congress pass.
+  # Builds an unsaved payment for the stored Product price.
   def self.build_for(participant)
     pricing = CongressPassPricing.new(
       attendance_option: participant.attendance_option,
@@ -128,17 +119,17 @@ class Payment < ApplicationRecord
     )
 
     participant.order.payments.build(
-      amount_cents: participant.order.amount_cents_for_payment,
+      amount_cents: participant.order.total_cents,
       description: pricing.description,
       status: "open"
     )
   end
 
-  # Builds a payment for the price fixed when the hostel booking was made.
+  # Builds a payment for the price stored on the hostel booking's Product.
   def self.build_for_hostel_booking(hostel_booking)
     new(
       order: hostel_booking.order,
-      amount_cents: hostel_booking.order.amount_cents_for_payment,
+      amount_cents: hostel_booking.order.total_cents,
       description: hostel_booking.description,
       status: "open"
     )
@@ -209,23 +200,23 @@ class Payment < ApplicationRecord
   end
 
   def paid?
-    status == "paid" && amount_cents == order&.amount_cents
+    status == "paid"
   end
 
   def valid_full_payment?
-    paid?
+    paid? && amount_cents == order&.amount_cents
   end
 
   def payable?
-    !order.paid? && !paid? && !REVERSED_STATUSES.include?(status)
+    !paid?
   end
 
   def refunded?
-    status == "refunded"
+    amount_refunded_cents.nil? || amount_refunded_cents.positive?
   end
 
   def charged_back?
-    status == "charged_back"
+    amount_charged_back_cents.nil? || amount_charged_back_cents.positive?
   end
 
   def manual?
@@ -276,10 +267,15 @@ class Payment < ApplicationRecord
   # bookkeeping again, so admins notice it in the payments overview and can
   # correct the bookkeeping.
   def sync_from_mollie!(mollie_payment)
-    self.status = mollie_status(mollie_payment)
-    self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
-    self.processed_in_bookkeeping = false if status_changed? && charged_back?
-    save!
+    order.with_lock do
+      reload
+      self.status = mollie_payment.status unless paid?
+      update_mollie_amount(:amount_refunded_cents, mollie_payment.try(:amount_refunded))
+      update_mollie_amount(:amount_charged_back_cents, mollie_payment.try(:amount_charged_back))
+      self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
+      self.processed_in_bookkeeping = false if will_save_change_to_amount_charged_back_cents? && charged_back?
+      save!
+    end
   end
 
   # Records the current state of this payment at Mollie. Returns the Mollie
@@ -314,7 +310,7 @@ class Payment < ApplicationRecord
   # Starts a checkout at Mollie for this payment and returns its checkout URL.
   def start_mollie_checkout!(redirect_url:, webhook_url:)
     mollie_payment = Mollie::Payment.create(
-      amount: { value: format("%.2f", amount_eur), currency: "EUR" },
+      amount: { value: format("%d.%02d", amount_cents / 100, amount_cents % 100), currency: "EUR" },
       description: description,
       redirect_url: redirect_url,
       webhook_url: webhook_url,
@@ -331,90 +327,43 @@ class Payment < ApplicationRecord
   # Records a simulated Mollie status, used by the development-only simulation
   # controls so a payment flow can be exercised without calling Mollie.
   def simulate_mollie_status!(status)
-    update!(status: status, mollie_payment_id: nil)
+    order.with_lock { update!(status: status, mollie_payment_id: nil) }
   end
 
   private
 
-  # A refunded or charged-back payment keeps the "paid" status at Mollie, which
-  # only reports the refunded and charged-back amounts separately, so these are
-  # mapped onto our own "refunded" and "charged_back" statuses. A chargeback
-  # takes precedence, because it needs follow-up by an admin.
-  def sync_ticket_price
-    was_created = previously_new_record?
-    status_changed = saved_change_to_status?
-    amount_changed = saved_change_to_amount_cents?
-    return unless was_created ||
-      (status_changed && (unsuccessful? || paid?)) ||
-      (amount_changed && !unsuccessful?)
-
-    order.with_lock do
-      current_payment = self.class.find(id)
-      next if a_later_payment_exists?(current_payment)
-
-      tickets = current_payment.participant_tickets.to_a.each(&:reload)
-      next if tickets.empty?
-
-      if current_payment.order.products.count > 1
-        sync_multi_product_ticket_prices(current_payment, tickets, was_created: was_created,
-          status_changed: status_changed, amount_changed: amount_changed)
-        next
-      end
-
-      ticket = tickets.first
-      if was_created
-        ticket.update!(price_cents: current_payment.amount_cents) unless current_payment.unsuccessful?
-      elsif status_changed && current_payment.unsuccessful?
-        latest_paid_payment = current_payment.order.payments.completed.order(created_at: :desc, id: :desc).first
-        ticket.update!(price_cents: latest_paid_payment&.amount_cents)
-      elsif amount_changed && !current_payment.unsuccessful?
-        ticket.update!(price_cents: current_payment.amount_cents)
-      elsif status_changed && current_payment.paid? && ticket.price_cents.nil?
-        ticket.update!(price_cents: current_payment.amount_cents)
-      end
-    end
+  def paid_status_is_final
+    errors.add(:status, "cannot change after payment is paid") if status_in_database == "paid" && !paid?
   end
 
-  def sync_multi_product_ticket_prices(payment, tickets, was_created:, status_changed:, amount_changed:)
-    # A successful payment already fixed these ticket amounts. Later attempts
-    # must not recalculate them from participant details that may have changed.
-    return if payment.order.payments.completed.where.not(id: payment.id).exists?
+  def prevent_creation_on_closed_order
+    return unless order.closed?
 
-    if was_created
-      unless payment.unsuccessful? || payment.status == "paid"
-        tickets.each do |ticket|
-          ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date))
-        end
-      end
-    elsif status_changed && payment.unsuccessful?
-      tickets.each { |ticket| ticket.update!(price_cents: nil) }
-    elsif amount_changed && !payment.unsuccessful?
-      tickets.each { |ticket| ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date)) }
-    elsif status_changed && payment.paid?
-      tickets.each do |ticket|
-        ticket.update!(price_cents: ticket.price_for(date: payment.payment_date || payment.created_at.to_date)) if ticket.price_cents.nil?
-      end
-    end
+    errors.add(:base, "A closed order cannot accept another payment")
+    throw :abort
   end
 
-  def a_later_payment_exists?(payment)
-    payment.order.payments.blocking.where(
-      "created_at > ? OR (created_at = ? AND id > ?)",
-      payment.created_at,
-      payment.created_at,
-      payment.id
-    ).exists?
+  def prevent_reopening_paid_payment
+    return if paid? || !self.class.where(id:, status: "paid").exists?
+
+    errors.add(:status, "cannot change after payment is paid")
+    throw :abort
   end
 
-  def mollie_status(mollie_payment)
-    return "charged_back" if mollie_amount_positive?(mollie_payment.try(:amount_charged_back))
-    return "refunded" if mollie_amount_positive?(mollie_payment.try(:amount_refunded))
-
-    mollie_payment.status
+  def with_order_lock
+    order.with_lock { yield }
   end
 
-  def mollie_amount_positive?(amount)
-    mollie_amount_value(amount)&.positive?
+  def reprice_order_after_terminal_attempt
+    return unless saved_change_to_status?
+    return unless provider == "mollie" && status.in?(%w[canceled expired failed])
+
+    OrderRepricingService.call(order: order, date: Date.current)
+  end
+
+  def update_mollie_amount(attribute, amount)
+    value = mollie_amount_value(amount)
+    self[attribute] = (value * 100).round if value
   end
 
   def mollie_amount_value(amount)
@@ -441,7 +390,7 @@ class Payment < ApplicationRecord
   end
 
   def needs_mollie_payment_date?
-    !manual? && payment_date.blank? && (paid? || REVERSED_STATUSES.include?(status))
+    !manual? && payment_date.blank? && paid?
   end
 
   def mollie_metadata
@@ -461,55 +410,9 @@ class Payment < ApplicationRecord
   end
 
   def amount_matches_full_order
-    if order
-      if product_prices_cents.present?
-        return if valid_product_prices? && amount_cents == product_prices_cents.values.sum
-      elsif amount_cents == order.amount_cents
-        # Payments created before snapshots were introduced have no historical
-        # per-product prices to restore.
-        return
-      end
-    end
+    return if order && amount_cents == order.total_cents
 
     errors.add(:amount_cents, "must equal the full order amount")
-  end
-
-  def capture_product_prices
-    return unless order
-
-    date = created_at&.to_date || Date.current
-    self.product_prices_cents = order.products.to_h do |product|
-      price = if status == "paid"
-        product.amount_cents
-      else
-        product.amount_cents_for_payment(date: date)
-      end
-      [product.id.to_s, price]
-    end
-  end
-
-  def valid_product_prices?
-    product_prices_cents.is_a?(Hash) &&
-      product_prices_cents.keys.sort == order.products.pluck(:id).map(&:to_s).sort &&
-      product_prices_cents.values.all? { |price| price.is_a?(Integer) && price.positive? }
-  end
-
-  def product_prices_cents_cannot_change
-    errors.add(:product_prices_cents, "cannot change") if will_save_change_to_product_prices_cents?
-  end
-
-  def becoming_paid?
-    status == "paid" && (new_record? || will_save_change_to_status?)
-  end
-
-  def restore_product_prices
-    return unless product_prices_cents.present? && valid_product_prices?
-
-    order.products.each do |product|
-      next unless product.productable_type == "ParticipantTicket"
-
-      product.productable.update!(price_cents: product_prices_cents.fetch(product.id.to_s))
-    end
   end
 
   def send_payment_confirmation

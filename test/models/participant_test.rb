@@ -49,19 +49,20 @@ class ParticipantTest < ActiveSupport::TestCase
   include ActiveSupport::Testing::TimeHelpers
   include ActiveJob::TestHelper
 
-  test "refreshes an unpaid ticket price after the pricing tier changes" do
+  test "explicit repricing updates an unpaid ticket after the pricing tier changes" do
     participant = participants(:three)
+    order = participant.order
 
     travel_to Date.new(2026, 8, 31) do
-      participant.valid?
-      assert_equal 19_000, participant.participant_ticket.price_cents
+      OrderRepricingService.call(order:, date: Date.current)
+      assert_equal 19_000, order.products.sole.price_cents
     end
 
     travel_to Date.new(2026, 9, 1) do
-      participant.update!(club: "Another Club")
+      OrderRepricingService.call(order:, date: Date.current)
     end
 
-    assert_equal 22_000, participant.participant_ticket.reload.price_cents
+    assert_equal 22_000, order.products.sole.reload.price_cents
   end
 
   test "changing the egd pin queues an EGD sync for the participant" do
@@ -575,54 +576,47 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "registration_status is Refund when the payment was refunded" do
     participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
+    participant.payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     participant.reload
     assert participant.refunded?
-    assert_not participant.paid?
+    assert participant.paid?
     assert_equal "Refund", participant.registration_status
   end
 
-  test "registration_status is Paid when a later payment succeeded after a refund" do
+  test "a refunded order cannot accept another payment attempt" do
     participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
-    participant.order.payments.create!(amount_cents: participant.order.amount_cents, description: "New payment", status: "paid")
+    participant.payments.update_all(amount_refunded_cents: 5_000)
 
-    participant.reload
-    assert_not participant.refunded?
-    assert_equal "Paid", participant.registration_status
+    assert_raises(ActiveRecord::RecordNotSaved) do
+      participant.order.payments.create!(amount_cents: participant.order.amount_cents, description: "New payment", status: "paid")
+    end
+
+    assert_equal "Refund", participant.reload.registration_status
   end
 
   test "registration_status is Chargeback when the payment was charged back" do
     participant = participants(:two)
-    participant.payments.update_all(status: "charged_back")
+    participant.payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
 
     participant.reload
     assert participant.charged_back?
-    assert_not participant.paid?
+    assert participant.paid?
     assert_equal "Chargeback", participant.registration_status
   end
 
   test "not_refunded excludes participants with a charged-back payment" do
     participant = participants(:two)
-    participant.payments.update_all(status: "charged_back")
+    participant.payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
 
     assert_not_includes Participant.not_refunded, participant.reload
   end
 
   test "not_refunded excludes participants with a refunded payment" do
     participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
+    participant.payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     assert_not_includes Participant.not_refunded, participant.reload
-  end
-
-  test "not_refunded keeps participants that paid again after a refund" do
-    participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
-    participant.order.payments.create!(amount_cents: participant.order.amount_cents, description: "New payment", status: "paid")
-
-    assert_includes Participant.not_refunded, participant.reload
   end
 
   test "blocking_payments? is true for an open payment" do
@@ -651,7 +645,7 @@ class ParticipantTest < ActiveSupport::TestCase
   end
 
   test "registration status uses preloaded order and payment data without queries" do
-    payments(:manual_payment).update!(status: "refunded")
+    payments(:manual_payment).update!(amount_refunded_cents: 19_000)
     participant_ids = [participants(:one).id, participants(:two).id, participants(:four).id]
     loaded_participants = Participant.includes(:payments, :user)
       .preload(order: [:payments, { products: :productable }])
@@ -674,14 +668,14 @@ class ParticipantTest < ActiveSupport::TestCase
 
   test "deletable? is false for a refunded payment" do
     participant = participants(:two)
-    participant.payments.update_all(status: "refunded")
+    participant.payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     assert_not participant.reload.deletable?
   end
 
   test "deletable? is false for a charged-back payment" do
     participant = participants(:two)
-    participant.payments.update_all(status: "charged_back")
+    participant.payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
 
     assert_not participant.reload.deletable?
   end
@@ -746,30 +740,9 @@ class ParticipantTest < ActiveSupport::TestCase
 
     with_mollie_get(->(_id) { remote }) { participant.refresh_paid_payments! }
 
-    assert_equal "refunded", payment.reload.status
-    assert_not participant.paid?
-  end
-
-  test "refresh_paid_payments! stops at the first payment that is still paid" do
-    participant = participants(:two)
-    newer_payment = payments(:paid_payment)
-    older_payment = participant.order.payments.create!(
-      amount_cents: 5_000,
-      description: "Older Mollie payment",
-      provider: "mollie",
-      mollie_payment_id: "tr_paid_older",
-      status: "paid",
-      created_at: newer_payment.created_at - 1.day,
-      updated_at: newer_payment.updated_at - 1.day
-    )
-    fetched_ids = []
-
-    with_mollie_get(->(id) { fetched_ids << id; OpenStruct.new(id: id, status: "paid") }) do
-      participant.refresh_paid_payments!
-    end
-
-    assert_equal [newer_payment.mollie_payment_id], fetched_ids
-    assert_equal "paid", older_payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_refunded_cents
+    assert participant.paid?
   end
 
   test "refresh_paid_payments! swallows Mollie errors" do

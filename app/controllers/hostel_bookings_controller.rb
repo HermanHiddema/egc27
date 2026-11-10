@@ -52,7 +52,7 @@ class HostelBookingsController < ApplicationController
     if simulate_mollie_payment?
       @hostel_booking.with_lock do
         @payment = @hostel_booking.current_payment || Payment.build_for_hostel_booking(@hostel_booking).tap(&:save!)
-        @payment.simulate_mollie_status!(params[:simulate_status])
+        @payment.simulate_mollie_status!(params[:simulate_status]) unless @payment.paid?
       end
       return redirect_to hostel_booking_path(@hostel_booking), notice: "Simulated Mollie payment status: #{@payment.status}."
     end

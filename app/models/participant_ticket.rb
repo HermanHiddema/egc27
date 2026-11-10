@@ -3,7 +3,6 @@
 # Table name: participant_tickets
 #
 #  id             :bigint           not null, primary key
-#  price_cents    :integer
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
 #  participant_id :bigint           not null
@@ -22,10 +21,7 @@ class ParticipantTicket < ApplicationRecord
   has_one :order, through: :product
   has_many :payments, through: :order
 
-  validates :price_cents, numericality: { only_integer: true, greater_than: 0 }, allow_nil: true
-  validates :price_cents, presence: true, on: :create
   validate :participant_is_player, on: :create
-  before_validation :set_initial_price, on: :create
 
   after_create :create_order_and_product!
 
@@ -34,19 +30,12 @@ class ParticipantTicket < ApplicationRecord
     CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group, payment_date: date).price_cents
   end
 
-  def amount_cents
-    price_cents || price_for
+  # Compatibility reader; Product is the sole persisted price authority.
+  def price_cents
+    product&.price_cents
   end
 
   private
-
-  def set_initial_price
-    return if price_cents.present? || participant.blank?
-    return unless Participant::ATTENDANCE_OPTIONS.key?(participant.attendance_option)
-    return unless Participant::AGE_GROUPS.include?(participant.age_group)
-
-    self.price_cents = price_for
-  end
 
   def participant_is_player
     errors.add(:participant, "must be a player") if participant && !participant.player?

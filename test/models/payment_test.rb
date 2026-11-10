@@ -5,22 +5,23 @@ require "ostruct"
 #
 # Table name: payments
 #
-#  id                       :bigint           not null, primary key
-#  amount_cents             :integer          not null
-#  confirmation_sent        :boolean          default(FALSE), not null
-#  description              :string           not null
-#  payment_date             :date
-#  payment_method           :string
-#  processed_in_bookkeeping :boolean          default(FALSE), not null
-#  product_prices_cents     :jsonb
-#  provider                 :string           default("mollie"), not null
-#  reference                :string
-#  status                   :string           default("open"), not null
-#  created_at               :datetime         not null
-#  updated_at               :datetime         not null
-#  mollie_payment_id        :string
-#  order_id                 :bigint           not null
-#  settlement_id            :bigint
+#  id                        :bigint           not null, primary key
+#  amount_cents              :integer          not null
+#  amount_charged_back_cents :integer          default(0)
+#  amount_refunded_cents     :integer          default(0)
+#  confirmation_sent         :boolean          default(FALSE), not null
+#  description               :string           not null
+#  payment_date              :date
+#  payment_method            :string
+#  processed_in_bookkeeping  :boolean          default(FALSE), not null
+#  provider                  :string           default("mollie"), not null
+#  reference                 :string
+#  status                    :string           default("open"), not null
+#  created_at                :datetime         not null
+#  updated_at                :datetime         not null
+#  mollie_payment_id         :string
+#  order_id                  :bigint           not null
+#  settlement_id             :bigint
 #
 # Indexes
 #
@@ -97,11 +98,12 @@ class PaymentTest < ActiveSupport::TestCase
     assert_includes payment.errors[:amount_cents], "must equal the full order amount"
   end
 
-  test "a historical paid payment with a different current order total accepts bookkeeping changes" do
+  test "a paid payment accepts bookkeeping changes but cannot be changed to a partial amount" do
     payment = payments(:paid_payment)
-    payment.participant.participant_ticket.update!(price_cents: payment.amount_cents + 1_000)
+    payment.order.products.sole.reprice!(payment.amount_cents + 1_000)
 
-    assert_not payment.paid?
+    assert payment.paid?
+    assert_not payment.valid_full_payment?
     payment.update!(processed_in_bookkeeping: true)
 
     assert payment.reload.processed_in_bookkeeping?
@@ -143,16 +145,27 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not payments(:paid_payment).unsuccessful?
   end
 
-  test "refunded payment is no longer paid and does not block a new payment" do
+  test "a refunded payment remains paid and blocks a new payment" do
     payment = payments(:paid_payment)
-    payment.update!(status: "refunded")
+    payment.update!(amount_refunded_cents: 1_000)
 
     assert payment.refunded?
-    assert_not payment.paid?
-    assert payment.unsuccessful?
+    assert payment.paid?
+    assert_not payment.unsuccessful?
     assert_includes Payment.refunded, payment
-    assert_not_includes Payment.completed, payment
-    assert_not_includes Payment.blocking, payment
+    assert_includes Payment.completed, payment
+    assert_includes Payment.blocking, payment
+  end
+
+  test "a paid payment cannot change status or accept another attempt on its order" do
+    payment = payments(:paid_payment)
+    assert_not payment.update(status: "failed")
+    assert_equal "paid", payment.reload.status
+
+    payment.update!(amount_refunded_cents: 500)
+    attempt = Payment.new(order: payment.order, amount_cents: payment.amount_cents, description: "Another attempt")
+    assert_not attempt.save
+    assert_includes attempt.errors[:base], "A closed order cannot accept another payment"
   end
 
   test "unsuccessful and blocking scopes filter on the status" do
@@ -189,251 +202,62 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not payment.processed_in_bookkeeping?
   end
 
-  test "updates the ticket price when the current payment amount changes" do
+  test "a terminal unsuccessful Mollie attempt reprices an open order" do
     participant = participants(:three)
-    payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: 12_345,
-      description: "Updated price"
-    )
+    product = participant.order.products.sole
+    old_price = product.price_cents
+    payment = Payment.create!(participant:, status: "pending", amount_cents: old_price, description: "Attempt")
 
-    payment.update!(amount_cents: 9_550)
-
-    assert_equal 9_550, participant.participant_ticket.reload.price_cents
-  end
-
-  test "does not update the ticket price for a status-only change" do
-    participant = participants(:three)
-    payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: 12_345,
-      description: "Status change"
-    )
-    participant.participant_ticket.update!(price_cents: 9_550)
-
-    payment.update!(status: "pending")
-
-    assert_equal 9_550, participant.participant_ticket.reload.price_cents
-  end
-
-  test "clears the ticket price when the latest payment fails without another successful payment" do
-    participant = participants(:three)
-    payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: 12_345,
-      description: "Failed payment"
-    )
-
-    payment.update!(status: "failed")
-
-    assert_nil participant.participant_ticket.reload.price_cents
-  end
-
-  test "restores a successful payment price when a later payment fails" do
-    participant = participants(:three)
-    participant.participant_ticket.update!(price_cents: 9_550)
-    successful_payment = Payment.create!(
-      participant: participant,
-      provider: "manual",
-      payment_method: "cash",
-      payment_date: Date.current,
-      status: "paid",
-      amount_cents: 9_550,
-      description: "Successful payment"
-    )
-    failed_payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: 12_345,
-      description: "Later failed payment"
-    )
-
-    failed_payment.update!(status: "expired")
-
-    assert_equal successful_payment.amount_cents, participant.participant_ticket.reload.price_cents
-
-    assert_raises(ActiveRecord::RecordInvalid) { successful_payment.update!(amount_cents: 10_000) }
-    assert_equal 9_550, participant.participant_ticket.reload.price_cents
-
-    successful_payment.update!(status: "refunded")
-
-    assert_nil participant.participant_ticket.reload.price_cents
-  end
-
-  test "records the price when an older attempt becomes paid after a newer one expires" do
-    participant = participants(:three)
-    price = participant.participant_ticket.price_for
-    older_payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: price,
-      description: "Older payment"
-    )
-    newer_payment = Payment.create!(
-      participant: participant,
-      status: "open",
-      amount_cents: price,
-      description: "Newer payment"
-    )
-
-    newer_payment.update!(status: "expired")
-    assert_nil participant.participant_ticket.reload.price_cents
-
-    older_payment.update!(status: "paid")
-
-    assert_equal older_payment.amount_cents, participant.participant_ticket.reload.price_cents
-  end
-
-  test "Mollie restores an older full-order attempt across a pricing boundary" do
-    participant = participants(:three)
-    ticket = participant.participant_ticket
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
-    )
-    order = participant.order
-    booking.product.update!(order: order)
-    order.reload
-
-    older_payment = travel_to(Time.zone.local(2026, 8, 30)) do
-      Payment.create!(order: order, status: "open", amount_cents: order.amount_cents_for_payment,
-        description: "Older checkout")
-    end
-    original_ticket_price = older_payment.product_prices_cents.fetch(ticket.product.id.to_s)
-    original_booking_price = older_payment.product_prices_cents.fetch(booking.product.id.to_s)
-    assert_equal older_payment.amount_cents, original_ticket_price + original_booking_price
-
-    travel_to(Time.zone.local(2026, 9, 1)) do
-      newer_payment = Payment.create!(order: order, status: "open", amount_cents: order.amount_cents_for_payment,
-        description: "Newer checkout")
-      assert_operator newer_payment.amount_cents, :>, older_payment.amount_cents
-      newer_payment.update!(status: "expired")
-      assert_nil ticket.reload.price_cents
-
-      older_payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: { "method" => "ideal" }))
+    travel_to Date.new(2027, 2, 1) do
+      payment.update!(status: "expired")
     end
 
-    assert_equal original_ticket_price, ticket.reload.price_cents
-    assert_equal original_booking_price, booking.reload.amount_cents
-    assert_equal older_payment.amount_cents, order.reload.amount_cents
-    assert_equal older_payment, order.successful_payment
-    assert order.paid?
+    assert_equal participant.participant_ticket.price_for(date: Date.new(2027, 2, 1)), product.reload.price_cents
+    assert_equal old_price, payment.reload.amount_cents
   end
 
-  test "an older partial checkout cannot become paid using its product price snapshot" do
+  test "a successful payment leaves the stored product price unchanged" do
+    participant = participants(:three)
+    product = participant.order.products.sole
+    original_price = product.price_cents
+    payment = Payment.create!(participant:, status: "pending", amount_cents: original_price, description: "Attempt")
+
+    travel_to Date.new(2027, 2, 1) do
+      payment.update!(status: "paid")
+    end
+
+    assert_equal original_price, product.reload.price_cents
+    assert_equal original_price, payment.reload.amount_cents
+  end
+
+  test "an incomplete payment cannot become paid" do
     participant = participants(:three)
     order = participant.order
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
-    )
-    booking.product.update!(order: order)
-    order.reload
-    full_amount = order.amount_cents_for_payment
-    partial_payment = Payment.create!(order: order, status: "open", amount_cents: full_amount - 1,
-      description: "Partial checkout")
+    payment = Payment.create!(order:, status: "open", amount_cents: order.total_cents - 1, description: "Partial checkout")
 
     assert_raises(ActiveRecord::RecordInvalid) do
-      partial_payment.sync_from_mollie!(OpenStruct.new(status: "paid", attributes: {}))
+      payment.update!(status: "paid")
     end
 
-    assert_equal "open", partial_payment.reload.status
-    assert_equal full_amount, order.reload.amount_cents
+    assert_equal "open", payment.reload.status
     assert_not order.reload.paid?
   end
 
-  test "amount changes on older payment attempts do not update the ticket price" do
+  test "a failed attempt keeps its amount while repricing the product" do
     participant = participants(:three)
-    participant.participant_ticket.update!(price_cents: 19_000)
+    product = participant.order.products.sole
+    stored_price = product.price_cents
     older_payment = Payment.create!(
       participant: participant,
       status: "open",
-      amount_cents: 19_000,
+      amount_cents: stored_price,
       description: "Older payment"
     )
-    latest_payment = Payment.create!(
-      participant: participant,
-      provider: "manual",
-      payment_method: "cash",
-      payment_date: Date.current,
-      status: "paid",
-      amount_cents: 19_000,
-      description: "Latest payment"
-    )
 
-    older_payment.update!(amount_cents: 9_550)
     older_payment.update!(status: "failed")
 
-    assert_equal latest_payment.amount_cents, participant.participant_ticket.reload.price_cents
-  end
-
-  test "a newly created paid multi-product payment preserves the validated order total" do
-    participant = participants(:three)
-    ticket = participant.participant_ticket
-    ticket.update!(price_cents: 30_000)
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
-    )
-    order = participant.order
-    booking.product.update!(order: order)
-    order.reload
-    order_total = order.amount_cents
-
-    payment = Payment.create!(
-      order: order,
-      provider: "manual",
-      payment_method: "cash",
-      payment_date: Date.new(2026, 8, 1),
-      status: "paid",
-      amount_cents: order_total,
-      description: "Manual full-order payment"
-    )
-
-    assert payment.paid?
-    assert_equal order_total, order.reload.amount_cents
-    assert_equal 30_000, ticket.reload.price_cents
-  end
-
-  test "a later expired attempt preserves paid multi-product ticket amounts after participant details change" do
-    participant = participants(:three)
-    ticket = participant.participant_ticket
-    ticket.update!(price_cents: 30_000)
-    second_participant = participants(:unconfirmed)
-    second_ticket = second_participant.participant_ticket
-    second_ticket.update!(price_cents: 15_000)
-    booking = users(:one).hostel_bookings.create!(
-      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), double_rooms: 1
-    )
-    order = participant.order
-    second_ticket.product.update!(order: order)
-    booking.product.update!(order: order)
-    order_total = order.reload.amount_cents
-
-    successful_payment = Payment.create!(
-      order: order, provider: "manual", payment_method: "cash", payment_date: Date.current,
-      status: "paid", amount_cents: order_total, description: "Full-order payment"
-    )
-    original_price_for_ticket = ticket.price_for(date: successful_payment.payment_date)
-    original_price_for_second_ticket = second_ticket.price_for(date: successful_payment.payment_date)
-    participant.update!(attendance_option: "weekend_only", age_group: "12-17")
-    second_participant.update!(attendance_option: "weekend_only", age_group: "0-11")
-    assert_not_equal original_price_for_ticket, ticket.reload.price_for(date: successful_payment.payment_date)
-    assert_not_equal original_price_for_second_ticket, second_ticket.reload.price_for(date: successful_payment.payment_date)
-
-    later_payment = Payment.create!(
-      order: order, status: "open", amount_cents: order_total, description: "Later attempt"
-    )
-    assert_equal 30_000, ticket.reload.price_cents
-    assert_equal 15_000, second_ticket.reload.price_cents
-
-    later_payment.update!(status: "expired")
-
-    assert_equal 30_000, ticket.reload.price_cents
-    assert_equal 15_000, second_ticket.reload.price_cents
-    assert_equal order_total, order.reload.amount_cents
-    assert_equal successful_payment, order.successful_payment
-    assert order.paid?
+    assert_equal participant.participant_ticket.price_for(date: Date.current), product.reload.price_cents
+    assert_equal stored_price, older_payment.reload.amount_cents
   end
 
   test "sends payment confirmation email when status changes to paid" do
@@ -660,7 +484,8 @@ class PaymentTest < ActiveSupport::TestCase
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: "50.00"), attributes: {}))
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_charged_back_cents
     assert_equal Date.new(2026, 9, 1), payment.payment_date
   end
 
@@ -670,7 +495,8 @@ class PaymentTest < ActiveSupport::TestCase
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "50.00"), attributes: {}))
 
-    assert_equal "refunded", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_refunded_cents
     assert_equal Date.new(2026, 8, 1), payment.payment_date
   end
 
@@ -700,27 +526,28 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "ideal", payment.reload.payment_method
   end
 
-  test "sync_from_mollie! records a refunded Mollie payment as refunded" do
+  test "sync_from_mollie! records a refund while keeping the payment paid" do
     payment = payments(:paid_payment)
 
     payment.sync_from_mollie!(
       OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: BigDecimal("10.00"), currency: "EUR"))
     )
 
-    assert_equal "refunded", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 1_000, payment.amount_refunded_cents
   end
 
-  test "charged-back payment is no longer paid and does not block a new payment" do
+  test "a charged-back payment remains paid and blocks a new payment" do
     payment = payments(:paid_payment)
-    payment.update!(status: "charged_back")
+    payment.update!(amount_charged_back_cents: 5_000)
 
     assert payment.charged_back?
-    assert_not payment.paid?
-    assert payment.unsuccessful?
+    assert payment.paid?
+    assert_not payment.unsuccessful?
     assert_includes Payment.charged_back, payment
     assert_includes Payment.reversed, payment
-    assert_not_includes Payment.completed, payment
-    assert_not_includes Payment.blocking, payment
+    assert_includes Payment.completed, payment
+    assert_includes Payment.blocking, payment
   end
 
   test "sync_from_mollie! records a charged-back Mollie payment as charged back" do
@@ -736,7 +563,8 @@ class PaymentTest < ActiveSupport::TestCase
     )
 
     payment.reload
-    assert_equal "charged_back", payment.status
+    assert_equal "paid", payment.status
+    assert_equal 5_000, payment.amount_charged_back_cents
     # The bookkeeping must be corrected, so the payment is flagged again.
     assert_not payment.processed_in_bookkeeping?
   end
@@ -752,10 +580,11 @@ class PaymentTest < ActiveSupport::TestCase
       )
     )
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 5_000, payment.amount_charged_back_cents
   end
 
-  test "sync_from_mollie! prefers a chargeback over a refund" do
+  test "sync_from_mollie! records both a refund and a chargeback" do
     payment = payments(:paid_payment)
 
     payment.sync_from_mollie!(
@@ -766,7 +595,9 @@ class PaymentTest < ActiveSupport::TestCase
       )
     )
 
-    assert_equal "charged_back", payment.reload.status
+    assert_equal "paid", payment.reload.status
+    assert_equal 1_000, payment.amount_refunded_cents
+    assert_equal 4_000, payment.amount_charged_back_cents
   end
 
   test "sync_from_mollie! keeps a payment paid when nothing was charged back" do
