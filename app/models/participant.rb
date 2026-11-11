@@ -129,7 +129,7 @@ class Participant < ApplicationRecord
   end
 
   def current_ticket
-    draft_ticket || participant_tickets.detect(&:valid_admission?) || retryable_ticket
+    draft_ticket || participant_tickets.detect(&:valid_admission?) || active_ticket || retryable_ticket
   end
 
   def participant_ticket
@@ -162,6 +162,13 @@ class Participant < ApplicationRecord
 
   def draft_ticket
     participant_tickets.joins(product: :order).where(orders: { status: "draft" }).order(created_at: :desc).first
+  end
+
+  def active_ticket
+    payment = pending_payment
+    return if !payment || payment.order.closed?
+
+    participant_tickets.joins(:product).find_by(products: { order_id: payment.order_id }, invalidated_at: nil)
   end
 
   def retryable_ticket
