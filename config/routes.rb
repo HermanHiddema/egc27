@@ -181,6 +181,8 @@ Rails.application.routes.draw do
     post :submit
     delete "products/:product_id", action: :remove_product, as: :remove_product
   end
+  get "orders/:id", to: "orders#show_submitted", as: :submitted_order
+  post "orders/:id/pay", to: "orders#pay_submitted", as: :pay_submitted_order
   resources :hostel_bookings, only: [:index, :new, :create, :show] do
     member do
       post :pay

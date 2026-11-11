@@ -51,6 +51,6 @@ class ParticipantTicket < ApplicationRecord
   end
 
   def add_to_draft_order!
-    participant.user.draft_order!.products.create!(productable: self)
+    participant.user.draft_order!.add_product_to_draft!(self)
   end
 end

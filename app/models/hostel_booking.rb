@@ -127,7 +127,7 @@ class HostelBooking < ApplicationRecord
   private
 
   def add_to_draft_order!
-    user.draft_order!.products.create!(productable: self)
+    user.draft_order!.add_product_to_draft!(self)
   end
 
   def lock_price

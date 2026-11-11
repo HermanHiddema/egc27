@@ -44,6 +44,13 @@ class Order < ApplicationRecord
     draft? && payments.none?
   end
 
+  def add_product_to_draft!(productable)
+    with_lock do
+      reload
+      products.create!(productable: productable)
+    end
+  end
+
   def submit!
     with_lock do
       if products.empty?

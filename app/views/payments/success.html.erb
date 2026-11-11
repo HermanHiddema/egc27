@@ -25,7 +25,7 @@
           Your payment was not completed (<%= @payment.status.humanize.downcase %>).
         </p>
         <%= link_to "Try again",
-              new_participant_payment_path(@payment.participant),
+              (@payment.participant ? new_participant_payment_path(@payment.participant) : hostel_booking_path(@payment.hostel_booking)),
               class: "btn-primary" %>
       </div>
     <% else %>
@@ -53,6 +53,10 @@
       </div>
     <% end %>
 
-    <%= link_to "Back to registration", new_participant_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
+    <% if @payment&.participant.nil? && @payment&.hostel_booking %>
+      <%= link_to "Back to hostel booking", hostel_booking_path(@payment.hostel_booking), class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
+    <% else %>
+      <%= link_to "Back to registration", new_participant_path, class: "text-brand-blue-600 hover:text-brand-red-600 text-sm" %>
+    <% end %>
   </div>
 </div>

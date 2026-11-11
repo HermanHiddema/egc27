@@ -32,7 +32,6 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
-    @participant.order.submit! if @participant.order&.draft?
     @payment = @participant.order.payments.build(default_payment_attributes)
   end
 

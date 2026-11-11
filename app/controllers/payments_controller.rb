@@ -7,13 +7,14 @@ class PaymentsController < ApplicationController
   before_action :load_participant, only: [:new, :create]
   before_action :require_player_participant, only: [:new, :create]
   before_action :require_confirmed_participant, only: [:create]
-  before_action :require_participant_owner, only: [:create]
+  before_action :require_participant_owner, only: [:new, :create]
 
   def new
     @confirmed = @participant.confirmed?
-    return unless @confirmed
+    @order = @participant.current_order
+    return unless @confirmed && @order
 
-    OrderRepricingService.call(order: @participant.order, date: Date.current) if @participant.order
+    OrderRepricingService.call(order: @order, date: Date.current)
     @participant.refresh_paid_payments!
 
     @payment = @participant.current_payment
@@ -58,8 +59,12 @@ class PaymentsController < ApplicationController
 
     redirect_to checkout_url, allow_other_host: true
   rescue ActiveRecord::RecordInvalid => e
-    @payment = e.record
-    render :new, status: :unprocessable_entity
+    if e.record.is_a?(Payment)
+      @payment = e.record
+      render :new, status: :unprocessable_entity
+    else
+      redirect_to order_path, alert: e.record.errors.full_messages.to_sentence
+    end
   rescue Mollie::Exception => e
     discard_unstarted_payment_attempt
     flash.now[:alert] = "Payment could not be started: #{e.message}"
@@ -109,7 +114,7 @@ class PaymentsController < ApplicationController
   end
 
   def start_new_payment_attempt
-    order = @participant.order
+    order = @participant.current_order
     order.submit! if order.draft?
     order.with_lock do
       return order.payments.completed.order(created_at: :desc).first if order.closed?

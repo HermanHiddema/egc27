@@ -124,8 +124,12 @@ class Participant < ApplicationRecord
   after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
 
   def ticket
-    draft_ticket = participant_tickets.joins(product: :order).where(orders: { status: "draft" }).order(created_at: :desc).first
-    draft_ticket || participant_tickets.detect(&:valid_admission?) || retryable_ticket || participant_tickets.joins(:product).order(created_at: :desc).first || (participant_tickets.build if player?)
+    current_ticket || participant_tickets.joins(:product).order(created_at: :desc).first ||
+      participant_tickets.detect(&:new_record?) || (participant_tickets.build if player?)
+  end
+
+  def current_ticket
+    draft_ticket || participant_tickets.detect(&:valid_admission?) || retryable_ticket
   end
 
   def participant_ticket
@@ -140,12 +144,20 @@ class Participant < ApplicationRecord
     product&.order
   end
 
+  def current_order
+    current_ticket&.product&.order
+  end
+
   def can_purchase_ticket?
     return false unless player?
-    return false if participant_tickets.any?(&:valid_admission?)
+    return false if valid_admission?
     return false if participant_tickets.joins(product: { order: :payments }).merge(Payment.pending_or_open).exists?
 
     true
+  end
+
+  def valid_admission?
+    participant_tickets.any?(&:valid_admission?)
   end
 
   def draft_ticket
@@ -234,10 +246,15 @@ class Participant < ApplicationRecord
     payments.pending_or_open.order(created_at: :desc).first
   end
 
-  # The payment to show on the payment page: a completed payment, an in-progress
-  # payment, or an unsaved payment for the current price.
+  # The payment to show on the payment page comes from the currently selected
+  # ticket's Order, so a historical paid Order does not hide a replacement.
   def current_payment
-    paid_payment || pending_payment || Payment.build_for(self)
+    selected_order = current_order
+    return unless selected_order
+
+    selected_order.payments.completed.order(created_at: :desc, id: :desc).first ||
+      selected_order.payments.pending_or_open.order(created_at: :desc, id: :desc).first ||
+      Payment.build_for(self)
   end
 
   # Refresh refund and chargeback amounts without changing the paid status.

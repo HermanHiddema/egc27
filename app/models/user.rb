@@ -43,7 +43,7 @@ class User < ApplicationRecord
   before_destroy :prepare_draft_orders_for_destruction, prepend: true
 
   def draft_order!
-    orders.drafts.first_or_create!
+    orders.drafts.first || create_draft_order!
   end
 
   def prepare_draft_orders_for_destruction
@@ -138,6 +138,12 @@ class User < ApplicationRecord
   end
 
   private
+
+  def create_draft_order!
+    Order.transaction(requires_new: true) { orders.create!(status: "draft") }
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotUnique
+    orders.drafts.first || raise
+  end
 
   def propagate_email_change
     old_email, new_email = saved_change_to_email

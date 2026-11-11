@@ -55,6 +55,8 @@ class HostelBookingsController < ApplicationController
         @payment = @hostel_booking.current_payment || Payment.build_for_hostel_booking(@hostel_booking).tap(&:save!)
         @payment.simulate_mollie_status!(params[:simulate_status]) unless @payment.paid?
       end
+      return redirect_to success_payments_path(token: @payment.return_token) if @payment.unsuccessful?
+
       return redirect_to hostel_booking_path(@hostel_booking), notice: "Simulated Mollie payment status: #{@payment.status}."
     end
 
@@ -64,7 +66,9 @@ class HostelBookingsController < ApplicationController
         resumed_checkout_url = @payment.resume_mollie_checkout!
         next unless @payment.payable?
         next resumed_checkout_url if resumed_checkout_url.present?
-        next hostel_booking_path(@hostel_booking) if @payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
+        if @payment.mollie_payment_id.present? && @payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
+          next hostel_booking_path(@hostel_booking)
+        end
 
         @payment = nil if @payment.mollie_payment_id.present?
       end
@@ -72,7 +76,7 @@ class HostelBookingsController < ApplicationController
       @payment ||= Payment.build_for_hostel_booking(@hostel_booking)
       @payment.save! unless @payment.persisted?
       @payment.start_mollie_checkout!(
-        redirect_url: hostel_booking_url(@hostel_booking),
+        redirect_url: success_payments_url(token: @payment.return_token),
         webhook_url: webhook_payments_url
       )
     end

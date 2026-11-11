@@ -1,5 +1,5 @@
 <div class="mx-auto max-w-4xl px-4 py-6">
-  <h1 class="text-2xl font-bold text-brand-blue-900">Your draft order</h1>
+  <h1 class="text-2xl font-bold text-brand-blue-900"><%= @order.draft? ? "Your draft order" : "Order awaiting payment" %></h1>
 
   <% if @products.empty? %>
     <p class="mt-4 text-gray-700">Your basket is empty.</p>
@@ -8,18 +8,31 @@
       <% @products.each do |product| %>
         <div class="flex items-center justify-between gap-4 p-4">
           <div>
-            <% if product.productable.is_a?(ParticipantTicket) %>
-              <p class="font-semibold">Participant ticket: <%= product.productable.participant.first_name %> <%= product.productable.participant.last_name %></p>
-            <% else %>
-              <p class="font-semibold"><%= product.productable.description %></p>
-            <% end %>
+            <p class="font-semibold">
+              <% if product.productable.is_a?(ParticipantTicket) %>
+                Participant ticket: <%= product.productable.participant.first_name %> <%= product.productable.participant.last_name %>
+              <% else %>
+                <%= product.productable.description %>
+              <% end %>
+            </p>
             <p>€ <%= format("%.2f", product.price_cents / 100.0) %></p>
           </div>
-          <%= button_to "Remove", remove_product_order_path(product_id: product.id), method: :delete, class: "text-brand-red-700 underline" %>
+          <% if @order.draft? %>
+            <%= button_to "Remove", remove_product_order_path(product_id: product.id), method: :delete, class: "text-brand-red-700 underline" %>
+          <% end %>
         </div>
       <% end %>
     </div>
     <p class="mt-4 text-right text-lg font-bold">Total: € <%= format("%.2f", @order.total_cents / 100.0) %></p>
-    <%= button_to "Submit order and pay", submit_order_path, method: :post, class: "btn-primary mt-4" %>
+    <% if @order.draft? %>
+      <%= button_to "Submit order and pay", submit_order_path, method: :post, form: { data: { turbo: false } }, class: "btn-primary mt-4" %>
+    <% else %>
+      <% if @latest_payment %>
+        <p class="mt-4 text-sm text-neutral-600">Latest payment attempt: <%= @latest_payment.status.humanize %>.</p>
+      <% end %>
+      <% unless @order.closed? %>
+        <%= button_to "Continue to payment", pay_submitted_order_path(@order), method: :post, form: { data: { turbo: false } }, class: "btn-primary mt-4" %>
+      <% end %>
+    <% end %>
   <% end %>
 </div>
