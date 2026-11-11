@@ -1,0 +1,28 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Redirect",
+      "warning_code": 18,
+      "fingerprint": "bc391c499fea26b11ed49b68ce8fe799dda8e7066d91d2c46cf3535a4c37d747",
+      "check_name": "Redirect",
+      "message": "Possible unprotected redirect",
+      "file": "app/controllers/orders_controller.rb",
+      "line": 76,
+      "link": "https://brakemanscanner.org/docs/warning_types/redirect/",
+      "code": "redirect_to((Payment.create!(:order => (@order), :amount_cents => @order.total_cents, :description => order_description, :status => \"open\").resume_mollie_checkout! or Payment.create!(:order => (@order), :amount_cents => @order.total_cents, :description => order_description, :status => \"open\").start_mollie_checkout!(:redirect_url => success_payments_url(:token => Payment.create!(:order => (@order), :amount_cents => @order.total_cents, :description => order_description, :status => \"open\").return_token), :webhook_url => webhook_payments_url)), :allow_other_host => true)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "OrdersController",
+        "method": "start_checkout"
+      },
+      "user_input": "Payment.create!(:order => (@order), :amount_cents => @order.total_cents, :description => order_description, :status => \"open\").resume_mollie_checkout!",
+      "confidence": "Weak",
+      "cwe_id": [
+        601
+      ],
+      "note": "Checkout URLs are returned by the authenticated Mollie API for the payment, not from request parameters; external redirects are required for checkout."
+    }
+  ],
+  "brakeman_version": "8.1.0"
+}
