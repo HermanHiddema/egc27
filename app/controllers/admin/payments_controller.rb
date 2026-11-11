@@ -32,10 +32,12 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
+    @participant.order.submit! if @participant.order&.draft?
     @payment = @participant.order.payments.build(default_payment_attributes)
   end
 
   def create
+    @participant.order.submit! if @participant.order&.draft?
     if @participant.payments.where(provider: "mollie").merge(Payment.pending_or_open).exists?
       redirect_to new_admin_participant_payment_path(@participant),
         alert: "This participant has an outstanding Mollie payment. Cancel it in Mollie before recording a manual payment."

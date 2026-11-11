@@ -176,6 +176,11 @@ Rails.application.routes.draw do
       get :success
     end
   end
+  resource :order, only: [:show], controller: "orders" do
+    post :add_participant
+    post :submit
+    delete "products/:product_id", action: :remove_product, as: :remove_product
+  end
   resources :hostel_bookings, only: [:index, :new, :create, :show] do
     member do
       post :pay

@@ -121,6 +121,7 @@ class HostelBookingTest < ActiveSupport::TestCase
       booking.save!
     end
 
+    booking.order.submit!
     payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
     amount = payment.amount_cents
 
@@ -165,6 +166,7 @@ class HostelBookingTest < ActiveSupport::TestCase
 
   test "sends a confirmation email once when the booking becomes paid" do
     booking = build_booking.tap(&:save!)
+    booking.order.submit!
     payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
 
     assert_emails 1 do
@@ -178,6 +180,7 @@ class HostelBookingTest < ActiveSupport::TestCase
 
   test "records refunds reported by Mollie" do
     booking = build_booking.tap(&:save!)
+    booking.order.submit!
     payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
 
     payment.sync_from_mollie!(OpenStruct.new(status: "paid", amount_refunded: OpenStruct.new(value: "10.00")))
@@ -188,6 +191,7 @@ class HostelBookingTest < ActiveSupport::TestCase
 
   test "prevents destroying a booking with financial history or an active checkout" do
     booking = build_booking.tap(&:save!)
+    booking.order.submit!
     Payment.build_for_hostel_booking(booking).tap do |payment|
       payment.mollie_payment_id = "tr_active_checkout"
       payment.save!

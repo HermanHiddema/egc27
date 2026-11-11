@@ -1,0 +1,25 @@
+<div class="mx-auto max-w-4xl px-4 py-6">
+  <h1 class="text-2xl font-bold text-brand-blue-900">Your draft order</h1>
+
+  <% if @products.empty? %>
+    <p class="mt-4 text-gray-700">Your basket is empty.</p>
+  <% else %>
+    <div class="mt-6 divide-y rounded-lg border bg-white">
+      <% @products.each do |product| %>
+        <div class="flex items-center justify-between gap-4 p-4">
+          <div>
+            <% if product.productable.is_a?(ParticipantTicket) %>
+              <p class="font-semibold">Participant ticket: <%= product.productable.participant.first_name %> <%= product.productable.participant.last_name %></p>
+            <% else %>
+              <p class="font-semibold"><%= product.productable.description %></p>
+            <% end %>
+            <p>€ <%= format("%.2f", product.price_cents / 100.0) %></p>
+          </div>
+          <%= button_to "Remove", remove_product_order_path(product_id: product.id), method: :delete, class: "text-brand-red-700 underline" %>
+        </div>
+      <% end %>
+    </div>
+    <p class="mt-4 text-right text-lg font-bold">Total: € <%= format("%.2f", @order.total_cents / 100.0) %></p>
+    <%= button_to "Submit order and pay", submit_order_path, method: :post, class: "btn-primary mt-4" %>
+  <% end %>
+</div>

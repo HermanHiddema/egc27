@@ -219,7 +219,7 @@ class UserTest < ActiveSupport::TestCase
     )
 
     assert_difference("Participant.count", -1) do
-      user.destroy
+      user.destroy!
     end
 
     assert_not Participant.exists?(participant.id)
@@ -234,8 +234,9 @@ class UserTest < ActiveSupport::TestCase
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
+    booking.order.submit!
     booking.order.payments.create!(
-      amount_cents: 10_000,
+      amount_cents: booking.order.total_cents,
       description: booking.description,
       mollie_payment_id: "tr_active_checkout"
     )
@@ -252,8 +253,9 @@ class UserTest < ActiveSupport::TestCase
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
+    booking.order.submit!
     booking.order.payments.create!(
-      amount_cents: 10_000,
+      amount_cents: booking.order.total_cents,
       description: booking.description,
       status: "paid"
     )

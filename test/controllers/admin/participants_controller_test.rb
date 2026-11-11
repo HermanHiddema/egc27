@@ -292,7 +292,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       payment_method: "bank_transfer",
       status: "paid",
       amount_refunded_cents: 5_000,
-      amount_cents: 5_000,
+      amount_cents: participants(:unconfirmed).order.total_cents,
       description: "Refunded manual payment"
     )
     sign_in users(:admin)
@@ -346,15 +346,30 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin can delete a participant without successful payments" do
     sign_in users(:admin)
+    participant = participants(:three).dup
+    participant.egd_pin = nil
+    participant.uuid = SecureRandom.uuid
+    participant.save!
 
     assert_difference "Participant.count", -1 do
-      delete admin_participant_path(participants(:three))
+      delete admin_participant_path(participant)
     end
 
     assert_redirected_to admin_participants_path
     assert_equal "Participant was successfully deleted.", flash[:notice]
-    assert_not Participant.exists?(participants(:three).id)
+    assert_not Participant.exists?(participant.id)
     assert User.exists?(users(:one).id)
+  end
+
+  test "admin cannot delete a participant whose ticket is in a submitted order" do
+    sign_in users(:admin)
+
+    assert_no_difference "Participant.count" do
+      delete admin_participant_path(participants(:three))
+    end
+
+    assert_redirected_to admin_participants_path
+    assert_equal "Participants in a submitted order cannot be deleted.", flash[:alert]
   end
 
   test "admin cannot delete a participant with a successful payment" do
@@ -392,18 +407,22 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can delete the last participant of a user together with the user" do
-    participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
-    participants(:four).destroy!
-    user_id = users(:dave).id
+    user = User.create!(email: "delete-last@example.org", skip_password_validation: true)
+    participant = participants(:three).dup
+    participant.user = user
+    participant.email = user.email
+    participant.egd_pin = nil
+    participant.uuid = SecureRandom.uuid
+    participant.save!
 
     assert_difference ["Participant.count", "User.count"], -1 do
-      delete admin_participant_path(participants(:unconfirmed)), params: { delete_user: "1" }
+      delete admin_participant_path(participant), params: { delete_user: "1" }
     end
 
     assert_redirected_to admin_participants_path
     assert_equal "Participant and user account were successfully deleted.", flash[:notice]
-    assert_not User.exists?(user_id)
+    assert_not User.exists?(user.id)
   end
 
   test "admin deleting their own last participant keeps the user account" do
@@ -436,13 +455,13 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "the user is kept when the delete user box is unchecked" do
     participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
-    participants(:four).destroy!
 
     assert_no_difference "User.count" do
       delete admin_participant_path(participants(:unconfirmed))
     end
 
     assert User.exists?(users(:dave).id)
+    assert_redirected_to admin_participants_path
   end
 
   test "the user is kept when other participants remain" do
@@ -459,7 +478,6 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   test "the user is kept when they still have authored site content" do
     participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
-    participants(:four).destroy!
     Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
 
     assert_no_difference "User.count" do
@@ -467,33 +485,30 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_redirected_to admin_participants_path
-    assert_equal "Participant was successfully deleted. The user account was kept.", flash[:notice]
+    assert_equal "Participants in a submitted order cannot be deleted.", flash[:alert]
     assert User.exists?(users(:dave).id)
   end
 
   test "admin edit page hides the user-delete option for a user with authored site content" do
     participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
-    participants(:four).destroy!
     Article.create!(title: "Article", content_html: "<p>Details</p>", user: users(:dave))
 
     get edit_admin_participant_path(participants(:unconfirmed))
 
     assert_response :success
     assert_select "input[name='delete_user']", count: 0
-    assert_match "not eligible for deletion", response.body
+    assert_match "cannot be deleted", response.body
   end
 
   test "admin edit page offers deletion with a warning for the last participant of a user" do
     participants(:unconfirmed).update_column(:user_id, users(:dave).id)
     sign_in users(:admin)
-    participants(:four).destroy!
-
     get edit_admin_participant_path(participants(:unconfirmed))
 
     assert_response :success
-    assert_select "form[action='#{admin_participant_path(participants(:unconfirmed))}'] input[name='delete_user']"
-    assert_match "last participant registered by", response.body
+    assert_select "input[name='delete_user']", count: 0
+    assert_match "cannot be deleted", response.body
   end
 
   test "admin edit page hides the user-delete option for their own last participant" do

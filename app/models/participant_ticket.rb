@@ -3,27 +3,36 @@
 # Table name: participant_tickets
 #
 #  id             :bigint           not null, primary key
+#  invalidated_at :datetime
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
 #  participant_id :bigint           not null
 #
 # Indexes
 #
-#  index_participant_tickets_on_participant_id  (participant_id) UNIQUE
+#  index_participant_tickets_on_participant_id  (participant_id)
 #
 # Foreign Keys
 #
 #  fk_rails_...  (participant_id => participants.id)
 #
 class ParticipantTicket < ApplicationRecord
-  belongs_to :participant, inverse_of: :participant_ticket
+  belongs_to :participant, inverse_of: :participant_tickets
   has_one :product, as: :productable, dependent: :destroy
   has_one :order, through: :product
   has_many :payments, through: :order
 
   validate :participant_is_player, on: :create
 
-  after_create :create_order_and_product!
+  after_create :add_to_draft_order!
+
+  def valid_admission?
+    invalidated_at.nil? && order&.closed?
+  end
+
+  def invalidate_admission!
+    update!(invalidated_at: Time.current)
+  end
 
   # A new payment attempt uses the tier in effect on that date.
   def price_for(date: Date.current)
@@ -41,7 +50,7 @@ class ParticipantTicket < ApplicationRecord
     errors.add(:participant, "must be a player") if participant && !participant.player?
   end
 
-  def create_order_and_product!
-    Order.create!(products: [Product.new(productable: self)])
+  def add_to_draft_order!
+    participant.user.draft_order!.products.create!(productable: self)
   end
 end

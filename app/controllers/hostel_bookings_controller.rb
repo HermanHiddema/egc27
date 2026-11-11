@@ -49,6 +49,7 @@ class HostelBookingsController < ApplicationController
   end
 
   def checkout
+    @hostel_booking.order.submit! if @hostel_booking.order.draft?
     if simulate_mollie_payment?
       @hostel_booking.with_lock do
         @payment = @hostel_booking.current_payment || Payment.build_for_hostel_booking(@hostel_booking).tap(&:save!)
@@ -84,6 +85,8 @@ class HostelBookingsController < ApplicationController
   rescue Mollie::Exception => e
     @payment&.destroy if @payment&.persisted? && @payment.mollie_payment_id.blank?
     redirect_to hostel_booking_path(@hostel_booking), alert: "Payment could not be started: #{e.message}"
+  rescue ActiveRecord::RecordInvalid => e
+    redirect_to hostel_booking_path(@hostel_booking), alert: e.record.errors.full_messages.to_sentence
   end
 
   def simulate_mollie_payment?

@@ -126,12 +126,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
-                    <% if payment.participant %>
-                      <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                      <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
-                    <% else %>
-                      Hostel booking #<%= payment.hostel_booking_id %>
-                    <% end %>
+                    <%= payment.payee_label %>
                   <% else %>
                     —
                   <% end %>
@@ -182,12 +177,7 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= item.mollie_created_at&.strftime("%-d %b %Y") || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
                   <% if payment %>
-                    <% if payment.participant %>
-                      <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                      <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
-                    <% else %>
-                      Hostel booking #<%= payment.hostel_booking_id %>
-                    <% end %>
+                    <%= payment.payee_label %>
                   <% else %>
                     —
                   <% end %>
@@ -237,12 +227,7 @@
               <tr>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
                 <td class="px-4 py-3 text-sm text-neutral-900">
-                  <% if payment.participant %>
-                    <%= [payment.participant.first_name, payment.participant.last_name].join(" ") %>
-                    <span class="text-neutral-500">(<%= payment.participant.participant_number %>)</span>
-                  <% else %>
-                    Hostel booking #<%= payment.hostel_booking_id %>
-                  <% end %>
+                  <%= payment.payee_label %>
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-900"><%= payment.amount_formatted %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>

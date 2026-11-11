@@ -60,10 +60,10 @@ class Participant < ApplicationRecord
 
   has_many :event_registrations, dependent: :destroy
   has_many :events, through: :event_registrations
-  has_one :participant_ticket, inverse_of: :participant, dependent: :destroy, autosave: true
-  has_one :product, through: :participant_ticket
-  has_one :order, through: :product
-  has_many :payments, through: :order
+  has_many :participant_tickets, inverse_of: :participant, dependent: :destroy, autosave: true
+  has_many :products, through: :participant_tickets
+  has_many :orders, through: :products
+  has_many :payments, through: :orders
   # The user is always derived from the email during registration, so a missing
   # user can only result from a missing email. The association is marked optional
   # here only to suppress the framework's "User must exist" error; user presence
@@ -124,7 +124,47 @@ class Participant < ApplicationRecord
   after_commit :sync_from_egd, on: [:create, :update], if: -> { saved_change_to_egd_pin? && egd_pin.present? }
 
   def ticket
-    participant_ticket || (build_participant_ticket if player?)
+    draft_ticket = participant_tickets.joins(product: :order).where(orders: { status: "draft" }).order(created_at: :desc).first
+    draft_ticket || participant_tickets.detect(&:valid_admission?) || retryable_ticket || participant_tickets.joins(:product).order(created_at: :desc).first || (participant_tickets.build if player?)
+  end
+
+  def participant_ticket
+    ticket
+  end
+
+  def product
+    participant_ticket&.product
+  end
+
+  def order
+    product&.order
+  end
+
+  def can_purchase_ticket?
+    return false unless player?
+    return false if participant_tickets.any?(&:valid_admission?)
+    return false if participant_tickets.joins(product: { order: :payments }).merge(Payment.pending_or_open).exists?
+
+    true
+  end
+
+  def draft_ticket
+    participant_tickets.joins(product: :order).where(orders: { status: "draft" }).order(created_at: :desc).first
+  end
+
+  def retryable_ticket
+    participant_tickets.joins(product: :order).where(orders: { status: "submitted" })
+      .order(created_at: :desc).detect do |ticket|
+        !ticket.order.closed? && !ticket.order.payments.blocking.exists?
+      end
+  end
+
+  def add_ticket_to_draft_order!
+    existing = participant_tickets.joins(:product).where(products: { order_id: user.draft_order!.id }).first
+    return existing if existing
+    raise ActiveRecord::RecordNotSaved, "Participant cannot purchase another ticket" unless can_purchase_ticket?
+
+    participant_tickets.create!
   end
 
   def to_param
@@ -228,7 +268,11 @@ class Participant < ApplicationRecord
   # nothing to reconcile it against, so deletion is blocked until that payment
   # resolves.
   def deletable?
-    !charged_back? && !refunded? && !blocking_payments?
+    !charged_back? && !refunded? && !blocking_payments? && !submitted_ticket_order?
+  end
+
+  def submitted_ticket_order?
+    participant_tickets.joins(product: :order).where(orders: { status: "submitted" }).exists?
   end
 
   # Deleting the last participant of a user leaves an account behind that no
@@ -290,7 +334,7 @@ class Participant < ApplicationRecord
   end
 
   def ensure_participant_ticket
-    ticket if player?
+    participant_tickets.build if player? && participant_tickets.empty?
   end
 
   # Refreshes rank and rating from the European Go Database for the new pin.

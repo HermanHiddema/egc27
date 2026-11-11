@@ -3,11 +3,36 @@
 # Table name: orders
 #
 #  id         :bigint           not null, primary key
+#  status     :string           default("submitted"), not null
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
+#  user_id    :bigint           not null
 #
-one: {}
-two: {}
-three: {}
-unconfirmed: {}
-four: {}
+# Indexes
+#
+#  index_orders_on_user_id          (user_id)
+#  index_orders_one_draft_per_user  (user_id) UNIQUE WHERE ((status)::text = 'draft'::text)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
+#
+one:
+  user: one
+  status: submitted
+
+two:
+  user: two
+  status: submitted
+
+three:
+  user: one
+  status: submitted
+
+unconfirmed:
+  user: pending
+  status: submitted
+
+four:
+  user: dave
+  status: submitted

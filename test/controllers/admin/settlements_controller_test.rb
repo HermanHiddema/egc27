@@ -89,6 +89,7 @@ class Admin::SettlementsControllerTest < ActionDispatch::IntegrationTest
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
+    booking.order.submit!
     payment = Payment.build_for_hostel_booking(booking).tap do |hostel_payment|
       hostel_payment.status = "paid"
       hostel_payment.settlement = settlements(:paid_out)

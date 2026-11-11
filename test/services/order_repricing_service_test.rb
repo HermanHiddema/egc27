@@ -102,13 +102,14 @@ class OrderRepricingServiceTest < ActiveSupport::TestCase
     participant.attendance_option = "weekend_only"
     participant.save!
 
-    assert_equal participant.participant_ticket.price_for, participant.order.products.sole.price_cents
+    product = participant.order.products.find_by!(productable: participant.participant_ticket)
+    assert_equal participant.participant_ticket.price_for, product.price_cents
 
     booking = users(:one).hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
       departure_date: Date.new(2027, 7, 25),
       mixed_dorm_beds: 1
     )
-    assert_equal booking.amount_cents, booking.order.products.sole.price_cents
+    assert_equal booking.amount_cents, booking.product.price_cents
   end
 end

@@ -28,6 +28,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
   end
 
   def create_payment(booking, **attributes)
+    booking.order.submit! if booking.order.draft?
     booking.order.payments.create!({
       amount_cents: booking.amount_cents,
       description: booking.description

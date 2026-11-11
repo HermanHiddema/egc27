@@ -7,14 +7,13 @@ class PaymentsController < ApplicationController
   before_action :load_participant, only: [:new, :create]
   before_action :require_player_participant, only: [:new, :create]
   before_action :require_confirmed_participant, only: [:create]
+  before_action :require_participant_owner, only: [:create]
 
   def new
     @confirmed = @participant.confirmed?
     return unless @confirmed
 
-    @participant.order.with_lock do
-      OrderRepricingService.call(order: @participant.order, date: Date.current)
-    end
+    OrderRepricingService.call(order: @participant.order, date: Date.current) if @participant.order
     @participant.refresh_paid_payments!
 
     @payment = @participant.current_payment
@@ -26,9 +25,15 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
 
     @participant.refresh_paid_payments!
-    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @participant.paid_payment.present?
+    if @participant.participant_tickets.any?(&:valid_admission?)
+      return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE
+    end
 
-    @payment = @participant.pending_payment || start_new_payment_attempt
+    @payment = @participant.pending_payment
+    unless @payment
+      @participant.add_ticket_to_draft_order! unless @participant.draft_ticket || @participant.retryable_ticket
+      @payment = start_new_payment_attempt
+    end
     return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
 
     if simulate_mollie_payment?
@@ -89,6 +94,13 @@ class PaymentsController < ApplicationController
     end
   end
 
+  def require_participant_owner
+    return authenticate_user! unless user_signed_in?
+    return if @participant.user_id == current_user.id
+
+    head :not_found
+  end
+
   def require_confirmed_participant
     unless @participant.confirmed?
       redirect_to new_participant_payment_path(@participant),
@@ -97,10 +109,12 @@ class PaymentsController < ApplicationController
   end
 
   def start_new_payment_attempt
-    @participant.order.with_lock do
-      return @participant.order.payments.completed.order(created_at: :desc).first if @participant.order.closed?
+    order = @participant.order
+    order.submit! if order.draft?
+    order.with_lock do
+      return order.payments.completed.order(created_at: :desc).first if order.closed?
 
-      OrderRepricingService.call(order: @participant.order, date: Date.current)
+      OrderRepricingService.call(order:, date: Date.current)
       Payment.build_for(@participant).tap do |payment|
         payment.save!
         @started_payment_attempt = payment

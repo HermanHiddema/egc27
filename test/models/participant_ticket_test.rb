@@ -5,13 +5,14 @@ require "test_helper"
 # Table name: participant_tickets
 #
 #  id             :bigint           not null, primary key
+#  invalidated_at :datetime
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
 #  participant_id :bigint           not null
 #
 # Indexes
 #
-#  index_participant_tickets_on_participant_id  (participant_id) UNIQUE
+#  index_participant_tickets_on_participant_id  (participant_id)
 #
 # Foreign Keys
 #
@@ -57,5 +58,45 @@ class ParticipantTicketTest < ActiveSupport::TestCase
     payment = participant.order.payments.create!(amount_cents: original_price, description: "Payment", status: "pending")
     payment.update!(status: "paid")
     assert_equal original_price, product.reload.price_cents
+  end
+
+  test "a participant can retain an invalidated paid ticket and start a new draft ticket" do
+    participant = participants(:two)
+    old_ticket = participant.participant_ticket
+    assert old_ticket.valid_admission?
+    old_ticket.invalidate_admission!
+    assert_not old_ticket.valid_admission?
+    assert participant.can_purchase_ticket?
+
+    new_ticket = participant.add_ticket_to_draft_order!
+    assert_not_equal old_ticket, new_ticket
+    assert_equal 2, participant.participant_tickets.count
+    assert new_ticket.order.draft?
+  end
+
+  test "partial refund does not invalidate a paid admission" do
+    ticket = participants(:two).participant_ticket
+    payment = ticket.payments.completed.first
+    payment.update_column(:amount_refunded_cents, 500)
+
+    assert ticket.reload.valid_admission?
+    assert_not ticket.participant.can_purchase_ticket?
+  end
+
+  %w[failed canceled expired].each do |terminal_status|
+    test "an in-progress payment blocks another ticket while a #{terminal_status} attempt releases it" do
+      participant = participants(:three)
+      payment = participant.order.payments.create!(amount_cents: participant.order.total_cents, description: "Attempt", status: "pending")
+      assert_not participant.can_purchase_ticket?
+
+      payment.update!(status: terminal_status)
+      assert participant.reload.can_purchase_ticket?
+    end
+  end
+
+  test "visitors may exist without any ticket" do
+    visitor = participants(:visitor_one)
+    assert_empty visitor.participant_tickets
+    assert_not visitor.can_purchase_ticket?
   end
 end

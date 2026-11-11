@@ -39,6 +39,24 @@ class User < ApplicationRecord
   has_many :events, dependent: :destroy
   has_many :participants, dependent: :destroy
   has_many :hostel_bookings, dependent: :destroy
+  has_many :orders, dependent: :destroy
+  before_destroy :prepare_draft_orders_for_destruction, prepend: true
+
+  def draft_order!
+    orders.drafts.first_or_create!
+  end
+
+  def prepare_draft_orders_for_destruction
+    if orders.submitted.exists?
+      errors.add(:base, "An account with submitted orders cannot be deleted")
+      throw :abort
+    end
+
+    orders.drafts.includes(:products).each do |draft_order|
+      draft_order.products.each(&:destroy!)
+      draft_order.association(:products).reset
+    end
+  end
 
   validates :email, email_address: true, if: :devise_will_save_change_to_email?
 
@@ -95,7 +113,7 @@ class User < ApplicationRecord
   end
 
   def account_deletable?
-    regular? && articles.none? && events.none? && !hostel_bookings.joins(:payments).exists?
+    regular? && articles.none? && events.none? && !orders.submitted.exists? && !hostel_bookings.joins(:payments).exists?
   end
 
   def password_set?

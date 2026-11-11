@@ -5,11 +5,22 @@ require "test_helper"
 # Table name: orders
 #
 #  id         :bigint           not null, primary key
+#  status     :string           default("submitted"), not null
 #  created_at :datetime         not null
 #  updated_at :datetime         not null
+#  user_id    :bigint           not null
+#
+# Indexes
+#
+#  index_orders_on_user_id          (user_id)
+#  index_orders_one_draft_per_user  (user_id) UNIQUE WHERE ((status)::text = 'draft'::text)
+#
+# Foreign Keys
+#
+#  fk_rails_...  (user_id => users.id)
 #
 class OrderTest < ActiveSupport::TestCase
-  test "registration stores admission on a ticket with a single product and order" do
+  test "registration stores admission on a ticket in the user's draft order" do
     participant = participants(:three).dup
     participant.egd_pin = nil
     participant.uuid = SecureRandom.uuid
@@ -19,7 +30,8 @@ class OrderTest < ActiveSupport::TestCase
     ticket = participant.reload.participant_ticket
     assert_equal [false, true, false], [participant.first_week, participant.weekend, participant.second_week]
     assert_equal "weekend_only", participant.attendance_option
-    assert_equal ticket, participant.order.products.sole.productable
+    assert_equal ticket, participant.order.products.find_by!(productable: ticket).productable
+    assert participant.order.draft?
     assert_not ParticipantTicket.column_names.include?("first_week")
   end
 
@@ -30,17 +42,67 @@ class OrderTest < ActiveSupport::TestCase
     assert_empty booking.order.payments
   end
 
-  test "an order requires exactly one supported product" do
+  test "an order accepts multiple products and rejects unsupported product types" do
     assert_not Order.new.valid?
+    participant = participants(:three).dup
+    participant.uuid = SecureRandom.uuid
+    participant.egd_pin = nil
+    participant.save!
+    order = participant.order
+    second = participants(:one).dup
+    second.uuid = SecureRandom.uuid
+    second.egd_pin = nil
+    second.user = participant.user
+    second.save!
+    assert_equal 2, order.products.count
+    assert_not Product.new(order:, productable: users(:one)).valid?
+  end
+
+  test "a user reuses one draft and may have multiple submitted orders" do
+    user = users(:one)
+    draft = user.draft_order!
+    assert_equal draft, user.draft_order!
+    assert_equal 1, user.orders.drafts.count
+    assert_equal 2, user.orders.submitted.count
+    assert_raises(ActiveRecord::RecordInvalid) do
+      user.orders.create!(status: "draft")
+    end
+  end
+
+  test "a submitted order can only be changed through submission and a payment must cover the whole amount" do
     order = participants(:one).order
-    order.products.build(productable: participants(:two).participant_ticket)
-    assert_not order.valid?
-    assert_not Product.new(order: order, productable: users(:one)).valid?
+    assert_raises(ActiveRecord::RecordInvalid) { order.update!(status: "draft") }
+
+    payment = order.payments.build(amount_cents: order.total_cents - 1, description: "Partial", status: "open")
+    assert_not payment.valid?
+    assert_includes payment.errors[:amount_cents], "must equal the full order amount"
+  end
+
+  test "checkout submits a mixed ticket and hostel order for its full stored amount" do
+    user = users(:one)
+    booking = user.hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 25), mixed_dorm_beds: 1
+    )
+    participant = user.participants.create!(
+      first_name: "New", last_name: "Player", email: user.email, country: "NL", club: "Club",
+      age_group: "18-49", gender: "prefer_not_to_say", attendance_option: "weekend_only", image_use_consent: false
+    )
+    order = participant.order
+    assert_equal 2, order.products.count
+    total = order.products.sum(:price_cents)
+
+    order.submit!
+
+    assert order.submitted?
+    assert_equal total, order.total_cents
+    assert_equal user, order.user
+    assert_not order.products.build(productable: participant.participant_ticket).valid?
+    assert_raises(ActiveRecord::RecordNotDestroyed) { order.products.first.destroy! }
   end
 
   test "payment attempts for the same registration belong to the same order" do
     participant = participants(:one)
-    payment = participant.order.payments.create!(status: "failed", amount_cents: 1000, description: "Attempt")
+    payment = participant.order.payments.create!(status: "failed", amount_cents: participant.order.total_cents, description: "Attempt")
     assert_equal participant.order, payment.order
     assert_equal participant, payment.participant
     assert_includes participant.payments.reload, payment
@@ -54,14 +116,16 @@ class OrderTest < ActiveSupport::TestCase
     assert_equal 20_345, order.reload.total_cents
     assert_equal order.total_cents, order.amount_cents
   end
-  test "removing a new unpaid registration also removes its product and order" do
+  test "removing a draft registration preserves the user's persistent draft order" do
     participant = participants(:three).dup
     participant.egd_pin = nil
     participant.uuid = SecureRandom.uuid
     participant.save!
-    order_id = participant.order.id
+    order = participant.order
 
     participant.destroy!
-    assert_not Order.exists?(order_id)
+    assert Order.exists?(order.id)
+    assert order.reload.draft?
+    assert_empty order.products
   end
 end

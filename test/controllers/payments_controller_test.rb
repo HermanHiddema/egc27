@@ -5,6 +5,11 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
   include ActiveSupport::Testing::TimeHelpers
 
+  def post_payment(participant, **options)
+    sign_in participant.user
+    post participant_payment_path(participant), **options
+  end
+
   # new
   test "new redirects visitors to participant page" do
     participant = participants(:one)
@@ -56,7 +61,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "new reuses an in-progress payment for pricing and display" do
     participant = participants(:three)
     payment = participant.order.payments.create!(
-      amount_cents: 12_345,
+      amount_cents: participant.order.total_cents,
       description: "Existing pending payment",
       status: "pending",
       created_at: Time.zone.local(2026, 8, 15),
@@ -156,16 +161,32 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "create redirects unconfirmed participant back to new" do
     participant = participants(:unconfirmed)
 
-    post participant_payment_path(participant)
+    post_payment(participant)
 
     assert_redirected_to new_participant_payment_path(participant)
+  end
+
+  test "create requires a signed-in owner" do
+    participant = participants(:three)
+
+    assert_no_difference("Payment.count") { post participant_payment_path(participant) }
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "create hides another user's participant" do
+    sign_in users(:two)
+
+    post participant_payment_path(participants(:one))
+
+    assert_response :not_found
   end
 
   test "create redirects visitor to participant page" do
     participant = participants(:one)
     participant.update!(participant_type: "visitor")
 
-    post participant_payment_path(participant)
+    post_payment(participant)
 
     assert_redirected_to participant_path(participant)
   end
@@ -174,7 +195,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant = participants(:two)
 
     with_paid_mollie_stub(payments(:paid_payment)) do
-      post participant_payment_path(participant)
+      post_payment(participant)
     end
 
     assert_redirected_to success_payments_path
@@ -191,7 +212,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
       remote = OpenStruct.new(id: payment.mollie_payment_id, status: "paid", field => OpenStruct.new(value: amount))
       Mollie::Payment.define_singleton_method(:get) { |_id| remote }
 
-      assert_no_difference("Payment.count") { post participant_payment_path(participant) }
+      assert_no_difference("Payment.count") { post_payment(participant) }
       assert_redirected_to success_payments_path
       assert_equal "paid", payment.reload.status
       assert participant.order.closed?
@@ -213,7 +234,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     end
 
     assert_difference("Payment.count", 1) do
-      post participant_payment_path(participant)
+      post_payment(participant)
     end
 
     payment = participant.payments.order(created_at: :desc).first
@@ -232,7 +253,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     original = Mollie::Payment.method(:create)
     Mollie::Payment.define_singleton_method(:create) { |**_params| raise Mollie::Exception, "boom" }
 
-    post participant_payment_path(participant)
+    post_payment(participant)
 
     assert_response :unprocessable_entity
     assert_match "Payment could not be started: boom", response.body
@@ -249,7 +270,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
 
     assert_no_difference("Payment.count") do
-      post participant_payment_path(payment.participant)
+      post_payment(payment.participant)
     end
 
     assert_redirected_to "https://example.test/mollie-checkout"
@@ -265,7 +286,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
 
     assert_no_difference("Payment.count") do
-      post participant_payment_path(payment.participant)
+      post_payment(payment.participant)
     end
 
     assert_equal "paid", payment.reload.status
@@ -285,7 +306,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     Mollie::Payment.define_singleton_method(:create) { |**_params| new_mollie }
 
     assert_difference("Payment.count", 1) do
-      post participant_payment_path(payment.participant)
+      post_payment(payment.participant)
     end
 
     assert_redirected_to "https://example.test/new-checkout"
@@ -301,7 +322,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     with_mollie_simulation_enabled do
       assert_difference("Payment.count", 1) do
-        post participant_payment_path(participant), params: { simulate_status: "paid" }
+        post_payment(participant, params: { simulate_status: "paid" })
       end
     end
 
@@ -318,7 +339,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     travel_to Time.zone.local(2026, 9, 1) do
       with_mollie_simulation_enabled do
-        post participant_payment_path(participant), params: { simulate_status: "pending" }
+        post_payment(participant, params: { simulate_status: "pending" })
       end
     end
 
@@ -332,7 +353,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     with_mollie_simulation_enabled do
       assert_no_difference("Payment.count") do
-        post participant_payment_path(payment.participant), params: { simulate_status: "failed" }
+        post_payment(payment.participant, params: { simulate_status: "failed" })
       end
     end
 
@@ -349,7 +370,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     with_mollie_simulation_enabled do
       with_rails_env("production") do
-        post participant_payment_path(participant), params: { simulate_status: "paid" }
+        post_payment(participant, params: { simulate_status: "paid" })
       end
     end
 
