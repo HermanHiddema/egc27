@@ -33,6 +33,7 @@ class Admin::PaymentsController < ApplicationController
 
   def new
     @order = @participant.current_order
+    OrderRepricingService.call(order: @order, date: Date.current) if @order
     @payment = @order.payments.build(default_payment_attributes) if @order
   end
 
@@ -63,7 +64,7 @@ class Admin::PaymentsController < ApplicationController
         validating_payment = true
         @payment.save!
       end
-    rescue ActiveRecord::RecordInvalid => e
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
       if validating_payment
         @payment = e.record
         @order.reload
