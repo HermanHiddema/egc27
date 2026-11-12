@@ -61,12 +61,14 @@ class PaymentsController < ApplicationController
   rescue ActiveRecord::RecordInvalid => e
     if e.record.is_a?(Payment)
       @payment = e.record
+      @order = @participant.current_order
       render :new, status: :unprocessable_entity
     else
       redirect_to order_path, alert: e.record.errors.full_messages.to_sentence
     end
   rescue Mollie::Exception => e
     discard_unstarted_payment_attempt
+    @order = @participant.current_order
     flash.now[:alert] = "Payment could not be started: #{e.message}"
     render :new, status: :unprocessable_entity
   end

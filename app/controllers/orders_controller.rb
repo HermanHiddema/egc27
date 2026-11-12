@@ -63,11 +63,34 @@ class OrdersController < ApplicationController
     end
 
     payment = @order.payments.pending_or_open.order(created_at: :desc).first
-    payment ||= Payment.create!(order: @order, amount_cents: @order.total_cents,
-      description: order_description, status: "open")
+    unless payment
+      @order.with_lock do
+        OrderRepricingService.call(order: @order, date: Date.current)
+        payment = Payment.create!(order: @order, amount_cents: @order.total_cents,
+          description: order_description, status: "open")
+      end
+    end
+
     @checkout_payment = payment
     checkout_url = payment.resume_mollie_checkout!
+
+    if payment.paid?
+      return redirect_to submitted_order_path(@order), notice: "This order has already been paid."
+    end
+
     if checkout_url.blank?
+      if payment.mollie_payment_id.present?
+        if payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
+          return redirect_to submitted_order_path(@order), notice: "Your payment is being processed."
+        end
+        @order.with_lock do
+          OrderRepricingService.call(order: @order, date: Date.current)
+          payment = Payment.create!(order: @order, amount_cents: @order.total_cents,
+            description: order_description, status: "open")
+        end
+        @checkout_payment = payment
+      end
+
       checkout_url = payment.start_mollie_checkout!(
         redirect_url: success_payments_url(token: payment.return_token),
         webhook_url: webhook_payments_url
