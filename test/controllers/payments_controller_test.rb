@@ -23,11 +23,79 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "new shows unconfirmed notice for unconfirmed player" do
     participant = participants(:unconfirmed)
 
+    original = User.allow_unconfirmed_access_for
+    User.allow_unconfirmed_access_for = nil
+    devise_sign_in participant.user
     get new_participant_payment_path(participant)
 
     assert_response :success
     assert_match "confirm", response.body
     assert_no_match participant.email, response.body
+  ensure
+    User.allow_unconfirmed_access_for = original
+  end
+
+  test "new requires a signed-in owner" do
+    get new_participant_payment_path(participants(:three))
+
+    assert_redirected_to new_user_session_path
+  end
+
+  test "new hides another user's participant" do
+    sign_in users(:two)
+
+    get new_participant_payment_path(participants(:one))
+
+    assert_response :not_found
+  end
+
+  test "new displays the replacement ticket instead of an invalidated paid ticket" do
+    participant = participants(:two)
+    participant.participant_ticket.invalidate_admission!
+    replacement = participant.add_ticket_to_draft_order!
+    sign_in participant.user
+
+    with_paid_mollie_stub(payments(:paid_payment)) do
+      get new_participant_payment_path(participant)
+    end
+
+    assert_redirected_to order_path
+    assert_equal replacement.order, participant.current_order
+  end
+
+  test "new displays the order of the most recent in-progress payment" do
+    participant = participants(:one)
+    original_payment = payments(:open_payment)
+    original_payment.update!(status: "failed")
+    replacement = participant.add_ticket_to_draft_order!
+    replacement.order.submit!
+    replacement.order.payments.create!(amount_cents: replacement.order.total_cents,
+      description: "Replacement", status: "pending", created_at: 1.day.ago)
+    original_payment.update!(status: "open", created_at: Time.current)
+    sign_in participant.user
+
+    get new_participant_payment_path(participant)
+
+    assert_response :success
+    assert_equal original_payment.order, participant.current_order
+    assert_equal original_payment, participant.current_payment
+  end
+
+  test "new does not offer payment for an invalidated ticket on a closed order" do
+    participant = participants(:two)
+    paid_payment = payments(:paid_payment)
+    paid_payment.update_column(:status, "open")
+    participant.order.payments.create!(amount_cents: participant.order.total_cents,
+      description: "Concurrent attempt", status: "open")
+    paid_payment.update_column(:status, "paid")
+    participant.participant_ticket.invalidate_admission!
+    sign_in participant.user
+
+    get new_participant_payment_path(participant)
+
+    assert_response :success
+    assert_nil participant.current_order
+    assert_select "input[type=submit][value^='Pay ']", count: 0
   end
 
   test "new builds a fresh payment for confirmed player" do
