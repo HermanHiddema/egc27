@@ -1,5 +1,13 @@
 <div class="mx-auto max-w-4xl px-4 py-6">
-  <h1 class="text-2xl font-bold text-brand-blue-900"><%= @order.draft? ? "Your draft order" : "Order awaiting payment" %></h1>
+  <h1 class="text-2xl font-bold text-brand-blue-900"><%= @order.draft? ? "Review your order" : "Order awaiting payment" %></h1>
+  <% if @order.draft? && @products.any? %>
+    <p class="mt-2 text-gray-700">Review all items and the full order total before continuing to payment.</p>
+  <% end %>
+  <% if @requires_confirmation %>
+    <div class="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 p-4 text-yellow-900">
+      Please confirm your email address before paying for tickets. Return to this page after confirming.
+    </div>
+  <% end %>
 
   <% if @products.empty? %>
     <p class="mt-4 text-gray-700">Your basket is empty.</p>
@@ -17,15 +25,20 @@
             </p>
             <p>€ <%= format("%.2f", product.price_cents / 100.0) %></p>
           </div>
-          <% if @order.draft? %>
-            <%= button_to "Remove", remove_product_order_path(product_id: product.id), method: :delete, class: "text-brand-red-700 underline" %>
-          <% end %>
         </div>
       <% end %>
     </div>
     <p class="mt-4 text-right text-lg font-bold">Total: € <%= format("%.2f", @order.total_cents / 100.0) %></p>
     <% if @order.draft? %>
-      <%= button_to "Submit order and pay", submit_order_path, method: :post, form: { data: { turbo: false } }, class: "btn-primary mt-4" %>
+      <div class="mt-4 flex flex-wrap items-center justify-end gap-4">
+        <%= button_to "Cancel entire order", cancel_order_path, method: :delete,
+              form: { data: { turbo_confirm: "Cancel this order and remove all its items?" } },
+              class: "btn-accent cursor-pointer" %>
+        <% unless @requires_confirmation %>
+          <%= button_to "Continue to payment", submit_order_path, method: :post,
+                form: { data: { turbo: false } }, class: "btn-primary" %>
+        <% end %>
+      </div>
     <% else %>
       <% if @latest_payment %>
         <p class="mt-4 text-sm text-neutral-600">Latest payment attempt: <%= @latest_payment.status.humanize %>.</p>
@@ -33,6 +46,19 @@
       <% unless @order.closed? %>
         <%= button_to "Continue to payment", pay_submitted_order_path(@order), method: :post, form: { data: { turbo: false } }, class: "btn-primary mt-4" %>
       <% end %>
+    <% end %>
+    <% if @show_simulation_controls %>
+      <% simulation_path = @order.draft? ? submit_order_path : pay_submitted_order_path(@order) %>
+      <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
+        <h2 class="mb-3 text-sm font-semibold text-brand-yellow-900">Development: Simulate Mollie Response</h2>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <% %w[paid pending failed canceled].each do |simulated_status| %>
+            <%= button_to "Simulate #{simulated_status}", simulation_path, method: :post,
+                  params: { simulate_status: simulated_status }, form: { data: { turbo: false } },
+                  class: simulated_status == "paid" ? "btn-primary w-full" : "btn-secondary w-full" %>
+          <% end %>
+        </div>
+      </div>
     <% end %>
   <% end %>
 </div>

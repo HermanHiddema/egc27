@@ -1,14 +1,18 @@
 class OrdersController < ApplicationController
-  before_action :set_draft_order, only: [:show, :add_participant, :remove_product, :submit]
+  before_action :set_draft_order, only: [:show, :add_participant, :submit, :cancel]
   before_action :set_submitted_order, only: [:show_submitted, :pay_submitted]
 
   def show
+    @requires_confirmation = ticket_products? && !current_user.confirmed?
+    OrderRepricingService.call(order: @order, date: Date.current) if @order.draft? && !@requires_confirmation
     @products = @order.products.includes(:productable)
+    @show_simulation_controls = mollie_simulation_enabled? && !@order.closed? && !@requires_confirmation
   end
 
   def show_submitted
     @products = @order.products.includes(:productable)
     @latest_payment = @order.payments.order(created_at: :desc, id: :desc).first
+    @show_simulation_controls = mollie_simulation_enabled? && !@order.closed?
     render :show
   end
 
@@ -22,20 +26,21 @@ class OrdersController < ApplicationController
     redirect_to order_path, alert: e.message
   end
 
-  def remove_product
-    product = @order.products.find(params[:product_id])
-    @order.with_lock do
-      productable = product.productable
-      product.destroy!
-      productable.destroy! if productable.is_a?(ParticipantTicket) || productable.is_a?(HostelBooking)
-    end
-    redirect_to order_path, notice: "Item removed from your draft order."
+  def cancel
+    @order.with_lock { @order.destroy! }
+    redirect_to root_path, notice: "Your draft order was cancelled. Its items have been removed."
   rescue ActiveRecord::RecordNotDestroyed => e
-    redirect_to order_path, alert: e.message
+    redirect_to submitted_order_path(@order), alert: e.message
   end
 
   def submit
+    if ticket_products? && !current_user.confirmed?
+      return redirect_to order_path, alert: "Please confirm your email address before paying for tickets."
+    end
+
     @order.submit! if @order.draft?
+    return simulate_order_payment! if simulate_mollie_payment?
+
     start_checkout
   rescue ActiveRecord::RecordInvalid => e
     destination = @order.submitted? ? submitted_order_path(@order) : order_path
@@ -46,6 +51,8 @@ class OrdersController < ApplicationController
   end
 
   def pay_submitted
+    return simulate_order_payment! if simulate_mollie_payment?
+
     start_checkout
   rescue ActiveRecord::RecordInvalid => e
     redirect_to submitted_order_path(@order), alert: e.record.errors.full_messages.to_sentence
@@ -55,6 +62,31 @@ class OrdersController < ApplicationController
   end
 
   private
+
+  def ticket_products?
+    @order.products.where(productable_type: ParticipantTicket.polymorphic_name).exists?
+  end
+
+  def simulate_order_payment!
+    payment = @order.payments.pending_or_open.order(created_at: :desc, id: :desc).first
+    unless payment
+      @order.with_lock do
+        OrderRepricingService.call(order: @order, date: Date.current)
+        payment = Payment.create!(order: @order, amount_cents: @order.total_cents,
+          description: order_description, status: "open")
+      end
+    end
+    payment.simulate_mollie_status!(params[:simulate_status]) unless payment.paid?
+    redirect_to success_payments_path(token: payment.return_token)
+  end
+
+  def simulate_mollie_payment?
+    mollie_simulation_enabled? && params[:simulate_status].in?(Payment::STATUSES)
+  end
+
+  def mollie_simulation_enabled?
+    Rails.application.config.x.payments.simulate_mollie && (Rails.env.development? || Rails.env.test?)
+  end
 
   def start_checkout
     if @order.closed?

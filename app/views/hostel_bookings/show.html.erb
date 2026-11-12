@@ -60,25 +60,15 @@
           The payment for this booking was <%= @hostel_booking.status.humanize.downcase %>.
         </div>
       <% else %>
-        <%= button_to "Pay #{@hostel_booking.amount_formatted} via Mollie", pay_hostel_booking_path(@hostel_booking),
-              method: :post, data: { turbo: false }, class: "w-full btn-primary text-center block py-3 text-lg" %>
+        <% order_path_for_booking = @hostel_booking.order.draft? ? order_path : submitted_order_path(@hostel_booking.order) %>
+        <%= link_to "Review order total and continue to payment", order_path_for_booking,
+              class: "w-full btn-primary text-center block py-3 text-lg" %>
         <p class="text-xs text-neutral-500 mt-3 text-center">
-          You will be redirected to Mollie's secure payment page. The price is fixed when you make your booking.
+          Review the complete order total before paying. The price for this booking is fixed when you make it.
         </p>
         <p class="text-xs text-neutral-500 mt-2 text-center">
           If none of the payment options offered by Mollie work for you, please see our <%= link_to "FAQ", page_path("faq"), class: "text-brand-blue-700 underline hover:text-brand-blue-800" %> for other payment options (wire transfer, pin, cash).
         </p>
-
-        <% if @show_simulation_controls %>
-          <div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
-            <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <% %w[paid pending failed canceled].each do |simulated_status| %>
-                <%= button_to "Simulate #{simulated_status}", pay_hostel_booking_path(@hostel_booking), method: :post, params: { simulate_status: simulated_status }, data: { turbo: false }, class: simulated_status == "paid" ? "btn-primary w-full" : "btn-secondary w-full" %>
-              <% end %>
-            </div>
-          </div>
-        <% end %>
       <% end %>
     </div>
   </div>

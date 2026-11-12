@@ -13,6 +13,7 @@ class PaymentsController < ApplicationController
     @confirmed = @participant.confirmed?
     @order = @participant.current_order
     return unless @confirmed && @order
+    return redirect_to order_path if @order.draft?
 
     OrderRepricingService.call(order: @order, date: Date.current)
     @participant.refresh_paid_payments!
@@ -24,6 +25,12 @@ class PaymentsController < ApplicationController
 
   def create
     @confirmed = @participant.confirmed?
+    @order = @participant.current_order
+    if @order.nil?
+      @participant.add_ticket_to_draft_order!
+      return redirect_to order_path
+    end
+    return redirect_to order_path if @order.draft?
 
     @participant.refresh_paid_payments!
     if @participant.participant_tickets.any?(&:valid_admission?)
