@@ -214,7 +214,11 @@ Rails.application.routes.draw do
       collection do
         post :sync_egd
       end
-      resources :payments, only: [:new, :create, :edit, :update]
+      resources :payments, only: [:new, :create, :edit, :update] do
+        collection do
+          post :add_ticket
+        end
+      end
     end
     resources :payments, only: [:index] do
       member do

@@ -10,6 +10,7 @@ class OrdersController < ApplicationController
   end
 
   def show_submitted
+    OrderRepricingService.call(order: @order, date: Date.current)
     @products = @order.products.includes(:productable)
     @latest_payment = @order.payments.order(created_at: :desc, id: :desc).first
     @show_simulation_controls = mollie_simulation_enabled? && !@order.closed?

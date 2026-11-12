@@ -12,7 +12,12 @@
         (<%= @participant.participant_number %>).
       </p>
 
-      <%= render "form", payment: @payment, url: admin_participant_payments_path(@participant), method: :post, submit_label: "Record payment", amount_eur_input: @amount_eur_input %>
+      <% if @order %>
+        <%= render "form", payment: @payment, url: admin_participant_payments_path(@participant), method: :post, submit_label: "Record payment", amount_eur_input: @amount_eur_input %>
+      <% else %>
+        <p class="mb-4 text-sm text-neutral-700">This participant has no ticket or order. Add a ticket to a draft order before recording payment.</p>
+        <%= button_to "Add ticket to draft order", add_ticket_admin_participant_payments_path(@participant), method: :post, class: "btn-primary" %>
+      <% end %>
     </div>
 
     <% payments = @participant.payments.order(created_at: :desc) %>

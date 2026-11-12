@@ -3,6 +3,15 @@ require "test_helper"
 class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
 
+  def create_ticketless_participant
+    participant = participants(:three).dup
+    participant.uuid = SecureRandom.uuid
+    participant.egd_pin = nil
+    participant.save!
+    participant.current_order.destroy!
+    participant.reload
+  end
+
   test "unauthenticated user is redirected to sign in" do
     get new_admin_participant_payment_path(participants(:one))
     assert_redirected_to new_user_session_path
@@ -34,6 +43,44 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[status]']", count: 0
     # The provider is always manual here, so it is not offered as a method.
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
+  end
+
+  test "opening the form for a participant without a ticket stays read-only" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+    counts = [Order.count, Product.count, ParticipantTicket.count]
+
+    get new_admin_participant_payment_path(participant)
+
+    assert_response :success
+    assert_equal counts, [Order.count, Product.count, ParticipantTicket.count]
+    assert_select "form[action='#{add_ticket_admin_participant_payments_path(participant)}']"
+  end
+
+  test "admin can explicitly add a ticket before recording payment" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+
+    assert_difference ["Order.count", "Product.count", "ParticipantTicket.count"], 1 do
+      post add_ticket_admin_participant_payments_path(participant)
+    end
+
+    assert_redirected_to new_admin_participant_payment_path(participant)
+    assert participant.reload.current_order.draft?
+  end
+
+  test "record payment redirects to the ticket-add step when there is no order" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(participant), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
+      }
+    end
+
+    assert_redirected_to new_admin_participant_payment_path(participant)
+    assert_nil participant.reload.current_order
   end
 
   test "admin can record a manual payment" do
