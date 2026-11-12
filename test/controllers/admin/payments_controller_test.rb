@@ -3,6 +3,15 @@ require "test_helper"
 class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   include ActionMailer::TestHelper
 
+  def create_ticketless_participant
+    participant = participants(:three).dup
+    participant.uuid = SecureRandom.uuid
+    participant.egd_pin = nil
+    participant.save!
+    participant.current_order.destroy!
+    participant.reload
+  end
+
   test "unauthenticated user is redirected to sign in" do
     get new_admin_participant_payment_path(participants(:one))
     assert_redirected_to new_user_session_path
@@ -36,6 +45,44 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
 
+  test "opening the form for a participant without a ticket stays read-only" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+    counts = [Order.count, Product.count, ParticipantTicket.count]
+
+    get new_admin_participant_payment_path(participant)
+
+    assert_response :success
+    assert_equal counts, [Order.count, Product.count, ParticipantTicket.count]
+    assert_select "form[action='#{add_ticket_admin_participant_payments_path(participant)}']"
+  end
+
+  test "admin can explicitly add a ticket before recording payment" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+
+    assert_difference ["Order.count", "Product.count", "ParticipantTicket.count"], 1 do
+      post add_ticket_admin_participant_payments_path(participant)
+    end
+
+    assert_redirected_to new_admin_participant_payment_path(participant)
+    assert participant.reload.current_order.draft?
+  end
+
+  test "record payment redirects to the ticket-add step when there is no order" do
+    sign_in users(:admin)
+    participant = create_ticketless_participant
+
+    assert_no_difference "Payment.count" do
+      post admin_participant_payments_path(participant), params: {
+        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
+      }
+    end
+
+    assert_redirected_to new_admin_participant_payment_path(participant)
+    assert_nil participant.reload.current_order
+  end
+
   test "admin can record a manual payment" do
     sign_in users(:admin)
     participant = participants(:three)
@@ -43,7 +90,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
         payment: {
-          amount_eur: "123.45",
+          amount_eur: "190.00",
           description: "EGC 2027 Congress Pass – paid in cash",
           payment_method: "cash",
           payment_date: "2026-10-15",
@@ -55,7 +102,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_participants_path
     payment = participant.payments.order(:created_at).last
-    assert_equal 12_345, payment.amount_cents
+    assert_equal 19_000, payment.amount_cents
     assert_equal "manual", payment.provider
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 42", payment.reference
@@ -186,10 +233,11 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     participant = participants(:one)
     payments(:open_payment).update!(status: "expired")
+    amount = format("%.2f", participant.order.total_cents / 100.0)
 
     assert_difference "participant.payments.count", 1 do
       post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
+        payment: { amount_eur: amount, description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
       }
     end
 
@@ -224,7 +272,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='payment[status]']", count: 0
   end
 
-  test "admin can update a manual payment" do
+  test "admin cannot change a manual payment to a partial amount" do
     sign_in users(:admin)
     payment = payments(:manual_payment)
 
@@ -239,12 +287,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
       }
     }
 
-    assert_redirected_to admin_participants_path
+    assert_response :unprocessable_entity
     payment.reload
-    assert_equal 9_550, payment.amount_cents
-    assert_equal "cash", payment.payment_method
-    assert_equal "Receipt 7", payment.reference
-    assert_equal Date.new(2026, 10, 15), payment.payment_date
+    assert_equal 19_000, payment.amount_cents
+    assert_equal "bank_transfer", payment.payment_method
     assert_equal "manual", payment.provider
     assert_equal 19_000, payment.participant.order.products.sole.reload.price_cents
   end
@@ -385,6 +431,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
       departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
+    booking.order.submit!
     payment = Payment.build_for_hostel_booking(booking).tap do |hostel_payment|
       hostel_payment.status = "paid"
       hostel_payment.save!

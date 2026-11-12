@@ -12,7 +12,7 @@
 #
 # Indexes
 #
-#  index_products_on_order_id     (order_id) UNIQUE
+#  index_products_on_order_id     (order_id)
 #  index_products_on_productable  (productable_type,productable_id) UNIQUE
 #
 # Foreign Keys

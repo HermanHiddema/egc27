@@ -12,7 +12,7 @@
 #
 # Indexes
 #
-#  index_products_on_order_id     (order_id) UNIQUE
+#  index_products_on_order_id     (order_id)
 #  index_products_on_productable  (productable_type,productable_id) UNIQUE
 #
 # Foreign Keys
@@ -23,15 +23,16 @@ class Product < ApplicationRecord
   belongs_to :order, inverse_of: :products
   belongs_to :productable, polymorphic: true
 
-  after_destroy :destroy_order
+  before_destroy :prevent_removal_from_submitted_order
   before_validation :set_initial_price, on: :create
 
   validates :productable_type, inclusion: { in: %w[ParticipantTicket HostelBooking] }
-  validates :order_id, uniqueness: true, allow_nil: true
+  validate :order_must_be_editable, on: :create
   validates :productable_id, uniqueness: { scope: :productable_type }
   validates :price_cents, numericality: { only_integer: true, greater_than: 0 }
   validate :links_unchanged, on: :update
   validate :price_changes_only_when_repricing, on: :update
+  validate :productable_belongs_to_order_owner
 
   def amount_cents
     price_cents
@@ -67,7 +68,22 @@ class Product < ApplicationRecord
     errors.add(:price_cents, "can only be changed by the order repricing service")
   end
 
-  def destroy_order
-    Order.find(order_id).destroy!
+  def order_must_be_editable
+    errors.add(:order, "is not an editable draft") unless order&.editable?
+  end
+
+  def productable_belongs_to_order_owner
+    owner_id = case productable
+    when ParticipantTicket then productable.participant&.user_id
+    when HostelBooking then productable.user_id
+    end
+    errors.add(:order, "must belong to the item's owner") if order && owner_id && order.user_id != owner_id
+  end
+
+  def prevent_removal_from_submitted_order
+    return if order&.editable?
+
+    errors.add(:order, "products cannot be removed after submission")
+    throw :abort
   end
 end

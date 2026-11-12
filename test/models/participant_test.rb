@@ -655,12 +655,15 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_not participant.reload.deletable?
   end
 
-  test "deletable? is true without payments" do
-    assert participants(:three).deletable?
+  test "deletable? is false when a submitted order must retain its ticket" do
+    assert_not participants(:three).deletable?
   end
 
   test "changes and deletions are recorded by paper trail" do
-    participant = participants(:three)
+    participant = participants(:three).dup
+    participant.egd_pin = nil
+    participant.uuid = SecureRandom.uuid
+    participant.save!
 
     assert_difference -> { PaperTrail::Version.where(item_type: "Participant", item_id: participant.id).count }, 1 do
       participant.update!(club: "Rotterdam Go Club")

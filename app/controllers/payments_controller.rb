@@ -7,14 +7,15 @@ class PaymentsController < ApplicationController
   before_action :load_participant, only: [:new, :create]
   before_action :require_player_participant, only: [:new, :create]
   before_action :require_confirmed_participant, only: [:create]
+  before_action :require_participant_owner, only: [:new, :create]
 
   def new
     @confirmed = @participant.confirmed?
-    return unless @confirmed
+    @order = @participant.current_order
+    return unless @confirmed && @order
+    return redirect_to order_path if @order.draft?
 
-    @participant.order.with_lock do
-      OrderRepricingService.call(order: @participant.order, date: Date.current)
-    end
+    OrderRepricingService.call(order: @order, date: Date.current)
     @participant.refresh_paid_payments!
 
     @payment = @participant.current_payment
@@ -24,11 +25,23 @@ class PaymentsController < ApplicationController
 
   def create
     @confirmed = @participant.confirmed?
+    @order = @participant.current_order
+    if @order.nil?
+      @participant.add_ticket_to_draft_order!
+      return redirect_to order_path
+    end
+    return redirect_to order_path if @order.draft?
 
     @participant.refresh_paid_payments!
-    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @participant.paid_payment.present?
+    if @participant.participant_tickets.any?(&:valid_admission?)
+      return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE
+    end
 
-    @payment = @participant.pending_payment || start_new_payment_attempt
+    @payment = @participant.pending_payment
+    unless @payment
+      @participant.add_ticket_to_draft_order! unless @participant.draft_ticket || @participant.retryable_ticket
+      @payment = start_new_payment_attempt
+    end
     return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
 
     if simulate_mollie_payment?
@@ -53,10 +66,16 @@ class PaymentsController < ApplicationController
 
     redirect_to checkout_url, allow_other_host: true
   rescue ActiveRecord::RecordInvalid => e
-    @payment = e.record
-    render :new, status: :unprocessable_entity
+    if e.record.is_a?(Payment)
+      @payment = e.record
+      @order = @participant.current_order
+      render :new, status: :unprocessable_entity
+    else
+      redirect_to order_path, alert: e.record.errors.full_messages.to_sentence
+    end
   rescue Mollie::Exception => e
     discard_unstarted_payment_attempt
+    @order = @participant.current_order
     flash.now[:alert] = "Payment could not be started: #{e.message}"
     render :new, status: :unprocessable_entity
   end
@@ -89,6 +108,17 @@ class PaymentsController < ApplicationController
     end
   end
 
+  def require_participant_owner
+    # Unconfirmed registrations reach this page from the public confirmation
+    # flow before they can sign in. The page only asks them to confirm first;
+    # payment creation remains blocked until confirmation.
+    return if action_name == "new" && !@participant.confirmed?
+    return authenticate_user! unless user_signed_in?
+    return if @participant.user_id == current_user.id
+
+    head :not_found
+  end
+
   def require_confirmed_participant
     unless @participant.confirmed?
       redirect_to new_participant_payment_path(@participant),
@@ -97,10 +127,12 @@ class PaymentsController < ApplicationController
   end
 
   def start_new_payment_attempt
-    @participant.order.with_lock do
-      return @participant.order.payments.completed.order(created_at: :desc).first if @participant.order.closed?
+    order = @participant.current_order
+    order.submit! if order.draft?
+    order.with_lock do
+      return order.payments.completed.order(created_at: :desc).first if order.closed?
 
-      OrderRepricingService.call(order: @participant.order, date: Date.current)
+      OrderRepricingService.call(order:, date: Date.current)
       Payment.build_for(@participant).tap do |payment|
         payment.save!
         @started_payment_attempt = payment

@@ -3,7 +3,7 @@ class Admin::PaymentsController < ApplicationController
 
   before_action :require_admin!
   before_action :set_participant, except: [:index, :mark_processed, :unmark_processed]
-  before_action :require_player_participant!, only: [:new, :create]
+  before_action :require_player_participant!, only: [:new, :create, :add_ticket]
   before_action :set_payment, only: [:edit, :update]
   before_action :require_manual_payment, only: [:edit, :update]
 
@@ -32,28 +32,57 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def new
-    @payment = @participant.order.payments.build(default_payment_attributes)
+    @order = @participant.current_order
+    OrderRepricingService.call(order: @order, date: Date.current) if @order
+    @payment = @order.payments.build(default_payment_attributes) if @order
   end
 
   def create
+    @order = @participant.current_order
+    unless @order
+      redirect_to new_admin_participant_payment_path(@participant),
+        alert: "Add a ticket to this participant's draft order before recording a payment."
+      return
+    end
+
     if @participant.payments.where(provider: "mollie").merge(Payment.pending_or_open).exists?
       redirect_to new_admin_participant_payment_path(@participant),
         alert: "This participant has an outstanding Mollie payment. Cancel it in Mollie before recording a manual payment."
       return
     end
 
-    @payment = @participant.order.payments.build(payment_params)
-    # Manually recorded payments never belong to a Mollie transaction, and are
-    # only recorded once the money has actually been received.
-    @payment.provider = "manual"
-    @payment.mollie_payment_id = nil
-    @payment.status = "paid"
-
-    if @payment.save
-      redirect_to admin_participants_path, notice: "Payment was successfully recorded."
-    else
-      render :new, status: :unprocessable_entity
+    validating_payment = false
+    begin
+      ActiveRecord::Base.transaction do
+        @order.submit! if @order.draft?
+        @payment = @order.payments.build(payment_params)
+        # Manually recorded payments never belong to a Mollie transaction, and
+        # are only recorded once the money has actually been received.
+        @payment.provider = "manual"
+        @payment.mollie_payment_id = nil
+        @payment.status = "paid"
+        validating_payment = true
+        @payment.save!
+      end
+    rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+      if validating_payment
+        @payment = e.record
+        @order.reload
+        render :new, status: :unprocessable_entity
+      else
+        redirect_to edit_admin_participant_path(@participant), alert: e.record.errors.full_messages.to_sentence
+      end
+      return
     end
+
+    redirect_to admin_participants_path, notice: "Payment was successfully recorded."
+  end
+
+  def add_ticket
+    @participant.add_ticket_to_draft_order!
+    redirect_to new_admin_participant_payment_path(@participant), notice: "A ticket was added to the participant's draft order."
+  rescue ActiveRecord::RecordNotSaved, ActiveRecord::RecordInvalid => e
+    redirect_to new_admin_participant_payment_path(@participant), alert: e.message
   end
 
   def edit
@@ -115,7 +144,7 @@ class Admin::PaymentsController < ApplicationController
     )
 
     {
-      amount_cents: @participant.order.total_cents,
+      amount_cents: @order.total_cents,
       description: pricing.description,
       provider: "manual",
       payment_method: "bank_transfer",

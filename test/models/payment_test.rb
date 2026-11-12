@@ -684,6 +684,7 @@ class PaymentTest < ActiveSupport::TestCase
   test "preloaded participant and hostel payment payees need no extra queries" do
     participant = participants(:two)
     booking = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 27), double_rooms: 1)
+    booking.order.submit!
     hostel_payment = Payment.build_for_hostel_booking(booking)
     hostel_payment.save!
     participant_payment = payments(:paid_payment)

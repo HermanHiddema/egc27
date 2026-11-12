@@ -60,7 +60,7 @@
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
           <p class="text-green-800 text-sm"><strong>Your registration is confirmed.</strong> No payment is required for visitor registrations.</p>
         </div>
-      <% elsif @participant.paid? %>
+      <% elsif @participant.valid_admission? %>
         <div class="bg-green-50 border border-green-200 rounded-lg p-4">
           <p class="text-green-800 text-sm"><strong>Your registration is confirmed and paid.</strong> Thank you! No further action is required.</p>
         </div>

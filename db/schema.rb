@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_11_130000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -212,7 +212,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
 
   create_table "orders", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.string "status", default: "submitted", null: false
     t.datetime "updated_at", null: false
+    t.bigint "user_id", null: false
+    t.index ["user_id"], name: "index_orders_on_user_id"
+    t.index ["user_id"], name: "index_orders_one_draft_per_user", unique: true, where: "((status)::text = 'draft'::text)"
+    t.check_constraint "status::text = ANY (ARRAY['draft'::character varying, 'submitted'::character varying]::text[])", name: "orders_status_valid"
   end
 
   create_table "pages", force: :cascade do |t|
@@ -227,9 +232,10 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
 
   create_table "participant_tickets", force: :cascade do |t|
     t.datetime "created_at", null: false
+    t.datetime "invalidated_at"
     t.bigint "participant_id", null: false
     t.datetime "updated_at", null: false
-    t.index ["participant_id"], name: "index_participant_tickets_on_participant_id", unique: true
+    t.index ["participant_id"], name: "index_participant_tickets_on_participant_id"
   end
 
   create_table "participants", force: :cascade do |t|
@@ -307,7 +313,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
     t.bigint "productable_id", null: false
     t.string "productable_type", null: false
     t.datetime "updated_at", null: false
-    t.index ["order_id"], name: "index_products_on_order_id", unique: true
+    t.index ["order_id"], name: "index_products_on_order_id"
     t.index ["productable_type", "productable_id"], name: "index_products_on_productable", unique: true
     t.check_constraint "productable_type::text = ANY (ARRAY['ParticipantTicket'::character varying, 'HostelBooking'::character varying]::text[])", name: "products_supported_productable_types"
   end
@@ -406,6 +412,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_09_120000) do
   add_foreign_key "newsletter_deliveries", "newsletter_subscriptions", on_delete: :cascade
   add_foreign_key "newsletter_deliveries", "newsletters", on_delete: :cascade
   add_foreign_key "newsletters", "users"
+  add_foreign_key "orders", "users"
   add_foreign_key "participant_tickets", "participants"
   add_foreign_key "participants", "users"
   add_foreign_key "payments", "orders"

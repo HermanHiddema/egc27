@@ -62,7 +62,15 @@ class OrderPricingConcurrencyTest < ActiveSupport::TestCase
     release << true if repricing_thread&.alive?
     repricing_thread&.join
     payment_thread&.join
-    participant&.destroy! if participant&.persisted?
+    if participant&.persisted?
+      Payment.where(order_id: order_id).delete_all if order_id
+      ParticipantTicket.where(participant_id: participant.id).pluck(:id).each do |ticket_id|
+        Product.where(productable_type: "ParticipantTicket", productable_id: ticket_id).delete_all
+        ParticipantTicket.where(id: ticket_id).delete_all
+      end
+      Order.where(id: order_id).delete_all if order_id
+      Participant.where(id: participant.id).delete_all
+    end
   end
 
   private

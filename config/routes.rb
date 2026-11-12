@@ -176,6 +176,13 @@ Rails.application.routes.draw do
       get :success
     end
   end
+  resource :order, only: [:show], controller: "orders" do
+    post :add_participant
+    post :submit
+    delete :cancel
+  end
+  get "orders/:id", to: "orders#show_submitted", as: :submitted_order
+  post "orders/:id/pay", to: "orders#pay_submitted", as: :pay_submitted_order
   resources :hostel_bookings, only: [:index, :new, :create, :show] do
     member do
       post :pay
@@ -207,7 +214,11 @@ Rails.application.routes.draw do
       collection do
         post :sync_egd
       end
-      resources :payments, only: [:new, :create, :edit, :update]
+      resources :payments, only: [:new, :create, :edit, :update] do
+        collection do
+          post :add_ticket
+        end
+      end
     end
     resources :payments, only: [:index] do
       member do

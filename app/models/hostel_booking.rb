@@ -49,7 +49,7 @@ class HostelBooking < ApplicationRecord
   has_one :order, through: :product
   has_many :payments, -> { order(created_at: :desc, id: :desc) }, through: :order
 
-  after_create :create_order_and_product!
+  after_create :add_to_draft_order!
   before_create :lock_price
   before_destroy :prevent_destruction_with_financial_history, prepend: true
 
@@ -126,8 +126,8 @@ class HostelBooking < ApplicationRecord
 
   private
 
-  def create_order_and_product!
-    Order.create!(products: [Product.new(productable: self)])
+  def add_to_draft_order!
+    user.draft_order!.add_product_to_draft!(self)
   end
 
   def lock_price

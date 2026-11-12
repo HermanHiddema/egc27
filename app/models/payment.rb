@@ -68,6 +68,8 @@ class Payment < ApplicationRecord
   validates :provider, inclusion: { in: PROVIDERS }
   validates :payment_method, inclusion: { in: MANUAL_PAYMENT_METHODS }, if: :manual?
   validates :amount_cents, numericality: { only_integer: true, greater_than: 0 }
+  validate :covers_full_order_amount, if: :will_save_change_to_amount_cents?
+  validate :order_is_submitted
   validates :amount_refunded_cents, :amount_charged_back_cents,
     numericality: { only_integer: true, greater_than_or_equal_to: 0 }, allow_nil: true
   validates :description, presence: true
@@ -109,15 +111,22 @@ class Payment < ApplicationRecord
 
   # Builds an unsaved payment for the stored Product price.
   def self.build_for(participant)
+    order = participant.order
     pricing = CongressPassPricing.new(
       attendance_option: participant.attendance_option,
       age_group: participant.age_group,
       participant_number: participant.participant_number
     )
 
-    participant.order.payments.build(
-      amount_cents: participant.order.total_cents,
-      description: pricing.description,
+    description = if order.products.count == 1
+      pricing.description
+    else
+      "EGC 2027 order (#{order.products.count} items)"
+    end
+
+    order.payments.build(
+      amount_cents: order.total_cents,
+      description:,
       status: "open"
     )
   end
@@ -170,6 +179,14 @@ class Payment < ApplicationRecord
 
   def hostel_booking_id
     hostel_booking&.id
+  end
+
+  def payee_label
+    labels = participants.map do |participant|
+      "#{participant.first_name} #{participant.last_name} (#{participant.participant_number})"
+    end
+    labels.concat(hostel_bookings.map { |booking| "Hostel booking ##{booking.id}" })
+    labels.join(", ")
   end
 
   def participant=(participant)
@@ -372,9 +389,9 @@ class Payment < ApplicationRecord
 
   def mollie_metadata
     if hostel_booking
-      { payment_id: id, hostel_booking_id: hostel_booking_id, user_id: hostel_booking.user_id }
+      { payment_id: id, order_id: order_id, hostel_booking_id: hostel_booking_id, user_id: hostel_booking.user_id }
     else
-      { payment_id: id, participant_id: participant_id }
+      { payment_id: id, order_id: order_id, participant_id: participant_id }
     end
   end
 
@@ -387,18 +404,28 @@ class Payment < ApplicationRecord
   end
 
   def send_payment_confirmation
-    recipient = participant&.email || hostel_booking&.user&.email
+    recipient = order.user.email
     return if recipient.blank?
 
     # Atomic check-and-set prevents duplicate emails under concurrent webhook/redirect updates.
     return unless Payment.where(id: id, confirmation_sent: false).update_all(confirmation_sent: true) == 1
 
-    if hostel_booking
-      HostelBookingMailer.payment_confirmation(self).deliver_now
-    else
+    if participants.exists?
       ParticipantMailer.payment_confirmation(self).deliver_now
+    elsif hostel_booking
+      HostelBookingMailer.payment_confirmation(self).deliver_now
     end
   rescue StandardError => e
     Rails.logger.error("Failed to deliver payment confirmation for Payment #{id}: #{e.class}: #{e.message}")
+  end
+
+  def covers_full_order_amount
+    return if amount_cents == order&.total_cents
+
+    errors.add(:amount_cents, "must equal the full order amount")
+  end
+
+  def order_is_submitted
+    errors.add(:order, "must be submitted before payment") if order&.draft?
   end
 end

@@ -58,6 +58,10 @@ class Admin::ParticipantsController < ApplicationController
         "Participants with refunded payments cannot be deleted."
       elsif @participant.paid?
         "Participants with a successful payment cannot be deleted."
+      elsif @participant.blocking_payments?
+        "Participants with an open or pending payment cannot be deleted."
+      elsif @participant.submitted_ticket_order?
+        "Participants in a submitted order cannot be deleted."
       else
         "Participants with an open or pending payment cannot be deleted."
       end

@@ -16,6 +16,7 @@ class HostelBookingMailerTest < ActionMailer::TestCase
 
     payment = nil
     travel_to Time.zone.local(2027, 3, 1) do
+      booking.order.submit!
       payment = Payment.build_for_hostel_booking(booking).tap(&:save!)
     end
     email = HostelBookingMailer.payment_confirmation(payment)
