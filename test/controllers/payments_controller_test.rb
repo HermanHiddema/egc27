@@ -32,6 +32,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new builds a fresh payment for confirmed player" do
     participant = participants(:one)
+    sign_in participant.user
     payments(:open_payment).update_column(:created_at, Time.zone.local(2026, 8, 1))
 
     travel_to Time.zone.local(2026, 8, 1) do
@@ -60,6 +61,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new reuses an in-progress payment for pricing and display" do
     participant = participants(:three)
+    sign_in participant.user
     payment = participant.order.payments.create!(
       amount_cents: participant.order.total_cents,
       description: "Existing pending payment",
@@ -80,6 +82,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new does not show price validity notice in final pricing period" do
     participant = participants(:three)
+    sign_in participant.user
 
     travel_to Time.zone.local(2027, 6, 1) do
       get new_participant_payment_path(participant)
@@ -92,6 +95,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new uses persisted payment date for price validity text" do
     participant = participants(:one)
+    sign_in participant.user
     payment = payments(:open_payment)
     payment.update!(
       participant: participant,
@@ -112,6 +116,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new hides Mollie simulation controls outside development and test environments" do
     participant = participants(:one)
+    sign_in participant.user
 
     with_mollie_simulation_enabled do
       with_rails_env("production") do
@@ -125,6 +130,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new shows paid state for participant with completed payment" do
     participant = participants(:two)
+    sign_in participant.user
 
     with_paid_mollie_stub(payments(:paid_payment)) do
       get new_participant_payment_path(participant)
@@ -137,6 +143,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "new shows the paid state when a payment is refunded" do
     participant = participants(:two)
+    sign_in participant.user
     paid_payment = payments(:paid_payment)
     refunded_mollie = OpenStruct.new(
       id: paid_payment.mollie_payment_id,

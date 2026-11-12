@@ -95,7 +95,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_match "These prices are valid until", response.body
   end
 
-  test "create saves the booking and redirects to its summary without starting payment" do
+  test "create saves the booking and redirects to the draft order review" do
     sign_in users(:one)
 
     with_mollie_create_stub(nil) do |created_params|
@@ -113,14 +113,15 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
       assert_empty booking.payments
       assert_equal "unpaid", booking.status
       assert_empty created_params
-      assert_redirected_to hostel_booking_path(booking)
-      assert_equal "Your booking has been created. Please review it and complete payment.", flash[:notice]
+      assert_redirected_to order_path
+      assert_equal "Your booking has been added. Review your order before continuing to payment.", flash[:notice]
     end
 
     follow_redirect!
 
     assert_response :success
-    assert_select "form[action=?]", pay_hostel_booking_path(HostelBooking.last)
+    assert_match "Review your order", response.body
+    assert_match "Total: €", response.body
   end
 
   test "create re-renders the form for invalid dates" do
@@ -197,116 +198,76 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "label", text: /1 bed in a 6-person dorm \(female only\)/
   end
 
-  test "show offers payment for an open booking" do
+  test "show links an open booking to its order review" do
     booking = create_booking
     sign_in users(:one)
 
     get hostel_booking_path(booking)
 
     assert_response :success
-    assert_select "form[action=?]", pay_hostel_booking_path(booking)
+    assert_select "a[href=?]", order_path
   end
 
-  test "pay resumes an open Mollie checkout" do
+  test "pay for a draft booking returns to the order review" do
+    booking = create_booking
+    sign_in users(:one)
+    post pay_hostel_booking_path(booking)
+
+    assert_redirected_to order_path
+  end
+
+  test "pay for a submitted booking returns to the submitted order review" do
     booking = create_booking
     create_payment(booking, mollie_payment_id: "tr_open")
     sign_in users(:one)
-    remote = OpenStruct.new(id: "tr_open", status: "open", checkout_url: "https://example.test/resume")
 
-    with_mollie_get_stub(remote) do
-      with_mollie_create_stub(nil) do |created_params|
-        post pay_hostel_booking_path(booking)
-        assert_empty created_params
-      end
-    end
+    post pay_hostel_booking_path(booking)
 
-    assert_redirected_to "https://example.test/resume"
+    assert_redirected_to submitted_order_path(booking.order)
   end
 
-  test "pay does not replace a pending or authorized Mollie payment without a checkout URL" do
-    %w[pending authorized].each do |status|
-      booking = create_booking
-      payment = create_payment(booking, mollie_payment_id: "tr_#{status}")
-      sign_in users(:one)
-
-      with_mollie_get_stub(OpenStruct.new(id: payment.mollie_payment_id, status: status)) do
-        with_mollie_create_stub(nil) do |created_params|
-          post pay_hostel_booking_path(booking)
-          assert_empty created_params
-        end
-      end
-
-      assert_redirected_to hostel_booking_path(booking)
-      assert_equal status, payment.reload.status
-      assert_equal 1, booking.payments.count
-    end
-  end
-
-  test "pay starts a new checkout at the booking price when the previous one expired" do
+  test "pay does not start checkout directly for a submitted booking" do
     booking = nil
     travel_to Time.zone.local(2027, 1, 15) do
       booking = create_booking
       create_payment(booking, mollie_payment_id: "tr_expired")
     end
     sign_in users(:one)
-    remote = OpenStruct.new(id: "tr_expired", status: "expired")
-    new_payment = OpenStruct.new(id: "tr_new", checkout_url: "https://example.test/new")
+    post pay_hostel_booking_path(booking)
 
-    with_mollie_get_stub(remote) do
-      with_mollie_create_stub(new_payment) do |created_params|
-        travel_to Time.zone.local(2027, 2, 15) do
-          post pay_hostel_booking_path(booking)
-        end
-        assert_equal webhook_payments_url, created_params.last[:webhook_url]
-      end
-    end
-
-    assert_redirected_to "https://example.test/new"
-    old_payment, new_payment = booking.payments.reorder(:created_at, :id)
-    assert_equal "tr_expired", old_payment.mollie_payment_id
-    assert_equal "tr_new", new_payment.mollie_payment_id
-    assert_equal "open", new_payment.status
-    assert_equal 2 * 7_900, new_payment.amount_cents
+    assert_redirected_to submitted_order_path(booking.order)
+    assert_equal ["tr_expired"], booking.payments.pluck(:mollie_payment_id)
   end
 
-  test "pay does not start a checkout for a paid booking" do
+  test "pay for a paid booking returns to its submitted order" do
     booking = create_booking
     create_payment(booking, mollie_payment_id: "tr_paid", status: "paid")
     sign_in users(:one)
 
-    with_mollie_get_stub(OpenStruct.new(id: "tr_paid", status: "paid")) do
-      post pay_hostel_booking_path(booking)
-    end
+    post pay_hostel_booking_path(booking)
 
-    assert_redirected_to hostel_booking_path(booking)
+    assert_redirected_to submitted_order_path(booking.order)
   end
 
-  test "pay does not start a checkout when Mollie reports that it is already paid" do
+  test "pay returns to submitted order without refreshing Mollie payment directly" do
     booking = create_booking
     create_payment(booking, mollie_payment_id: "tr_paid")
     sign_in users(:one)
 
-    with_mollie_get_stub(OpenStruct.new(id: "tr_paid", status: "paid")) do
-      with_mollie_create_stub(nil) do |created_params|
-        post pay_hostel_booking_path(booking)
-        assert_empty created_params
-      end
-    end
+    post pay_hostel_booking_path(booking)
 
-    assert_redirected_to hostel_booking_path(booking)
-    assert_equal "paid", booking.reload.status
+    assert_redirected_to submitted_order_path(booking.order)
+    assert_equal "open", booking.payments.sole.status
   end
 
-  test "pay can simulate a Mollie status in test" do
+  test "pay does not simulate payment directly from the booking page" do
     booking = create_booking
     sign_in users(:one)
 
-    with_mollie_simulation_enabled do
-      post pay_hostel_booking_path(booking), params: { simulate_status: "paid" }
-    end
+    post pay_hostel_booking_path(booking), params: { simulate_status: "paid" }
 
-    assert_redirected_to hostel_booking_path(booking)
-    assert_equal "paid", booking.reload.status
+    assert_redirected_to order_path
+    assert_equal "unpaid", booking.reload.status
   end
 
   test "webhook updates the booking without authentication" do

@@ -109,6 +109,10 @@ class PaymentsController < ApplicationController
   end
 
   def require_participant_owner
+    # Unconfirmed registrations reach this page from the public confirmation
+    # flow before they can sign in. The page only asks them to confirm first;
+    # payment creation remains blocked until confirmation.
+    return if action_name == "new" && !@participant.confirmed?
     return authenticate_user! unless user_signed_in?
     return if @participant.user_id == current_user.id
 

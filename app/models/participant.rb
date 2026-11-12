@@ -129,7 +129,7 @@ class Participant < ApplicationRecord
   end
 
   def current_ticket
-    draft_ticket || participant_tickets.detect(&:valid_admission?) || retryable_ticket
+    draft_ticket || participant_tickets.detect(&:valid_admission?) || in_progress_ticket || retryable_ticket
   end
 
   def participant_ticket
@@ -169,6 +169,11 @@ class Participant < ApplicationRecord
       .order(created_at: :desc).detect do |ticket|
         !ticket.order.closed? && !ticket.order.payments.blocking.exists?
       end
+  end
+
+  def in_progress_ticket
+    participant_tickets.joins(product: { order: :payments }).merge(Payment.pending_or_open)
+      .where(orders: { status: "submitted" }).order(created_at: :desc).first
   end
 
   def add_ticket_to_draft_order!
