@@ -1,5 +1,5 @@
 class OrdersController < ApplicationController
-  before_action :set_draft_order, only: [:show, :add_participant, :submit, :cancel]
+  before_action :set_draft_order, only: [:show, :new_participant, :add_participant, :edit_product, :update_product, :remove_product, :empty, :submit, :cancel]
   before_action :set_submitted_order, only: [:show_submitted, :pay_submitted]
 
   def show
@@ -9,21 +9,105 @@ class OrdersController < ApplicationController
     @show_simulation_controls = mollie_simulation_enabled? && !@order.closed? && !@requires_confirmation
   end
 
+  def index
+    @orders = current_user.orders.submitted.includes(:products, :payments).order(created_at: :desc, id: :desc)
+    @show_simulation_controls = mollie_simulation_enabled?
+  end
+
+  def new_participant
+    @participants = current_user.participants.includes(:participant_tickets).order(:last_name, :first_name)
+    @retryable_participants = @participants.select do |participant|
+      participant.draft_ticket.nil? && participant.retryable_ticket.present?
+    end
+    @eligible_participants = @participants.select do |participant|
+      participant.draft_ticket.nil? && participant.retryable_ticket.nil? && participant.can_purchase_ticket?
+    end
+  end
+
   def show_submitted
-    OrderRepricingService.call(order: @order, date: Date.current)
-    @products = @order.products.includes(:productable)
+    @products = @order.products_for_display
     @latest_payment = @order.payments.order(created_at: :desc, id: :desc).first
-    @show_simulation_controls = mollie_simulation_enabled? && !@order.closed?
+    @payments = @order.payments.order(created_at: :desc, id: :desc)
+    @show_simulation_controls = mollie_simulation_enabled? && !@order.closed? && !active_payment?
     render :show
   end
 
   def add_participant
     participant = current_user.participants.find_by!(uuid: params[:participant_id])
+    if participant.draft_ticket&.product&.order&.draft?
+      return redirect_to order_path, notice: "This participant already has a ticket in your shopping basket."
+    end
+    if participant.retryable_ticket.present? && participant.retryable_ticket.order.submitted?
+      return redirect_to submitted_order_path(participant.retryable_ticket.order),
+        notice: "Please pay Order #{participant.retryable_ticket.order.id} to complete payment for this participant."
+    end
     @order.with_lock do
       participant.add_ticket_to_draft_order!
-      redirect_to order_path, notice: "Ticket added to your draft order."
+      redirect_to order_path, notice: "Ticket added to your shopping basket."
     end
   rescue ActiveRecord::RecordNotSaved, ActiveRecord::RecordInvalid => e
+    redirect_to order_path, alert: e.message
+  end
+
+  def edit_product
+    @product = @order.products.includes(:productable).find(params[:product_id])
+    return head :not_found unless @product.productable.is_a?(ParticipantTicket)
+
+    @participant = @product.productable.participant
+    head :not_found unless @participant.user_id == current_user.id
+  end
+
+  def update_product
+    product = @order.products.includes(:productable).find(params[:product_id])
+    return head :not_found unless product.productable.is_a?(ParticipantTicket)
+
+    participant = product.productable.participant
+    return head :not_found unless participant.user_id == current_user.id
+
+    attrs = if participant.valid_admission?
+      params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
+    else
+      params.require(:participant).permit(:first_name, :last_name, :gender, :age_group, :country, :club,
+        :image_use_consent, :attendance_option, :rank, :egd_pin, :phone)
+    end
+
+    updated = @order.with_lock do
+      participant.update(attrs).tap do |saved|
+        OrderRepricingService.call(order: @order, date: Date.current) if saved
+      end
+    end
+
+    if updated
+      redirect_to order_path, notice: "Ticket details updated."
+    else
+      @product = product
+      @participant = participant
+      render :edit_product, status: :unprocessable_entity
+    end
+  end
+
+  def remove_product
+    @order.with_lock do
+      product = @order.products.includes(:productable).find(params[:product_id])
+      productable = product.productable
+      product.destroy!
+      productable.destroy! if productable.is_a?(ParticipantTicket) || productable.is_a?(HostelBooking)
+    end
+    redirect_to order_path, notice: "Item removed from your shopping basket."
+  rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotSaved => e
+    redirect_to order_path, alert: e.message
+  end
+
+  def empty
+    @order.with_lock do
+      @order.products.includes(:productable).each do |product|
+        productable = product.productable
+        product.destroy!
+        productable.destroy! if productable.is_a?(ParticipantTicket) || productable.is_a?(HostelBooking)
+      end
+    end
+    redirect_to order_path, notice: "Your shopping basket is empty."
+  rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotSaved => e
     redirect_to order_path, alert: e.message
   end
 
@@ -39,7 +123,15 @@ class OrdersController < ApplicationController
       return redirect_to order_path, alert: "Please confirm your email address before paying for tickets."
     end
 
-    @order.submit! if @order.draft?
+    old_total = params[:confirmed_total_cents].to_i
+    @order.with_lock do
+      OrderRepricingService.call(order: @order, date: Date.current)
+      if old_total != @order.total_cents
+        return redirect_to order_path, alert: "Ticket prices changed. Please review the updated total and confirm checkout again."
+      end
+      @order.submit! if @order.draft?
+      create_payment_for_order! unless @order.payments.pending_or_open.exists?
+    end
     return simulate_order_payment! if simulate_mollie_payment?
 
     start_checkout
@@ -52,6 +144,7 @@ class OrdersController < ApplicationController
   end
 
   def pay_submitted
+    return redirect_to submitted_order_path(@order), notice: "Your payment is already being processed." if active_payment?
     return simulate_order_payment! if simulate_mollie_payment?
 
     start_checkout
@@ -144,6 +237,16 @@ class OrdersController < ApplicationController
 
   def set_submitted_order
     @order = current_user.orders.submitted.find(params[:id])
+  end
+
+  def active_payment?
+    @order.payments.pending_or_open.exists?
+  end
+
+  def create_payment_for_order!
+    return if @order.closed? || active_payment?
+
+    Payment.create!(order: @order, amount_cents: @order.total_cents, description: order_description, status: "open")
   end
 
   def order_description

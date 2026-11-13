@@ -1,0 +1,64 @@
+<% content_for :title, "Order #{@order.id} – EGC 2027" %>
+<div class="container-wide py-8 lg:py-12">
+  <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+    <div>
+      <p class="text-sm"><%= link_to "Past Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %></p>
+      <h1 class="text-4xl font-bold mt-2">Order <%= @order.id %></h1>
+      <p class="mt-2 text-neutral-600">Submitted <%= l(@order.created_at.to_date, format: :long) %></p>
+      <% if @order.cancelled_at %><p class="mt-1 text-neutral-600">Cancelled <%= l(@order.cancelled_at, format: :long) %></p><% end %>
+    </div>
+    <span class="rounded-full px-4 py-2 font-semibold <%= order_payment_status_class(@order) %>"><%= order_payment_status(@order) %></span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+    <section class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Items</h2>
+      <ul class="divide-y divide-gray-200">
+        <% @products.each do |product| %>
+          <li class="py-4 flex justify-between gap-4">
+            <div>
+              <% case product.productable %>
+              <% when ParticipantTicket %>
+                <% participant = product.productable.participant %>
+                <%= link_to "#{participant.first_name} #{participant.last_name}", participant_path(participant), class: "font-semibold text-brand-blue-800 hover:underline" %>
+                <p class="text-sm text-neutral-600">Participant ticket · <%= CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label %></p>
+              <% when HostelBooking %>
+                <%= link_to "Hostel booking · #{eu_date_range(product.productable.arrival_date, product.productable.departure_date)}", hostel_booking_path(product.productable), class: "font-semibold text-brand-blue-800 hover:underline" %>
+                <p class="text-sm text-neutral-700"><%= product.productable.description %></p>
+                <p class="text-sm text-neutral-600"><%= product.productable.nights %> nights · <%= hostel_booking_options(product.productable) %></p>
+              <% end %>
+            </div>
+            <span class="whitespace-nowrap font-medium">€ <%= format("%.2f", product.price_cents / 100.0) %></span>
+          </li>
+        <% end %>
+      </ul>
+      <div class="flex justify-between border-t border-gray-200 pt-4 text-lg font-bold"><span>Order total</span><span>€ <%= format("%.2f", @order.total_cents / 100.0) %></span></div>
+    </section>
+
+    <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Payment history</h2>
+      <% if @payments.any? %>
+        <ul class="space-y-4">
+          <% @payments.each do |payment| %>
+            <li class="border-b border-gray-100 pb-3">
+              <div class="flex justify-between gap-3 font-medium"><span><%= l(payment.created_at.to_date, format: :long) %></span><span>€ <%= format("%.2f", payment.amount_cents / 100.0) %></span></div>
+              <p class="text-sm text-neutral-600"><%= payment.payment_method_label || payment.provider_label %> · <%= payment.status.humanize %></p>
+              <% if payment.refunded? %><p class="text-sm text-neutral-600">Refunded: <%= payment.amount_refunded_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_refunded_cents / 100.0)}" %></p><% end %>
+              <% if payment.charged_back? %><p class="text-sm text-neutral-600">Chargeback: <%= payment.amount_charged_back_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_charged_back_cents / 100.0)}" %></p><% end %>
+            </li>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-neutral-600">No payment attempts have been made.</p>
+      <% end %>
+      <% if !@order.closed? && !@order.payments.pending_or_open.exists? %>
+        <%= button_to(@payments.any? ? "Retry payment" : "Proceed to payment", pay_submitted_order_path(@order), method: :post, class: "w-full btn-primary mt-5", data: { turbo: false }) %>
+        <% if @show_simulation_controls %>
+          <%= render "simulation_controls", url: pay_submitted_order_path(@order), request_params: {} %>
+        <% end %>
+      <% elsif @order.payments.pending_or_open.exists? %>
+        <p class="mt-5 rounded bg-amber-50 p-3 text-sm text-amber-900">A payment is in progress. You can check back here for its status.</p>
+      <% end %>
+    </section>
+  </div>
+</div>

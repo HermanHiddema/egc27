@@ -87,7 +87,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
 - In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.
-- Fix hostel booking prices when the booking is created; later payment attempts must use that booking-time price.
+- Reprice hostel booking Products using the current HostelPricing tier when reviewing, checking out, or retrying an Order; pending Mollie attempts protect stored prices.
+- Label the action that adds a provisional hostel booking to the basket “Book”; commitment to pay happens at basket checkout.
 - Use `/newsletter` as the newsletter overview, with subscription in a modal; show editor/admin draft newsletters above sent issues and place Create newsletter above Subscribe.
 - Make sent newsletter tiles fully clickable and include the count-confirmed Send action in both the editor and preview.
 - Set newsletter email templates to a 1200px desktop maximum width and stack layout table cells on narrow screens.
@@ -100,3 +101,11 @@ When the user expresses a new coding/UI/process preference in chat:
 - Store attendance periods on participants, including visitors; participant tickets belong to players and have a price.
 - Keep the congress ticket price current until a payment attempt starts; replacement attempts use the current price tier.
 - Keep successful payments paid after refunds or chargebacks; their orders remain closed and any new payment requires a new order.
+- In admin financial overviews, keep payer/user columns compact with linked names, provide sortable headers and status filters where relevant, and format dates as `dd/mm/yyyy HH:MM`.
+- Show the Admin Orders status filter as a collapsible checkbox menu; apply multiple selections with an explicit Filter button and collapse it after submission.
+- In My Participants, show each participant ticket's Order payment status with the shared status colors, and label Visitors in green.
+- Route participant ticket payments through their Order; show pending Order links instead of a duplicate Pay action, and use green/gray/red/blue indicators for paid/pending/failed/awaiting Order statuses.
+- Keep submitted Order summaries within the available row width by truncating long Product descriptions with ellipses, and sort Products by type then addition order in Order lists and details.
+- Label a cancelled Order “Order canceled” to distinguish it from a cancelled Payment.
+- In the admin Payments overview, list all Payment statuses; sort Date, Order ID, Amount, and Payer; filter by Method; link Payment and Order IDs to their admin detail pages.
+- Show the shopping basket Product count on the desktop cart icon; use “Add <product>” for empty sections and “Add another <product>” for populated sections, with lower-case product display names. In basket rows, right-align prices and use accessible icon-only Edit/Remove actions. Show ticket discounts and use singular “breakfast” when the count is one; place the destructive empty-basket button at the bottom right.

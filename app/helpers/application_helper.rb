@@ -1,4 +1,59 @@
 module ApplicationHelper
+  def shopping_basket_product_count(user = safe_current_user)
+    return 0 unless user
+
+    user.orders.drafts.joins(:products).count
+  end
+
+  def shopping_basket_aria_label(product_count)
+    return "Shopping basket" if product_count.zero?
+
+    "Shopping basket, #{product_count} #{'product'.pluralize(product_count)}"
+  end
+
+  def order_payment_status(order)
+    return "Order canceled" if order.cancelled?
+
+    payments = order.payments.order(created_at: :desc, id: :desc).to_a
+    paid = payments.find(&:paid?)
+    if paid
+      return "Paid — chargeback" if paid.charged_back?
+      if paid.refunded?
+        return "Paid — refunded" if paid.amount_refunded_cents.nil? || paid.amount_refunded_cents >= paid.amount_cents
+
+        return "Paid — partially refunded"
+      end
+
+      return "Paid"
+    end
+
+    active = payments.find { |payment| !payment.unsuccessful? }
+    return "Payment pending" if active
+
+    latest = payments.first
+    return "Awaiting payment" unless latest
+
+    "Payment #{latest.status}"
+  end
+
+  def order_payment_status_class(order)
+    return "border border-gray-200 bg-gray-100 text-gray-700" if order.cancelled?
+    return "border border-green-200 bg-green-50 text-green-800" if order.payments.completed.exists?
+    return "border border-gray-200 bg-gray-100 text-gray-700" if order.payments.pending_or_open.exists?
+    return "border border-red-200 bg-red-50 text-red-800" if order.payments.exists?
+
+    "border border-blue-200 bg-blue-50 text-blue-800"
+  end
+
+  def hostel_booking_options(booking)
+    options = HostelPricing::ROOM_TYPES.filter_map do |room_type, room|
+      quantity = booking.public_send(room_type)
+      "#{quantity} × #{room[:label]}" if quantity.positive?
+    end
+    options << pluralize(booking.breakfasts, "breakfast") if booking.breakfasts.positive?
+    options.join(", ")
+  end
+
   SOCIAL_MEDIA_LINKS = {
     "facebook" => ["Facebook", "https://www.facebook.com/share/189m4UBKsN/?mibextid=wwXIfr"],
     "instagram" => ["Instagram", "https://www.instagram.com/egc2027?igsh=eGlzeTN0MWJtZmc5&utm_source=qr"],
@@ -125,6 +180,12 @@ module ApplicationHelper
     return "#{date_part} #{time_part}" if connector.blank?
 
     "#{date_part} #{connector} #{time_part}"
+  end
+
+  def eu_compact_datetime(value, time_value: value)
+    return "—" if value.blank?
+
+    "#{value.strftime('%d/%m/%Y')} #{time_value.strftime('%H:%M')}"
   end
 
   def eu_date_range(start_value, end_value, month: :short, include_start_year: false, include_end_year: true)

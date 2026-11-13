@@ -2,11 +2,12 @@
 #
 # Table name: orders
 #
-#  id         :bigint           not null, primary key
-#  status     :string           default("submitted"), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  user_id    :bigint           not null
+#  id           :bigint           not null, primary key
+#  cancelled_at :datetime
+#  status       :string           default("submitted"), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  user_id      :bigint           not null
 #
 # Indexes
 #
@@ -21,12 +22,14 @@ class Order < ApplicationRecord
   belongs_to :user
   has_many :products, dependent: :restrict_with_error, inverse_of: :order
   has_many :payments, dependent: :restrict_with_error
+  has_paper_trail
 
   validates :status, inclusion: { in: %w[draft submitted] }
   validate :draft_is_unique_for_user, if: :draft?
   validate :submitted_order_has_products, if: :submitted?
   validate :draft_cannot_have_payments, if: :draft?
   validate :lifecycle_changes_are_valid, on: :update
+  validate :cancellation_changes_are_valid, if: :will_save_change_to_cancelled_at?
   before_destroy :prepare_draft_for_destruction, prepend: true
 
   scope :drafts, -> { where(status: "draft") }
@@ -38,6 +41,10 @@ class Order < ApplicationRecord
 
   def submitted?
     status == "submitted"
+  end
+
+  def cancelled?
+    cancelled_at.present?
   end
 
   def editable?
@@ -59,6 +66,11 @@ class Order < ApplicationRecord
       end
 
       products.includes(:productable).each do |product|
+        unless product.valid?
+          errors.add(:base, "A product is invalid: #{product.errors.full_messages.to_sentence}")
+          raise ActiveRecord::RecordInvalid.new(self)
+        end
+
         next unless product.productable.is_a?(ParticipantTicket)
         unless product.productable.participant.can_purchase_ticket?
           errors.add(:base, "A participant can no longer purchase this ticket")
@@ -78,10 +90,43 @@ class Order < ApplicationRecord
     Product.where(order_id: id).sum(:price_cents)
   end
 
+  def products_for_display
+    products.includes(:productable).sort_by do |product|
+      type_order = product.productable.is_a?(ParticipantTicket) ? 0 : 1
+      [type_order, product.created_at, product.id]
+    end
+  end
+
+  def cancellable?
+    submitted? && !cancelled? && !payments.completed.exists? && !payments.pending_or_open.exists?
+  end
+
+  def cancel!
+    with_lock do
+      reload
+      unless cancellable?
+        errors.add(:base, "This order cannot be cancelled because it is paid, has a payment in progress, or is already cancelled.")
+        raise ActiveRecord::RecordInvalid.new(self)
+      end
+
+      products.includes(:productable).each do |product|
+        ticket = product.productable
+        ticket.invalidate_admission! if ticket.is_a?(ParticipantTicket) && ticket.invalidated_at.nil?
+      end
+
+      @cancelling = true
+      begin
+        update!(cancelled_at: Time.current)
+      ensure
+        @cancelling = false
+      end
+    end
+  end
+
   alias amount_cents total_cents
 
   def closed?
-    payments.completed.exists?
+    cancelled? || payments.completed.exists?
   end
 
   private
@@ -107,6 +152,14 @@ class Order < ApplicationRecord
     return if old_status == "draft" && new_status == "submitted" && @submitting
 
     errors.add(:status, "can only change through order submission")
+  end
+
+  def cancellation_changes_are_valid
+    valid_cancellation = @cancelling && cancelled_at.present? && cancelled_at_in_database.nil? && submitted? &&
+      !payments.completed.exists? && !payments.pending_or_open.exists?
+    return if valid_cancellation
+
+    errors.add(:cancelled_at, "can only be set through the cancellation action on an unpaid order")
   end
 
   def prepare_draft_for_destruction

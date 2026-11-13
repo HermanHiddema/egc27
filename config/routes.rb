@@ -177,13 +177,19 @@ Rails.application.routes.draw do
     end
   end
   resource :order, only: [:show], controller: "orders" do
+    get :new_participant
+    get :edit_product
+    patch :update_product
     post :add_participant
+    delete :remove_product
+    delete :empty
     post :submit
     delete :cancel
   end
+  get "orders", to: "orders#index", as: :submitted_orders
   get "orders/:id", to: "orders#show_submitted", as: :submitted_order
   post "orders/:id/pay", to: "orders#pay_submitted", as: :pay_submitted_order
-  resources :hostel_bookings, only: [:index, :new, :create, :show] do
+  resources :hostel_bookings, only: [:index, :new, :create, :show, :edit, :update, :destroy] do
     member do
       post :pay
     end
@@ -209,6 +215,7 @@ Rails.application.routes.draw do
   resources :sponsors, except: [:show]
 
   namespace :admin do
+    resources :users, only: [:show]
     resources :articles, only: [:index]
     resources :participants, only: [:index, :edit, :update, :destroy] do
       collection do
@@ -220,10 +227,15 @@ Rails.application.routes.draw do
         end
       end
     end
-    resources :payments, only: [:index] do
+    resources :payments, only: [:index, :show] do
       member do
         patch :mark_processed
         patch :unmark_processed
+      end
+    end
+    resources :orders, only: [:index, :show] do
+      member do
+        patch :cancel
       end
     end
     resources :hostel_bookings, only: [:index]

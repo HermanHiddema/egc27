@@ -131,8 +131,10 @@ class Payment < ApplicationRecord
     )
   end
 
-  # Builds a payment for the price stored on the hostel booking's Product.
+  # Reprices the order before building a full-order payment for a hostel booking.
   def self.build_for_hostel_booking(hostel_booking)
+    OrderRepricingService.call(order: hostel_booking.order, date: Date.current)
+
     new(
       order: hostel_booking.order,
       amount_cents: hostel_booking.order.total_cents,

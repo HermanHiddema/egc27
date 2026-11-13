@@ -61,6 +61,13 @@ DraGo's Summer Festival
           <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
+              <% basket_product_count = shopping_basket_product_count(current_user) %>
+              <%= link_to order_path, class: "relative hidden lg:inline-flex items-center justify-center h-10 w-10 rounded-full text-brand-yellow-300 hover:bg-brand-red-700", aria: { label: shopping_basket_aria_label(basket_product_count) }, title: "Shopping basket" do %>
+                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l2.4 12.2a2 2 0 002 1.6h8.8a2 2 0 002-1.6L22 8H6M10 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
+                <% if basket_product_count.positive? %>
+                  <span class="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-brand-yellow-400 text-brand-red-900 text-xs font-bold leading-5 text-center" aria-hidden="true"><%= basket_product_count %></span>
+                <% end %>
+              <% end %>
               <div class="relative" data-controller="dropdown">
                 <button class="header-action-user btn-primary flex items-center gap-1"
                         type="button"
@@ -76,6 +83,8 @@ DraGo's Summer Festival
 
                 <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
                   <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to "My basket", order_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to "Past Orders", submitted_orders_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>

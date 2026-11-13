@@ -1,0 +1,29 @@
+<% content_for :title, "Add a participant ticket – EGC 2027" %>
+<div class="container-wide py-8 lg:py-12 max-w-4xl">
+  <p><%= link_to "Back to shopping basket", order_path, class: "text-brand-blue-700 underline" %></p>
+  <h1 class="text-3xl font-bold mt-3 mb-6">Add a participant ticket</h1>
+  <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm mb-6">
+    <h2 class="text-xl font-semibold text-brand-blue-900 mb-2">Register a new participant</h2>
+    <p class="text-neutral-700 mb-4">Use the registration form to add another participant to your account and basket.</p>
+    <%= link_to "Register a new Participant", new_participant_path(return_to: order_path), class: "btn-primary" %>
+  </section>
+  <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+    <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Select an existing participant</h2>
+    <% @retryable_participants.each do |participant| %>
+      <% retry_order = participant.retryable_ticket.order %>
+      <p class="mb-3 rounded bg-amber-50 p-3 text-sm"> <%= participant.first_name %> <%= participant.last_name %> already has an unpaid <%= link_to "Order #{retry_order.id}", submitted_order_path(retry_order), class: "underline font-semibold" %>. Continue payment there.</p>
+    <% end %>
+    <% if @eligible_participants.any? %>
+      <ul class="divide-y divide-gray-200">
+        <% @eligible_participants.each do |participant| %>
+          <li class="py-3 flex flex-wrap justify-between items-center gap-3">
+            <span><%= link_to "#{participant.first_name} #{participant.last_name}", participant_path(participant), class: "text-brand-blue-800 underline" %></span>
+            <%= button_to "Add ticket", add_participant_order_path(participant_id: participant.uuid), method: :post, class: "btn-secondary" %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-neutral-600">There are no other eligible participants to add right now.</p>
+    <% end %>
+  </section>
+</div>

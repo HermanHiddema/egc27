@@ -17,6 +17,10 @@
 #  fk_rails_...  (participant_id => participants.id)
 #
 class ParticipantTicket < ApplicationRecord
+  def self.display_name
+    "participant ticket"
+  end
+
   belongs_to :participant, inverse_of: :participant_tickets
   has_one :product, as: :productable, dependent: :destroy
   has_one :order, through: :product
@@ -27,7 +31,7 @@ class ParticipantTicket < ApplicationRecord
   after_create :add_to_draft_order!
 
   def valid_admission?
-    invalidated_at.nil? && order&.closed?
+    invalidated_at.nil? && order.present? && !order.cancelled? && order.payments.completed.exists?
   end
 
   def invalidate_admission!

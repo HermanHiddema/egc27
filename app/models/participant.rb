@@ -151,7 +151,8 @@ class Participant < ApplicationRecord
   def can_purchase_ticket?
     return false unless player?
     return false if valid_admission?
-    return false if participant_tickets.joins(product: { order: :payments }).merge(Payment.pending_or_open).exists?
+    return false if participant_tickets.joins(product: { order: :payments })
+      .where(orders: { cancelled_at: nil }).merge(Payment.pending_or_open).exists?
 
     true
   end
@@ -210,14 +211,9 @@ class Participant < ApplicationRecord
   end
 
   # A participant is considered paid once any of their payments has completed.
-  # Uses the in-memory association when it is already loaded (e.g. eager loaded
-  # in the admin list) to avoid an extra query per participant.
+  # Invalidated Tickets and cancelled Orders do not count as paid registrations.
   def paid?
-    if payments.loaded?
-      payments.any?(&:paid?)
-    else
-      payments.completed.exists?
-    end
+    ticket_payments.merge(Payment.completed).exists?
   end
 
   # A participant is considered refunded when a payment has a refund and no
@@ -225,32 +221,24 @@ class Participant < ApplicationRecord
   def refunded?
     return false if registration_paid?
 
-    if payments.loaded?
-      payments.any?(&:refunded?)
-    else
-      payments.refunded.exists?
-    end
+    ticket_payments.merge(Payment.refunded).exists?
   end
 
   # Chargebacks use the same registration status precedence as refunds.
   def charged_back?
     return false if registration_paid?
 
-    if payments.loaded?
-      payments.any?(&:charged_back?)
-    else
-      payments.charged_back.exists?
-    end
+    ticket_payments.merge(Payment.charged_back).exists?
   end
 
   # The most recent payment that completed successfully, if any.
   def paid_payment
-    payments.completed.order(created_at: :desc).first
+    ticket_payments.merge(Payment.completed).order("payments.created_at DESC, payments.id DESC").first
   end
 
   # The most recent payment that is still in progress at the provider, if any.
   def pending_payment
-    payments.pending_or_open.order(created_at: :desc).first
+    ticket_payments.merge(Payment.pending_or_open).order("payments.created_at DESC, payments.id DESC").first
   end
 
   # The payment to show on the payment page comes from the currently selected
@@ -339,11 +327,16 @@ class Participant < ApplicationRecord
   private
 
   def registration_paid?
-    if payments.loaded?
-      payments.any? { |payment| payment.paid? && !payment.refunded? && !payment.charged_back? }
-    else
-      payments.completed.unreversed.exists?
-    end
+    ticket_payments.merge(Payment.completed.unreversed).exists?
+  end
+
+  def ticket_payments
+    Payment.joins(:products)
+      .joins("INNER JOIN participant_tickets ON participant_tickets.id = products.productable_id")
+      .where(products: { productable_type: ParticipantTicket.polymorphic_name })
+      .where(participant_tickets: { participant_id: id, invalidated_at: nil })
+      .where(orders: { cancelled_at: nil })
+      .distinct
   end
 
   def reprice_open_ticket_order

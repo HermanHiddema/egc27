@@ -6,78 +6,14 @@ class PaymentsController < ApplicationController
 
   before_action :load_participant, only: [:new, :create]
   before_action :require_player_participant, only: [:new, :create]
-  before_action :require_confirmed_participant, only: [:create]
   before_action :require_participant_owner, only: [:new, :create]
 
   def new
-    @confirmed = @participant.confirmed?
-    @order = @participant.current_order
-    return unless @confirmed && @order
-    return redirect_to order_path if @order.draft?
-
-    OrderRepricingService.call(order: @order, date: Date.current)
-    @participant.refresh_paid_payments!
-
-    @payment = @participant.current_payment
-    @price_valid_until = @payment.price_valid_until
-    @show_simulation_controls = mollie_simulation_enabled?
+    redirect_to participant_order_path(@participant)
   end
 
   def create
-    @confirmed = @participant.confirmed?
-    @order = @participant.current_order
-    if @order.nil?
-      @participant.add_ticket_to_draft_order!
-      return redirect_to order_path
-    end
-    return redirect_to order_path if @order.draft?
-
-    @participant.refresh_paid_payments!
-    if @participant.participant_tickets.any?(&:valid_admission?)
-      return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE
-    end
-
-    @payment = @participant.pending_payment
-    unless @payment
-      @participant.add_ticket_to_draft_order! unless @participant.draft_ticket || @participant.retryable_ticket
-      @payment = start_new_payment_attempt
-    end
-    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
-
-    if simulate_mollie_payment?
-      @payment.simulate_mollie_status!(params[:simulate_status])
-      return redirect_to success_payments_path(token: @payment.return_token),
-        notice: "Simulated Mollie payment status: #{@payment.status}."
-    end
-
-    checkout_url = @payment.resume_mollie_checkout!
-    return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
-
-    if checkout_url.blank?
-      # A Mollie payment that cannot be completed anymore is replaced by a new
-      # payment attempt, because Mollie owns the state of its own payments.
-      @payment = start_new_payment_attempt if @payment.mollie_payment_id.present?
-      return redirect_to success_payments_path, notice: ALREADY_PAID_NOTICE if @payment.paid?
-      checkout_url = @payment.start_mollie_checkout!(
-        redirect_url: success_payments_url(token: @payment.return_token),
-        webhook_url: webhook_payments_url
-      )
-    end
-
-    redirect_to checkout_url, allow_other_host: true
-  rescue ActiveRecord::RecordInvalid => e
-    if e.record.is_a?(Payment)
-      @payment = e.record
-      @order = @participant.current_order
-      render :new, status: :unprocessable_entity
-    else
-      redirect_to order_path, alert: e.record.errors.full_messages.to_sentence
-    end
-  rescue Mollie::Exception => e
-    discard_unstarted_payment_attempt
-    @order = @participant.current_order
-    flash.now[:alert] = "Payment could not be started: #{e.message}"
-    render :new, status: :unprocessable_entity
+    redirect_to participant_order_path(@participant), notice: "Payments are managed from your Order."
   end
 
   # The payment is looked up by a signed, expiring token handed out only to the
@@ -109,21 +45,17 @@ class PaymentsController < ApplicationController
   end
 
   def require_participant_owner
-    # Unconfirmed registrations reach this page from the public confirmation
-    # flow before they can sign in. The page only asks them to confirm first;
-    # payment creation remains blocked until confirmation.
-    return if action_name == "new" && !@participant.confirmed?
     return authenticate_user! unless user_signed_in?
     return if @participant.user_id == current_user.id
 
     head :not_found
   end
 
-  def require_confirmed_participant
-    unless @participant.confirmed?
-      redirect_to new_participant_payment_path(@participant),
-        alert: "Please confirm your email address before completing payment."
-    end
+  def participant_order_path(participant)
+    order = participant.current_order
+    return order_path if order.nil? || order.draft?
+
+    submitted_order_path(order)
   end
 
   def start_new_payment_attempt

@@ -4,11 +4,12 @@ require "test_helper"
 #
 # Table name: orders
 #
-#  id         :bigint           not null, primary key
-#  status     :string           default("submitted"), not null
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
-#  user_id    :bigint           not null
+#  id           :bigint           not null, primary key
+#  cancelled_at :datetime
+#  status       :string           default("submitted"), not null
+#  created_at   :datetime         not null
+#  updated_at   :datetime         not null
+#  user_id      :bigint           not null
 #
 # Indexes
 #

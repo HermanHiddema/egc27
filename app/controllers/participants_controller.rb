@@ -25,7 +25,8 @@ class ParticipantsController < ApplicationController
   end
 
   def mine
-    participants = current_user.participants.order(last_name: :asc, first_name: :asc, id: :asc).load
+    participants = current_user.participants.includes(participant_tickets: { product: { order: :payments } })
+      .order(last_name: :asc, first_name: :asc, id: :asc).load
 
     if participants.one?
       redirect_to participant_path(participants.first)
@@ -42,6 +43,8 @@ class ParticipantsController < ApplicationController
 
     @personal_details_visible = user_signed_in? && @participant.user_id == current_user.id
     @has_multiple_participants = @personal_details_visible && current_user.participants.count > 1
+    @participant_order = @participant.current_order
+    @participant_payment_pending = @participant_order&.submitted? && @participant_order.payments.pending_or_open.exists?
   end
 
   def edit
@@ -205,11 +208,13 @@ class ParticipantsController < ApplicationController
     }
   end
 
-  # Where to send a participant once their registration is confirmed: players
-  # continue to payment, visitors go to their registration page.
+  # Confirmed players continue through their draft Order; visitors go to their
+  # registration page because they do not need a ticket.
   def registration_next_step_path(participant)
+    return order_path if params[:return_to] == order_path && participant.player?
+
     if participant.player?
-      new_participant_payment_path(participant)
+      order_path
     else
       participant_path(participant)
     end

@@ -1,0 +1,99 @@
+<div class="container-wide py-12">
+  <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+    <div>
+      <p class="text-sm"><%= link_to "Payments", admin_payments_path, class: "text-brand-blue-700 underline" %></p>
+      <h1 class="text-4xl font-bold mt-2">Payment #<%= @payment.id %></h1>
+    </div>
+    <span class="inline-flex rounded px-3 py-1 font-semibold <%= @payment.paid? ? "bg-green-100 text-green-800" : (@payment.unsuccessful? ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-700") %>"><%= @payment.status.humanize %></span>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+    <section class="lg:col-span-2 bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h2 class="text-xl font-semibold mb-4">Payment information</h2>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4 text-sm">
+        <div><dt class="font-semibold text-neutral-700">Amount</dt><dd class="text-neutral-900"><%= @payment.amount_formatted %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Status</dt><dd class="text-neutral-900"><%= @payment.status.humanize %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Provider</dt><dd class="text-neutral-900"><%= @payment.provider_label %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Method</dt><dd class="text-neutral-900"><%= @payment.payment_method_label || "—" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Description</dt><dd class="text-neutral-900"><%= @payment.description %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Payment date</dt><dd class="text-neutral-900"><%= @payment.payment_date ? l(@payment.payment_date, format: :long) : "—" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Created</dt><dd class="text-neutral-900"><%= l(@payment.created_at, format: :long) %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Last updated</dt><dd class="text-neutral-900"><%= l(@payment.updated_at, format: :long) %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Reference</dt><dd class="text-neutral-900"><%= @payment.reference.presence || "—" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Mollie Payment ID</dt><dd class="text-neutral-900 break-all"><%= @payment.mollie_payment_id.presence || "—" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Refunded amount</dt><dd class="text-neutral-900"><%= @payment.amount_refunded_cents.nil? ? "Unknown" : Settlement.format_cents(@payment.amount_refunded_cents) %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Chargeback amount</dt><dd class="text-neutral-900"><%= @payment.amount_charged_back_cents.nil? ? "Unknown" : Settlement.format_cents(@payment.amount_charged_back_cents) %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Confirmation email</dt><dd class="text-neutral-900"><%= @payment.confirmation_sent? ? "Sent" : "Not sent" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Bookkeeping</dt><dd class="text-neutral-900"><%= @payment.processed_in_bookkeeping? ? "Processed" : "Not processed" %></dd></div>
+        <div>
+          <dt class="font-semibold text-neutral-700">Settlement</dt>
+          <dd class="text-neutral-900">
+            <% if @payment.settlement %>
+              <%= link_to @payment.settlement.reference.presence || @payment.settlement.mollie_settlement_id, admin_settlement_path(@payment.settlement), class: "text-brand-blue-700 underline" %>
+            <% else %>
+              —
+            <% end %>
+          </dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h2 class="text-xl font-semibold mb-4">Order and payer</h2>
+      <dl class="space-y-4 text-sm">
+        <div><dt class="font-semibold text-neutral-700">Order</dt><dd><%= link_to "Order ##{@order.id}", admin_order_path(@order), class: "text-brand-blue-700 underline" %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Order total</dt><dd class="text-neutral-900"><%= Settlement.format_cents(@order.total_cents) %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Payer</dt><dd class="text-neutral-900"><%= @order.user.display_name %><br><span class="text-neutral-500"><%= @order.user.email %></span></dd></div>
+      </dl>
+    </section>
+  </div>
+
+  <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mt-6">
+    <h2 class="text-xl font-semibold mb-4">Order products</h2>
+    <ul class="divide-y divide-gray-200">
+      <% @products.each do |product| %>
+        <li class="py-3 flex flex-wrap justify-between gap-3">
+          <div>
+            <% if product.productable.is_a?(ParticipantTicket) %>
+              <% participant = product.productable.participant %>
+              <%= link_to "#{participant.first_name} #{participant.last_name}", admin_participant_path(participant), class: "font-semibold text-brand-blue-700 underline" %>
+              <p class="text-sm text-neutral-600">Participant ticket</p>
+            <% else %>
+              <%= product.productable.description %>
+              <p class="text-sm text-neutral-600"><%= hostel_booking_options(product.productable) %></p>
+            <% end %>
+          </div>
+          <span class="whitespace-nowrap font-medium"><%= Settlement.format_cents(product.price_cents) %></span>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+
+  <% if @refunds.any? %>
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mt-6">
+      <h2 class="text-xl font-semibold mb-4">Refund records</h2>
+      <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead><tr><th class="px-3 py-2 text-left">Date</th><th class="px-3 py-2 text-left">Mollie refund ID</th><th class="px-3 py-2 text-left">Status</th><th class="px-3 py-2 text-right">Amount</th><th class="px-3 py-2 text-left">Description</th><th class="px-3 py-2 text-left">Settlement</th></tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @refunds.each do |refund| %>
+            <tr><td class="px-3 py-2"><%= l(refund.mollie_created_at || refund.created_at, format: :long) %></td><td class="px-3 py-2"><%= refund.mollie_refund_id %></td><td class="px-3 py-2"><%= refund.status.presence&.humanize || "—" %></td><td class="px-3 py-2 text-right"><%= refund.amount_cents ? Settlement.format_cents(refund.amount_cents) : "—" %></td><td class="px-3 py-2"><%= refund.description.presence || "—" %></td><td class="px-3 py-2"><%= link_to refund.settlement.reference.presence || refund.settlement.mollie_settlement_id, admin_settlement_path(refund.settlement), class: "text-brand-blue-700 underline" %></td></tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    </section>
+  <% end %>
+
+  <% if @chargebacks.any? %>
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mt-6">
+      <h2 class="text-xl font-semibold mb-4">Chargeback records</h2>
+      <div class="overflow-x-auto"><table class="min-w-full divide-y divide-gray-200 text-sm">
+        <thead><tr><th class="px-3 py-2 text-left">Date</th><th class="px-3 py-2 text-left">Mollie chargeback ID</th><th class="px-3 py-2 text-right">Amount</th><th class="px-3 py-2 text-right">Settlement amount</th><th class="px-3 py-2 text-left">Reversed at</th><th class="px-3 py-2 text-left">Settlement</th></tr></thead>
+        <tbody class="divide-y divide-gray-100">
+          <% @chargebacks.each do |chargeback| %>
+            <tr><td class="px-3 py-2"><%= l(chargeback.mollie_created_at || chargeback.created_at, format: :long) %></td><td class="px-3 py-2"><%= chargeback.mollie_chargeback_id %></td><td class="px-3 py-2 text-right"><%= chargeback.amount_cents ? Settlement.format_cents(chargeback.amount_cents) : "—" %></td><td class="px-3 py-2 text-right"><%= chargeback.settlement_amount_cents ? Settlement.format_cents(chargeback.settlement_amount_cents) : "—" %></td><td class="px-3 py-2"><%= chargeback.reversed_at ? l(chargeback.reversed_at, format: :long) : "—" %></td><td class="px-3 py-2"><%= link_to chargeback.settlement.reference.presence || chargeback.settlement.mollie_settlement_id, admin_settlement_path(chargeback.settlement), class: "text-brand-blue-700 underline" %></td></tr>
+          <% end %>
+        </tbody>
+      </table></div>
+    </section>
+  <% end %>
+</div>
