@@ -40,9 +40,10 @@ module ApplicationHelper
 
   def order_payment_status_class(order)
     return "border border-gray-200 bg-gray-100 text-gray-700" if order.cancelled?
-    return "border border-green-200 bg-green-50 text-green-800" if order.payments.completed.exists?
-    return "border border-gray-200 bg-gray-100 text-gray-700" if order.payments.pending_or_open.exists?
-    return "border border-red-200 bg-red-50 text-red-800" if order.payments.exists?
+    payments = order.payments.to_a
+    return "border border-green-200 bg-green-50 text-green-800" if payments.any?(&:paid?)
+    return "border border-gray-200 bg-gray-100 text-gray-700" if payments.any? { |payment| payment.status.in?(%w[open pending authorized]) }
+    return "border border-red-200 bg-red-50 text-red-800" if payments.any?
 
     "border border-blue-200 bg-blue-50 text-blue-800"
   end
