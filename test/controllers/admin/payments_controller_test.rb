@@ -444,6 +444,48 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: payment.amount_formatted
   end
 
+  test "payments overview sorts each supported column in both directions" do
+    sign_in users(:admin)
+    all_payments = Payment.includes(order: :user).to_a
+    sort_values = {
+      "id" => ->(payment) { payment.id },
+      "order_id" => ->(payment) { payment.order_id },
+      "amount" => ->(payment) { payment.amount_cents },
+      "payer" => ->(payment) { payment.order.user.full_name.presence || payment.order.user.email },
+      "date" => ->(payment) { payment.payment_date || payment.created_at.to_date }
+    }
+
+    sort_values.each do |sort, value|
+      %w[asc desc].each do |direction|
+        expected = all_payments.sort do |left, right|
+          comparison = value.call(left) <=> value.call(right)
+          comparison *= -1 if direction == "desc"
+          comparison.zero? ? right.id <=> left.id : comparison
+        end
+
+        get admin_payments_path, params: { sort: sort, direction: direction }
+
+        assert_response :success
+        assert_select "tbody tr td:first-child a" do |links|
+          assert_equal expected.map { |payment| "##{payment.id}" }, links.map(&:text), "#{sort} #{direction}"
+        end
+      end
+    end
+  end
+
+  test "payments overview ignores SQL fragments in sorting parameters" do
+    sign_in users(:admin)
+    get admin_payments_path
+    default_order = css_select("tbody tr td:first-child a").map(&:text)
+
+    get admin_payments_path, params: { sort: "payments.id; DROP TABLE payments", direction: "asc; DROP TABLE users" }
+
+    assert_response :success
+    assert_select "tbody tr td:first-child a" do |links|
+      assert_equal default_order, links.map(&:text)
+    end
+  end
+
   test "admin sees charged-back payments in the overview" do
     sign_in users(:admin)
     payment = payments(:paid_payment)

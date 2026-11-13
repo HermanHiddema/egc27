@@ -27,14 +27,15 @@ class Admin::PaymentsController < ApplicationController
     payments = payments.where(payment_method: @method_filter) if @method_filter.present? && @method_filter != "blank"
 
     order_expression = case @sort
-    when "id" then "payments.id"
-    when "order_id" then "orders.id"
-    when "amount" then "payments.amount_cents"
-    when "payer" then "COALESCE(NULLIF(users.full_name, ''), users.email)"
-    else "COALESCE(payments.payment_date, payments.created_at::date)"
+    when "id" then Payment.arel_table[:id]
+    when "order_id" then Order.arel_table[:id]
+    when "amount" then Payment.arel_table[:amount_cents]
+    when "payer" then Arel.sql("COALESCE(NULLIF(users.full_name, ''), users.email)")
+    else Arel.sql("COALESCE(payments.payment_date, payments.created_at::date)")
     end
+    ordering = @direction == :asc ? order_expression.asc : order_expression.desc
     @payments = payments.joins(order: :user)
-      .order(Arel.sql("#{order_expression} #{@direction.to_s.upcase} NULLS LAST, payments.id DESC"))
+      .order(ordering.nulls_last, Payment.arel_table[:id].desc)
     @unprocessed_count = Payment.for_bookkeeping.unprocessed.count
   end
 
