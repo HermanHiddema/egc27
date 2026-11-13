@@ -72,6 +72,8 @@ class OrdersController < ApplicationController
     end
 
     updated = @order.with_lock do
+      return redirect_to submitted_order_path(@order), alert: "Only tickets in your shopping basket can be edited." unless @order.editable?
+
       participant.update(attrs).tap do |saved|
         OrderRepricingService.call(order: @order, date: Date.current) if saved
       end
