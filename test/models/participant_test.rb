@@ -594,6 +594,22 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal "Chargeback", participant.registration_status
   end
 
+  test "preloaded registration statuses use eligible ticket payments without queries" do
+    payments(:open_payment).update_columns(status: "paid", amount_refunded_cents: 1_000)
+    participants(:two).participant_tickets.sole.update_columns(invalidated_at: Time.current)
+    orders(:four).update_columns(cancelled_at: Time.current)
+
+    expected = Participant.includes(:user).index_by(&:id).transform_values(&:registration_status)
+    loaded = Participant.includes(:user, participant_tickets: { product: { order: :payments } }).to_a
+
+    assert_equal "Refund", expected.fetch(participants(:one).id)
+    assert_equal "Confirmed", expected.fetch(participants(:two).id)
+    assert_equal "Confirmed", expected.fetch(participants(:four).id)
+    assert_no_queries do
+      loaded.each { |participant| assert_equal expected.fetch(participant.id), participant.registration_status }
+    end
+  end
+
   test "not_refunded excludes participants with a charged-back payment" do
     participant = participants(:two)
     participant.payments.update_all(status: "paid", amount_charged_back_cents: 5_000)

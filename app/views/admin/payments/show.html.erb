@@ -56,7 +56,7 @@
           <div>
             <% if product.productable.is_a?(ParticipantTicket) %>
               <% participant = product.productable.participant %>
-              <%= link_to "#{participant.first_name} #{participant.last_name}", admin_participant_path(participant), class: "font-semibold text-brand-blue-700 underline" %>
+              <%= link_to "#{participant.first_name} #{participant.last_name}", edit_admin_participant_path(participant), class: "font-semibold text-brand-blue-700 underline" %>
               <p class="text-sm text-neutral-600">Participant ticket</p>
             <% else %>
               <%= product.productable.description %>

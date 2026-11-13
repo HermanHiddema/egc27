@@ -26,6 +26,10 @@ class ParticipantTicket < ApplicationRecord
   has_one :order, through: :product
   has_many :payments, through: :order
 
+  scope :eligible_for_registration_status, -> {
+    joins(product: :order).where(invalidated_at: nil, orders: { cancelled_at: nil })
+  }
+
   validate :participant_is_player, on: :create
 
   after_create :add_to_draft_order!

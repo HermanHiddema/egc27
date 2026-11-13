@@ -81,8 +81,8 @@ class Participant < ApplicationRecord
   scope :confirmed, -> { joins(:user).where.not(users: { confirmed_at: nil }) }
 
   scope :not_refunded, -> {
-    paid_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.completed.unreversed).select(:participant_id)
-    reversed_ids = ParticipantTicket.joins(product: { order: :payments }).merge(Payment.reversed).select(:participant_id)
+    paid_ids = ParticipantTicket.eligible_for_registration_status.joins(product: { order: :payments }).merge(Payment.completed.unreversed).select(:participant_id)
+    reversed_ids = ParticipantTicket.eligible_for_registration_status.joins(product: { order: :payments }).merge(Payment.reversed).select(:participant_id)
     where.not(id: reversed_ids).or(where(id: paid_ids))
   }
 
@@ -297,9 +297,10 @@ class Participant < ApplicationRecord
 
   # High-level registration status used in the admin participant list.
   def registration_status
-    return "Paid" if registration_paid?
-    return "Chargeback" if charged_back?
-    return "Refund" if refunded?
+    eligible_payments = preloaded_registration_payments || ticket_payments.to_a
+    return "Paid" if eligible_payments.any? { |payment| payment.paid? && !payment.refunded? && !payment.charged_back? }
+    return "Chargeback" if eligible_payments.any?(&:charged_back?)
+    return "Refund" if eligible_payments.any?(&:refunded?)
     return "Confirmed" if confirmed?
 
     "Pending"
@@ -325,6 +326,29 @@ class Participant < ApplicationRecord
   end
 
   private
+
+  # Use the nested preload only when every association needed to filter the
+  # ticket and Order is loaded; the generic payments association includes history.
+  def preloaded_registration_payments
+    return unless association(:participant_tickets).loaded?
+
+    eligible_payments = []
+    participant_tickets.each do |ticket|
+      next if ticket.invalidated_at.present?
+      return unless ticket.association(:product).loaded?
+
+      product = ticket.product
+      next unless product
+      return unless product.association(:order).loaded?
+
+      order = product.order
+      next if order.cancelled?
+      return unless order.association(:payments).loaded?
+
+      eligible_payments.concat(order.payments)
+    end
+    eligible_payments
+  end
 
   def registration_paid?
     ticket_payments.merge(Payment.completed.unreversed).exists?
