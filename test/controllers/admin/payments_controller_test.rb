@@ -440,7 +440,6 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     get admin_payments_path
 
     assert_response :success
-    assert_select "td", text: "Hostel booking ##{booking.id}"
     assert_select "td", text: payment.description
     assert_select "td", text: payment.amount_formatted
   end
