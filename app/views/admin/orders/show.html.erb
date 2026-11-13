@@ -10,7 +10,7 @@
   <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
     <h2 class="text-xl font-semibold mb-4">Order information</h2>
     <dl class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-      <div><dt class="font-semibold text-neutral-700">Submitted</dt><dd class="text-neutral-900"><%= l(@order.created_at, format: :long) %></dd></div>
+      <div><dt class="font-semibold text-neutral-700">Created</dt><dd class="text-neutral-900"><%= l(@order.created_at, format: :long) %></dd></div>
       <div><dt class="font-semibold text-neutral-700">Payer</dt><dd class="text-neutral-900"><%= @order.user.display_name %><br><span class="text-neutral-500"><%= @order.user.email %></span></dd></div>
       <div><dt class="font-semibold text-neutral-700">Order total</dt><dd class="text-neutral-900"><%= Settlement.format_cents(@order.total_cents) %></dd></div>
       <div><dt class="font-semibold text-neutral-700">Cancelled at</dt><dd class="text-neutral-900"><%= @order.cancelled_at ? l(@order.cancelled_at, format: :long) : "—" %></dd></div>

@@ -114,6 +114,20 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_not_equal old_price, ticket.product.reload.price_cents
   end
 
+  test "ticket country editing uses the country autocomplete and submits its ISO code" do
+    sign_in users(:one)
+    participant = create_player_for(users(:one))
+    ticket = participant.draft_ticket
+
+    get edit_product_order_path(product_id: ticket.product.id)
+
+    assert_response :success
+    assert_select 'form[data-controller="egd-autocomplete"]'
+    assert_select 'input[type="hidden"][name="participant[country]"][value="NL"]'
+    assert_select 'input#order_participant_country_display[role="combobox"]'
+    assert_select '[data-egd-autocomplete-target="countryOptions"]'
+  end
+
   test "a price change requires checkout confirmation before submission" do
     sign_in users(:one)
     order = users(:one).draft_order!
@@ -155,6 +169,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_select "h1", "Past Orders"
+    assert_select "p", text: /Created/
     assert_select "a", text: "Order #{orders(:one).id}"
 
     get submitted_order_path(orders(:one))

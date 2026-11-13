@@ -90,15 +90,31 @@ class Order < ApplicationRecord
     Product.where(order_id: id).sum(:price_cents)
   end
 
+  def display_total_cents
+    return products.to_a.sum { |product| product.price_cents.to_i } if association(:products).loaded?
+
+    total_cents
+  end
+
   def products_for_display
-    products.includes(:productable).sort_by do |product|
+    product_records = products.to_a
+    if product_records.any? { |product| !product.association(:productable).loaded? }
+      ActiveRecord::Associations::Preloader.new(records: product_records, associations: :productable).call
+    end
+    product_records.sort_by do |product|
       type_order = product.productable.is_a?(ParticipantTicket) ? 0 : 1
       [type_order, product.created_at, product.id]
     end
   end
 
   def cancellable?
-    submitted? && !cancelled? && !payments.completed.exists? && !payments.pending_or_open.exists?
+    return false unless submitted? && !cancelled?
+
+    if association(:payments).loaded?
+      payments.none?(&:paid?) && payments.none? { |payment| payment.status.in?(%w[open pending authorized]) }
+    else
+      !payments.completed.exists? && !payments.pending_or_open.exists?
+    end
   end
 
   def cancel!
@@ -131,6 +147,15 @@ class Order < ApplicationRecord
 
   # Open Mollie checkouts can be resumed; other active payments must finish first.
   def payment_action
+    if association(:payments).loaded?
+      payment_records = payments.to_a
+      return :closed if cancelled? || payment_records.any?(&:paid?)
+      return :pending if payment_records.any? { |payment| payment.status.in?(%w[pending authorized]) || (payment.status == "open" && payment.provider != "mollie") }
+      return :resume if payment_records.any? { |payment| payment.status == "open" && payment.provider == "mollie" }
+
+      return payment_records.any? ? :retry : :pay
+    end
+
     return :closed if closed?
     return :pending if payments.where(status: %w[pending authorized]).exists? || payments.where(status: "open").where.not(provider: "mollie").exists?
     return :resume if payments.where(status: "open", provider: "mollie").exists?

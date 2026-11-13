@@ -14,7 +14,7 @@ module ApplicationHelper
   def order_payment_status(order)
     return "Order canceled" if order.cancelled?
 
-    payments = order.payments.order(created_at: :desc, id: :desc).to_a
+    payments = order.payments.to_a.sort_by { |payment| [payment.created_at, payment.id] }.reverse
     paid = payments.find(&:paid?)
     if paid
       return "Paid — chargeback" if paid.charged_back?

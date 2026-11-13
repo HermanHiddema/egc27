@@ -13,7 +13,7 @@
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_15rem] sm:items-start">
             <div class="min-w-0">
               <h2 class="text-xl font-semibold"><%= link_to "Order #{order.id}", submitted_order_path(order), class: "text-brand-blue-800 hover:underline" %></h2>
-              <p class="text-sm text-neutral-600">Submitted <%= l(order.created_at.to_date, format: :long) %></p>
+              <p class="text-sm text-neutral-600">Created <%= l(order.created_at.to_date, format: :long) %></p>
               <ul class="mt-3 min-w-0 text-sm text-neutral-700 list-disc list-inside">
                 <% products.each do |product| %>
                   <% summary = product.productable.is_a?(ParticipantTicket) ? "Ticket: #{product.productable.participant.first_name} #{product.productable.participant.last_name}" : "#{product.productable.description} · #{hostel_booking_options(product.productable)}" %>
@@ -24,7 +24,7 @@
             <div class="min-w-0 text-left sm:text-right">
               <p class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></p>
               <% if order.cancelled_at %><p class="mt-1 text-sm text-neutral-600">Cancelled <%= l(order.cancelled_at, format: :long) %></p><% end %>
-              <p class="text-lg font-bold mt-1">€ <%= format("%.2f", order.total_cents / 100.0) %></p>
+              <p class="text-lg font-bold mt-1">€ <%= format("%.2f", order.display_total_cents / 100.0) %></p>
               <% if @orders_with_changed_totals.include?(order.id) %>
                 <p class="mt-1 text-sm text-amber-800">The total has changed since the last payment attempt. The updated total is shown.</p>
               <% end %>

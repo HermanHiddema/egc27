@@ -117,6 +117,58 @@ class OrderTest < ActiveSupport::TestCase
     assert_equal 20_345, order.reload.total_cents
     assert_equal order.total_cents, order.amount_cents
   end
+
+  test "display totals use preloaded products without weakening the persisted total" do
+    order = Order.includes(:products).find(orders(:three).id)
+    original_total = order.products.sum(&:price_cents)
+
+    assert_no_queries { assert_equal original_total, order.display_total_cents }
+
+    updated_total = original_total + 100
+    Product.where(order_id: order.id).update_all(price_cents: updated_total)
+    assert_equal updated_total, order.total_cents
+  end
+
+  test "preloaded payments supply the displayed order status and action without queries" do
+    order = Order.includes(:payments).find(orders(:one).id)
+
+    assert_no_queries do
+      assert_equal :resume, order.payment_action
+      assert_not order.cancellable?
+      assert_equal "Payment open", ApplicationController.helpers.order_payment_status(order)
+    end
+  end
+
+  test "canceling an unpaid order after unsuccessful attempts preserves history and allows a replacement ticket" do
+    order = orders(:three)
+    ticket = participant_tickets(:three)
+    payment = order.payments.create!(status: "failed", amount_cents: order.total_cents, description: "Failed attempt")
+
+    order.cancel!
+
+    assert order.reload.cancelled?
+    assert ticket.reload.invalidated_at
+    assert_equal payment, order.payments.reload.sole
+
+    replacement = participants(:three).add_ticket_to_draft_order!
+    assert_not_equal ticket, replacement
+    assert replacement.order.draft?
+  end
+
+  test "paid and in-progress orders cannot be cancelled" do
+    [orders(:one), orders(:two)].each do |order|
+      assert_raises(ActiveRecord::RecordInvalid) { order.cancel! }
+      assert_not order.reload.cancelled?
+    end
+
+    in_progress_order = orders(:three)
+    in_progress_order.payments.create!(
+      status: "pending", amount_cents: in_progress_order.total_cents, description: "Pending attempt"
+    )
+    assert_raises(ActiveRecord::RecordInvalid) { in_progress_order.cancel! }
+    assert_not in_progress_order.reload.cancelled?
+  end
+
   test "removing a draft registration preserves the user's persistent draft order" do
     participant = participants(:three).dup
     participant.egd_pin = nil

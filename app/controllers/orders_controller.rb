@@ -261,14 +261,32 @@ class OrdersController < ApplicationController
   end
 
   def reprice_orders_for_display(orders)
-    orders.filter_map do |order|
-      next if order.closed? || order.payments.pending_or_open.exists?
+    last_payment_amounts = {}
+    orders.each do |order|
+      payments = order.payments.to_a
+      next if order.cancelled? || payments.any?(&:paid?) ||
+        payments.any? { |payment| payment.status.in?(%w[open pending authorized]) }
 
-      last_payment = order.payments.order(created_at: :desc, id: :desc).first
+      last_payment = payments.max_by { |payment| [payment.created_at, payment.id] }
+      next unless last_payment
+
       OrderRepricingService.call(order:, date: Date.current)
       order.association(:products).reset
-      order.id if last_payment && last_payment.amount_cents != order.total_cents
+      order.association(:payments).reset
+      last_payment_amounts[order.id] = last_payment.amount_cents
     end
+
+    preload_order_display_associations(orders)
+    orders.filter_map { |order| order.id if last_payment_amounts[order.id] && last_payment_amounts[order.id] != order.display_total_cents }
+  end
+
+  def preload_order_display_associations(orders)
+    ActiveRecord::Associations::Preloader.new(records: orders, associations: [:payments, :products]).call
+    products = orders.flat_map { |order| order.products.to_a }
+    ActiveRecord::Associations::Preloader.new(records: products, associations: :productable).call
+
+    tickets = products.filter_map { |product| product.productable if product.productable.is_a?(ParticipantTicket) }
+    ActiveRecord::Associations::Preloader.new(records: tickets, associations: :participant).call if tickets.any?
   end
 
   def create_payment_for_order!

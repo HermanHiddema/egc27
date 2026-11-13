@@ -4,7 +4,7 @@
     <div>
       <p class="text-sm"><%= link_to "Past Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %></p>
       <h1 class="text-4xl font-bold mt-2">Order <%= @order.id %></h1>
-      <p class="mt-2 text-neutral-600">Submitted <%= l(@order.created_at.to_date, format: :long) %></p>
+      <p class="mt-2 text-neutral-600">Created <%= l(@order.created_at.to_date, format: :long) %></p>
       <% if @order.cancelled_at %><p class="mt-1 text-neutral-600">Cancelled <%= l(@order.cancelled_at, format: :long) %></p><% end %>
     </div>
     <span class="rounded-full px-4 py-2 font-semibold <%= order_payment_status_class(@order) %>"><%= order_payment_status(@order) %></span>
@@ -16,23 +16,23 @@
       <ul class="divide-y divide-gray-200">
         <% @products.each do |product| %>
           <li class="py-4 flex justify-between gap-4">
-            <div>
+            <div class="min-w-0 flex-1">
               <% case product.productable %>
               <% when ParticipantTicket %>
                 <% participant = product.productable.participant %>
-                <%= link_to "#{participant.first_name} #{participant.last_name}", participant_path(participant), class: "font-semibold text-brand-blue-800 hover:underline" %>
-                <p class="text-sm text-neutral-600">Participant ticket · <%= CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label %></p>
+                <%= link_to "#{participant.first_name} #{participant.last_name}", participant_path(participant), class: "block truncate font-semibold text-brand-blue-800 hover:underline", title: "#{participant.first_name} #{participant.last_name}" %>
+                <p class="truncate text-sm text-neutral-600">Participant ticket · <%= CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label %></p>
               <% when HostelBooking %>
-                <%= link_to "Hostel booking · #{eu_date_range(product.productable.arrival_date, product.productable.departure_date)}", hostel_booking_path(product.productable), class: "font-semibold text-brand-blue-800 hover:underline" %>
-                <p class="text-sm text-neutral-700"><%= product.productable.description %></p>
-                <p class="text-sm text-neutral-600"><%= product.productable.nights %> nights · <%= hostel_booking_options(product.productable) %></p>
+                <%= link_to "Hostel booking · #{eu_date_range(product.productable.arrival_date, product.productable.departure_date)}", hostel_booking_path(product.productable), class: "block truncate font-semibold text-brand-blue-800 hover:underline" %>
+                <p class="truncate text-sm text-neutral-700"><%= product.productable.description %></p>
+                <p class="truncate text-sm text-neutral-600"><%= product.productable.nights %> nights · <%= hostel_booking_options(product.productable) %></p>
               <% end %>
             </div>
-            <span class="whitespace-nowrap font-medium">€ <%= format("%.2f", product.price_cents / 100.0) %></span>
+            <span class="shrink-0 whitespace-nowrap font-medium">€ <%= format("%.2f", product.price_cents / 100.0) %></span>
           </li>
         <% end %>
       </ul>
-      <div class="flex justify-between border-t border-gray-200 pt-4 text-lg font-bold"><span>Order total</span><span>€ <%= format("%.2f", @order.total_cents / 100.0) %></span></div>
+      <div class="flex justify-between border-t border-gray-200 pt-4 text-lg font-bold"><span>Order total</span><span>€ <%= format("%.2f", @order.display_total_cents / 100.0) %></span></div>
       <% if @total_changed_since_last_payment_attempt %>
         <p class="mt-2 text-sm text-amber-800">The total has changed since the last payment attempt. The updated total is shown.</p>
       <% end %>

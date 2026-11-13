@@ -11,6 +11,7 @@ class Admin::OrdersController < ApplicationController
     @status_filters = requested_statuses.select { |status| STATUS_FILTERS.include?(status) }.uniq
 
     orders = Order.submitted.includes(:user, :products, :payments).to_a
+    preload_order_display_associations(orders)
     orders.select! { |order| @status_filters.include?(status_filter_key(order)) } if @status_filters.any?
     @orders = sort_orders(orders)
   end
@@ -36,6 +37,14 @@ class Admin::OrdersController < ApplicationController
 
   private
 
+  def preload_order_display_associations(orders)
+    products = orders.flat_map { |order| order.products.to_a }
+    ActiveRecord::Associations::Preloader.new(records: products, associations: :productable).call
+
+    tickets = products.filter_map { |product| product.productable if product.productable.is_a?(ParticipantTicket) }
+    ActiveRecord::Associations::Preloader.new(records: tickets, associations: :participant).call if tickets.any?
+  end
+
   def status_filter_key(order)
     return "order_cancelled" if order.cancelled?
 
@@ -53,7 +62,7 @@ class Admin::OrdersController < ApplicationController
       when "order_id" then order.id
       when "user" then order.user.display_name.to_s.downcase
       when "cancelled_at" then order.cancelled_at
-      when "total" then order.products.sum { |product| product.price_cents.to_i }
+      when "total" then order.display_total_cents
       else order.created_at
       end
       [order, value]

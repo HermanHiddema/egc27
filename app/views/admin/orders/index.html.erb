@@ -37,7 +37,7 @@
           <thead class="bg-neutral-50">
             <tr>
               <% filters = { status: @status_filters.presence } %>
-              <% { "Order" => "order_id", "Submitted" => "submitted", "User" => "user" }.each do |label, column| %>
+              <% { "Order" => "order_id", "Created" => "submitted", "User" => "user" }.each do |label, column| %>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                   <%= link_to "#{label} #{sort_indicator(column, @sort, @direction)}".strip, admin_orders_path(**filters, sort: column, direction: next_sort_direction(column, @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
                 </th>
@@ -69,7 +69,7 @@
                     <% end %>
                   </ul>
                 </td>
-                <td class="px-4 py-3 text-sm text-right text-neutral-900 whitespace-nowrap">€ <%= format("%.2f", order.total_cents / 100.0) %></td>
+                <td class="px-4 py-3 text-sm text-right text-neutral-900 whitespace-nowrap">€ <%= format("%.2f", order.display_total_cents / 100.0) %></td>
                 <td class="px-4 py-3 text-sm whitespace-nowrap"><span class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></span></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= order.cancelled_at ? eu_compact_datetime(order.cancelled_at) : "—" %></td>
                 <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
