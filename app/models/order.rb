@@ -129,6 +129,15 @@ class Order < ApplicationRecord
     cancelled? || payments.completed.exists?
   end
 
+  # Open Mollie checkouts can be resumed; other active payments must finish first.
+  def payment_action
+    return :closed if closed?
+    return :pending if payments.where(status: %w[pending authorized]).exists? || payments.where(status: "open").where.not(provider: "mollie").exists?
+    return :resume if payments.where(status: "open", provider: "mollie").exists?
+
+    payments.exists? ? :retry : :pay
+  end
+
   private
 
   def draft_is_unique_for_user

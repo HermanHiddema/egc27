@@ -27,6 +27,8 @@ module ApplicationHelper
       return "Paid"
     end
 
+    return "Payment open" if order.payment_action == :resume
+
     active = payments.find { |payment| !payment.unsuccessful? }
     return "Payment pending" if active
 
@@ -43,6 +45,10 @@ module ApplicationHelper
     return "border border-red-200 bg-red-50 text-red-800" if order.payments.exists?
 
     "border border-blue-200 bg-blue-50 text-blue-800"
+  end
+
+  def order_payment_action_label(action, first_payment: "Pay now")
+    { pay: first_payment, retry: "Retry payment", resume: "Continue payment" }[action]
   end
 
   def hostel_booking_options(booking)

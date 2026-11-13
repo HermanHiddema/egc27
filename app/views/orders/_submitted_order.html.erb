@@ -33,6 +33,9 @@
         <% end %>
       </ul>
       <div class="flex justify-between border-t border-gray-200 pt-4 text-lg font-bold"><span>Order total</span><span>€ <%= format("%.2f", @order.total_cents / 100.0) %></span></div>
+      <% if @total_changed_since_last_payment_attempt %>
+        <p class="mt-2 text-sm text-amber-800">The total has changed since the last payment attempt. The updated total is shown.</p>
+      <% end %>
     </section>
 
     <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
@@ -51,12 +54,13 @@
       <% else %>
         <p class="text-neutral-600">No payment attempts have been made.</p>
       <% end %>
-      <% if !@order.closed? && !@order.payments.pending_or_open.exists? %>
-        <%= button_to(@payments.any? ? "Retry payment" : "Proceed to payment", pay_submitted_order_path(@order), method: :post, class: "w-full btn-primary mt-5", data: { turbo: false }) %>
+      <% payment_action = @order.payment_action %>
+      <% if payment_action.in?([:pay, :retry, :resume]) %>
+        <%= button_to order_payment_action_label(payment_action, first_payment: "Proceed to payment"), pay_submitted_order_path(@order), method: :post, params: { confirmed_total_cents: @order.total_cents }, class: "w-full btn-primary mt-5", data: { turbo: false } %>
         <% if @show_simulation_controls %>
-          <%= render "simulation_controls", url: pay_submitted_order_path(@order), request_params: {} %>
+          <%= render "simulation_controls", url: pay_submitted_order_path(@order), request_params: { confirmed_total_cents: @order.total_cents } %>
         <% end %>
-      <% elsif @order.payments.pending_or_open.exists? %>
+      <% elsif payment_action == :pending %>
         <p class="mt-5 rounded bg-amber-50 p-3 text-sm text-amber-900">A payment is in progress. You can check back here for its status.</p>
       <% end %>
     </section>

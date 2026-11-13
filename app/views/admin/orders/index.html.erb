@@ -5,7 +5,7 @@
   </div>
 
   <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
-    <% status_options = [["Awaiting payment", "awaiting"], ["Payment pending", "pending"], ["Paid", "paid"], ["Payment failed", "failed"], ["Payment canceled", "canceled"], ["Payment expired", "expired"], ["Order canceled", "order_cancelled"]] %>
+    <% status_options = [["Awaiting payment", "awaiting"], ["Payment open / pending", "pending"], ["Paid", "paid"], ["Payment failed", "failed"], ["Payment canceled", "canceled"], ["Payment expired", "expired"], ["Order canceled", "order_cancelled"]] %>
     <%= form_with url: admin_orders_path, method: :get, local: true do %>
       <details class="relative inline-block">
         <summary class="flex cursor-pointer list-none items-center gap-3 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">

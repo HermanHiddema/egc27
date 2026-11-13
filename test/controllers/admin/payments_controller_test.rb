@@ -459,6 +459,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
       %w[asc desc].each do |direction|
         expected = all_payments.sort do |left, right|
           comparison = value.call(left) <=> value.call(right)
+          comparison = left.created_at <=> right.created_at if comparison.zero? && sort == "date"
           comparison *= -1 if direction == "desc"
           comparison.zero? ? right.id <=> left.id : comparison
         end

@@ -9,7 +9,13 @@
           You will receive a confirmation email shortly.
         </p>
       </div>
-    <% elsif @payment&.status.in?(%w[open pending authorized]) %>
+    <% elsif @payment&.status == "open" %>
+      <div class="bg-brand-yellow-50 border border-brand-yellow-200 rounded-lg p-8 shadow-sm mb-6">
+        <h1 class="text-3xl font-bold text-brand-yellow-900 mb-2">Payment Open</h1>
+        <p class="text-brand-yellow-800 mb-4">Your payment has not been completed. You can continue it from your Order.</p>
+        <%= link_to "Continue payment", submitted_order_path(@payment.order), class: "btn-primary" %>
+      </div>
+    <% elsif @payment&.status.in?(%w[pending authorized]) %>
       <div class="bg-brand-yellow-50 border border-brand-yellow-200 rounded-lg p-8 shadow-sm mb-6">
         <div class="text-5xl mb-4">⏳</div>
         <h1 class="text-3xl font-bold text-brand-yellow-900 mb-2">Payment Pending</h1>

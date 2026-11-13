@@ -10,7 +10,8 @@ class OrdersController < ApplicationController
   end
 
   def index
-    @orders = current_user.orders.submitted.includes(:products, :payments).order(created_at: :desc, id: :desc)
+    @orders = current_user.orders.submitted.includes(:payments, products: :productable).order(created_at: :desc, id: :desc).to_a
+    @orders_with_changed_totals = reprice_orders_for_display(@orders)
     @show_simulation_controls = mollie_simulation_enabled?
   end
 
@@ -25,10 +26,11 @@ class OrdersController < ApplicationController
   end
 
   def show_submitted
+    @total_changed_since_last_payment_attempt = reprice_orders_for_display([@order]).include?(@order.id)
     @products = @order.products_for_display
     @latest_payment = @order.payments.order(created_at: :desc, id: :desc).first
     @payments = @order.payments.order(created_at: :desc, id: :desc)
-    @show_simulation_controls = mollie_simulation_enabled? && !@order.closed? && !active_payment?
+    @show_simulation_controls = mollie_simulation_enabled? && @order.payment_action.in?([:pay, :retry])
     render :show
   end
 
@@ -146,10 +148,23 @@ class OrdersController < ApplicationController
   end
 
   def pay_submitted
-    return redirect_to submitted_order_path(@order), notice: "Your payment is already being processed." if active_payment?
-    return simulate_order_payment! if simulate_mollie_payment?
-
-    start_checkout
+    @order.with_lock do
+      action = @order.payment_action
+      if action == :closed
+        redirect_to submitted_order_path(@order), notice: "This Order is closed."
+      elsif action == :pending
+        redirect_to submitted_order_path(@order), notice: "Your payment is already being processed."
+      else
+        OrderRepricingService.call(order: @order, date: Date.current) unless action == :resume
+        if action != :resume && (params[:confirmed_total_cents].blank? || params[:confirmed_total_cents].to_i != @order.total_cents)
+          redirect_to submitted_order_path(@order), alert: "The Order total has changed. Please review the updated total before paying."
+        elsif simulate_mollie_payment? && action != :resume
+          simulate_order_payment!
+        else
+          start_checkout
+        end
+      end
+    end
   rescue ActiveRecord::RecordInvalid => e
     redirect_to submitted_order_path(@order), alert: e.record.errors.full_messages.to_sentence
   rescue Mollie::Exception => e
@@ -185,46 +200,46 @@ class OrdersController < ApplicationController
   end
 
   def start_checkout
-    if @order.closed?
-      redirect_to submitted_order_path(@order), notice: "This order has already been paid."
-      return
-    end
+    @order.with_lock do
+      if @order.closed?
+        next redirect_to submitted_order_path(@order), notice: "This Order is closed."
+      end
 
-    payment = @order.payments.pending_or_open.order(created_at: :desc).first
-    unless payment
-      @order.with_lock do
+      if @order.payment_action == :pending
+        next redirect_to submitted_order_path(@order), notice: "Your payment is already being processed."
+      end
+
+      payment = @order.payments.pending_or_open.order(created_at: :desc, id: :desc).first
+      unless payment
         OrderRepricingService.call(order: @order, date: Date.current)
         payment = Payment.create!(order: @order, amount_cents: @order.total_cents,
           description: order_description, status: "open")
       end
-    end
 
-    @checkout_payment = payment
-    checkout_url = payment.resume_mollie_checkout!
+      @checkout_payment = payment
+      checkout_url = payment.resume_mollie_checkout!
 
-    if payment.paid?
-      return redirect_to submitted_order_path(@order), notice: "This order has already been paid."
-    end
-
-    if checkout_url.blank?
-      if payment.mollie_payment_id.present?
-        if payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
-          return redirect_to submitted_order_path(@order), notice: "Your payment is being processed."
-        end
-        @order.with_lock do
-          OrderRepricingService.call(order: @order, date: Date.current)
-          payment = Payment.create!(order: @order, amount_cents: @order.total_cents,
-            description: order_description, status: "open")
-        end
-        @checkout_payment = payment
+      if payment.paid?
+        next redirect_to submitted_order_path(@order), notice: "This order has already been paid."
       end
 
-      checkout_url = payment.start_mollie_checkout!(
-        redirect_url: success_payments_url(token: payment.return_token),
-        webhook_url: webhook_payments_url
-      )
+      if checkout_url.blank?
+        if payment.mollie_payment_id.present?
+          message = if payment.status.in?(Payment::RETRYABLE_MOLLIE_STATUSES)
+            "Your payment is being processed or its checkout link is unavailable. Please check your Order again later."
+          else
+            "Your previous payment is no longer open. Please review the Order total before trying again."
+          end
+          next redirect_to submitted_order_path(@order), notice: message
+        end
+
+        checkout_url = payment.start_mollie_checkout!(
+          redirect_url: success_payments_url(token: payment.return_token),
+          webhook_url: webhook_payments_url
+        )
+      end
+      redirect_to checkout_url, allow_other_host: true
     end
-    redirect_to checkout_url, allow_other_host: true
   end
 
   def discard_unstarted_payment
@@ -243,6 +258,17 @@ class OrdersController < ApplicationController
 
   def active_payment?
     @order.payments.pending_or_open.exists?
+  end
+
+  def reprice_orders_for_display(orders)
+    orders.filter_map do |order|
+      next if order.closed? || order.payments.pending_or_open.exists?
+
+      last_payment = order.payments.order(created_at: :desc, id: :desc).first
+      OrderRepricingService.call(order:, date: Date.current)
+      order.association(:products).reset
+      order.id if last_payment && last_payment.amount_cents != order.total_cents
+    end
   end
 
   def create_payment_for_order!

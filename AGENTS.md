@@ -102,6 +102,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep the congress ticket price current until a payment attempt starts; replacement attempts use the current price tier.
 - Keep successful payments paid after refunds or chargebacks; their orders remain closed and any new payment requires a new order.
 - In admin financial overviews, keep payer/user columns compact with linked names, provide sortable headers and status filters where relevant, and format dates as `dd/mm/yyyy HH:MM`.
+- In Admin Payments date sorting, use the displayed payment date first, then the full Payment `created_at` timestamp, then Payment ID.
 - Show the Admin Orders status filter as a collapsible checkbox menu; apply multiple selections with an explicit Filter button and collapse it after submission.
 - In My Participants, show each participant ticket's Order payment status with the shared status colors, and label Visitors in green.
 - Route participant ticket payments through their Order; show pending Order links instead of a duplicate Pay action, and use green/gray/red/blue indicators for paid/pending/failed/awaiting Order statuses.

@@ -69,13 +69,18 @@
           <p class="text-green-800 text-sm"><strong>Your registration is confirmed.</strong></p>
         </div>
         <% if @personal_details_visible %>
-          <% if @participant_payment_pending %>
+          <% if @participant_payment_action == :resume %>
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <p class="text-sm text-gray-700"><strong>Payment open.</strong> Continue your payment from the Order.</p>
+              <%= link_to "View Order #{@participant_order.id}", submitted_order_path(@participant_order), class: "mt-2 inline-block text-brand-blue-700 underline" %>
+            </div>
+          <% elsif @participant_payment_action == :pending %>
             <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
               <p class="text-sm text-gray-700"><strong>Payment pending.</strong> Your payment is being processed.</p>
               <%= link_to "View Order #{@participant_order.id}", submitted_order_path(@participant_order), class: "mt-2 inline-block text-brand-blue-700 underline" %>
             </div>
           <% elsif @participant_order&.draft? %>
-            <div><%= link_to "View shopping basket", order_path, class: "btn-primary" %></div>
+            <div><%= link_to "Pay for participant", order_path, class: "btn-primary" %></div>
           <% else %>
             <div><%= button_to "Pay", add_participant_order_path(participant_id: @participant.uuid), method: :post, class: "btn-primary" %></div>
           <% end %>

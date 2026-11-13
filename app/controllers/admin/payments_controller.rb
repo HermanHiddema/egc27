@@ -34,8 +34,14 @@ class Admin::PaymentsController < ApplicationController
     else Arel.sql("COALESCE(payments.payment_date, payments.created_at::date)")
     end
     ordering = @direction == :asc ? order_expression.asc : order_expression.desc
+    tie_breakers = []
+    if @sort == "date"
+      created_at_order = @direction == :asc ? Payment.arel_table[:created_at].asc : Payment.arel_table[:created_at].desc
+      tie_breakers << created_at_order
+    end
+    tie_breakers << Payment.arel_table[:id].desc
     @payments = payments.joins(order: :user)
-      .order(ordering.nulls_last, Payment.arel_table[:id].desc)
+      .order(ordering.nulls_last, *tie_breakers)
     @unprocessed_count = Payment.for_bookkeeping.unprocessed.count
   end
 

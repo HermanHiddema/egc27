@@ -1,4 +1,5 @@
 require "test_helper"
+require "ostruct"
 
 class OrdersControllerTest < ActionDispatch::IntegrationTest
   include ActiveSupport::Testing::TimeHelpers
@@ -9,6 +10,14 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Rails.application.config.x.payments.simulate_mollie = original
+  end
+
+  def with_mollie_get(remote)
+    original = Mollie::Payment.method(:get)
+    Mollie::Payment.define_singleton_method(:get) { |_id| remote }
+    yield
+  ensure
+    Mollie::Payment.define_singleton_method(:get, &original)
   end
 
   test "the basket page remains available without a draft order" do
@@ -153,7 +162,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h1", "Order #{orders(:one).id}"
     assert_select "h2", "Payment history"
-    assert_select "p", text: /A payment is in progress/
+    assert_select "button", text: "Continue payment"
   end
 
   test "checkout submits the full basket and starts a full amount payment" do
@@ -175,6 +184,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
   test "pending payment prevents another attempt for a submitted order" do
     sign_in users(:one)
     order = orders(:one)
+    payments(:open_payment).update!(status: "pending")
     payment_count = order.payments.count
 
     post pay_submitted_order_path(order)
@@ -182,6 +192,69 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to submitted_order_path(order)
     assert_equal payment_count, order.payments.count
     assert_match "already being processed", flash[:notice]
+  end
+
+  test "open Mollie payment can be resumed from both Order pages without another attempt" do
+    sign_in users(:one)
+    order = orders(:one)
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "open", checkout_url: "https://example.test/checkout")
+
+    get submitted_orders_path
+    assert_select "form[action='#{pay_submitted_order_path(order)}'] button", text: "Continue payment"
+    assert_select "p", text: "Payment open"
+    get submitted_order_path(order)
+    assert_select "button", text: "Continue payment"
+    get participant_path(participants(:one))
+    assert_match "Payment open", response.body
+    assert_select "a[href='#{submitted_order_path(order)}']", text: "View Order #{order.id}"
+
+    with_mollie_get(remote) do
+      get success_payments_path(token: payment.return_token)
+      assert_select "a[href='#{submitted_order_path(order)}']", text: "Continue payment"
+      assert_no_difference("Payment.count") do
+        post pay_submitted_order_path(order), params: { confirmed_total_cents: order.total_cents }
+      end
+    end
+
+    assert_redirected_to "https://example.test/checkout"
+    assert_equal "open", payment.reload.status
+  end
+
+  test "a payment that became pending or authorized at Mollie cannot be resumed or duplicated" do
+    sign_in users(:one)
+    order = orders(:one)
+    payment = payments(:open_payment)
+
+    %w[pending authorized].each do |status|
+      payment.update!(status: "open")
+      remote = OpenStruct.new(id: payment.mollie_payment_id, status:, checkout_url: "https://example.test/checkout")
+      with_mollie_get(remote) do
+        assert_no_difference("Payment.count") { post pay_submitted_order_path(order) }
+      end
+      assert_redirected_to submitted_order_path(order)
+      assert_equal status, payment.reload.status
+
+      get submitted_order_path(order)
+      assert_select "button", { text: "Continue payment", count: 0 }
+      assert_no_difference("Payment.count") { post pay_submitted_order_path(order) }
+      assert_match "already being processed", flash[:notice]
+    end
+  end
+
+  test "an expired Mollie checkout returns to Order review without creating a payment" do
+    sign_in users(:one)
+    order = orders(:one)
+    payment = payments(:open_payment)
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "expired", checkout_url: nil)
+
+    with_mollie_get(remote) do
+      assert_no_difference("Payment.count") { post pay_submitted_order_path(order) }
+    end
+
+    assert_redirected_to submitted_order_path(order)
+    assert_match "review the Order total", flash[:notice]
+    assert_equal "expired", payment.reload.status
   end
 
   test "another user cannot view a submitted order" do

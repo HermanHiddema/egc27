@@ -46,8 +46,7 @@ class Payment < ApplicationRecord
   MANUAL_PAYMENT_METHODS = %w[cash pointofsale bank_transfer paypal other].freeze
   # Labels for methods that do not read well when humanized.
   PAYMENT_METHOD_LABELS = { "pointofsale" => "Point of sale", "paypal" => "PayPal" }.freeze
-  # Mollie statuses from which a checkout can still be completed, so its
-  # checkout URL can be reused instead of starting a new payment attempt.
+  # All active Mollie statuses protect the order price and block new attempts.
   RETRYABLE_MOLLIE_STATUSES = %w[open pending authorized].freeze
   # How long the token in the return URL after a checkout stays valid.
   RETURN_TOKEN_EXPIRY = 1.week
@@ -292,13 +291,13 @@ class Payment < ApplicationRecord
   end
 
   # Refreshes this payment from Mollie and returns the checkout URL when the
-  # checkout that was already started can still be completed. Returns nil when
-  # there is no such checkout, so a new payment attempt is needed.
+  # checkout that was already started is still open. Returns nil for other
+  # statuses or when the existing checkout has no URL.
   def resume_mollie_checkout!
     remote_payment = refresh_from_mollie!
 
     return if remote_payment.blank? || remote_payment.checkout_url.blank?
-    return unless RETRYABLE_MOLLIE_STATUSES.include?(remote_payment.status)
+    return unless remote_payment.status == "open"
 
     remote_payment.checkout_url
   end

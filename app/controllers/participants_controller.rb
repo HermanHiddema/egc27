@@ -44,7 +44,7 @@ class ParticipantsController < ApplicationController
     @personal_details_visible = user_signed_in? && @participant.user_id == current_user.id
     @has_multiple_participants = @personal_details_visible && current_user.participants.count > 1
     @participant_order = @participant.current_order
-    @participant_payment_pending = @participant_order&.submitted? && @participant_order.payments.pending_or_open.exists?
+    @participant_payment_action = @participant_order.payment_action if @participant_order&.submitted?
   end
 
   def edit

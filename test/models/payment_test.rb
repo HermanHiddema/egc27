@@ -578,15 +578,28 @@ class PaymentTest < ActiveSupport::TestCase
     assert_equal "open", payment.reload.status
   end
 
-  test "resume_mollie_checkout! returns the checkout url of a retryable payment" do
+  test "resume_mollie_checkout! returns the checkout url of an open payment" do
     payment = payments(:open_payment)
-    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "pending", checkout_url: "https://example.test/checkout")
+    remote = OpenStruct.new(id: payment.mollie_payment_id, status: "open", checkout_url: "https://example.test/checkout")
 
     with_mollie_get(->(_id) { remote }) do
       assert_equal "https://example.test/checkout", payment.resume_mollie_checkout!
     end
 
-    assert_equal "pending", payment.reload.status
+    assert_equal "open", payment.reload.status
+  end
+
+  test "resume_mollie_checkout! does not return a checkout url for pending or authorized payments" do
+    %w[pending authorized].each do |status|
+      payment = payments(:open_payment)
+      remote = OpenStruct.new(id: payment.mollie_payment_id, status:, checkout_url: "https://example.test/checkout")
+
+      with_mollie_get(->(_id) { remote }) do
+        assert_nil payment.resume_mollie_checkout!
+      end
+
+      assert_equal status, payment.reload.status
+    end
   end
 
   test "resume_mollie_checkout! returns nil when the checkout can no longer be completed" do
