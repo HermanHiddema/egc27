@@ -35,6 +35,7 @@
   </head>
 
   <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
+    <% basket_product_count = shopping_basket_product_count %>
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 lg:sticky lg:top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
@@ -61,13 +62,7 @@ DraGo's Summer Festival
           <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
-              <% basket_product_count = shopping_basket_product_count(current_user) %>
-              <%= link_to order_path, class: "relative hidden lg:inline-flex items-center justify-center h-10 w-10 rounded-full text-brand-yellow-300 hover:bg-brand-red-700", aria: { label: shopping_basket_aria_label(basket_product_count) }, title: "Shopping basket" do %>
-                <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l2.4 12.2a2 2 0 002 1.6h8.8a2 2 0 002-1.6L22 8H6M10 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
-                <% if basket_product_count.positive? %>
-                  <span class="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-brand-yellow-400 text-brand-red-900 text-xs font-bold leading-5 text-center" aria-hidden="true"><%= basket_product_count %></span>
-                <% end %>
-              <% end %>
+              <%= render "layouts/basket_icon", count: basket_product_count, css_class: "hidden lg:inline-flex text-brand-yellow-300 hover:bg-brand-red-700" %>
               <div class="relative" data-controller="dropdown">
                 <button class="header-action-user btn-primary flex items-center gap-1"
                         type="button"
@@ -111,7 +106,7 @@ DraGo's Summer Festival
     </header>
 
     <!-- Menu Bar -->
-    <%= render "layouts/menu", menu: @header_menu, root_items: @header_menu_root_items %>
+    <%= render "layouts/menu", menu: @header_menu, root_items: @header_menu_root_items, basket_product_count: basket_product_count %>
 
     <div class="flex-1" style="background-color: color-mix(in srgb, var(--brand-yellow-600) 78%, transparent);">
       <!-- Flash Messages -->

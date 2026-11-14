@@ -91,8 +91,23 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-08']", text: "Sun, 08 Aug 2027"
     assert_select "input[name='hostel_booking[female_dorm_beds]']"
     assert_select "input[name='hostel_booking[breakfasts]']"
+    assert_select "button[aria-label='Increase 1-person room'][type='button']"
+    assert_select "button[aria-label='Decrease 1-person room'][type='button']"
+    assert_select "button[aria-label='Increase breakfasts'][type='button']"
+    assert_select "button[aria-label='Decrease breakfasts'][type='button']"
     assert_match "€ 72 per night", response.body
     assert_match "These prices are valid until", response.body
+  end
+
+  test "editing a provisional booking shows quantity controls" do
+    sign_in users(:one)
+    booking = create_booking
+
+    get edit_hostel_booking_path(booking)
+
+    assert_response :success
+    assert_select "button[aria-label='Increase 1-person room'][type='button']"
+    assert_select "button[aria-label='Decrease breakfasts'][type='button']"
   end
 
   test "create saves the booking and redirects to the draft order review" do

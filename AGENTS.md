@@ -87,6 +87,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Use lighter category-tinted backgrounds on mobile event tiles to improve event title and time readability.
 - On the portrait My registrations page, use a compact plus button beside the title for registering another participant.
 - In hostel bookings, show `Beds` (not `Guests`) in totals; in price calculation lines use the short labels `mixed dorm bed` / `female dorm bed` (full labels elsewhere) and keep each line on one row.
+- In hostel booking forms, provide large, accessible increment and decrement buttons for room, bed, and breakfast quantities.
 - Reprice hostel booking Products using the current HostelPricing tier when reviewing, checking out, or retrying an Order; pending Mollie attempts protect stored prices.
 - Label the action that adds a provisional hostel booking to the basket “Book”; commitment to pay happens at basket checkout.
 - Use `/newsletter` as the newsletter overview, with subscription in a modal; show editor/admin draft newsletters above sent issues and place Create newsletter above Subscribe.
@@ -109,4 +110,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep submitted Order summaries within the available row width by truncating long Product descriptions with ellipses, and sort Products by type then addition order in Order lists and details.
 - Label a cancelled Order “Order canceled” to distinguish it from a cancelled Payment.
 - In the admin Payments overview, list all Payment statuses; sort Date, Order ID, Amount, and Payer; filter by Method; link Payment and Order IDs to their admin detail pages.
-- Show the shopping basket Product count on the desktop cart icon; use “Add <product>” for empty sections and “Add another <product>” for populated sections, with lower-case product display names. In basket rows, right-align prices and use accessible icon-only Edit/Remove actions. Show ticket discounts and use singular “breakfast” when the count is one; place the destructive empty-basket button at the bottom right.
+- Show the shopping basket icon and Product count beside the User menu on desktop and left of search in the mobile menu bar; use “Add <product>” for empty sections and “Add another <product>” for populated sections, with lower-case product display names. In basket rows, right-align prices and use accessible icon-only Edit/Remove actions. Show ticket discounts and use singular “breakfast” when the count is one; place the destructive empty-basket button at the bottom right.
+- In basket participant ticket edit forms, clearly outline editable text fields and dropdowns, and make the entire dropdown clickable to open it.
+- Keep the basket checkout button label centered and allow it to wrap within the button on narrow screens.
+- Keep the mobile basket count badge clear of the top edge of the menu bar.

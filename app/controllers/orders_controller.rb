@@ -268,12 +268,11 @@ class OrdersController < ApplicationController
         payments.any? { |payment| payment.status.in?(%w[open pending authorized]) }
 
       last_payment = payments.max_by { |payment| [payment.created_at, payment.id] }
-      next unless last_payment
 
       OrderRepricingService.call(order:, date: Date.current)
       order.association(:products).reset
       order.association(:payments).reset
-      last_payment_amounts[order.id] = last_payment.amount_cents
+      last_payment_amounts[order.id] = last_payment.amount_cents if last_payment
     end
 
     preload_order_display_associations(orders)

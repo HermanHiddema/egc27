@@ -47,7 +47,7 @@
                   <span class="font-medium"><%= room[:label] %></span>
                   <span class="block text-neutral-600">€ <%= @pricing.room_price_cents(room_type) / 100 %> per night</span>
                 <% end %>
-                <%= form.number_field room_type, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "quantity", room_type: room_type } %>
+                <%= render "quantity_field", form: form, attribute: room_type, label: room[:label], target: "quantity", room_type: room_type %>
               </div>
             <% end %>
           </div>
@@ -61,7 +61,7 @@
               <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
               <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
             <% end %>
-            <%= form.number_field :breakfasts, min: 0, max: 99, step: 1, class: "w-24 border border-gray-300 rounded-lg px-3 py-2 focus:ring-brand-blue-600 focus:border-brand-blue-600", data: { hostel_booking_target: "breakfasts" } %>
+            <%= render "quantity_field", form: form, attribute: :breakfasts, label: "breakfasts", target: "breakfasts", room_type: nil %>
           </div>
           <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
             On site breakfast will cost € 10,85 per day, but there is limited extra availability. 

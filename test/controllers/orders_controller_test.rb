@@ -32,6 +32,18 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[disabled]", text: "Book with commitment to pay"
   end
 
+  test "mobile navigation shows the basket count beside search" do
+    sign_in users(:one)
+
+    get order_path
+    assert_select "div.lg\\:hidden [data-controller='search-toggle'] > a[aria-label='Shopping basket'] + button[aria-label='Search']"
+    assert_select "div.lg\\:hidden [data-controller='search-toggle'] > a[title='Shopping basket'] span", count: 0
+
+    create_player_for(users(:one))
+    get order_path
+    assert_select "div.lg\\:hidden [data-controller='search-toggle'] > a[aria-label='Shopping basket, 1 product'] span", text: "1"
+  end
+
   test "the basket shows participant tickets and hostel bookings in separate sections" do
     sign_in users(:one)
     create_booking_for(users(:one))
