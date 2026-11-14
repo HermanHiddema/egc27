@@ -11,7 +11,21 @@ class OrdersController < ApplicationController
 
   def index
     @orders = current_user.orders.submitted.includes(:payments, products: :productable).order(created_at: :desc, id: :desc).to_a
-    @orders_with_changed_totals = reprice_orders_for_display(@orders)
+    preload_order_display_associations(@orders)
+    @display_totals = @orders.to_h do |order|
+      total = if order.payment_action.in?([:pay, :retry])
+        OrderRepricingService.preview_total_cents(order:, date: Date.current)
+      else
+        order.display_total_cents
+      end
+      [order.id, total]
+    end
+    @orders_with_changed_totals = @orders.filter_map do |order|
+      next unless order.payment_action.in?([:pay, :retry])
+
+      last_payment = order.payments.max_by { |payment| [payment.created_at, payment.id] }
+      order.id if last_payment && last_payment.amount_cents != @display_totals[order.id]
+    end
     @show_simulation_controls = mollie_simulation_enabled?
   end
 

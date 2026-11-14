@@ -192,6 +192,94 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "button", text: "Continue payment"
   end
 
+  test "past orders shows current mixed order prices and confirms them before retry" do
+    sign_in users(:one)
+    order = nil
+    old_total = nil
+    travel_to Time.zone.local(2027, 1, 31, 12) do
+      participant = create_player_for(users(:one))
+      create_booking_for(users(:one))
+      order = participant.draft_ticket.order
+      order.submit!
+      old_total = order.total_cents
+      order.payments.create!(status: "failed", amount_cents: old_total, description: "Failed attempt")
+    end
+
+    travel_to Time.zone.local(2027, 2, 1, 12) do
+      expected_total = 26_000 + 2 * 8_200
+      with_mollie_simulation_enabled do
+        get submitted_orders_path
+
+        assert_response :success
+        assert_select "p", text: /The total has changed since the last payment attempt/
+        assert_select "form[action='#{pay_submitted_order_path(order)}'] input[name='confirmed_total_cents'][value='#{expected_total}']"
+        assert_equal old_total, order.total_cents
+
+        post pay_submitted_order_path(order), params: { confirmed_total_cents: expected_total, simulate_status: "paid" }
+      end
+
+      assert_equal expected_total, order.total_cents
+      assert_equal expected_total, order.payments.order(:id).last.amount_cents
+      assert order.payments.order(:id).last.paid?
+    end
+  end
+
+  test "past orders loads retry prices without queries per order" do
+    sign_in users(:one)
+    create_player_for(users(:one)).draft_ticket.order.submit!
+    get submitted_orders_path
+
+    count_queries = lambda do
+      sql_queries = []
+      subscriber = lambda do |_name, _start, _finish, _id, payload|
+        sql = payload[:sql]
+        sql_queries << sql if sql.match?(/\ASELECT\b.*\bFROM "(?:orders|products|payments|participant_tickets|participants)"/im)
+      end
+      ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") { get submitted_orders_path }
+      assert_response :success
+      sql_queries.length
+    end
+
+    initial_count = count_queries.call
+    2.times { create_player_for(users(:one)).draft_ticket.order.submit! }
+    assert_equal initial_count, count_queries.call
+  end
+
+  test "retry requires reviewing the total if prices change after the overview is shown" do
+    sign_in users(:one)
+    order = nil
+    displayed_total = nil
+    travel_to Time.zone.local(2027, 1, 31, 12) do
+      order = create_player_for(users(:one)).draft_ticket.order
+      order.submit!
+      displayed_total = order.total_cents
+      order.payments.create!(status: "failed", amount_cents: displayed_total, description: "Failed attempt")
+      get submitted_orders_path
+      assert_select "form[action='#{pay_submitted_order_path(order)}'] input[name='confirmed_total_cents'][value='#{displayed_total}']"
+    end
+
+    travel_to Time.zone.local(2027, 2, 1, 12) do
+      assert_no_difference("Payment.count") do
+        post pay_submitted_order_path(order), params: { confirmed_total_cents: displayed_total }
+      end
+      assert_redirected_to submitted_order_path(order)
+      assert_match "review the updated total", flash[:alert]
+      assert_equal 26_000, order.total_cents
+    end
+  end
+
+  test "past orders keeps an open payment's protected amount" do
+    sign_in users(:one)
+    order = orders(:one)
+
+    travel_to Time.zone.local(2027, 2, 1, 12) do
+      get submitted_orders_path
+      assert_select "form[action='#{pay_submitted_order_path(order)}'] input[name='confirmed_total_cents'][value='19000']"
+    end
+
+    assert_equal 19_000, order.total_cents
+  end
+
   test "checkout submits the full basket and starts a full amount payment" do
     sign_in users(:one)
     participant = create_player_for(users(:one))

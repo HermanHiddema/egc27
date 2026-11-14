@@ -24,15 +24,15 @@
             <div class="min-w-0 text-left sm:text-right">
               <p class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></p>
               <% if order.cancelled_at %><p class="mt-1 text-sm text-neutral-600">Cancelled <%= l(order.cancelled_at, format: :long) %></p><% end %>
-              <p class="text-lg font-bold mt-1">€ <%= format("%.2f", order.display_total_cents / 100.0) %></p>
+              <p class="text-lg font-bold mt-1">€ <%= format("%.2f", @display_totals.fetch(order.id) / 100.0) %></p>
               <% if @orders_with_changed_totals.include?(order.id) %>
                 <p class="mt-1 text-sm text-amber-800">The total has changed since the last payment attempt. The updated total is shown.</p>
               <% end %>
               <%= link_to "View order", submitted_order_path(order), class: "inline-block mt-2 text-brand-blue-700 underline" %>
               <% if payment_action.in?([:pay, :retry, :resume]) %>
-                <%= button_to order_payment_action_label(payment_action), pay_submitted_order_path(order), method: :post, params: { confirmed_total_cents: order.total_cents }, class: "btn-primary mt-3", data: { turbo: false } %>
+                <%= button_to order_payment_action_label(payment_action), pay_submitted_order_path(order), method: :post, params: { confirmed_total_cents: @display_totals.fetch(order.id) }, class: "btn-primary mt-3", data: { turbo: false } %>
                 <% if @show_simulation_controls && payment_action != :resume %>
-                  <%= render "simulation_controls", url: pay_submitted_order_path(order), request_params: { confirmed_total_cents: order.total_cents } %>
+                  <%= render "simulation_controls", url: pay_submitted_order_path(order), request_params: { confirmed_total_cents: @display_totals.fetch(order.id) } %>
                 <% end %>
               <% end %>
             </div>
