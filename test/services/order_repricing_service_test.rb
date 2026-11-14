@@ -45,7 +45,7 @@ class OrderRepricingServiceTest < ActiveSupport::TestCase
     end
   end
 
-  test "does not reprice hostel booking products" do
+  test "reprices hostel booking products and persists the current tier" do
     booking = users(:one).hostel_bookings.create!(
       arrival_date: Date.new(2027, 7, 24),
       departure_date: Date.new(2027, 7, 27),
@@ -56,8 +56,50 @@ class OrderRepricingServiceTest < ActiveSupport::TestCase
 
     OrderRepricingService.call(order: booking.order, date: Date.new(2027, 6, 1))
 
-    assert_equal old_price, product.reload.price_cents
-    assert_equal booking.amount_cents, product.price_cents
+    expected_price = 3 * 8_500
+    assert_not_equal old_price, product.reload.price_cents
+    assert_equal expected_price, product.price_cents
+    assert_equal expected_price, booking.reload.amount_cents
+    assert_equal 8_500, booking.price_lines.first.unit_price_cents
+    assert_equal Date.new(2027, 6, 1), booking.priced_on
+  end
+
+  test "a pending Mollie attempt protects hostel booking prices" do
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 27),
+      double_rooms: 1
+    )
+    order = booking.order
+    order.submit!
+    original_amount = booking.amount_cents
+    payment = Payment.create!(order:, amount_cents: original_amount, description: "Pending hostel booking", status: "pending")
+
+    OrderRepricingService.call(order:, date: Date.new(2027, 6, 1))
+
+    assert_equal original_amount, booking.reload.amount_cents
+    assert_equal original_amount, booking.product.reload.price_cents
+    assert_equal original_amount, payment.reload.amount_cents
+  end
+
+  test "a failed hostel payment reprices the order for the next attempt" do
+    booking = users(:one).hostel_bookings.create!(
+      arrival_date: Date.new(2027, 7, 24),
+      departure_date: Date.new(2027, 7, 27),
+      double_rooms: 1
+    )
+    order = booking.order
+    order.submit!
+    old_amount = booking.amount_cents
+    payment = Payment.create!(order:, amount_cents: old_amount, description: "Hostel booking", status: "pending")
+
+    travel_to Date.new(2027, 6, 1) do
+      payment.update!(status: "failed")
+    end
+
+    assert_equal 3 * 8_500, booking.reload.amount_cents
+    assert_equal booking.amount_cents, booking.product.reload.price_cents
+    assert_equal old_amount, payment.reload.amount_cents
   end
 
   test "a pending Mollie attempt protects its original price through payment success" do

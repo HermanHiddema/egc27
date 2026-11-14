@@ -7,7 +7,7 @@ class Admin::ParticipantsController < ApplicationController
   before_action :set_participant, only: [:edit, :update, :destroy]
 
   def index
-    participants = Participant.includes(:payments, :user)
+    participants = Participant.includes(:payments, :user, participant_tickets: { product: { order: :payments } })
 
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
@@ -181,7 +181,7 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def participant_ids_for(payments)
-    ParticipantTicket.joins(product: { order: :payments }).merge(payments).select(:participant_id)
+    ParticipantTicket.eligible_for_registration_status.joins(product: { order: :payments }).merge(payments).select(:participant_id)
   end
 
   def ordered(column)

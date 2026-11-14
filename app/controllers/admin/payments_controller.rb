@@ -1,24 +1,56 @@
 class Admin::PaymentsController < ApplicationController
   PROCESSED_FILTERS = %w[processed unprocessed].freeze
+  SORT_COLUMNS = %w[id date order_id amount payer].freeze
 
   before_action :require_admin!
-  before_action :set_participant, except: [:index, :mark_processed, :unmark_processed]
+  before_action :set_participant, except: [:index, :show, :mark_processed, :unmark_processed]
   before_action :require_player_participant!, only: [:new, :create, :add_ticket]
   before_action :set_payment, only: [:edit, :update]
   before_action :require_manual_payment, only: [:edit, :update]
 
-  # Overview of all completed payments, so an admin can process them in the
-  # bookkeeping and keep track of which ones still need processing. Charged-back
-  # payments are listed too, so their bookkeeping can be corrected.
+  # List every payment attempt; bookkeeping filters remain limited to completed
+  # payments so failed or pending attempts cannot be marked as processed.
   def index
     @processed_filter = permitted_processed_filter
+    @payment_methods = Payment.where.not(payment_method: [nil, ""]).distinct.order(:payment_method).pluck(:payment_method)
+    @method_filter = permitted_method_filter
+    @sort = permitted_sort
+    @direction = permitted_direction
 
-    payments = Payment.for_bookkeeping.includes(:participants, :hostel_bookings, :settlement)
-    payments = payments.processed if @processed_filter == "processed"
-    payments = payments.unprocessed if @processed_filter == "unprocessed"
+    payments = Payment.includes(:settlement, order: :user, products: :productable)
+    if @processed_filter == "processed"
+      payments = payments.for_bookkeeping.processed
+    elsif @processed_filter == "unprocessed"
+      payments = payments.for_bookkeeping.unprocessed
+    end
+    payments = payments.where(payment_method: [nil, ""]) if @method_filter == "blank"
+    payments = payments.where(payment_method: @method_filter) if @method_filter.present? && @method_filter != "blank"
 
-    @payments = payments.order(created_at: :desc, id: :desc)
+    order_expression = case @sort
+    when "id" then Payment.arel_table[:id]
+    when "order_id" then Order.arel_table[:id]
+    when "amount" then Payment.arel_table[:amount_cents]
+    when "payer" then Arel.sql("COALESCE(NULLIF(users.full_name, ''), users.email)")
+    else Arel.sql("COALESCE(payments.payment_date, payments.created_at::date)")
+    end
+    ordering = @direction == :asc ? order_expression.asc : order_expression.desc
+    tie_breakers = []
+    if @sort == "date"
+      created_at_order = @direction == :asc ? Payment.arel_table[:created_at].asc : Payment.arel_table[:created_at].desc
+      tie_breakers << created_at_order
+    end
+    tie_breakers << Payment.arel_table[:id].desc
+    @payments = payments.joins(order: :user)
+      .order(ordering.nulls_last, *tie_breakers)
     @unprocessed_count = Payment.for_bookkeeping.unprocessed.count
+  end
+
+  def show
+    @payment = Payment.includes(:settlement, :refunds, :chargebacks, order: [:user, :products]).find(params[:id])
+    @order = @payment.order
+    @products = @order.products_for_display
+    @refunds = @payment.refunds.includes(:settlement).order(created_at: :desc, id: :desc)
+    @chargebacks = @payment.chargebacks.includes(:settlement).order(created_at: :desc, id: :desc)
   end
 
   def mark_processed
@@ -110,6 +142,20 @@ class Admin::PaymentsController < ApplicationController
 
   def permitted_processed_filter
     PROCESSED_FILTERS.include?(params[:processed]) ? params[:processed] : nil
+  end
+
+  def permitted_method_filter
+    return "blank" if params[:method] == "blank"
+
+    @payment_methods.include?(params[:method]) ? params[:method] : nil
+  end
+
+  def permitted_sort
+    SORT_COLUMNS.include?(params[:sort]) ? params[:sort] : "date"
+  end
+
+  def permitted_direction
+    params[:direction] == "asc" ? :asc : :desc
   end
 
   def set_participant

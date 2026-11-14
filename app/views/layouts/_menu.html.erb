@@ -16,7 +16,10 @@
         <span class="text-sm font-semibold uppercase tracking-wide text-brand-yellow-300">Menu</span>
       </button>
 
-      <div class="relative flex h-12 w-1/2 items-center justify-end" data-controller="search-toggle">
+      <div class="relative flex h-12 w-1/2 items-center justify-end gap-3" data-controller="search-toggle">
+        <% if safe_user_signed_in? %>
+          <%= render "layouts/basket_icon", count: basket_product_count, css_class: "inline-flex text-white hover:text-brand-yellow-300", badge_position: "top-0" %>
+        <% end %>
         <button type="button"
                 class="text-white hover:text-brand-yellow-300 transition-colors"
                 data-search-toggle-target="toggle"

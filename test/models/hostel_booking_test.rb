@@ -133,7 +133,7 @@ class HostelBookingTest < ActiveSupport::TestCase
     assert_equal amount, payment.reload.amount_cents
   end
 
-  test "a later payment uses the pricing period when the booking was made" do
+  test "a later payment attempt reprices the booking to the current tier" do
     booking = nil
     travel_to Time.zone.local(2027, 1, 31) do
       booking = build_booking.tap(&:save!)
@@ -142,10 +142,10 @@ class HostelBookingTest < ActiveSupport::TestCase
     travel_to Time.zone.local(2027, 2, 1) do
       payment = Payment.build_for_hostel_booking(booking)
 
-      assert_equal 3 * (7_900 + 2 * 985), payment.amount_cents
-      assert_equal 3 * (7_900 + 2 * 985), booking.amount_cents
-      assert_equal Date.new(2027, 1, 31), booking.priced_on
-      assert_equal 7_900, booking.price_lines.first.unit_price_cents
+      assert_equal 3 * (8_200 + 2 * 985), payment.amount_cents
+      assert_equal 3 * (8_200 + 2 * 985), booking.reload.amount_cents
+      assert_equal Date.new(2027, 2, 1), booking.priced_on
+      assert_equal 8_200, booking.price_lines.first.unit_price_cents
     end
   end
 

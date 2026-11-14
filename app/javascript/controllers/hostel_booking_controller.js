@@ -8,7 +8,22 @@ export default class extends Controller {
   static values = { prices: Object, beds: Object, labels: Object, breakfastCents: Number }
 
   connect() {
+    this.element.classList.add("has-quantity-buttons")
+    this.element.querySelectorAll("[data-quantity-step]").forEach((button) => { button.hidden = false })
     this.calculate()
+  }
+
+  disconnect() {
+    this.element.classList.remove("has-quantity-buttons")
+    this.element.querySelectorAll("[data-quantity-step]").forEach((button) => { button.hidden = true })
+  }
+
+  stepQuantity(event) {
+    const input = event.currentTarget.parentElement.querySelector("input[type=number]")
+    const previousValue = input.value
+    if (event.currentTarget.dataset.quantityStep === "up") input.stepUp()
+    else input.stepDown()
+    if (input.value !== previousValue) input.dispatchEvent(new Event("input", { bubbles: true }))
   }
 
   calculate() {

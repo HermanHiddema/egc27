@@ -91,8 +91,23 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-08']", text: "Sun, 08 Aug 2027"
     assert_select "input[name='hostel_booking[female_dorm_beds]']"
     assert_select "input[name='hostel_booking[breakfasts]']"
+    assert_select "button[aria-label='Increase 1-person room'][type='button']"
+    assert_select "button[aria-label='Decrease 1-person room'][type='button']"
+    assert_select "button[aria-label='Increase breakfasts'][type='button']"
+    assert_select "button[aria-label='Decrease breakfasts'][type='button']"
     assert_match "€ 72 per night", response.body
     assert_match "These prices are valid until", response.body
+  end
+
+  test "editing a provisional booking shows quantity controls" do
+    sign_in users(:one)
+    booking = create_booking
+
+    get edit_hostel_booking_path(booking)
+
+    assert_response :success
+    assert_select "button[aria-label='Increase 1-person room'][type='button']"
+    assert_select "button[aria-label='Decrease breakfasts'][type='button']"
   end
 
   test "create saves the booking and redirects to the draft order review" do
@@ -134,6 +149,43 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :unprocessable_entity
     assert_match "can not be before 24 July 2027", response.body
     assert_match "can not be after 8 August 2027", response.body
+  end
+
+  test "editing a provisional booking updates its stored product price" do
+    booking = create_booking
+    old_price = booking.product.price_cents
+    sign_in users(:one)
+
+    patch hostel_booking_path(booking), params: booking_params(departure_date: "2027-07-27", single_rooms: "0", double_rooms: "1", mixed_dorm_beds: "2")
+
+    assert_redirected_to order_path
+    assert booking.reload.amount_cents > old_price
+    assert_equal booking.amount_cents, booking.product.reload.price_cents
+  end
+
+  test "removing a provisional booking deletes its record and product" do
+    booking = create_booking
+    product = booking.product
+    sign_in users(:one)
+
+    assert_difference("HostelBooking.count", -1) do
+      assert_difference("Product.count", -1) do
+        delete hostel_booking_path(booking)
+      end
+    end
+
+    assert_redirected_to order_path
+    assert_not HostelBooking.exists?(booking.id)
+    assert_not Product.exists?(product.id)
+  end
+
+  test "a user cannot edit a booking outside their account" do
+    booking = create_booking(users(:two))
+    sign_in users(:one)
+
+    patch hostel_booking_path(booking), params: booking_params
+
+    assert_response :not_found
   end
 
   test "index lists only the bookings of the current user" do
@@ -188,9 +240,9 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 
     assert_select "tbody[data-hostel-booking-target='lines']"
     assert_select "form[data-hostel-booking-labels-value*='Breakfast buffet']"
-    assert_select "input[type=submit][value='Book with commitment to pay']"
-    assert_select "p", text: 'Hostel bookings are non-refundable, but are transferable. By clicking "Book with commitment to pay", you agree to pay the full amount for your booking.'
-    assert_select "p", text: "On the next page, you will be given the opportunity to pay online via Mollie, with support for iDEAL, credit card, Paypal, Bancontact, and more."
+    assert_select "input[type=submit][value='Book']"
+    assert_select "p", text: "This adds a provisional booking to your Shopping basket. You will submit the full order with commitment to pay from the basket."
+    assert_select "p", text: "After checkout, you can pay online via Mollie, with support for iDEAL, credit card, PayPal, Bancontact, and more."
     assert_select "form[data-hostel-booking-labels-value*='mixed dorm bed']"
     assert_select "form[data-hostel-booking-labels-value*='female dorm bed']"
     assert_select "dt", text: "Beds"

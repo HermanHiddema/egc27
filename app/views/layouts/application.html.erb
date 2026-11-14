@@ -35,6 +35,7 @@
   </head>
 
   <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
+    <% basket_product_count = shopping_basket_product_count %>
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 lg:sticky lg:top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
@@ -61,6 +62,7 @@ DraGo's Summer Festival
           <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
+              <%= render "layouts/basket_icon", count: basket_product_count, css_class: "hidden lg:inline-flex text-brand-yellow-300 hover:bg-brand-red-700" %>
               <div class="relative" data-controller="dropdown">
                 <button class="header-action-user btn-primary flex items-center gap-1"
                         type="button"
@@ -76,6 +78,8 @@ DraGo's Summer Festival
 
                 <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
                   <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to "My basket", order_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to "Past Orders", submitted_orders_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
@@ -102,7 +106,7 @@ DraGo's Summer Festival
     </header>
 
     <!-- Menu Bar -->
-    <%= render "layouts/menu", menu: @header_menu, root_items: @header_menu_root_items %>
+    <%= render "layouts/menu", menu: @header_menu, root_items: @header_menu_root_items, basket_product_count: basket_product_count %>
 
     <div class="flex-1" style="background-color: color-mix(in srgb, var(--brand-yellow-600) 78%, transparent);">
       <!-- Flash Messages -->

@@ -1,0 +1,6 @@
+<%= link_to order_path, class: "relative items-center justify-center h-10 w-10 rounded-full #{css_class}", aria: { label: shopping_basket_aria_label(count) }, title: "Shopping basket" do %>
+  <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l2.4 12.2a2 2 0 002 1.6h8.8a2 2 0 002-1.6L22 8H6M10 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"/></svg>
+  <% if count.positive? %>
+    <span class="absolute -right-1 <%= local_assigns.fetch(:badge_position, '-top-1') %> min-w-5 h-5 px-1 rounded-full bg-brand-yellow-400 text-brand-red-900 text-xs font-bold leading-5 text-center" aria-hidden="true"><%= count %></span>
+  <% end %>
+<% end %>

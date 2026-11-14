@@ -1,5 +1,5 @@
 class HostelBookingsController < ApplicationController
-  before_action :set_hostel_booking, only: [:show, :pay]
+  before_action :set_hostel_booking, only: [:show, :edit, :update, :destroy, :pay]
 
   def index
     @hostel_bookings = current_user.hostel_bookings.includes(:payments).order(created_at: :desc)
@@ -24,6 +24,45 @@ class HostelBookingsController < ApplicationController
     end
   end
 
+  def edit
+    return redirect_to order_path, alert: "Only provisional bookings in your shopping basket can be edited." unless draft_booking?
+
+    set_pricing
+    render :new
+  end
+
+  def update
+    return redirect_to order_path, alert: "Only provisional bookings in your shopping basket can be edited." unless draft_booking?
+
+    @hostel_booking.order.with_lock do
+      raise ActiveRecord::RecordNotSaved, "This booking is no longer provisional." unless draft_booking?
+
+      @hostel_booking.update!(hostel_booking_params)
+      @hostel_booking.reprice!(date: Date.current)
+    end
+    redirect_to order_path, notice: "Hostel booking updated."
+  rescue ActiveRecord::RecordInvalid
+    set_pricing
+    render :new, status: :unprocessable_entity
+  rescue ActiveRecord::RecordNotSaved => e
+    redirect_to order_path, alert: e.message
+  end
+
+  def destroy
+    return redirect_to order_path, alert: "Only provisional bookings in your shopping basket can be removed." unless draft_booking?
+
+    @hostel_booking.order.with_lock do
+      raise ActiveRecord::RecordNotSaved, "This booking is no longer provisional." unless draft_booking?
+
+      @hostel_booking.destroy!
+    end
+    redirect_to order_path, notice: "Hostel booking removed from your shopping basket."
+  rescue ActiveRecord::RecordNotDestroyed => e
+    redirect_to order_path, alert: e.message
+  rescue ActiveRecord::RecordNotSaved => e
+    redirect_to order_path, alert: e.message
+  end
+
   def show
     @payment = @hostel_booking.current_payment
     @payment&.refresh_from_mollie
@@ -42,6 +81,10 @@ class HostelBookingsController < ApplicationController
 
   def set_pricing
     @pricing = HostelPricing.new
+  end
+
+  def draft_booking?
+    @hostel_booking.order&.editable? && @hostel_booking.payments.empty?
   end
 
   def hostel_booking_params

@@ -18,6 +18,7 @@
       <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm" aria-labelledby="financial-heading">
         <h2 id="financial-heading" class="text-2xl font-semibold mb-3">Financial</h2>
         <ul class="space-y-2">
+          <li><%= link_to "Orders", admin_orders_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
           <li><%= link_to "Payments", admin_payments_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
           <li><%= link_to "Settlements", admin_settlements_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %></li>
         </ul>
