@@ -14,6 +14,8 @@ module Users
       if resource.errors.empty?
         # Sign in the user immediately
         sign_in(resource)
+        session.delete(:confirmed_registration_user_id)
+        session[:confirmed_registration_user_id] = resource.id if !resource.password_set? && resource.participants.exists?
         set_flash_message!(:notice, :confirmed)
         # Redirect to password setup - use Devise's standard path
         redirect_to edit_user_registration_path

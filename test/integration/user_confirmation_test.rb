@@ -1,13 +1,57 @@
 require "test_helper"
 
 class UserConfirmationTest < ActionDispatch::IntegrationTest
-  def registration
+  def registration(participant_type: "player")
     post participants_path, params: { participant: {
       first_name: "Jane", last_name: "Doe", email: "confirmation@example.org",
-      participant_type: "player", age_group: "18-49", country: "NL",
+      participant_type: participant_type, age_group: "18-49", country: "NL",
       club: "Utrecht", gender: "female", image_use_consent: false
     } }
     User.find_by!(email: "confirmation@example.org")
+  end
+
+  test "a new player reaches the basket after setting a password" do
+    user = registration
+    participant = user.participants.sole
+    get user_confirmation_path, params: { confirmation_token: user.confirmation_token }
+    assert_redirected_to edit_user_registration_path
+
+    patch user_registration_path, params: { user: { password: "short", password_confirmation: "short" } }
+    assert_response :unprocessable_entity
+
+    patch user_registration_path, params: { user: { password: "newpassword123", password_confirmation: "newpassword123" } }
+    assert_redirected_to order_path
+    assert user.reload.valid_password?("newpassword123")
+    follow_redirect!
+    assert_select "h1", "Shopping basket"
+    assert_match "#{participant.first_name} #{participant.last_name}", response.body
+    assert participant.reload.draft_ticket.present?
+  end
+
+  test "a new player reaches the basket after skipping a password" do
+    user = registration
+    participant = user.participants.sole
+    get user_confirmation_path, params: { confirmation_token: user.confirmation_token }
+
+    post skip_user_password_path
+
+    assert_redirected_to order_path
+    follow_redirect!
+    assert_match "#{participant.first_name} #{participant.last_name}", response.body
+    assert_match "magic link", response.body
+    assert_not user.reload.password_set?
+  end
+
+  test "a visitor who skips password setup continues to their registration" do
+    user = registration(participant_type: "visitor")
+    get user_confirmation_path, params: { confirmation_token: user.confirmation_token }
+
+    post skip_user_password_path
+
+    assert_redirected_to mine_participants_path
+    follow_redirect!
+    assert_redirected_to participant_path(user.participants.sole)
+    assert_empty user.orders.drafts
   end
 
   test "registration confirmation verifies the user, signs them in, and cannot be reused" do
