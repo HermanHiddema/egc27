@@ -13,6 +13,10 @@
         <label for="processed" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Bookkeeping</label>
         <%= select_tag :processed, options_for_select([["All payments", ""], ["Processed", "processed"], ["Not processed", "unprocessed"]], @processed_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
       </div>
+      <div>
+        <label for="method" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Method</label>
+        <%= select_tag :method, options_for_select([["All methods", ""], ["Not recorded", "blank"]] + @payment_methods.map { |method| [Payment.payment_method_label(method), method] }, @method_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+      </div>
       <noscript><%= submit_tag "Filter", class: "btn-primary" %></noscript>
     <% end %>
   </div>
@@ -23,10 +27,24 @@
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Date</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payer</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Amount</th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Description</th>
+              <% filters = { processed: @processed_filter, method: @method_filter.presence } %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Payment #{sort_indicator("id", @sort, @direction)}".strip, admin_payments_path(**filters, sort: "id", direction: next_sort_direction("id", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Date #{sort_indicator("date", @sort, @direction)}".strip, admin_payments_path(**filters, sort: "date", direction: next_sort_direction("date", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Payer #{sort_indicator("payer", @sort, @direction)}".strip, admin_payments_path(**filters, sort: "payer", direction: next_sort_direction("payer", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Amount #{sort_indicator("amount", @sort, @direction)}".strip, admin_payments_path(**filters, sort: "amount", direction: next_sort_direction("amount", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                <%= link_to "Order ID #{sort_indicator("order_id", @sort, @direction)}".strip, admin_payments_path(**filters, sort: "order_id", direction: next_sort_direction("order_id", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+              </th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700 min-w-64">Description</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Provider</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Method</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Reference</th>
@@ -38,17 +56,21 @@
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @payments.each do |payment| %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= (payment.payment_date || payment.created_at).strftime("%-d %b %Y") %></td>
-                <td class="px-4 py-3 text-sm text-neutral-900">
-                  <%= payment.payee_label %>
+                <td class="px-4 py-3 text-sm"><%= link_to "##{payment.id}", admin_payment_path(payment), class: "text-brand-blue-700 hover:underline" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_compact_datetime(payment.payment_date || payment.created_at, time_value: payment.created_at) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900 w-48 max-w-48">
+                  <%= link_to payment.order.user.display_name, admin_user_path(payment.order.user), class: "block truncate text-brand-blue-700 hover:underline", title: payment.order.user.display_name %>
+                  <span class="block max-w-48 break-all text-neutral-500" title="<%= payment.order.user.email %>"><%= payment.order.user.email %></span>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-900">
+                <td class="px-4 py-3 text-sm text-right text-neutral-900 whitespace-nowrap">
                   <%= payment.amount_formatted %>
                   <% if payment.charged_back? %>
                     <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">Charged back</span>
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.description %></td>
+                <td class="px-4 py-3 text-sm"><%= link_to payment.order_id, admin_order_path(payment.order), class: "text-brand-blue-700 hover:underline" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.status.humanize %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 min-w-64"><%= payment.description %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.provider_label %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.payment_method_label || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= payment.reference.presence || payment.mollie_payment_id.presence || "—" %></td>
@@ -60,17 +82,21 @@
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-sm">
-                  <% if payment.processed_in_bookkeeping? %>
+                  <% if !payment.paid? %>
+                    <span class="text-neutral-500">—</span>
+                  <% elsif payment.processed_in_bookkeeping? %>
                     <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">Processed</span>
                   <% else %>
                     <span class="inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-medium text-yellow-800">Not processed</span>
                   <% end %>
                 </td>
                 <td class="px-4 py-3 text-sm text-right">
-                  <% if payment.processed_in_bookkeeping? %>
-                    <%= button_to "Mark not processed", unmark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
-                  <% else %>
-                    <%= button_to "Mark processed", mark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                  <% if payment.paid? %>
+                    <% if payment.processed_in_bookkeeping? %>
+                      <%= button_to "Mark not processed", unmark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                    <% else %>
+                      <%= button_to "Mark processed", mark_processed_admin_payment_path(payment, processed: @processed_filter), method: :patch, class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
+                    <% end %>
                   <% end %>
                 </td>
               </tr>

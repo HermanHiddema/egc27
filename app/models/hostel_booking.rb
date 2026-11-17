@@ -32,6 +32,10 @@
 #  fk_rails_...  (user_id => users.id)
 #
 class HostelBooking < ApplicationRecord
+  def self.display_name
+    "hostel booking"
+  end
+
   ROOM_TYPES = HostelPricing::ROOM_TYPES.keys.freeze
   ROOM_PRICE_COLUMNS = {
     "single_rooms" => :single_room_price_cents,
@@ -122,6 +126,34 @@ class HostelBooking < ApplicationRecord
 
   def amount_formatted
     "€ #{format('%.2f', amount_cents / 100.0)}"
+  end
+
+  def reprice!(date: Date.current)
+    return unless order && !order.closed?
+
+    pricing = HostelPricing.new(payment_date: date)
+    room_prices = ROOM_PRICE_COLUMNS.to_h do |room_type, price_column|
+      [price_column, pricing.room_price_cents(room_type)]
+    end
+    new_amount = pricing.line_items(
+      nights: nights,
+      rooms: ROOM_TYPES.index_with { |room_type| self[room_type] },
+      breakfasts: breakfasts,
+      room_prices_cents: ROOM_PRICE_COLUMNS.to_h { |room_type, price_column| [room_type, room_prices.fetch(price_column)] },
+      breakfast_price_cents: HostelPricing::BREAKFAST_CENTS
+    ).sum(&:subtotal_cents)
+    updates = room_prices.merge(
+      priced_on: date,
+      breakfast_price_cents: HostelPricing::BREAKFAST_CENTS,
+      amount_cents: new_amount,
+      updated_at: Time.current
+    )
+
+    if updates.except(:updated_at).any? { |attribute, value| self[attribute] != value }
+      self.class.where(id: id).update_all(updates)
+      reload
+    end
+    product&.reprice!(new_amount) if product&.price_cents != new_amount
   end
 
   private

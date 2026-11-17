@@ -74,6 +74,17 @@
   width: 100%;
 }
 
+.has-quantity-buttons .hostel-quantity-input {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.has-quantity-buttons .hostel-quantity-input::-webkit-inner-spin-button,
+.has-quantity-buttons .hostel-quantity-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 .register-another-plus {
   display: none;
 }

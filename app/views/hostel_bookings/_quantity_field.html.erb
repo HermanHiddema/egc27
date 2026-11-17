@@ -1,0 +1,5 @@
+<div class="flex shrink-0 items-center gap-1">
+  <button type="button" hidden aria-label="Decrease <%= label %>" data-quantity-step="down" data-action="hostel-booking#stepQuantity" class="h-11 w-11 rounded-lg border border-gray-300 bg-white text-xl font-semibold text-brand-blue-800 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue-600">−</button>
+  <%= form.number_field attribute, min: 0, max: 99, step: 1, class: "hostel-quantity-input w-16 rounded-lg border border-gray-300 px-2 py-2 text-center focus:border-brand-blue-600 focus:ring-brand-blue-600", data: { hostel_booking_target: target, room_type: room_type } %>
+  <button type="button" hidden aria-label="Increase <%= label %>" data-quantity-step="up" data-action="hostel-booking#stepQuantity" class="h-11 w-11 rounded-lg border border-gray-300 bg-white text-xl font-semibold text-brand-blue-800 hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-blue-600">+</button>
+</div>

@@ -43,6 +43,22 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
   end
 
+  test "admin index loads registration payment statuses in batches" do
+    sign_in users(:admin)
+    status_queries = []
+    subscriber = lambda do |_name, _start, _finish, _id, payload|
+      sql = payload[:sql]
+      status_queries << sql if sql.match?(/SELECT .*FROM "payments".*participant_tickets.*invalidated_at/im)
+    end
+
+    ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+      get admin_participants_path
+    end
+
+    assert_response :success
+    assert_empty status_queries
+  end
+
   test "admin participant count reflects zero matching results" do
     sign_in users(:admin)
     get admin_participants_path(name: "No matching participant")
@@ -226,6 +242,26 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "Bob Jones", response.body
     assert_no_match "Alice Smith", response.body
     assert_no_match "Dave Pending", response.body
+  end
+
+  test "status filtering and sorting ignore invalidated tickets and canceled orders" do
+    participants(:two).participant_tickets.sole.update_columns(invalidated_at: Time.current)
+    orders(:four).update_columns(cancelled_at: Time.current)
+    sign_in users(:admin)
+
+    get admin_participants_path(status: "paid")
+    assert_no_match "Bob Jones", response.body
+    assert_no_match participants(:four).email, response.body
+
+    get admin_participants_path(status: "confirmed", sort: "status")
+    assert_match "Bob Jones", response.body
+    assert_match participants(:four).email, response.body
+    assert_select "tbody tr", text: /Bob Jones.*Confirmed/m
+
+    get admin_participants_path(sort: "status", direction: "asc")
+    statuses = css_select("tbody tr td:nth-child(7)").map { |cell| cell.text.strip }
+    status_order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
+    assert_equal statuses.sort_by { |status| status_order.fetch(status) }, statuses
   end
 
   test "admin can filter by status confirmed" do

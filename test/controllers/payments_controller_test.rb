@@ -10,7 +10,27 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     post participant_payment_path(participant), **options
   end
 
-  # new
+  # The Participant payment routes remain as compatibility redirects. All
+  # checkout and retry actions now happen from the basket or a submitted Order.
+  test "new redirects a participant with a draft Order to the shopping basket" do
+    participant = participants(:three)
+    participant.add_ticket_to_draft_order!
+    sign_in participant.user
+
+    get new_participant_payment_path(participant)
+
+    assert_redirected_to order_path
+  end
+
+  test "new redirects a participant with a submitted Order to that Order" do
+    participant = participants(:one)
+    sign_in participant.user
+
+    get new_participant_payment_path(participant)
+
+    assert_redirected_to submitted_order_path(participant.order)
+  end
+
   test "new redirects visitors to participant page" do
     participant = participants(:one)
     participant.update!(participant_type: "visitor")
@@ -18,21 +38,6 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     get new_participant_payment_path(participant)
 
     assert_redirected_to participant_path(participant)
-  end
-
-  test "new shows unconfirmed notice for unconfirmed player" do
-    participant = participants(:unconfirmed)
-
-    original = User.allow_unconfirmed_access_for
-    User.allow_unconfirmed_access_for = nil
-    devise_sign_in participant.user
-    get new_participant_payment_path(participant)
-
-    assert_response :success
-    assert_match "confirm", response.body
-    assert_no_match participant.email, response.body
-  ensure
-    User.allow_unconfirmed_access_for = original
   end
 
   test "new requires a signed-in owner" do
@@ -49,196 +54,16 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "new displays the replacement ticket instead of an invalidated paid ticket" do
-    participant = participants(:two)
-    participant.participant_ticket.invalidate_admission!
-    replacement = participant.add_ticket_to_draft_order!
-    sign_in participant.user
-
-    with_paid_mollie_stub(payments(:paid_payment)) do
-      get new_participant_payment_path(participant)
-    end
-
-    assert_redirected_to order_path
-    assert_equal replacement.order, participant.current_order
-  end
-
-  test "new displays the order of the most recent in-progress payment" do
-    participant = participants(:one)
-    original_payment = payments(:open_payment)
-    original_payment.update!(status: "failed")
-    replacement = participant.add_ticket_to_draft_order!
-    replacement.order.submit!
-    replacement.order.payments.create!(amount_cents: replacement.order.total_cents,
-      description: "Replacement", status: "pending", created_at: 1.day.ago)
-    original_payment.update!(status: "open", created_at: Time.current)
-    sign_in participant.user
-
-    get new_participant_payment_path(participant)
-
-    assert_response :success
-    assert_equal original_payment.order, participant.current_order
-    assert_equal original_payment, participant.current_payment
-  end
-
-  test "new does not offer payment for an invalidated ticket on a closed order" do
-    participant = participants(:two)
-    paid_payment = payments(:paid_payment)
-    paid_payment.update_column(:status, "open")
-    participant.order.payments.create!(amount_cents: participant.order.total_cents,
-      description: "Concurrent attempt", status: "open")
-    paid_payment.update_column(:status, "paid")
-    participant.participant_ticket.invalidate_admission!
-    sign_in participant.user
-
-    get new_participant_payment_path(participant)
-
-    assert_response :success
-    assert_nil participant.current_order
-    assert_select "input[type=submit][value^='Pay ']", count: 0
-  end
-
-  test "new builds a fresh payment for confirmed player" do
-    participant = participants(:one)
-    sign_in participant.user
-    payments(:open_payment).update_column(:created_at, Time.zone.local(2026, 8, 1))
-
-    travel_to Time.zone.local(2026, 8, 1) do
-      get new_participant_payment_path(participant)
-    end
-
-    assert_response :success
-    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
-    assert_match "This price is valid until", response.body
-    assert_match "31 Aug 2026", response.body
-    assert_match "After that, the price will go up.", response.body
-    assert_select "table.price-overview thead tr.bg-gray-200"
-    assert_select "table.price-overview th", count: 4
-    assert_select "table.price-overview th", text: /Pass type/
-    assert_select "table.price-overview th", text: /Special/, count: 0
-    assert_select "table.price-overview th .price-overview-label", count: 3
-    assert_select "table.price-overview th .price-overview-label + details.price-period-info", count: 3
-    assert_select "details.price-period-info summary[aria-label='Early Bird price period dates']"
-    assert_select "details.price-period-info .price-period-popup", text: "Until 31 January 2027"
-    assert_select "details.price-period-info .price-period-popup", text: "Until 31 May 2027"
-    assert_select "details.price-period-info .price-period-popup", text: "From 1 June 2027"
-    assert_select "tr.price-overview-row.bg-brand-yellow-200"
-    assert_select "p", text: /If none of the payment options offered by Mollie work for you, please see our FAQ for other payment options/
-    assert_select "a[href=?]", page_path("faq"), text: "FAQ"
-  end
-
-  test "new reuses an in-progress payment for pricing and display" do
-    participant = participants(:three)
-    sign_in participant.user
-    payment = participant.order.payments.create!(
-      amount_cents: participant.order.total_cents,
-      description: "Existing pending payment",
-      status: "pending",
-      created_at: Time.zone.local(2026, 8, 15),
-      updated_at: Time.zone.local(2026, 8, 15)
-    )
-
-    travel_to Time.zone.local(2026, 9, 10) do
-      get new_participant_payment_path(participant)
-    end
-
-    assert_response :success
-    assert_select ".payment-participant-overview .payment-pass-type", text: CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label
-    assert_select ".payment-participant-overview .payment-pass-type", text: payment.description, count: 0
-    assert_match "31 Aug 2026", response.body
-  end
-
-  test "new does not show price validity notice in final pricing period" do
+  test "create redirects to the relevant Order without starting a separate payment" do
     participant = participants(:three)
     sign_in participant.user
 
-    travel_to Time.zone.local(2027, 6, 1) do
-      get new_participant_payment_path(participant)
+    assert_no_difference("Payment.count") do
+      post participant_payment_path(participant), params: { simulate_status: "paid" }
     end
 
-    assert_response :success
-    assert_no_match "This price is valid until", response.body
-    assert_no_match "After that, the price will go up.", response.body
-  end
-
-  test "new uses persisted payment date for price validity text" do
-    participant = participants(:one)
-    sign_in participant.user
-    payment = payments(:open_payment)
-    payment.update!(
-      participant: participant,
-      amount_cents: 19_000,
-      description: "EGC 2027 All events",
-      status: "pending",
-      created_at: Time.zone.local(2026, 8, 15)
-    )
-
-    travel_to Time.zone.local(2026, 9, 10) do
-      get new_participant_payment_path(participant)
-    end
-
-    assert_response :success
-    assert_match "This price is valid until", response.body
-    assert_match "31 Aug 2026", response.body
-  end
-
-  test "new hides Mollie simulation controls outside development and test environments" do
-    participant = participants(:one)
-    sign_in participant.user
-
-    with_mollie_simulation_enabled do
-      with_rails_env("production") do
-        get new_participant_payment_path(participant)
-      end
-    end
-
-    assert_response :success
-    assert_no_match "Development: Simulate Mollie Response", response.body
-  end
-
-  test "new shows paid state for participant with completed payment" do
-    participant = participants(:two)
-    sign_in participant.user
-
-    with_paid_mollie_stub(payments(:paid_payment)) do
-      get new_participant_payment_path(participant)
-    end
-
-    assert_response :success
-    assert_match "already been paid", response.body
-    assert_no_match "This price is valid until", response.body
-  end
-
-  test "new shows the paid state when a payment is refunded" do
-    participant = participants(:two)
-    sign_in participant.user
-    paid_payment = payments(:paid_payment)
-    refunded_mollie = OpenStruct.new(
-      id: paid_payment.mollie_payment_id,
-      status: "paid",
-      amount_refunded: OpenStruct.new(value: BigDecimal("50.00"), currency: "EUR")
-    )
-
-    original = Mollie::Payment.method(:get)
-    Mollie::Payment.define_singleton_method(:get) { |_id| refunded_mollie }
-
-    get new_participant_payment_path(participant)
-
-    assert_response :success
-    assert_equal "paid", paid_payment.reload.status
-    assert_equal 5_000, paid_payment.amount_refunded_cents
-    assert_match "already been paid", response.body
-  ensure
-    Mollie::Payment.define_singleton_method(:get, &original)
-  end
-
-  # create
-  test "create redirects unconfirmed participant back to new" do
-    participant = participants(:unconfirmed)
-
-    post_payment(participant)
-
-    assert_redirected_to new_participant_payment_path(participant)
+    assert_redirected_to submitted_order_path(participant.order)
+    assert_match "managed from your Order", flash[:notice]
   end
 
   test "create requires a signed-in owner" do
@@ -257,204 +82,13 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "create redirects visitor to participant page" do
+  test "create redirects visitors to participant page" do
     participant = participants(:one)
     participant.update!(participant_type: "visitor")
 
     post_payment(participant)
 
     assert_redirected_to participant_path(participant)
-  end
-
-  test "create redirects to success page when payment already completed" do
-    participant = participants(:two)
-
-    with_paid_mollie_stub(payments(:paid_payment)) do
-      post_payment(participant)
-    end
-
-    assert_redirected_to success_payments_path
-  end
-
-  test "create does not retry an order with a refunded or charged-back payment" do
-    participant = participants(:two)
-    payment = payments(:paid_payment)
-    original_get = Mollie::Payment.method(:get)
-    original_create = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| flunk("should not create another payment") }
-
-    [[:amount_refunded, "50.00"], [:amount_refunded, "10.00"], [:amount_charged_back, "50.00"]].each do |field, amount|
-      remote = OpenStruct.new(id: payment.mollie_payment_id, status: "paid", field => OpenStruct.new(value: amount))
-      Mollie::Payment.define_singleton_method(:get) { |_id| remote }
-
-      assert_no_difference("Payment.count") { post_payment(participant) }
-      assert_redirected_to success_payments_path
-      assert_equal "paid", payment.reload.status
-      assert participant.order.closed?
-    end
-  ensure
-    Mollie::Payment.define_singleton_method(:get, &original_get)
-    Mollie::Payment.define_singleton_method(:create, &original_create)
-  end
-
-  test "create starts a single payment when no in-progress payment exists" do
-    participant = participants(:three)
-    mollie_stub = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
-    mollie_create_params = nil
-
-    original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) do |**params|
-      mollie_create_params = params
-      mollie_stub
-    end
-
-    assert_difference("Payment.count", 1) do
-      post_payment(participant)
-    end
-
-    payment = participant.payments.order(created_at: :desc).first
-
-    assert_redirected_to "https://example.test/new-checkout"
-    assert_equal "tr_new_attempt_123", payment.mollie_payment_id
-    assert_equal "EGC 2027 All events - #{participant.participant_number}", payment.description
-    assert_equal payment.description, mollie_create_params[:description]
-  ensure
-    Mollie::Payment.define_singleton_method(:create, &original)
-  end
-
-  test "create keeps confirmed payment view state when mollie creation fails" do
-    participant = participants(:three)
-
-    original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| raise Mollie::Exception, "boom" }
-
-    post_payment(participant)
-
-    assert_response :unprocessable_entity
-    assert_match "Payment could not be started: boom", response.body
-    assert_no_match "Please confirm your email address", response.body
-  ensure
-    Mollie::Payment.define_singleton_method(:create, &original)
-  end
-
-  test "create reuses the latest in-progress payment" do
-    payment = payments(:open_payment)
-    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "open", checkout_url: "https://example.test/mollie-checkout")
-
-    original = Mollie::Payment.method(:get)
-    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
-
-    assert_no_difference("Payment.count") do
-      post_payment(payment.participant)
-    end
-
-    assert_redirected_to "https://example.test/mollie-checkout"
-  ensure
-    Mollie::Payment.define_singleton_method(:get, &original)
-  end
-
-  test "create redirects to success when mollie already marks the payment as paid" do
-    payment = payments(:open_payment)
-    mollie_stub = OpenStruct.new(id: payment.mollie_payment_id, status: "paid")
-
-    original = Mollie::Payment.method(:get)
-    Mollie::Payment.define_singleton_method(:get) { |_id| mollie_stub }
-
-    assert_no_difference("Payment.count") do
-      post_payment(payment.participant)
-    end
-
-    assert_equal "paid", payment.reload.status
-    assert_redirected_to success_payments_path
-  ensure
-    Mollie::Payment.define_singleton_method(:get, &original)
-  end
-
-  test "create starts a new payment attempt when previous mollie checkout is unavailable" do
-    payment = payments(:open_payment)
-    stale_mollie = OpenStruct.new(id: payment.mollie_payment_id, status: "failed", checkout_url: nil)
-    new_mollie = OpenStruct.new(id: "tr_new_attempt_123", checkout_url: "https://example.test/new-checkout")
-
-    original_get = Mollie::Payment.method(:get)
-    original_create = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:get) { |_id| stale_mollie }
-    Mollie::Payment.define_singleton_method(:create) { |**_params| new_mollie }
-
-    assert_difference("Payment.count", 1) do
-      post_payment(payment.participant)
-    end
-
-    assert_redirected_to "https://example.test/new-checkout"
-    assert_equal "failed", payment.reload.status
-    assert_equal "tr_new_attempt_123", payment.participant.payments.order(created_at: :desc).first.mollie_payment_id
-  ensure
-    Mollie::Payment.define_singleton_method(:get, &original_get)
-    Mollie::Payment.define_singleton_method(:create, &original_create)
-  end
-
-  test "create can simulate a paid Mollie status when enabled" do
-    participant = participants(:three)
-
-    with_mollie_simulation_enabled do
-      assert_difference("Payment.count", 1) do
-        post_payment(participant, params: { simulate_status: "paid" })
-      end
-    end
-
-    payment = participant.payments.order(created_at: :desc).first
-    assert_redirected_to_success_for payment
-    assert_equal "paid", payment.status
-    assert_nil payment.mollie_payment_id
-  end
-
-  test "a new attempt uses the current tier and records its price on the ticket" do
-    participant = participants(:three)
-    ticket = participant.participant_ticket
-    assert_equal 19000, ticket.price_cents
-
-    travel_to Time.zone.local(2026, 9, 1) do
-      with_mollie_simulation_enabled do
-        post_payment(participant, params: { simulate_status: "pending" })
-      end
-    end
-
-    payment = participant.payments.order(created_at: :desc).first
-    assert_equal 22000, payment.amount_cents
-    assert_equal payment.amount_cents, ticket.reload.price_cents
-  end
-
-  test "create can simulate failed status on an existing in-progress payment" do
-    payment = payments(:open_payment)
-
-    with_mollie_simulation_enabled do
-      assert_no_difference("Payment.count") do
-        post_payment(payment.participant, params: { simulate_status: "failed" })
-      end
-    end
-
-    assert_redirected_to_success_for payment
-    assert_equal "failed", payment.reload.status
-    assert_nil payment.mollie_payment_id
-  end
-
-  test "create ignores simulate_status outside development and test environments" do
-    participant = participants(:three)
-    mollie_stub = OpenStruct.new(id: "tr_live_123", checkout_url: "https://example.test/live-checkout")
-    original = Mollie::Payment.method(:create)
-    Mollie::Payment.define_singleton_method(:create) { |**_params| mollie_stub }
-
-    with_mollie_simulation_enabled do
-      with_rails_env("production") do
-        post_payment(participant, params: { simulate_status: "paid" })
-      end
-    end
-
-    payment = participant.payments.order(created_at: :desc).first
-    assert_redirected_to "https://example.test/live-checkout"
-    assert_equal "open", payment.status
-    assert_equal "tr_live_123", payment.mollie_payment_id
-  ensure
-    Mollie::Payment.define_singleton_method(:create, &original)
   end
 
   # success
@@ -509,7 +143,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     assert_response :success
     assert_match "Payment Not Completed", response.body
-    assert_select "a[href='#{new_participant_payment_path(payment.participant)}']", text: "Try again"
+    assert_select "a[href='#{submitted_order_path(payment.order)}']", text: "Try again"
   end
 
   test "success treats authorized payments as pending" do
@@ -744,31 +378,5 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     yield
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
-  end
-
-  def with_mollie_simulation_enabled
-    original = Rails.application.config.x.payments.simulate_mollie
-    Rails.application.config.x.payments.simulate_mollie = true
-    yield
-  ensure
-    Rails.application.config.x.payments.simulate_mollie = original
-  end
-
-  # Temporarily switches Rails.env for the duration of the block so environment
-  # guards (e.g. the dev/test-only Mollie simulation path) can be exercised.
-  def with_rails_env(env_name)
-    original = Rails.method(:env).to_proc
-    Rails.define_singleton_method(:env) { ActiveSupport::EnvironmentInquirer.new(env_name) }
-    yield
-  ensure
-    Rails.define_singleton_method(:env, &original)
-  end
-
-  def assert_redirected_to_success_for(payment)
-    assert_response :redirect
-    location = URI.parse(response.location)
-    assert_equal success_payments_path, location.path
-    token = Rack::Utils.parse_query(location.query)["token"]
-    assert_equal payment, Payment.find_by_return_token(token)
   end
 end

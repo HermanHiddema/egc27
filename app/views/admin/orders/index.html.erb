@@ -1,0 +1,89 @@
+<div class="container-wide py-12">
+  <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+    <h1 class="text-4xl font-bold">Orders (Admin)</h1>
+    <%= link_to "← Back to Admin", dashboard_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+  </div>
+
+  <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+    <% status_options = [["Awaiting payment", "awaiting"], ["Payment open / pending", "pending"], ["Paid", "paid"], ["Payment failed", "failed"], ["Payment canceled", "canceled"], ["Payment expired", "expired"], ["Order canceled", "order_cancelled"]] %>
+    <%= form_with url: admin_orders_path, method: :get, local: true do %>
+      <details class="relative inline-block">
+        <summary class="flex cursor-pointer list-none items-center gap-3 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+          Order/payment status
+          <span class="text-xs font-normal text-neutral-600"><%= @status_filters.any? ? "#{@status_filters.size} selected" : "All statuses" %></span>
+          <span aria-hidden="true">▾</span>
+        </summary>
+        <div class="absolute left-0 top-full z-20 mt-2 min-w-64 rounded-md border border-neutral-200 bg-white p-4 shadow-lg">
+          <fieldset class="space-y-2">
+            <legend class="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-700">Select statuses</legend>
+            <% status_options.each do |label, value| %>
+              <label class="flex cursor-pointer items-center gap-2 text-sm text-neutral-800">
+                <%= check_box_tag "status[]", value, @status_filters.include?(value), id: "status_#{value}", class: "rounded border-neutral-300 text-brand-blue-700 focus:ring-brand-blue-600" %>
+                <%= label %>
+              </label>
+            <% end %>
+          </fieldset>
+          <p class="mt-3 text-xs text-neutral-600">Leave all unchecked to show every status.</p>
+          <%= submit_tag "Filter", class: "btn-primary mt-4 w-full" %>
+        </div>
+      </details>
+    <% end %>
+  </div>
+
+  <% if @orders.any? %>
+    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+          <thead class="bg-neutral-50">
+            <tr>
+              <% filters = { status: @status_filters.presence } %>
+              <% { "Order" => "order_id", "Created" => "submitted", "User" => "user" }.each do |label, column| %>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                  <%= link_to "#{label} #{sort_indicator(column, @sort, @direction)}".strip, admin_orders_path(**filters, sort: column, direction: next_sort_direction(column, @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+                </th>
+              <% end %>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Products</th>
+              <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700"><%= link_to "Total #{sort_indicator("total", @sort, @direction)}".strip, admin_orders_path(**filters, sort: "total", direction: next_sort_direction("total", @sort, @direction)), class: "hover:text-brand-red-700 transition" %></th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Order / payment status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700"><%= link_to "Cancelled at #{sort_indicator("cancelled_at", @sort, @direction)}".strip, admin_orders_path(**filters, sort: "cancelled_at", direction: next_sort_direction("cancelled_at", @sort, @direction)), class: "hover:text-brand-red-700 transition" %></th>
+              <th class="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-gray-100 bg-white">
+            <% @orders.each do |order| %>
+              <tr>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= link_to "##{order.id}", admin_order_path(order), class: "text-brand-blue-700 hover:underline" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_compact_datetime(order.created_at) %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 w-48 max-w-48"><%= link_to order.user.display_name, admin_user_path(order.user), class: "block truncate text-brand-blue-700 hover:underline", title: order.user.display_name %><span class="block max-w-48 break-all text-neutral-500" title="<%= order.user.email %>"><%= order.user.email %></span></td>
+                <td class="px-4 py-3 text-sm text-neutral-700">
+                  <ul class="space-y-1">
+                    <% order.products_for_display.each do |product| %>
+                      <li>
+                        <% if product.productable.is_a?(ParticipantTicket) %>
+                          <% participant = product.productable.participant %>
+                          Ticket: <%= participant.first_name %> <%= participant.last_name %>
+                        <% else %>
+                          <%= product.productable.description %>
+                        <% end %>
+                      </li>
+                    <% end %>
+                  </ul>
+                </td>
+                <td class="px-4 py-3 text-sm text-right text-neutral-900 whitespace-nowrap">€ <%= format("%.2f", order.display_total_cents / 100.0) %></td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap"><span class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></span></td>
+                <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= order.cancelled_at ? eu_compact_datetime(order.cancelled_at) : "—" %></td>
+                <td class="px-4 py-3 text-sm text-right whitespace-nowrap">
+                  <% if order.cancellable? %>
+                    <%= button_to "Cancel order", cancel_admin_order_path(order), method: :patch, class: "btn-secondary", data: { turbo_confirm: "Cancel Order #{order.id}? This will release its participant tickets for a new purchase." } %>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-neutral-700">No submitted orders match the selected filter.</div>
+  <% end %>
+</div>

@@ -391,7 +391,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_equal users(:one).email, Participant.order(:created_at).last.email
   end
 
-  test "signed in user registration is confirmed immediately without an email and goes to payment" do
+  test "signed in user registration is confirmed immediately without an email and goes to the shopping basket" do
     sign_in users(:one)
 
     assert_no_emails do
@@ -417,7 +417,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant = Participant.order(:created_at).last
     assert_equal users(:one), participant.user
     assert participant.confirmed?, "signed-in registration should be confirmed immediately"
-    assert_redirected_to new_participant_payment_path(participant)
+    assert_redirected_to order_path
   end
 
   test "signed in visitor registration is confirmed immediately and goes to the participant page" do

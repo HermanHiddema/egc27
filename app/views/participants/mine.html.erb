@@ -19,6 +19,7 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Name</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Country</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment status</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Status</th>
             </tr>
           </thead>
@@ -30,6 +31,15 @@
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type.humanize %></td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap">
+                  <% if participant.visitor? %>
+                    <span class="inline-flex rounded px-2 py-1 font-semibold border border-green-200 bg-green-50 text-green-800">Visitor</span>
+                  <% elsif (ticket_order = participant.current_ticket&.product&.order) %>
+                    <span class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(ticket_order) %>"><%= order_payment_status(ticket_order) %></span>
+                  <% else %>
+                    <span class="inline-flex rounded px-2 py-1 font-semibold border border-gray-200 bg-gray-100 text-gray-700">No ticket</span>
+                  <% end %>
+                </td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.confirmed? ? "Confirmed" : "Pending confirmation" %></td>
               </tr>
             <% end %>

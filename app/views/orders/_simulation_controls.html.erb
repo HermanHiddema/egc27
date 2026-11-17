@@ -1,0 +1,10 @@
+<div class="mt-5 rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-4">
+  <h3 class="text-sm font-semibold text-brand-yellow-900 mb-3">Development: Simulate Mollie Response</h3>
+  <div class="grid grid-cols-2 gap-2">
+    <% { "Simulate paid" => "paid", "Simulate pending" => "pending", "Simulate failed" => "failed", "Simulate canceled" => "canceled" }.each do |label, status| %>
+      <%= button_to label, url, method: :post,
+            params: request_params.merge(simulate_status: status),
+            class: "btn-secondary w-full", form: { data: { turbo: false } } %>
+    <% end %>
+  </div>
+</div>

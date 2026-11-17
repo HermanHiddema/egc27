@@ -1,0 +1,46 @@
+<% content_for :title, "Past Orders – EGC 2027" %>
+<div class="container-wide py-8 lg:py-12">
+  <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+    <div><h1 class="text-4xl font-bold">Past Orders</h1><p class="mt-2 text-neutral-700">Submitted orders and their payment status.</p></div>
+    <%= link_to "My basket", order_path, class: "btn-primary" %>
+  </div>
+  <% if @orders.any? %>
+    <div class="space-y-4">
+      <% @orders.each do |order| %>
+        <% products = order.products_for_display %>
+        <% payment_action = order.payment_action %>
+        <article class="bg-white border border-gray-200 rounded-lg p-5 md:p-6 shadow-sm">
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_15rem] sm:items-start">
+            <div class="min-w-0">
+              <h2 class="text-xl font-semibold"><%= link_to "Order #{order.id}", submitted_order_path(order), class: "text-brand-blue-800 hover:underline" %></h2>
+              <p class="text-sm text-neutral-600">Created <%= l(order.created_at.to_date, format: :long) %></p>
+              <ul class="mt-3 min-w-0 text-sm text-neutral-700 list-disc list-inside">
+                <% products.each do |product| %>
+                  <% summary = product.productable.is_a?(ParticipantTicket) ? "Ticket: #{product.productable.participant.first_name} #{product.productable.participant.last_name}" : "#{product.productable.description} · #{hostel_booking_options(product.productable)}" %>
+                  <li class="max-w-full truncate" title="<%= summary %>"><%= summary %></li>
+                <% end %>
+              </ul>
+            </div>
+            <div class="min-w-0 text-left sm:text-right">
+              <p class="inline-flex rounded px-2 py-1 font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></p>
+              <% if order.cancelled_at %><p class="mt-1 text-sm text-neutral-600">Cancelled <%= l(order.cancelled_at, format: :long) %></p><% end %>
+              <p class="text-lg font-bold mt-1">€ <%= format("%.2f", @display_totals.fetch(order.id) / 100.0) %></p>
+              <% if @orders_with_changed_totals.include?(order.id) %>
+                <p class="mt-1 text-sm text-amber-800">The total has changed since the last payment attempt. The updated total is shown.</p>
+              <% end %>
+              <%= link_to "View order", submitted_order_path(order), class: "inline-block mt-2 text-brand-blue-700 underline" %>
+              <% if payment_action.in?([:pay, :retry, :resume]) %>
+                <%= button_to order_payment_action_label(payment_action), pay_submitted_order_path(order), method: :post, params: { confirmed_total_cents: @display_totals.fetch(order.id) }, class: "btn-primary mt-3", data: { turbo: false } %>
+                <% if @show_simulation_controls && payment_action != :resume %>
+                  <%= render "simulation_controls", url: pay_submitted_order_path(order), request_params: { confirmed_total_cents: @display_totals.fetch(order.id) } %>
+                <% end %>
+              <% end %>
+            </div>
+          </div>
+        </article>
+      <% end %>
+    </div>
+  <% else %>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 text-neutral-700">You have no submitted Orders yet.</div>
+  <% end %>
+</div>
