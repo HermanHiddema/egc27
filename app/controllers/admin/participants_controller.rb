@@ -4,7 +4,36 @@ class Admin::ParticipantsController < ApplicationController
   PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
-  before_action :set_participant, only: [:edit, :update, :destroy]
+  before_action :set_participant, only: [:edit, :update, :destroy, :add_payment]
+
+  def add_payment
+    return redirect_to edit_admin_participant_path(@participant), alert: "Only players can purchase a ticket." unless @participant.player?
+    return redirect_to edit_admin_participant_path(@participant), alert: "This participant already has a valid paid ticket." if @participant.valid_admission?
+
+    orders = @participant.participant_tickets.where(invalidated_at: nil).joins(product: :order).where(orders: { cancelled_at: nil }).includes(product: { order: :payments }).map { |ticket| ticket.order }.compact.uniq.select { |order| !order.payments.completed.exists? }
+    if orders.many?
+      @payment_orders = orders
+      render "admin/participants/select_payment_order"
+      return
+    elsif orders.one?
+      return redirect_to new_admin_order_payment_path(orders.first)
+    end
+
+    order = nil
+    @participant.user.with_lock do
+      if (draft = @participant.user.orders.drafts.first)
+        return redirect_to edit_admin_order_path(draft), alert: "The participant's User already has draft Order ##{draft.id}. Review it before creating another Order."
+      end
+      raise ActiveRecord::RecordNotSaved, "Participant cannot purchase another ticket." unless @participant.can_purchase_ticket?
+      order = @participant.user.orders.create!(status: "draft")
+      @participant.participant_tickets.create!
+      order.reload
+      raise ActiveRecord::RecordNotSaved, "The ticket could not be added to its new draft Order." unless order.products.exists?
+    end
+    redirect_to edit_admin_order_path(order), notice: "Review the new ticket Order before submitting it."
+  rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
+    redirect_to edit_admin_participant_path(@participant), alert: e.message
+  end
 
   def index
     participants = Participant.includes(:payments, :user, participant_tickets: { product: { order: :payments } })

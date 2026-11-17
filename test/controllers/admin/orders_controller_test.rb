@@ -36,4 +36,30 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "th", text: /Created/
   end
+
+  test "manual payment action is shown for an unpaid order on the list and details" do
+    sign_in users(:admin)
+    order = orders(:three)
+
+    get admin_orders_path
+    assert_select "a[href='#{new_admin_order_payment_path(order)}']", text: "Add payment"
+    assert_select "form[action='#{cancel_admin_order_path(order)}'] button", text: "Cancel order"
+
+    get admin_order_path(order)
+    assert_select "a[href='#{new_admin_order_payment_path(order)}']", text: "Add payment"
+  end
+
+  test "manual payment action is hidden while a payment is open, pending or authorized" do
+    sign_in users(:admin)
+    order = orders(:three)
+    payment = order.payments.create!(status: "open", amount_cents: order.total_cents, description: "Mollie")
+
+    %w[open pending authorized].each do |status|
+      payment.update!(status: status)
+      get admin_orders_path
+      assert_select "a[href='#{new_admin_order_payment_path(order)}']", count: 0
+      get admin_order_path(order)
+      assert_select "a[href='#{new_admin_order_payment_path(order)}']", count: 0
+    end
+  end
 end

@@ -18,6 +18,11 @@
     <% if @order.cancellable? %>
       <%= button_to "Cancel order", cancel_admin_order_path(@order), method: :patch, class: "btn-secondary mt-5", data: { turbo_confirm: "Cancel Order #{@order.id}? This will release its participant tickets for a new purchase." } %>
     <% end %>
+    <% if @order.draft? %>
+      <%= link_to "Review / edit draft", edit_admin_order_path(@order), class: "btn-secondary mt-5 inline-block" %>
+    <% elsif @order.payment_action.in?([:pay, :retry]) %>
+      <%= link_to "Add payment", new_admin_order_payment_path(@order), class: "btn-primary mt-5 inline-block" %>
+    <% end %>
   </section>
 
   <% if @cancellation_versions.any? %>

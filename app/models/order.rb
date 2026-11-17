@@ -30,6 +30,7 @@ class Order < ApplicationRecord
   validate :draft_cannot_have_payments, if: :draft?
   validate :lifecycle_changes_are_valid, on: :update
   validate :cancellation_changes_are_valid, if: :will_save_change_to_cancelled_at?
+  validate :owner_cannot_change_with_products, on: :update
   before_destroy :prepare_draft_for_destruction, prepend: true
 
   scope :drafts, -> { where(status: "draft") }
@@ -55,6 +56,25 @@ class Order < ApplicationRecord
     with_lock do
       reload
       products.create!(productable: productable)
+    end
+  end
+
+  def change_draft_owner!(new_owner)
+    new_owner.with_lock do
+      with_lock do
+        raise ActiveRecord::RecordNotSaved, "Only draft Orders can change owner." unless editable?
+        if products.where(productable_type: "ParticipantTicket").exists?
+          raise ActiveRecord::RecordNotSaved, "An Order with participant tickets cannot change owner."
+        end
+        if new_owner.orders.drafts.where.not(id: id).exists?
+          raise ActiveRecord::RecordNotSaved, "This user already has a draft Order. Review it before changing the owner."
+        end
+        products.includes(:productable).each { |product| product.productable.update!(user: new_owner) }
+        @changing_draft_owner = true
+        update!(user: new_owner)
+      ensure
+        @changing_draft_owner = false
+      end
     end
   end
 
@@ -164,6 +184,10 @@ class Order < ApplicationRecord
   end
 
   private
+
+  def owner_cannot_change_with_products
+    errors.add(:user, "cannot change while the order contains products") if will_save_change_to_user_id? && products.exists? && !@changing_draft_owner
+  end
 
   def draft_is_unique_for_user
     return unless self.class.drafts.where(user_id: user_id).where.not(id: id).exists?

@@ -36,11 +36,11 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     # Edit link
     assert_select "a[href='#{edit_admin_participant_path(participants(:one))}']", text: "Edit"
     # Payment action depends on existing payment provider.
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Add payment"
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:three))}'] button", text: "Add payment"
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", text: "Edit payment"
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:one))}'] button", text: "Add payment"
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:visitor_one))}']", count: 0
   end
 
   test "admin index loads registration payment statuses in batches" do
@@ -90,7 +90,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path
 
     assert_response :success
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Add payment"
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:one))}'] button", text: "Add payment"
   end
 
   test "admin sees an add payment link when the latest manual payment failed" do
@@ -100,7 +100,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path
 
     assert_response :success
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:four))}']", text: "Add payment"
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:four))}'] button", text: "Add payment"
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:four), payments(:manual_payment))}']", count: 0
   end
 
@@ -111,15 +111,15 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[action='#{admin_participant_path(participants(:three))}']"
     assert_select "input[name='participant[email]'][readonly]"
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:three))}']", text: "Record payment"
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:three))}'] button", text: "Add payment"
   end
 
-  test "admin edit page for participant with mollie payment does not show payment link" do
+  test "admin edit page for participant with mollie payment links to order review" do
     sign_in users(:admin)
     get edit_admin_participant_path(participants(:one))
 
     assert_response :success
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", count: 0
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:one))}'] button", text: "Add payment"
     assert_select "a[href='#{edit_admin_participant_payment_path(participants(:one), payments(:open_payment))}']", count: 0
   end
 
@@ -138,7 +138,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get edit_admin_participant_path(participants(:one))
 
     assert_response :success
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:one))}']", text: "Record payment"
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:one))}'] button", text: "Add payment"
   end
 
   test "admin edit page for visitor does not show record payment link" do
@@ -146,7 +146,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get edit_admin_participant_path(participants(:visitor_one))
 
     assert_response :success
-    assert_select "a[href='#{new_admin_participant_payment_path(participants(:visitor_one))}']", count: 0
+    assert_select "form[action='#{add_payment_admin_participant_path(participants(:visitor_one))}']", count: 0
   end
 
   test "admin can update participant details" do

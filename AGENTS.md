@@ -115,3 +115,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep the basket checkout button label centered and allow it to wrap within the button on narrow screens.
 - Keep the mobile basket count badge clear of the top edge of the menu bar.
 - After a new participant confirms their email and sets or skips a password, take them to their shopping basket when it contains a participant ticket.
+- In the Admin Add payment form, display the full Order amount without an editable field, keep the form on an opaque background, and omit the payment receipt explanation.
+- Hide Add payment for Orders with an active payment; in the Admin Orders overview, use matching compact buttons for Add payment and Cancel order.
+- In the Admin Add payment Order summary, place a divider below the products and above the total; reject future manual payment dates with a clear error.
+- Use the shopping basket layout for Admin draft Orders; search participants by name with a limited dropdown and allow owner selection for hostel-only drafts.

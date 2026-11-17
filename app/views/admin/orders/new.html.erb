@@ -1,0 +1,21 @@
+<div class="container-wide py-8 lg:py-12">
+  <p><%= link_to "Back to Orders", admin_orders_path, class: "text-brand-blue-700 underline" %></p>
+  <h1 class="text-4xl font-bold mt-3 mb-2">Create Order</h1>
+  <p class="text-neutral-700 mb-8">Choose an owner to start a shopping basket.</p>
+  <% if @order.errors.any? %><div class="rounded bg-red-50 p-4 text-red-800 mb-4"><%= @order.errors.full_messages.to_sentence %></div><% end %>
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-8 items-start">
+    <div class="space-y-8">
+      <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm"><h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Participant tickets</h2><p class="text-neutral-600">Create the draft Order to add participant tickets.</p></section>
+      <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm"><h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Hostel bookings</h2><p class="text-neutral-600">Create the draft Order to add hostel bookings.</p></section>
+    </div>
+    <aside class="bg-white border border-gray-200 rounded-lg p-5 md:p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Order summary</h2>
+      <%= form_with model: @order, url: admin_orders_path, class: "space-y-4" do |form| %>
+        <%= form.label :user_id, "Order owner *", class: "block text-sm font-medium" %>
+        <%= form.select :user_id, options_for_select(@users.map { |user| ["#{user.display_name} (#{user.email})", user.id] }, @order.user_id), {}, class: "w-full rounded-lg border border-gray-300 px-3 py-2" %>
+        <div class="border-t border-gray-200 pt-4 text-lg font-bold text-brand-blue-900">Total: € 0.00</div>
+        <%= form.submit "Create draft Order", class: "w-full btn-primary" %>
+      <% end %>
+    </aside>
+  </div>
+</div>

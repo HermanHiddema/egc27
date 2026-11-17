@@ -1,0 +1,55 @@
+<% ticket_products = @order.products_for_display.select { |product| product.productable.is_a?(ParticipantTicket) } %>
+<% hostel_products = @order.products_for_display.select { |product| product.productable.is_a?(HostelBooking) } %>
+<div class="container-wide py-8 lg:py-12">
+  <div class="flex flex-wrap justify-between items-end gap-4 mb-8">
+    <div><p><%= link_to "Orders", admin_orders_path, class: "text-brand-blue-700 underline" %></p><h1 class="text-4xl font-bold mt-3">Shopping basket · Order #<%= @order.id %></h1><p class="mt-2 text-neutral-700">Review the participant tickets and hostel bookings before submitting.</p></div>
+    <%= link_to "Order details", admin_order_path(@order), class: "text-brand-blue-700 underline" %>
+  </div>
+  <% if @order.errors.any? %><div class="rounded border border-red-200 bg-red-50 p-4 text-red-800 mb-6"><%= @order.errors.full_messages.to_sentence %></div><% end %>
+  <% if flash[:existing_draft_id] %><p class="rounded bg-amber-50 p-4 mb-6"><%= link_to "Review existing draft Order ##{flash[:existing_draft_id]}", edit_admin_order_path(flash[:existing_draft_id]), class: "underline font-semibold" %></p><% end %>
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-8 items-start">
+    <div class="space-y-8">
+      <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+        <div class="flex justify-between items-center gap-3 mb-4"><h2 class="text-xl font-semibold text-brand-blue-900">Participant tickets</h2><%= link_to "#{ticket_products.any? ? 'Add another' : 'Add'} participant ticket", "#add-participant", class: "btn-secondary text-sm" %></div>
+        <% if ticket_products.any? %>
+          <ul class="divide-y divide-gray-200"><% ticket_products.each do |product| %>
+            <% participant = product.productable.participant; pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group) %>
+            <li class="py-4 flex flex-wrap items-center justify-between gap-4"><div><%= link_to "#{participant.first_name} #{participant.last_name}", edit_admin_participant_path(participant), class: "font-semibold text-brand-blue-800 hover:underline" %><p class="text-sm text-neutral-600"><%= pricing.attendance_label %> · age <%= participant.age_group %><% if pricing.discount_fraction.positive? %> · <%= number_to_percentage(pricing.discount_fraction * 100, precision: 0) %> discount<% end %></p></div>
+              <div class="ml-auto flex items-center gap-4"><div class="flex items-center gap-1"><%= link_to edit_admin_participant_path(participant), class: "rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50", aria: { label: "Edit participant ticket for #{participant.first_name} #{participant.last_name}" }, title: "Edit participant ticket" do %><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M7.5 20.25l4.707-.942L20.25 11.265a2.121 2.121 0 0 0-3-3L9.207 16.308 8.25 21l-.75-.75Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5v5.25A2.25 2.25 0 0 1 17.25 21h-10.5A2.25 2.25 0 0 1 4.5 18.75V6.75A2.25 2.25 0 0 1 6.75 4.5H12"/></svg><% end %><%= button_to remove_product_admin_order_path(@order, product_id: product.id), method: :delete, class: "rounded p-2 text-red-700 hover:bg-red-50", aria: { label: "Remove participant ticket for #{participant.first_name} #{participant.last_name}" }, title: "Remove participant ticket", form: { data: { turbo_confirm: "Remove this ticket? The participant registration will be kept." } } do %><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-13.5 0 .75 12h10.5l.75-12M9 7.5V4.875A1.875 1.875 0 0 1 10.875 3h2.25A1.875 1.875 0 0 1 15 4.875V7.5m-6 3v5.25m6-5.25v5.25"/></svg><% end %></div><strong class="whitespace-nowrap text-lg text-brand-blue-900"><%= Settlement.format_cents(product.price_cents) %></strong></div>
+            </li><% end %></ul>
+        <% else %><p class="text-neutral-600">No participant tickets in this basket.</p><% end %>
+        <div id="add-participant" class="mt-6 border-t border-gray-200 pt-5" data-controller="admin-participant-search" data-admin-participant-search-url-value="<%= participants_admin_order_path(@order) %>">
+          <h3 class="font-semibold mb-2">Select an existing participant</h3>
+          <p class="text-sm text-neutral-600 mb-3"><%= ticket_products.any? ? "Tickets must belong to #{@order.user.display_name}." : "Choosing a participant sets the Order owner to their user, including any provisional hostel bookings." %></p>
+          <%= form_with url: participants_admin_order_path(@order), method: :get, class: "space-y-3 mb-3" do %>
+            <label for="participant-search" class="block text-sm font-medium">Participant name</label>
+            <input id="participant-search" name="q" value="<%= @search_query %>" type="search" autocomplete="off" class="w-full rounded-lg border border-gray-300 px-4 py-2" placeholder="Type at least two letters" data-admin-participant-search-target="query" data-action="input->admin-participant-search#search">
+            <%= submit_tag "Search", class: "btn-secondary" %>
+          <% end %>
+          <%= form_with url: add_participant_admin_order_path(@order), method: :post, class: "space-y-3" do %>
+            <label for="participant-choice" class="block text-sm font-medium">Matching participants</label>
+            <select id="participant-choice" name="participant_id" required class="w-full rounded-lg border border-gray-300 px-4 py-2" data-admin-participant-search-target="results"><option value=""><%= @search_query.present? ? "Select a participant" : "Type a name to search" %></option><% Array(@search_matches).each do |match| %><option value="<%= match[:id] %>"><%= match[:label] %></option><% end %></select>
+            <p class="text-sm text-neutral-600" role="status" data-admin-participant-search-target="status"></p>
+            <%= submit_tag "Add ticket", class: "btn-secondary" %>
+          <% end %>
+          <% if @order.user_id == current_user.id %><p class="mt-4"><%= link_to "Register a new participant", new_participant_path(return_to: edit_admin_order_path(@order)), class: "text-brand-blue-700 underline" %></p><% end %>
+        </div>
+      </section>
+      <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+        <div class="flex justify-between items-center gap-3 mb-4"><h2 class="text-xl font-semibold text-brand-blue-900">Hostel bookings</h2><%= link_to "#{hostel_products.any? ? 'Add another' : 'Add'} hostel booking", new_admin_order_hostel_booking_path(@order), class: "btn-secondary text-sm" %></div>
+        <% if hostel_products.any? %><ul class="divide-y divide-gray-200"><% hostel_products.each do |product| %><% booking = product.productable %>
+          <li class="py-4 flex flex-wrap items-center justify-between gap-4"><div><%= link_to "Hostel booking · #{eu_date_range(booking.arrival_date, booking.departure_date)}", edit_admin_order_hostel_booking_path(@order, booking), class: "font-semibold text-brand-blue-800 hover:underline" %><p class="text-sm text-neutral-600"><%= booking.nights %> nights · <%= hostel_booking_options(booking) %></p></div><div class="ml-auto flex items-center gap-4"><div class="flex items-center gap-1"><%= link_to edit_admin_order_hostel_booking_path(@order, booking), class: "rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50", aria: { label: "Edit hostel booking" }, title: "Edit hostel booking" do %><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M7.5 20.25l4.707-.942L20.25 11.265a2.121 2.121 0 0 0-3-3L9.207 16.308 8.25 21l-.75-.75Z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5v5.25A2.25 2.25 0 0 1 17.25 21h-10.5A2.25 2.25 0 0 1 4.5 18.75V6.75A2.25 2.25 0 0 1 6.75 4.5H12"/></svg><% end %><%= button_to remove_product_admin_order_path(@order, product_id: product.id), method: :delete, class: "rounded p-2 text-red-700 hover:bg-red-50", aria: { label: "Remove hostel booking" }, title: "Remove hostel booking", form: { data: { turbo_confirm: "Remove this provisional hostel booking?" } } do %><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-13.5 0 .75 12h10.5l.75-12M9 7.5V4.875A1.875 1.875 0 0 1 10.875 3h2.25A1.875 1.875 0 0 1 15 4.875V7.5m-6 3v5.25m6-5.25v5.25"/></svg><% end %></div><strong class="whitespace-nowrap text-lg text-brand-blue-900"><%= Settlement.format_cents(product.price_cents) %></strong></div></li>
+        <% end %></ul><% else %><p class="text-neutral-600">No hostel bookings in this basket.</p><% end %>
+      </section>
+    </div>
+    <aside class="bg-white border border-gray-200 rounded-lg p-5 md:p-6 shadow-sm lg:sticky lg:top-24">
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Order summary</h2>
+      <% if ticket_products.empty? %>
+        <%= form_with model: @order, url: admin_order_path(@order), method: :patch, class: "mb-4" do |form| %><%= form.label :user_id, "Order owner", class: "block text-sm font-medium mb-2" %><%= form.select :user_id, options_for_select(@users.map { |user| ["#{user.display_name} (#{user.email})", user.id] }, @order.user_id), {}, class: "w-full rounded-lg border border-gray-300 px-3 py-2" %><% if hostel_products.any? %><p class="mt-2 text-sm text-neutral-600">Changing the owner also transfers these provisional hostel bookings.</p><% end %><%= form.submit "Change owner", class: "btn-secondary mt-3" %><% end %>
+      <% else %><p class="mb-4 text-sm">Order owner: <strong><%= @order.user.display_name %></strong><br><%= @order.user.email %></p><% end %>
+      <div class="border-t border-gray-200 pt-4 text-lg font-bold text-brand-blue-900">Total: <%= Settlement.format_cents(@order.total_cents) %></div>
+      <% if @order.products.exists? %><%= button_to "Submit Order", submit_admin_order_path(@order), method: :patch, params: { confirmed_total_cents: @order.total_cents }, class: "w-full btn-primary mt-5", data: { turbo_confirm: "Submit this complete Order for #{@order.user.display_name}, totaling #{Settlement.format_cents(@order.total_cents)}?" } %><% end %>
+    </aside>
+  </div>
+  <div class="mt-8 flex justify-end"><%= button_to "Remove draft Order", discard_admin_order_path(@order), method: :delete, class: "btn-accent", form: { data: { turbo_confirm: "Remove this draft Order and its products?" } } %></div>
+</div>

@@ -1,0 +1,15 @@
+<div class="container-wide py-12"><div class="max-w-3xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6">Add payment to Order #<%= @order.id %></h1>
+  <section class="rounded border bg-white p-5 mb-6"><h2 class="text-xl font-semibold mb-3">Complete Order</h2>
+    <p class="mb-3">Order owner: <%= @order.user.display_name %> (<%= @order.user.email %>)</p>
+    <ul class="border-b border-gray-200"><% @products.each do |product| %><li class="py-3 flex justify-between gap-4"><span><%= admin_order_product_label(product) %></span><strong><%= Settlement.format_cents(product.price_cents) %></strong></li><% end %></ul>
+    <p class="mt-4 text-right text-lg font-bold">Full total: <%= Settlement.format_cents(@order.total_cents) %></p>
+  </section>
+  <% if @order.draft? %>
+    <p class="rounded bg-amber-50 p-4">This draft Order must be reviewed and submitted before payment can be recorded. <%= link_to "Review Order", edit_admin_order_path(@order), class: "underline" %></p>
+  <% else %>
+    <div class="rounded border bg-white p-5">
+      <%= render "admin/payments/form", payment: @payment, url: admin_order_payments_path(@order), method: :post, submit_label: "Record full Order payment", fixed_order_amount: true, cancel_path: admin_order_path(@order) %>
+    </div>
+  <% end %>
+</div></div>

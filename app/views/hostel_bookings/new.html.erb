@@ -10,7 +10,7 @@
     Prices are per room or bed per night.
   </p>
 
-  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
+  <%= form_with model: @hostel_booking, url: (@admin_order ? (@hostel_booking.persisted? ? admin_order_hostel_booking_path(@admin_order, @hostel_booking) : admin_order_hostel_bookings_path(@admin_order)) : nil), data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
     <% if @hostel_booking.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <h2 class="text-red-800 font-semibold mb-2">There were errors with your booking:</h2>
@@ -47,7 +47,7 @@
                   <span class="font-medium"><%= room[:label] %></span>
                   <span class="block text-neutral-600">€ <%= @pricing.room_price_cents(room_type) / 100 %> per night</span>
                 <% end %>
-                <%= render "quantity_field", form: form, attribute: room_type, label: room[:label], target: "quantity", room_type: room_type %>
+                <%= render "hostel_bookings/quantity_field", form: form, attribute: room_type, label: room[:label], target: "quantity", room_type: room_type %>
               </div>
             <% end %>
           </div>
@@ -61,7 +61,7 @@
               <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
               <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
             <% end %>
-            <%= render "quantity_field", form: form, attribute: :breakfasts, label: "breakfasts", target: "breakfasts", room_type: nil %>
+            <%= render "hostel_bookings/quantity_field", form: form, attribute: :breakfasts, label: "breakfasts", target: "breakfasts", room_type: nil %>
           </div>
           <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
             On site breakfast will cost € 10,85 per day, but there is limited extra availability. 
