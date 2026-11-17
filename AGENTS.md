@@ -114,3 +114,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - In basket participant ticket edit forms, clearly outline editable text fields and dropdowns, and make the entire dropdown clickable to open it.
 - Keep the basket checkout button label centered and allow it to wrap within the button on narrow screens.
 - Keep the mobile basket count badge clear of the top edge of the menu bar.
+- After a new participant confirms their email and sets or skips a password, take them to their shopping basket when it contains a participant ticket.
