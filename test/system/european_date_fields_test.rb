@@ -13,7 +13,7 @@ class EuropeanDateFieldsTest < ApplicationSystemTestCase
   test "choosing a payment date updates the day-first field" do
     visit new_admin_order_payment_path(orders(:three))
     assert_field "Payment date", with: Date.current.strftime("%d/%m/%Y")
-    assert_button "Choose payment date"
+    assert_selector "button[aria-label='Choose payment date']"
 
     page.execute_script(<<~JS)
       const picker = document.querySelector('[data-european-date-target="picker"]');
@@ -26,8 +26,8 @@ class EuropeanDateFieldsTest < ApplicationSystemTestCase
 
   test "date and time pickers preserve each other's values" do
     visit new_event_path
-    assert_button "Choose start date"
-    assert_button "Choose start time"
+    assert_selector "button[aria-label='Choose start date']"
+    assert_selector "button[aria-label='Choose start time']"
     fill_in "Start", with: "03/04/2027 09:15"
 
     page.execute_script(<<~JS)
