@@ -1,4 +1,5 @@
 class ParticipantsController < ApplicationController
+  include ParticipantRegistrationParameters
   include TurnstileVerifiable
 
   skip_before_action :authenticate_user!, only: [:index, :new, :create, :show, :egd_search, :egd_registered, :email_registered, :alter_registration]
@@ -303,10 +304,6 @@ class ParticipantsController < ApplicationController
     return unless result.respond_to?(:error_field)
 
     result.error_field(PG::Result::PG_DIAG_CONSTRAINT_NAME)
-  end
-
-  def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :email, :participant_type, :age_group, :country, :club, :rank, :rating, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
   end
 
   def build_participant

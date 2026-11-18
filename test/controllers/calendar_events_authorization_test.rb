@@ -181,6 +181,28 @@ class CalendarEventsAuthorizationTest < ActionDispatch::IntegrationTest
     assert_equal "#86efac", CalendarEvent.order(:id).last.color
   end
 
+  test "calendar event forms use European dates and reject invalid times" do
+    sign_in users(:editor)
+    assert_difference "CalendarEvent.count", 1 do
+      post calendar_events_path, params: {
+        calendar_event: { title: "European calendar date", starts_at: "04/05/2027 10:15", ends_at: "04/05/2027 11:30" }
+      }
+    end
+    event = CalendarEvent.order(:id).last
+    assert_equal Time.zone.local(2027, 5, 4, 10, 15), event.starts_at
+    get edit_calendar_event_path(event)
+    assert_select "input[name='calendar_event[starts_at]'][value='04/05/2027 10:15']"
+    assert_select "input[name='calendar_event[ends_at]'][placeholder='dd/mm/yyyy hh:mm']"
+    assert_select "button[aria-label='Choose end date']"
+    assert_select "button[aria-label='Choose end time']"
+
+    patch calendar_event_path(event), params: { calendar_event: { ends_at: "04/05/2027 25:00" } }
+    assert_response :unprocessable_entity
+    assert_select "li", text: /must be a valid date and time in dd\/mm\/yyyy hh:mm format/
+    assert_select "input[name='calendar_event[ends_at]'][value='04/05/2027 25:00']"
+    assert_equal Time.zone.local(2027, 5, 4, 11, 30), event.reload.ends_at
+  end
+
   test "editor can edit calendar event" do
     sign_in users(:editor)
     get edit_calendar_event_path(calendar_events(:one))

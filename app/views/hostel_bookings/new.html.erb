@@ -4,6 +4,7 @@
 <% departure_dates = ((HostelPricing::FIRST_ARRIVAL_DATE + 1)..HostelPricing::LAST_DEPARTURE_DATE).to_a %>
 
 <div class="container-wide py-12">
+  <% if @admin_order %><p class="mb-4"><%= link_to "Back to shopping basket", edit_admin_order_path(@admin_order), class: "text-brand-blue-700 underline" %></p><% end %>
   <h1 class="text-4xl font-bold mb-2"><%= @hostel_booking.persisted? ? "Edit hostel booking" : "Book hostel beds" %></h1>
   <p class="text-neutral-600 mb-8">
     Choose your arrival and departure dates and book any combination of rooms and beds, with an optional breakfast buffet.
@@ -29,11 +30,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <%= form.label :arrival_date, "Arrival *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-              <%= form.select :arrival_date, arrival_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.arrival_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "arrival" } %>
+              <%= form.select :arrival_date, arrival_dates.map { |date| [date.strftime("%a, %d/%m/%Y"), date.iso8601] }, { selected: @hostel_booking.arrival_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "arrival" } %>
             </div>
             <div>
               <%= form.label :departure_date, "Departure *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-              <%= form.select :departure_date, departure_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.departure_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "departure" } %>
+              <%= form.select :departure_date, departure_dates.map { |date| [date.strftime("%a, %d/%m/%Y"), date.iso8601] }, { selected: @hostel_booking.departure_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "departure" } %>
             </div>
           </div>
         </div>

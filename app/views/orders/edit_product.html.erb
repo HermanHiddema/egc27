@@ -1,10 +1,10 @@
 <% content_for :title, "Edit participant ticket – EGC 2027" %>
 <div class="container-wide py-8 lg:py-12 max-w-3xl">
-  <p><%= link_to "Back to shopping basket", order_path, class: "text-brand-blue-700 underline" %></p>
+  <p><%= link_to "Back to shopping basket", basket_return_path, class: "text-brand-blue-700 underline" %></p>
   <h1 class="text-3xl font-bold mt-3 mb-6">Edit ticket for <%= @participant.first_name %> <%= @participant.last_name %></h1>
   <div class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
     <% if @participant.errors.any? %><div class="mb-5 rounded bg-red-50 p-4 text-red-800"><%= @participant.errors.full_messages.to_sentence %></div><% end %>
-    <%= form_with model: @participant, url: update_product_order_path(product_id: @product.id), method: :patch, class: "space-y-5", data: { controller: "egd-autocomplete" } do |form| %>
+    <%= form_with model: @participant, url: basket_update_product_path, method: :patch, class: "space-y-5", data: { controller: "egd-autocomplete" } do |form| %>
       <% unless @participant.valid_admission? %>
         <div class="grid gap-4 sm:grid-cols-2">
           <div><%= form.label :first_name, "First name *", class: "block text-sm font-medium mb-1" %><%= form.text_field :first_name, class: "w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-brand-blue-600 focus:ring-brand-blue-600" %></div>
@@ -28,7 +28,7 @@
         <div><%= form.label :club, "Club", class: "block text-sm font-medium mb-1" %><%= form.text_field :club, class: "w-full rounded-lg border border-gray-300 bg-white px-4 py-2 focus:border-brand-blue-600 focus:ring-brand-blue-600" %></div>
       </div>
       <fieldset><legend class="text-sm font-medium mb-2">Photo privacy choice *</legend><label class="mr-4"><%= form.radio_button :image_use_consent, true %> I consent</label><label><%= form.radio_button :image_use_consent, false %> I do not consent</label></fieldset>
-      <div class="flex gap-3"><%= form.submit "Save changes", class: "btn-primary" %><%= link_to "Cancel", order_path, class: "px-4 py-2 text-brand-blue-700" %></div>
+      <div class="flex gap-3"><%= form.submit "Save changes", class: "btn-primary" %><%= link_to "Cancel", basket_return_path, class: "px-4 py-2 text-brand-blue-700" %></div>
     <% end %>
   </div>
 </div>

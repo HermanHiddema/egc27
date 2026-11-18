@@ -51,6 +51,29 @@ class EventsAuthorizationTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "event forms use European dates and reject impossible dates without changing the event" do
+    sign_in users(:editor)
+    get new_event_path
+    assert_response :success
+    assert_select "input[type='text'][name='event[starts_at]'][placeholder='dd/mm/yyyy hh:mm']"
+    assert_select "button[aria-label='Choose start date']"
+    assert_select "button[aria-label='Choose start time']"
+
+    assert_difference "Event.count", 1 do
+      post events_path, params: { event: { title: "European date", starts_at: "03/04/2027 09:15", ends_at: "03/04/2027 10:30" } }
+    end
+    event = Event.order(:id).last
+    assert_equal Time.zone.local(2027, 4, 3, 9, 15), event.starts_at
+    get edit_event_path(event)
+    assert_select "input[name='event[starts_at]'][value='03/04/2027 09:15']"
+
+    patch event_path(event), params: { event: { starts_at: "29/02/2027 09:15" } }
+    assert_response :unprocessable_entity
+    assert_select "li", text: /must be a valid date and time in dd\/mm\/yyyy hh:mm format/
+    assert_select "input[name='event[starts_at]'][value='29/02/2027 09:15']"
+    assert_equal Time.zone.local(2027, 4, 3, 9, 15), event.reload.starts_at
+  end
+
   test "editor can edit event" do
     sign_in users(:editor)
     get edit_event_path(events(:one))

@@ -12,7 +12,7 @@
       <div class="min-w-0 flex-1">
         <%= form.label :date, "Day", class: "mb-1 block text-sm font-medium text-gray-700" %>
         <%= form.select :date,
-              options_for_select(@days.map { |day| [eu_date(day, month: :long, weekday: :long), day.iso8601] }, @selected_date.iso8601),
+              options_for_select(@days.map { |day| [day.strftime("%A, %d/%m/%Y"), day.iso8601] }, @selected_date.iso8601),
               {},
               class: "w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-brand-blue-600 focus:outline-none focus:ring-2 focus:ring-brand-blue-500",
               data: { action: "change->auto-submit#submit" } %>

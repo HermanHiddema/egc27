@@ -1,4 +1,5 @@
 class Admin::PaymentsController < ApplicationController
+  include EuropeanDateParameters
   PROCESSED_FILTERS = %w[processed unprocessed].freeze
   SORT_COLUMNS = %w[id date order_id amount payer].freeze
 
@@ -72,6 +73,7 @@ class Admin::PaymentsController < ApplicationController
     if @payment.save
       redirect_to admin_participants_path, notice: "Payment was successfully updated."
     else
+      add_european_date_errors(@payment)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -130,6 +132,6 @@ class Admin::PaymentsController < ApplicationController
     rescue ArgumentError
       amount_cents = nil
     end
-    permitted.merge(amount_cents: amount_cents)
+    normalize_european_dates(permitted.merge(amount_cents: amount_cents), dates: [:payment_date])
   end
 end

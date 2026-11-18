@@ -1,4 +1,5 @@
 class Admin::OrderPaymentsController < ApplicationController
+  include EuropeanDateParameters
   before_action :require_admin!
   before_action :set_order
 
@@ -40,6 +41,7 @@ class Admin::OrderPaymentsController < ApplicationController
   rescue ActiveRecord::RecordInvalid, ActiveRecord::RecordNotSaved => e
     @payment ||= @order.payments.build
     @payment.errors.add(:base, e.message) unless e.is_a?(ActiveRecord::RecordInvalid)
+    add_european_date_errors(@payment)
     @order.association(:products).reset
     load_products
     render "admin/payments/order_new", status: :unprocessable_entity
@@ -57,6 +59,6 @@ class Admin::OrderPaymentsController < ApplicationController
   end
 
   def payment_params
-    params.require(:payment).permit(:description, :payment_method, :payment_date, :reference, :processed_in_bookkeeping)
+    normalize_european_dates(params.require(:payment).permit(:description, :payment_method, :payment_date, :reference, :processed_in_bookkeeping), dates: [:payment_date])
   end
 end

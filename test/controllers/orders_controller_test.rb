@@ -23,13 +23,66 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
   test "the basket page remains available without a draft order" do
     sign_in users(:one)
 
-    get order_path
+    assert_no_difference "Order.count" do
+      get order_path
+    end
 
     assert_response :success
     assert_select "h1", "Shopping basket"
     assert_select "a", text: "Add participant ticket"
     assert_select "a", text: "Add hostel booking"
     assert_select "button[disabled]", text: "Book with commitment to pay"
+  end
+
+  test "prefetching the basket and opening participant selection do not create a draft" do
+    sign_in users(:one)
+
+    assert_no_difference "Order.count" do
+      get order_path, headers: { "X-Sec-Purpose" => "prefetch" }
+      assert_response :success
+      get new_participant_order_path
+      assert_response :success
+    end
+    assert_empty users(:one).orders.drafts
+  end
+
+  test "adding an existing participant creates a draft only when adding the ticket" do
+    sign_in users(:one)
+    participant = create_player_for(users(:one))
+    participant.draft_ticket.order.destroy!
+
+    assert_difference ["Order.count", "Product.count", "ParticipantTicket.count"], 1 do
+      post add_participant_order_path, params: { participant_id: participant.uuid }
+    end
+
+    assert_redirected_to order_path
+    order = users(:one).orders.drafts.sole
+    assert_equal participant, order.products.sole.productable.participant
+  end
+
+  test "invalid ticket additions do not leave an empty draft" do
+    sign_in users(:one)
+
+    assert_no_difference ["Order.count", "Product.count", "ParticipantTicket.count"] do
+      post add_participant_order_path, params: { participant_id: participants(:visitor_one).uuid }
+    end
+
+    assert_redirected_to order_path
+    assert_match "cannot purchase another ticket", flash[:alert]
+    assert_empty users(:one).orders.drafts
+  end
+
+  test "stale basket mutations do not create a replacement draft" do
+    sign_in users(:one)
+
+    assert_no_difference "Order.count" do
+      post submit_order_path
+      assert_response :not_found
+      delete empty_order_path
+      assert_response :not_found
+      delete cancel_order_path
+      assert_response :not_found
+    end
   end
 
   test "mobile navigation shows the basket count beside search" do
@@ -76,7 +129,7 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:one)
     participant = participants(:three)
 
-    assert_no_difference("Product.count") do
+    assert_no_difference ["Order.count", "Product.count"] do
       post add_participant_order_path, params: { participant_id: participant.uuid }
     end
 
@@ -294,6 +347,17 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert order.reload.submitted?
     assert_equal total, order.payments.sole.amount_cents
     assert order.payments.sole.paid?
+    assert_empty users(:one).orders.drafts
+
+    assert_no_difference "Order.count" do
+      follow_redirect!
+      assert_response :success
+      get order_path, headers: { "X-Sec-Purpose" => "prefetch" }
+      assert_response :success
+      get submitted_orders_path
+      assert_response :success
+    end
+    assert_empty users(:one).orders.drafts
   end
 
   test "pending payment prevents another attempt for a submitted order" do

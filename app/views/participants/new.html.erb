@@ -1,7 +1,12 @@
 <div class="container-wide py-12">
   <h1 class="text-4xl font-bold mb-8">Participant Registration</h1>
+  <% if @admin_basket %><p class="mb-4"><%= link_to "Back to shopping basket", edit_admin_order_path(@order), class: "text-brand-blue-700 underline" %></p><% end %>
 
   <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
-    <%= render "form", participant: @participant %>
+    <% if @admin_basket %>
+      <%= render "participants/form", participant: @participant, form_url: admin_order_participants_path(@order), registration_user: @order.user, admin_registration: true %>
+    <% else %>
+      <%= render "participants/form", participant: @participant %>
+    <% end %>
   </div>
 </div>

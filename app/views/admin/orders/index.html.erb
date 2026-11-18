@@ -6,12 +6,14 @@
   </div>
 
   <% if @draft_orders.any? %>
-    <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"><h2 class="font-semibold mb-2">Draft Orders awaiting review</h2>
-      <ul class="space-y-2"><% @draft_orders.each do |draft| %><li><%= link_to "Order ##{draft.id} · #{draft.user.display_name}", edit_admin_order_path(draft), class: "text-brand-blue-700 underline" %> · <%= Settlement.format_cents(draft.total_cents) %></li><% end %></ul>
+    <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"><h2 class="text-xl font-semibold mb-4">Orders still in draft</h2>
+      <ul class="space-y-3"><% @draft_orders.each do |draft| %><li class="flex flex-wrap items-center justify-between gap-3"><span><%= link_to "Order ##{draft.id} · #{draft.user.display_name}", edit_admin_order_path(draft), class: "text-brand-blue-700 underline" %> · <%= Settlement.format_cents(draft.total_cents) %></span><%= render "admin/orders/delete_draft", order: draft, compact: true %></li><% end %></ul>
     </section>
   <% end %>
 
-  <div class="bg-white border border-gray-200 rounded-lg p-4 shadow-sm mb-4">
+  <section aria-labelledby="submitted-orders-heading" class="bg-white border border-gray-200 rounded-lg shadow-sm">
+  <div class="border-b border-gray-200 p-4">
+    <h2 id="submitted-orders-heading" class="text-xl font-semibold mb-4">Submitted Orders</h2>
     <% status_options = [["Awaiting payment", "awaiting"], ["Payment open / pending", "pending"], ["Paid", "paid"], ["Payment failed", "failed"], ["Payment canceled", "canceled"], ["Payment expired", "expired"], ["Order canceled", "order_cancelled"]] %>
     <%= form_with url: admin_orders_path, method: :get, local: true do %>
       <details class="relative inline-block">
@@ -38,7 +40,7 @@
   </div>
 
   <% if @orders.any? %>
-    <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+    <div class="overflow-hidden rounded-b-lg">
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-neutral-50">
@@ -59,7 +61,7 @@
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @orders.each do |order| %>
               <tr>
-                <td class="px-4 py-3 text-sm text-neutral-900"><%= link_to "##{order.id}", admin_order_path(order), class: "text-brand-blue-700 hover:underline" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= link_to "##{order.id}", admin_order_path(order, **admin_orders_overview_params), class: "text-brand-blue-700 hover:underline" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 whitespace-nowrap"><%= eu_compact_datetime(order.created_at) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700 w-48 max-w-48"><%= link_to order.user.display_name, admin_user_path(order.user), class: "block truncate text-brand-blue-700 hover:underline", title: order.user.display_name %><span class="block max-w-48 break-all text-neutral-500" title="<%= order.user.email %>"><%= order.user.email %></span></td>
                 <td class="px-4 py-3 text-sm text-neutral-700">
@@ -85,7 +87,7 @@
                       <%= link_to "Add payment", new_admin_order_payment_path(order), class: "inline-flex items-center rounded-lg bg-brand-yellow-500 px-3 py-1.5 text-sm font-semibold text-neutral-900 hover:bg-brand-yellow-600 focus:outline-none focus:ring-2 focus:ring-brand-yellow-400 focus:ring-offset-2" %>
                     <% end %>
                     <% if order.cancellable? %>
-                      <%= button_to "Cancel order", cancel_admin_order_path(order), method: :patch, class: "inline-flex items-center rounded-lg bg-brand-yellow-500 px-3 py-1.5 text-sm font-semibold text-neutral-900 hover:bg-brand-yellow-600 focus:outline-none focus:ring-2 focus:ring-brand-yellow-400 focus:ring-offset-2", data: { turbo_confirm: "Cancel Order #{order.id}? This will release its participant tickets for a new purchase." } %>
+                      <%= button_to "Cancel order", cancel_admin_order_path(order), method: :patch, class: "inline-flex items-center rounded-lg bg-brand-yellow-500 px-3 py-1.5 text-sm font-semibold text-neutral-900 hover:bg-brand-yellow-600 focus:outline-none focus:ring-2 focus:ring-brand-yellow-400 focus:ring-offset-2", form: { data: { controller: "order-cancellation", action: "submit->order-cancellation#confirm", order_cancellation_message_value: admin_order_cancellation_message(order) } } %>
                     <% end %>
                   </div>
                 </td>
@@ -96,6 +98,8 @@
       </div>
     </div>
   <% else %>
-    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-neutral-700">No submitted orders match the selected filter.</div>
+    <div class="p-6 text-neutral-700">No submitted orders match the selected filter.</div>
   <% end %>
+  </section>
 </div>
+<%= render "admin/orders/cancellation_dialog" %>

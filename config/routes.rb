@@ -231,6 +231,7 @@ Rails.application.routes.draw do
       end
     end
     resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
+      get :owners, on: :collection
       member do
         patch :cancel
         patch :submit
@@ -238,7 +239,11 @@ Rails.application.routes.draw do
         delete :discard
         get :participants
         post :add_participant
+        get :new_participant
+        delete :empty
       end
+      resources :participants, only: [:new, :create], controller: "order_participants"
+      resources :products, only: [:edit, :update], controller: "order_products"
       resources :payments, only: [:new, :create], controller: "order_payments"
       resources :hostel_bookings, only: [:new, :create, :edit, :update], controller: "order_hostel_bookings"
     end

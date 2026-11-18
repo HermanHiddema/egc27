@@ -172,6 +172,14 @@ module ApplicationHelper
     value.strftime("#{weekday_format}%d #{month_format}#{year_format}")
   end
 
+  def european_date_field_value(form, field, datetime: false)
+    submitted = params[form.object_name]
+    raw = submitted[field] if submitted.is_a?(ActionController::Parameters) || submitted.is_a?(Hash)
+    return raw if raw.is_a?(String) && raw.include?("/")
+
+    form.object.public_send(field)&.strftime(datetime ? "%d/%m/%Y %H:%M" : "%d/%m/%Y")
+  end
+
   def eu_time(value, twelve_hour: false)
     return "" if value.blank?
 

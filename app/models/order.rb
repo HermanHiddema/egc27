@@ -59,22 +59,66 @@ class Order < ApplicationRecord
     end
   end
 
-  def change_draft_owner!(new_owner)
+  def change_draft_owner!(new_owner, clear_products: false)
     new_owner.with_lock do
       with_lock do
         raise ActiveRecord::RecordNotSaved, "Only draft Orders can change owner." unless editable?
-        if products.where(productable_type: "ParticipantTicket").exists?
+        if !clear_products && products.where(productable_type: "ParticipantTicket").exists?
           raise ActiveRecord::RecordNotSaved, "An Order with participant tickets cannot change owner."
         end
         if new_owner.orders.drafts.where.not(id: id).exists?
           raise ActiveRecord::RecordNotSaved, "This user already has a draft Order. Review it before changing the owner."
         end
-        products.includes(:productable).each { |product| product.productable.update!(user: new_owner) }
+        if clear_products
+          empty_basket!
+        else
+          products.includes(:productable).each { |product| product.productable.update!(user: new_owner) }
+        end
         @changing_draft_owner = true
         update!(user: new_owner)
       ensure
         @changing_draft_owner = false
       end
+    end
+  end
+
+  def owner_change_token(new_owner)
+    signed_id(purpose: owner_change_purpose(new_owner), expires_in: 30.minutes)
+  end
+
+  def owner_change_confirmed?(new_owner, token)
+    self.class.find_signed(token.to_s, purpose: owner_change_purpose(new_owner)) == self
+  end
+
+  def remove_basket_product!(product_id)
+    with_lock do
+      raise ActiveRecord::RecordNotSaved, "Only draft Orders can be edited." unless editable?
+
+      product = products.find(product_id)
+      item = product.productable
+      product.destroy!
+      item.destroy!
+      products.reset
+    end
+  end
+
+  def empty_basket!
+    with_lock do
+      raise ActiveRecord::RecordNotSaved, "Only draft Orders can be edited." unless editable?
+
+      products.pluck(:id).each { |product_id| remove_basket_product!(product_id) }
+    end
+  end
+
+  def add_participant_ticket!(participant)
+    with_lock do
+      raise ActiveRecord::RecordNotSaved, "Only draft Orders can be edited." unless editable?
+      raise ActiveRecord::RecordNotSaved, "All participant tickets must belong to the Order owner." unless participant.user_id == user_id
+
+      ticket = participant.add_ticket_to_draft_order!
+      raise ActiveRecord::RecordNotSaved, "The ticket was added to a different draft Order." unless ticket.order.id == id
+
+      ticket
     end
   end
 
@@ -184,6 +228,11 @@ class Order < ApplicationRecord
   end
 
   private
+
+  def owner_change_purpose(new_owner)
+    contents = products.order(:id).pluck(:id, :price_cents, :updated_at)
+    "owner_change:#{user_id}:#{new_owner.id}:#{Digest::SHA256.hexdigest(contents.to_json)}"
+  end
 
   def owner_cannot_change_with_products
     errors.add(:user, "cannot change while the order contains products") if will_save_change_to_user_id? && products.exists? && !@changing_draft_owner

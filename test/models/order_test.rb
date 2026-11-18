@@ -70,6 +70,22 @@ class OrderTest < ActiveSupport::TestCase
     end
   end
 
+  test "all Orders including Admin-owned Orders reject other users' participant tickets" do
+    participant = participants(:three)
+    orders(:three).cancel!
+    [users(:admin), users(:two)].each do |owner|
+      order = owner.orders.create!(status: "draft")
+      assert_no_difference ["Product.count", "ParticipantTicket.count", "Order.count"] do
+        assert_raises(ActiveRecord::RecordNotSaved) { order.add_participant_ticket!(participant) }
+      end
+      product = Product.new(order: order, productable: participant.participant_tickets.sole)
+      assert_not product.valid?
+      assert_includes product.errors[:order], "must belong to the item's owner"
+      assert_empty order.products.reload
+      assert_equal users(:one), participant.reload.user
+    end
+  end
+
   test "a submitted order can only be changed through submission and a payment must cover the whole amount" do
     order = participants(:one).order
     assert_raises(ActiveRecord::RecordInvalid) { order.update!(status: "draft") }

@@ -1,0 +1,6 @@
+<% if @order.persisted? && @products.any? %>
+  <%= button_to "Submit Order", submit_admin_order_path(@order), method: :patch, params: { confirmed_total_cents: @order.total_cents }, class: "w-full btn-primary mt-5 text-center whitespace-normal", data: { turbo_confirm: "Submit the complete Order for #{@order.user.display_name}, totaling #{Settlement.format_cents(@order.total_cents)}?" } %>
+  <p class="mt-3 text-xs text-neutral-500">Submit the complete Order before recording a full-Order payment.</p>
+<% else %>
+  <button class="w-full btn-primary mt-5 opacity-50" disabled>Submit Order</button>
+<% end %>

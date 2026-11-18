@@ -1,4 +1,5 @@
 class CalendarEventsController < ApplicationController
+  include EuropeanDateParameters
   helper_method :calendar_event_return_path
 
   skip_before_action :authenticate_user!, only: [:day, :week, :two_weeks, :three_weeks, :list, :show]
@@ -94,6 +95,7 @@ class CalendarEventsController < ApplicationController
     if @calendar_event.save
       redirect_to @calendar_event, notice: "Event was successfully created."
     else
+      add_european_date_errors(@calendar_event)
       render :new, status: :unprocessable_entity
     end
   end
@@ -105,6 +107,7 @@ class CalendarEventsController < ApplicationController
     if @calendar_event.update(calendar_event_params)
       redirect_to calendar_event_return_path, notice: "Event was successfully updated."
     else
+      add_european_date_errors(@calendar_event)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -126,7 +129,7 @@ class CalendarEventsController < ApplicationController
   end
 
   def calendar_event_params
-    params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color, :event_group_id)
+    normalize_european_dates(params.require(:calendar_event).permit(:title, :description, :starts_at, :ends_at, :location, :color, :event_group_id), datetimes: [:starts_at, :ends_at])
   end
 
   def calendar_events_in_range(range)

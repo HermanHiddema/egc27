@@ -18,7 +18,8 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
     assert_no_difference ["Order.count", "Product.count"] do
       post admin_orders_path, params: { order: { user_id: owner.id } }
     end
-    assert_redirected_to edit_admin_order_path(draft)
+    assert_response :unprocessable_entity
+    assert_select "[role='alert'] a[href='#{admin_order_path(draft)}']", text: "Order ##{draft.id}"
     assert_empty draft.products
   end
 
@@ -67,8 +68,11 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
   test "multiple participants belonging to the same user can be added" do
     first = ticketless_participant
     second = ticketless_participant
+    post admin_orders_path, params: { order: { user_id: first.user_id } }
+    order = Order.last
     assert_difference ["Product.count", "ParticipantTicket.count"], 2 do
-      post admin_orders_path, params: { order: { user_id: first.user_id, participant_ids: [first.id, second.id] } }
+      post add_participant_admin_order_path(order), params: { participant_id: first.id }
+      post add_participant_admin_order_path(order), params: { participant_id: second.id }
     end
     order = first.reload.current_order
     assert_equal order, second.reload.current_order
@@ -115,7 +119,7 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
     assert_equal users(:two), order.products.sole.productable.user
   end
 
-  test "admin can change the owner of a hostel-only draft and its bookings" do
+  test "admin confirms changing the owner and clearing provisional hostel bookings" do
     order = users(:admin).orders.create!(status: "draft")
     post admin_order_hostel_bookings_path(order), params: { hostel_booking: {
       arrival_date: "2027-07-24", departure_date: "2027-07-26", single_rooms: 1, double_rooms: 0,
@@ -126,10 +130,17 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
 
     patch admin_order_path(order), params: { order: { user_id: users(:two).id } }
 
+    assert_response :unprocessable_entity
+    assert_equal users(:admin), order.reload.user
+    assert_equal original_price, order.total_cents
+    assert_select "p", text: /This will empty the basket/
+    token = css_select("input[name='owner_change_token']").first["value"]
+    patch admin_order_path(order), params: { order: { user_id: users(:two).id }, owner_change_token: token }
+
     assert_redirected_to edit_admin_order_path(order)
     assert_equal users(:two), order.reload.user
-    assert_equal users(:two), booking.reload.user
-    assert_equal original_price, order.total_cents
+    assert_not HostelBooking.exists?(booking.id)
+    assert_equal 0, order.total_cents
   end
 
   test "adding a ticket for another user assigns the empty draft to that user" do
@@ -138,12 +149,128 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
 
     post add_participant_admin_order_path(order), params: { participant_id: participant.id }
 
+    assert_response :unprocessable_entity
+    assert_equal users(:admin), order.reload.user
+    token = css_select("input[name='owner_change_token']").first["value"]
+    patch admin_order_path(order), params: { order: { user_id: participant.user_id }, participant_id: participant.id, owner_change_token: token }
+
     assert_redirected_to edit_admin_order_path(order)
     assert_equal participant.user, order.reload.user
     assert_equal participant, order.products.sole.productable.participant
+    follow_redirect!
+    assert_response :success
+    assert_select "h1", text: "Shopping Basket for Order #{order.id}"
+    assert_select "input[name='order[user_id]'][value='#{participant.user_id}']"
+    assert_select "a", text: "#{participant.first_name} #{participant.last_name}"
   end
 
-  test "participant search supports prefix matches and a non-JavaScript form" do
+  test "the participant ownership dialog offers Change owner and Cancel returns to selection" do
+    participant = ticketless_participant
+    order = users(:admin).orders.create!(status: "draft")
+
+    assert_no_difference ["Order.count", "ParticipantTicket.count", "Product.count"] do
+      post add_participant_admin_order_path(order), params: { participant_id: participant.id }
+      assert_response :unprocessable_entity
+      assert_select "input[type='submit'][value='Change owner']"
+      assert_select "button", text: "Keep owner", count: 0
+      assert_select "input[name='keep_order_owner']", count: 0
+      assert_select "a[href='#{new_participant_admin_order_path(order)}']", text: "Cancel"
+      get new_participant_admin_order_path(order)
+      assert_response :success
+      assert_select "h1", text: "Add a participant ticket"
+    end
+    assert_equal users(:admin), order.reload.user
+    assert_empty order.products
+  end
+
+  test "participant search excludes tickets already added after changing the Admin draft owner" do
+    participant = ticketless_participant
+    available_participant = ticketless_participant
+    order = users(:admin).orders.create!(status: "draft")
+    post add_participant_admin_order_path(order), params: { participant_id: participant.id }
+    token = css_select("input[name='owner_change_token']").sole["value"]
+    patch admin_order_path(order), params: {
+      order: { user_id: participant.user_id }, participant_id: participant.id, owner_change_token: token
+    }
+    assert_redirected_to edit_admin_order_path(order)
+    assert_equal participant.user, order.reload.user
+
+    [nil, participant.first_name[0, 3]].each do |query|
+      get participants_admin_order_path(order), params: { q: query }, as: :json
+
+      assert_response :success
+      participant_ids = response.parsed_body.map { |entry| entry.fetch("id") }
+      assert_not_includes participant_ids, participant.id
+      assert_includes participant_ids, available_participant.id
+      assert_includes participant_ids, participants(:three).id
+    end
+
+    assert_no_difference ["Order.count", "Product.count", "ParticipantTicket.count"] do
+      post add_participant_admin_order_path(order), params: { participant_id: participant.id }
+    end
+    assert_redirected_to new_participant_admin_order_path(order)
+    assert_nil flash[:alert]
+    assert_nil flash[:unpaid_order_ids]
+    assert_match "already has a ticket in this shopping basket", flash[:notice]
+  end
+
+  test "Admin-owned participant search excludes newly registered basket participants" do
+    order = users(:admin).orders.create!(status: "draft")
+    participant = users(:admin).participants.create!(
+      first_name: "Basket", last_name: "Player", email: users(:admin).email, country: "NL", club: "Club",
+      age_group: "18-49", gender: "female", attendance_option: "weekend_only", image_use_consent: true
+    )
+    assert_equal order, participant.current_order
+
+    get participants_admin_order_path(order), params: { q: "Bas" }, as: :json
+
+    assert_response :success
+    assert_empty response.parsed_body
+  end
+
+  test "a submitted Keep owner parameter cannot bypass the participant ownership confirmation" do
+    participant = ticketless_participant
+    order = users(:admin).orders.create!(status: "draft")
+
+    assert_no_difference ["Order.count", "Product.count", "ParticipantTicket.count"] do
+      post add_participant_admin_order_path(order), params: {
+        participant_id: participant.id, keep_order_owner: "true", owner_change_token: order.owner_change_token(order.user)
+      }
+    end
+
+    assert_response :unprocessable_entity
+    assert_select "input[name='order[user_id]'][value='#{participant.user_id}']"
+    assert_select "a[href='#{new_participant_admin_order_path(order)}']", text: "Cancel"
+    assert_equal users(:admin), order.reload.user
+    assert_equal users(:one), participant.reload.user
+    assert_empty order.products
+  end
+
+  test "confirming a selected participant's owner cannot modify their existing draft" do
+    participant = ticketless_participant
+    booking = participant.user.hostel_bookings.create!(arrival_date: "2027-07-24", departure_date: "2027-07-25", single_rooms: 1)
+    existing_draft = booking.order
+    existing_total = existing_draft.total_cents
+    order = users(:admin).orders.create!(status: "draft")
+
+    post add_participant_admin_order_path(order), params: { participant_id: participant.id }
+    assert_response :unprocessable_entity
+    token = css_select("input[name='owner_change_token']").sole["value"]
+    assert_no_difference ["Order.count", "Product.count", "ParticipantTicket.count"] do
+      patch admin_order_path(order), params: {
+        order: { user_id: participant.user_id }, participant_id: participant.id, owner_change_token: token
+      }
+    end
+
+    assert_redirected_to edit_admin_order_path(order)
+    assert_equal existing_draft.id, flash[:existing_draft_id]
+    assert_equal booking, existing_draft.products.reload.sole.productable
+    assert_equal existing_total, existing_draft.total_cents
+    assert_equal users(:admin), order.reload.user
+    assert_empty order.products
+  end
+
+  test "participant search supports prefix matches in the shared selection page" do
     order = users(:admin).orders.create!(status: "draft")
 
     get participants_admin_order_path(order), params: { q: "Car" }, as: :json
@@ -151,9 +278,11 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
     assert_includes response.parsed_body.map { |entry| entry.fetch("id") }, participants(:three).id
     assert_operator response.parsed_body.size, :<=, 10
 
-    get participants_admin_order_path(order), params: { q: "Car" }
+    get new_participant_admin_order_path(order)
     assert_response :success
-    assert_select "select[name='participant_id'] option[value='#{participants(:three).id}']", text: /Carol/
+    assert_select "input[role='combobox']"
+    assert_select "input[name='participant_id'][type='hidden']"
+    assert_select "a[href='#{new_admin_order_participant_path(order)}']", text: "Register a new Participant"
   end
 
   test "search and ticket addition enforce the existing ticket owner's user" do
@@ -175,7 +304,7 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
       post add_participant_admin_order_path(order), params: { participant_id: other_participant.id }
     end
     assert_redirected_to edit_admin_order_path(order)
-    assert_match(/same user/, flash[:alert])
+    assert_match(/Order owner/, flash[:alert])
     assert_equal users(:one), order.reload.user
     assert_equal 1, order.products.count
   end
@@ -188,7 +317,7 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to edit_admin_order_path(order)
     follow_redirect!
-    assert_select "a[href='#{edit_admin_order_path(other_draft)}']", text: /Review existing draft/
+    assert_select "[role='alert'] a[href='#{admin_order_path(other_draft)}']", text: "Order ##{other_draft.id}"
     assert_equal users(:admin), order.reload.user
     assert_empty other_draft.products
   end
@@ -196,9 +325,9 @@ class Admin::OrderFlowsTest < ActionDispatch::IntegrationTest
   test "a ticket for a different owner is rejected without changing either basket" do
     order = users(:two).orders.create!(status: "draft")
     assert_no_difference ["Product.count", "ParticipantTicket.count"] do
-      patch admin_order_path(order), params: { order: { user_id: order.user_id, participant_ids: [participants(:three).id] } }
+      post add_participant_admin_order_path(order), params: { participant_id: participants(:three).id }
     end
-    assert_response :unprocessable_entity
+    assert_redirected_to edit_admin_order_path(order)
     assert_empty order.products
   end
 

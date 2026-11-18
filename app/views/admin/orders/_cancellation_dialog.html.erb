@@ -1,0 +1,10 @@
+<dialog id="order-cancellation-dialog" aria-labelledby="order-cancellation-title" aria-describedby="order-cancellation-message" class="w-[calc(100%-2rem)] max-w-lg rounded-lg border-0 p-0 shadow-xl backdrop:bg-black/50">
+  <div class="bg-white p-6">
+    <h2 id="order-cancellation-title" class="text-xl font-semibold text-brand-blue-900">Cancel order</h2>
+    <p id="order-cancellation-message" class="mt-4 text-neutral-700"></p>
+    <form method="dialog" data-turbo="false" class="mt-6 flex flex-wrap justify-end gap-3">
+      <button type="submit" value="dismiss" class="btn-secondary" autofocus>Do not cancel</button>
+      <button type="submit" value="confirm" class="btn-primary">OK</button>
+    </form>
+  </div>
+</dialog>
