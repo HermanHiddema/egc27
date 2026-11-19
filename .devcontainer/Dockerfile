@@ -1,7 +1,8 @@
+# TODO: bump to 4.0.10 once ghcr.io/rails/devcontainer publishes that tag.
 # Keep this tag in sync with the Ruby version in .ruby-version, so the Ruby
 # installed in the container matches the one editors/tools (rbenv, ruby-lsp)
 # resolve from .ruby-version.
-FROM ghcr.io/rails/devcontainer/images/ruby:4.0.6
+FROM ghcr.io/rails/devcontainer/images/ruby:4.0.9
 
 # Default value to allow debug server to serve content over GitHub Codespace's port forwarding service
 # The value is a comma-separated list of allowed domains 
