@@ -1,6 +1,6 @@
 class Admin::ParticipantsController < ApplicationController
   SORT_COLUMNS = %w[number name email country rank status].freeze
-  STATUS_FILTERS = %w[pending confirmed paid charged_back refunded].freeze
+  STATUS_FILTERS = Participant::STATUSES
   PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
@@ -47,7 +47,6 @@ class Admin::ParticipantsController < ApplicationController
     @direction = permitted_direction
 
     participants = participants.where(country: @country_filter) if @country_filter.present?
-    participants = filtered_by_status(participants, @status_filter) if @status_filter.present?
     participants = participants.where(participant_type: @type_filter) if @type_filter.present?
     if @name_filter.present?
       name = "%#{ActiveRecord::Base.sanitize_sql_like(@name_filter)}%"
@@ -58,6 +57,13 @@ class Admin::ParticipantsController < ApplicationController
     end
 
     @participants = sorted_participants(participants).to_a
+    @participants.select! { |participant| participant.status == @status_filter } if @status_filter.present?
+    if @sort == "status"
+      @participants.sort_by! do |participant|
+        index = Participant::STATUSES.index(participant.status)
+        [@direction == :desc ? -index : index, participant.last_name, participant.first_name, participant.id]
+      end
+    end
     @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
   end
 
@@ -136,32 +142,6 @@ class Admin::ParticipantsController < ApplicationController
     :asc
   end
 
-  # Restricts the list to participants whose derived registration_status matches
-  # the requested filter, mirroring the Participant#registration_status logic:
-  # Paid takes precedence over Chargeback, which takes precedence over Refund,
-  # which takes precedence over Confirmed, which takes precedence over Pending.
-  def filtered_by_status(participants, status)
-    paid_ids = participant_ids_for(Payment.completed.unreversed)
-    charged_back_ids = participant_ids_for(Payment.charged_back).where.not(participant_id: paid_ids)
-    refunded_ids = participant_ids_for(Payment.refunded).where.not(participant_id: paid_ids)
-    reversed_ids = participant_ids_for(Payment.reversed).where.not(participant_id: paid_ids)
-
-    case status
-    when "paid"
-      participants.where(id: paid_ids)
-    when "charged_back"
-      participants.where(id: charged_back_ids)
-    when "refunded"
-      participants.where(id: refunded_ids).where.not(id: charged_back_ids)
-    when "confirmed"
-      participants.confirmed.where.not(id: paid_ids).where.not(id: reversed_ids)
-    when "pending"
-      participants.joins(:user).where(users: { confirmed_at: nil }).where.not(id: paid_ids).where.not(id: reversed_ids)
-    else
-      participants
-    end
-  end
-
   def sorted_participants(participants)
     table = Participant.arel_table
 
@@ -181,36 +161,11 @@ class Admin::ParticipantsController < ApplicationController
         [ordered(table[:rank]), ordered(table[:rating])]
       when "rating"
         [ordered(table[:rating])]
-      when "status"
-        return status_sorted_participants(participants)
       else
         [ordered(table[:last_name]), ordered(table[:first_name])]
       end
 
     participants.order(*clauses, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
-  end
-
-  # Registration status is derived from DB columns, expressed as a SQL CASE so
-  # sorting stays at the database level. Pending < Confirmed < Paid < Refund <
-  # Chargeback.
-  def status_sorted_participants(participants)
-    table = Participant.arel_table
-    paid_subquery = participant_ids_for(Payment.completed.unreversed).to_sql
-    charged_back_subquery = participant_ids_for(Payment.charged_back).to_sql
-    refunded_subquery = participant_ids_for(Payment.refunded).to_sql
-    dir = @direction == :desc ? "DESC" : "ASC"
-    status_order = Arel.sql(
-      "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
-      "WHEN participants.id IN (#{charged_back_subquery}) THEN 4 " \
-      "WHEN participants.id IN (#{refunded_subquery}) THEN 3 " \
-      "WHEN participants.user_id IN (SELECT id FROM users WHERE confirmed_at IS NOT NULL) THEN 1 " \
-      "ELSE 0 END #{dir}"
-    )
-    participants.order(status_order, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
-  end
-
-  def participant_ids_for(payments)
-    ParticipantTicket.eligible_for_registration_status.joins(product: { order: :payments }).merge(payments).select(:participant_id)
   end
 
   def ordered(column)
@@ -223,7 +178,7 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
+    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option, :admin_status)
   end
 
   def latest_payments_by_participant_id(participants)

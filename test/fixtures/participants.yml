@@ -5,6 +5,7 @@
 #  id                            :bigint           not null, primary key
 #  accepted_privacy_policy       :boolean          default(FALSE), not null
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
+#  admin_status                  :string
 #  age_group                     :string           not null
 #  club                          :string           not null
 #  country                       :string           not null

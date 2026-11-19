@@ -10,6 +10,13 @@
     </div>
   <% end %>
 
+  <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+    <p class="font-semibold">Participant status: <%= participant.status_label %></p>
+    <p class="text-sm text-neutral-700"><%= participant.admin_status.present? ? "Admin override" : "Automatic status" %> · Automatic: <%= Participant.status_label(participant.automatic_status) %></p>
+    <%= form.label :admin_status, "Admin status override", class: "block text-sm font-medium text-gray-700 mt-4 mb-2" %>
+    <%= form.select :admin_status, options_for_select([["Clear Admin override / Use automatic status", ""]] + Participant::ADMIN_STATUSES.map { |status| [Participant.status_label(status), status] }, participant.admin_status), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-white" %>
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div>
       <%= form.label :first_name, "First name *", class: "block text-sm font-medium text-gray-700 mb-2" %>

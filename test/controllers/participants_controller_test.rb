@@ -64,6 +64,19 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a", text: "View", count: 0
   end
 
+  test "participant pages display the effective status without editing controls" do
+    participant = participants(:one)
+    participant.update!(admin_status: "needs_refund")
+    sign_in users(:one)
+    get mine_participants_path
+    assert_select "tr.participant-row", text: /Alice Smith.*Needs refund/m
+    get participant_path(participant)
+    assert_select "dt", text: "Status" do
+      assert_select "+ dd", text: "Needs refund"
+    end
+    assert_select "select[name='participant[admin_status]']", count: 0
+  end
+
   test "mine redirects to show page when user has only one participant" do
     sign_in users(:two)
 

@@ -40,7 +40,7 @@
                     <span class="inline-flex rounded px-2 py-1 font-semibold border border-gray-200 bg-gray-100 text-gray-700">No ticket</span>
                   <% end %>
                 </td>
-                <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.confirmed? ? "Confirmed" : "Pending confirmation" %></td>
+                <td class="px-4 py-3 text-sm text-neutral-700"><span class="inline-flex rounded px-2 py-1 font-semibold <%= participant_status_badge_class(participant.status) %>"><%= participant.status_label %></span></td>
               </tr>
             <% end %>
           </tbody>

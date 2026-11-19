@@ -28,8 +28,8 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     # Shows email addresses
     assert_match "dave@example.org", response.body
     # Status badges for the three states (now the 7th column after strength was added)
-    assert_select "tbody tr td:nth-child(7) span", text: "Pending"
-    assert_select "tbody tr td:nth-child(7) span", text: "Confirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "Unconfirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "User confirmed"
     assert_select "tbody tr td:nth-child(7) span", text: "Paid"
     # Participant number (database id offset by 1000) in the first column
     assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
@@ -225,7 +225,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
 
   test "admin can filter by status pending" do
     sign_in users(:admin)
-    get admin_participants_path(status: "pending")
+    get admin_participants_path(status: "unconfirmed")
 
     assert_response :success
     assert_match "Dave Pending", response.body
@@ -253,20 +253,20 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Bob Jones", response.body
     assert_no_match participants(:four).email, response.body
 
-    get admin_participants_path(status: "confirmed", sort: "status")
+    get admin_participants_path(status: "user_confirmed", sort: "status")
     assert_match "Bob Jones", response.body
     assert_match participants(:four).email, response.body
-    assert_select "tbody tr", text: /Bob Jones.*Confirmed/m
+    assert_select "tbody tr", text: /Bob Jones.*User confirmed/m
 
     get admin_participants_path(sort: "status", direction: "asc")
     statuses = css_select("tbody tr td:nth-child(7)").map { |cell| cell.text.strip }
-    status_order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
+    status_order = Participant::STATUSES.each_with_index.to_h { |status, i| [Participant.status_label(status), i] }
     assert_equal statuses.sort_by { |status| status_order.fetch(status) }, statuses
   end
 
   test "admin can filter by status confirmed" do
     sign_in users(:admin)
-    get admin_participants_path(status: "confirmed")
+    get admin_participants_path(status: "user_confirmed")
 
     assert_response :success
     # Alice is confirmed without a completed payment
@@ -277,65 +277,35 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match "Dave Pending", response.body
   end
 
-  test "admin can filter by status refunded" do
-    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
+  test "admin can set, filter, and clear each override" do
     sign_in users(:admin)
-    get admin_participants_path(status: "refunded")
-
-    assert_response :success
-    # Bob's payment was refunded
-    assert_match "Bob Jones", response.body
-    assert_match "Refund", response.body
-    assert_no_match "Alice Smith", response.body
-    assert_no_match "Dave Pending", response.body
+    participant = participants(:two)
+    Participant::ADMIN_STATUSES.each do |status|
+      patch admin_participant_path(participant), params: { participant: { admin_status: status } }
+      assert_redirected_to admin_participants_path
+      assert_equal status, participant.reload.status
+      get admin_participants_path(status: status)
+      assert_select "tbody tr", text: /Bob Jones.*#{Participant.status_label(status)}/m
+      get edit_admin_participant_path(participant)
+      assert_select "select[name='participant[admin_status]'] option[selected]", text: Participant.status_label(status)
+      assert_match "Admin override", response.body
+    end
+    patch admin_participant_path(participant), params: { participant: { admin_status: "" } }
+    assert_nil participant.reload.admin_status
+    assert_equal "paid", participant.status
+    get edit_admin_participant_path(participant)
+    assert_match "Automatic status", response.body
   end
 
-  test "admin can filter by status charged back" do
-    participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
-    sign_in users(:admin)
-    get admin_participants_path(status: "charged_back")
-
-    assert_response :success
-    assert_match "Bob Jones", response.body
-    assert_match "Chargeback", response.body
-    assert_no_match "Alice Smith", response.body
-    assert_no_match "Dave Pending", response.body
-
-    get admin_participants_path(status: "confirmed")
-    assert_no_match "Bob Jones", response.body
-
-    get admin_participants_path(status: "refunded")
-    assert_no_match "Bob Jones", response.body
-
-    get admin_participants_path(sort: "status")
-    assert_response :success
-  end
-
-  test "refunded participants are excluded from the confirmed filter" do
-    participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
-    sign_in users(:admin)
-    get admin_participants_path(status: "confirmed")
-
-    assert_response :success
-    assert_match "Alice Smith", response.body
-    assert_no_match "Bob Jones", response.body
-  end
-
-  test "refunded participants are excluded from the pending filter" do
-    participants(:unconfirmed).order.payments.create!(
-      provider: "manual",
-      payment_date: Date.current,
-      payment_method: "bank_transfer",
-      status: "paid",
-      amount_refunded_cents: 5_000,
-      amount_cents: participants(:unconfirmed).order.total_cents,
-      description: "Refunded manual payment"
-    )
-    sign_in users(:admin)
-    get admin_participants_path(status: "pending")
-
-    assert_response :success
-    assert_no_match "Dave Pending", response.body
+  test "non admins cannot set or clear an override" do
+    participant = participants(:one)
+    participant.update!(admin_status: "needs_refund")
+    sign_in users(:one)
+    patch admin_participant_path(participant), params: { participant: { admin_status: "" } }
+    assert_redirected_to root_path
+    assert_equal "needs_refund", participant.reload.admin_status
+    patch participant_path(participant), params: { participant: { admin_status: "ticket_refunded" } }
+    assert_equal "needs_refund", participant.reload.admin_status
   end
 
   test "admin can sort by email ascending" do
@@ -348,17 +318,14 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "admin can sort by status" do
-    participants(:one).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
-    participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
+    participants(:one).update!(admin_status: "needs_refund")
+    participants(:two).update!(admin_status: "ticket_refunded")
     sign_in users(:admin)
     get admin_participants_path(sort: "status", direction: "asc")
-
     assert_response :success
     statuses = css_select("tbody tr td:nth-child(7)").map { |td| td.text.strip }
-    assert_includes statuses, "Chargeback"
-    assert_includes statuses, "Refund"
-    order = { "Pending" => 0, "Confirmed" => 1, "Paid" => 2, "Refund" => 3, "Chargeback" => 4 }
-    assert_equal statuses.sort_by { |status| order[status] }, statuses
+    order = Participant::STATUSES.each_with_index.to_h { |status, i| [Participant.status_label(status), i] }
+    assert_equal statuses.sort_by { |status| order.fetch(status) }, statuses
   end
 
   test "invalid sort and status params fall back to defaults" do

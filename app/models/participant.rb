@@ -5,6 +5,7 @@
 #  id                            :bigint           not null, primary key
 #  accepted_privacy_policy       :boolean          default(FALSE), not null
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
+#  admin_status                  :string
 #  age_group                     :string           not null
 #  club                          :string           not null
 #  country                       :string           not null
@@ -43,6 +44,9 @@
 #  fk_rails_...  (user_id => users.id)
 #
 class Participant < ApplicationRecord
+  ADMIN_STATUSES = %w[needs_refund ticket_refunded participation_canceled].freeze
+  STATUSES = (%w[unconfirmed user_confirmed paid] + ADMIN_STATUSES).freeze
+
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
   AGE_GROUPS = %w[0-11 12-17 18-49 50+].freeze
@@ -86,6 +90,9 @@ class Participant < ApplicationRecord
     where.not(id: reversed_ids).or(where(id: paid_ids))
   }
 
+  validates :admin_status, inclusion: { in: ADMIN_STATUSES }, allow_nil: true
+  normalizes :admin_status, with: ->(value) { value.presence }
+
   validates :first_name, :last_name, :email, :country, presence: true
   validates :user, presence: true, if: -> { email.present? }
   validates :age_group, inclusion: { in: AGE_GROUPS, message: "must be selected" }
@@ -113,7 +120,7 @@ class Participant < ApplicationRecord
 
   before_validation :normalize_text_fields
   before_validation :normalize_participant_type
-  before_validation :ensure_participant_ticket
+  before_validation :ensure_participant_ticket, unless: :only_admin_status_changed?
   before_validation :normalize_gender
   before_validation :normalize_rank
   before_validation :normalize_rating
@@ -295,15 +302,25 @@ class Participant < ApplicationRecord
     user.participants.where.not(id: id).none?
   end
 
-  # High-level registration status used in the admin participant list.
-  def registration_status
-    eligible_payments = preloaded_registration_payments || ticket_payments.to_a
-    return "Paid" if eligible_payments.any? { |payment| payment.paid? && !payment.refunded? && !payment.charged_back? }
-    return "Chargeback" if eligible_payments.any?(&:charged_back?)
-    return "Refund" if eligible_payments.any?(&:refunded?)
-    return "Confirmed" if confirmed?
+  def automatic_status
+    return "paid" if valid_admission?
+    return "user_confirmed" if confirmed?
 
-    "Pending"
+    "unconfirmed"
+  end
+
+  def status
+    admin_status.presence || automatic_status
+  end
+
+  def status_label
+    self.class.status_label(status)
+  end
+
+  def self.status_label(status)
+    { "unconfirmed" => "Unconfirmed", "user_confirmed" => "User confirmed", "paid" => "Paid",
+      "needs_refund" => "Needs refund", "ticket_refunded" => "Ticket refunded",
+      "participation_canceled" => "Participation canceled" }.fetch(status) { status.to_s.humanize }
   end
 
   def visitor?
@@ -327,29 +344,6 @@ class Participant < ApplicationRecord
 
   private
 
-  # Use the nested preload only when every association needed to filter the
-  # ticket and Order is loaded; the generic payments association includes history.
-  def preloaded_registration_payments
-    return unless association(:participant_tickets).loaded?
-
-    eligible_payments = []
-    participant_tickets.each do |ticket|
-      next if ticket.invalidated_at.present?
-      return unless ticket.association(:product).loaded?
-
-      product = ticket.product
-      next unless product
-      return unless product.association(:order).loaded?
-
-      order = product.order
-      next if order.cancelled?
-      return unless order.association(:payments).loaded?
-
-      eligible_payments.concat(order.payments)
-    end
-    eligible_payments
-  end
-
   def registration_paid?
     ticket_payments.merge(Payment.completed.unreversed).exists?
   end
@@ -372,6 +366,10 @@ class Participant < ApplicationRecord
   def pricing_inputs_changed?
     saved_change_to_participant_type? || saved_change_to_age_group? || saved_change_to_first_week? ||
       saved_change_to_weekend? || saved_change_to_second_week?
+  end
+
+  def only_admin_status_changed?
+    persisted? && changes_to_save.keys == ["admin_status"]
   end
 
   def ensure_participant_ticket

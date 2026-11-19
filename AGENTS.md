@@ -129,3 +129,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - Display all date selectors in dd/mm/yyyy format, including date-time forms and date dropdowns; keep calendar selection available and submit unambiguous dates.
 - In Admin Orders, label the draft section “Orders still in draft”, group filters within “Submitted Orders”, and preserve sorting and status filters when returning from Order details.
 - Use matching heading sizes for the draft and submitted sections of the Admin Orders overview, consistent with other Admin pages.
+
+- Derive Participant status from User confirmation and valid paid tickets; keep refund and cancellation statuses as Admin-controlled overrides independent of financial records.

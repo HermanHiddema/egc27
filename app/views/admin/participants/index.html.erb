@@ -19,7 +19,7 @@
       </div>
       <div>
         <label for="status" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Status</label>
-        <%= select_tag :status, options_for_select([["All statuses", ""], ["Pending", "pending"], ["Confirmed", "confirmed"], ["Paid", "paid"], ["Chargeback", "charged_back"], ["Refund", "refunded"]], @status_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
+        <%= select_tag :status, options_for_select([["All statuses", ""]] + Participant::STATUSES.map { |status| [Participant.status_label(status), status] }, @status_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
       </div>
       <div>
         <label for="name" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Name</label>
@@ -75,8 +75,8 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade.presence || "—" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type&.capitalize %></td>
                 <td class="px-4 py-3 text-sm">
-                  <% status = participant.registration_status %>
-                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= participant_status_badge_class(status) %>"><%= status %></span>
+                  <% status = participant.status %>
+                  <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= participant_status_badge_class(status) %>"><%= participant.status_label %></span>
                 </td>
                 <td class="px-4 py-3 text-sm text-right">
                   <%= link_to "Edit", edit_admin_participant_path(participant), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>
