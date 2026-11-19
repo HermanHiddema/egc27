@@ -17,7 +17,10 @@ module ParticipantTicketEditing
       raise ActiveRecord::RecordNotSaved, "Ticket must belong to the Order owner." unless participant.user_id == @order.user_id
 
       participant.update(attributes).tap do |saved|
-        OrderRepricingService.call(order: @order, date: Date.current) if saved
+        if saved
+          product.record_item_update! if participant.saved_changes.except("updated_at").any?
+          OrderRepricingService.call(order: @order, date: Date.current)
+        end
       end
     end
   end

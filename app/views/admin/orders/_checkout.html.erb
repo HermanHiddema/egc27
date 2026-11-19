@@ -4,3 +4,6 @@
 <% else %>
   <button class="w-full btn-primary mt-5 opacity-50" disabled>Submit Order</button>
 <% end %>
+<% if @order.persisted? %>
+  <p class="mt-3 text-sm"><%= link_to "Order history", history_admin_order_path(@order), class: "text-brand-blue-700 underline" %></p>
+<% end %>

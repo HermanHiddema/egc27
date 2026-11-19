@@ -20,6 +20,8 @@
 #  fk_rails_...  (order_id => orders.id)
 #
 class Product < ApplicationRecord
+  has_paper_trail meta: { order_id: :order_id }
+
   belongs_to :order, inverse_of: :products
   belongs_to :productable, polymorphic: true
 
@@ -43,6 +45,13 @@ class Product < ApplicationRecord
     update!(price_cents: new_price_cents)
   ensure
     @repricing = false
+  end
+
+  def record_item_update!
+    self.paper_trail_event = "item_updated"
+    paper_trail.save_with_version
+  ensure
+    self.paper_trail_event = nil
   end
 
   private

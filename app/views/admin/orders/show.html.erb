@@ -32,18 +32,7 @@
     <% end %>
   </section>
 
-  <% if @cancellation_versions.any? %>
-    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
-      <h2 class="text-xl font-semibold mb-4">Cancellation audit</h2>
-      <ul class="space-y-2 text-sm">
-        <% @cancellation_versions.each do |version| %>
-          <% actor_id = Integer(version.whodunnit, exception: false) %>
-          <% actor = @version_actors[actor_id] %>
-          <li><%= l(version.created_at, format: :long) %> · <%= actor&.display_name || (version.whodunnit.present? ? "User ##{version.whodunnit}" : "Unknown user") %></li>
-        <% end %>
-      </ul>
-    </section>
-  <% end %>
+  <%= render "history" %>
 
   <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
     <h2 class="text-xl font-semibold mb-4">Products</h2>

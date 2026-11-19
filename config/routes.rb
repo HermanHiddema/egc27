@@ -233,6 +233,7 @@ Rails.application.routes.draw do
     resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
       get :owners, on: :collection
       member do
+        get :history
         patch :cancel
         patch :submit
         delete :remove_product

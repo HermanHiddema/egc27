@@ -1,4 +1,29 @@
 module Admin::OrdersHelper
+  def admin_order_history_event(version)
+    changes = version.changeset || {}
+    case version.item_type
+    when "Order"
+      return "Order created" if version.event == "create"
+      return "Draft Order deleted" if version.event == "destroy"
+      return "Order canceled" if changes.dig("cancelled_at")&.last.present?
+      return "Order submitted" if changes.dig("status")&.last == "submitted"
+      return "Order owner changed" if changes.key?("user_id")
+
+      "Order updated"
+    when "Product"
+      case version.event
+      when "create" then "Product ##{version.item_id} added"
+      when "destroy" then "Product ##{version.item_id} removed"
+      when "item_updated" then "Product ##{version.item_id} details updated"
+      else "Product ##{version.item_id} updated"
+      end
+    when "Payment"
+      version.event == "create" ? "Payment ##{version.item_id} recorded" : "Payment ##{version.item_id} updated"
+    else
+      "#{version.item_type} ##{version.item_id} #{version.event}"
+    end
+  end
+
   def admin_orders_overview_params
     overview = {}
     overview[:sort] = params[:sort] if Admin::OrdersController::SORT_COLUMNS.include?(params[:sort])

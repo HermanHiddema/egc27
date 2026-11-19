@@ -31,6 +31,7 @@ class Admin::OrderHostelBookingsController < ApplicationController
     @admin_order.with_lock do
       raise ActiveRecord::RecordNotSaved, "Only draft Orders can be edited." unless @admin_order.editable?
       @hostel_booking.update!(booking_params)
+      @hostel_booking.product.record_item_update! if @hostel_booking.saved_changes.except("updated_at").any?
       @hostel_booking.reprice!
     end
     redirect_to edit_admin_order_path(@admin_order), notice: "Hostel booking updated."

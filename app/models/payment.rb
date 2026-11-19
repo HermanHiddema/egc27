@@ -51,7 +51,7 @@ class Payment < ApplicationRecord
   # How long the token in the return URL after a checkout stays valid.
   RETURN_TOKEN_EXPIRY = 1.week
 
-  has_paper_trail
+  has_paper_trail meta: { order_id: :order_id }
 
   belongs_to :order
   has_many :products, through: :order

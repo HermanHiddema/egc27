@@ -8,6 +8,7 @@ class Admin::OrdersController < ApplicationController
 
   def index
     @draft_orders = Order.drafts.includes(:user, :products, :payments).order(created_at: :desc)
+    @deleted_draft_versions = PaperTrail::Version.where(item_type: "Order", event: "destroy").order(created_at: :desc, id: :desc)
     @sort = SORT_COLUMNS.include?(params[:sort]) ? params[:sort] : "submitted"
     @direction = params[:direction] == "asc" ? :asc : :desc
     requested_statuses = params[:status].is_a?(Array) ? params[:status] : [params[:status]]
@@ -203,10 +204,15 @@ class Admin::OrdersController < ApplicationController
     @order = Order.includes(:user, :products, :payments, :versions).find(params[:id])
     @products = @order.products_for_display
     @payments = @order.payments.order(created_at: :desc, id: :desc)
-    @versions = @order.versions.order(created_at: :desc)
-    @cancellation_versions = @versions.select { |version| version.changeset&.dig("cancelled_at")&.last.present? }
-    actor_ids = @cancellation_versions.filter_map { |version| Integer(version.whodunnit, exception: false) }
-    @version_actors = User.where(id: actor_ids).index_by(&:id)
+    load_order_history(@order.id)
+  end
+
+  def history
+    @order = Order.find_by(id: params[:id])
+    @order_id = @order&.id || Integer(params[:id], exception: false)
+    raise ActiveRecord::RecordNotFound unless @order_id && (@order || PaperTrail::Version.exists?(item_type: "Order", item_id: @order_id, event: "destroy"))
+
+    load_order_history(@order_id)
   end
 
   def cancel
@@ -221,6 +227,15 @@ class Admin::OrdersController < ApplicationController
   end
 
   private
+
+  def load_order_history(order_id)
+    versions = PaperTrail::Version
+    order_versions = versions.where(item_type: "Order", item_id: order_id)
+    payment_versions = versions.where(item_type: "Payment", item_id: Payment.where(order_id: order_id).select(:id))
+    @order_history = versions.where(order_id: order_id).or(order_versions).or(payment_versions).order(created_at: :desc, id: :desc).to_a
+    actor_ids = @order_history.filter_map { |version| Integer(version.whodunnit, exception: false) }
+    @version_actors = User.where(id: actor_ids).index_by(&:id)
+  end
 
   def set_order
     @order = Order.find(params[:id])
