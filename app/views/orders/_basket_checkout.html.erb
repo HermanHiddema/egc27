@@ -1,0 +1,21 @@
+<% ticket_products = @products.select { |product| product.productable.is_a?(ParticipantTicket) } %>
+<% if @products.any? && !current_user.confirmed? && ticket_products.any? %>
+  <p class="mt-4 text-sm text-amber-800">Confirm your email address before paying for participant tickets.</p>
+<% end %>
+<% if @products.any? %>
+  <%= form_with url: submit_order_path, method: :post, data: { turbo: false }, class: "mt-5" do |form| %>
+    <%= form.hidden_field :confirmed_total_cents, value: @order.total_cents %>
+    <%= form.button "Book with commitment to pay", type: "submit", class: "w-full btn-primary px-3 py-3 text-center whitespace-normal break-words", disabled: @requires_confirmation %>
+  <% end %>
+  <p class="mt-3 text-xs text-neutral-500">Payment is for the full order. Available payment methods are shown by Mollie.</p>
+<% else %>
+  <button class="w-full btn-primary px-3 py-3 mt-5 text-center whitespace-normal break-words opacity-50 cursor-not-allowed" disabled>Book with commitment to pay</button>
+  <div class="mt-4 space-y-2 text-sm">
+    <%= link_to "Register a participant", new_participant_path(return_to: order_path), class: "block text-brand-blue-700 underline" %>
+    <%= link_to "Book hostel accommodation", new_hostel_booking_path, class: "block text-brand-blue-700 underline" %>
+  </div>
+<% end %>
+<% if @show_simulation_controls && @products.any? %>
+  <%= render "orders/simulation_controls", url: submit_order_path,
+        request_params: { confirmed_total_cents: @order.total_cents } %>
+<% end %>

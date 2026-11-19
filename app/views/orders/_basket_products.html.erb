@@ -1,0 +1,71 @@
+<% ticket_products = @products.select { |product| product.productable.is_a?(ParticipantTicket) } %>
+<% hostel_products = @products.select { |product| product.productable.is_a?(HostelBooking) } %>
+<section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+  <div class="flex justify-between items-center gap-3 mb-4">
+    <h2 class="text-xl font-semibold text-brand-blue-900">Participant tickets</h2>
+    <%= render "orders/add_product", order: @order, admin: admin, populated: ticket_products.any?, type: "participant" %>
+  </div>
+  <% if ticket_products.any? %>
+    <ul class="divide-y divide-gray-200">
+      <% ticket_products.each do |product| %>
+        <% ticket = product.productable %>
+        <% participant = ticket.participant %>
+        <% pricing = CongressPassPricing.new(attendance_option: participant.attendance_option, age_group: participant.age_group) %>
+        <li class="py-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-0">
+            <%= link_to "#{participant.first_name} #{participant.last_name}", basket_participant_path(@order, participant, admin: admin), class: "font-semibold text-brand-blue-800 hover:underline" %>
+            <p class="text-sm text-neutral-600">
+              <%= pricing.attendance_label %> · age <%= participant.age_group %><% if pricing.discount_fraction.positive? %> · <%= number_to_percentage(pricing.discount_fraction * 100, precision: 0) %> discount<% end %>
+            </p>
+          </div>
+          <div class="ml-auto flex shrink-0 items-center gap-4">
+            <div class="flex items-center gap-1">
+              <%= link_to basket_edit_product_path(@order, product, admin: admin), class: "rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50", aria: { label: "Edit participant ticket for #{participant.first_name} #{participant.last_name}" }, title: "Edit participant ticket" do %>
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M7.5 20.25l4.707-.942L20.25 11.265a2.121 2.121 0 0 0-3-3L9.207 16.308 8.25 21l-.75-.75Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5v5.25A2.25 2.25 0 0 1 17.25 21h-10.5A2.25 2.25 0 0 1 4.5 18.75V6.75A2.25 2.25 0 0 1 6.75 4.5H12" /></svg>
+              <% end %>
+              <%= button_to basket_remove_product_path(@order, product, admin: admin), method: :delete, class: "rounded p-2 text-red-700 hover:bg-red-50", aria: { label: "Remove participant ticket for #{participant.first_name} #{participant.last_name}" }, title: "Remove participant ticket", form: { data: { turbo_confirm: "Remove this ticket from your shopping basket? The participant registration will be kept." } } do %>
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-13.5 0 .75 12h10.5l.75-12M9 7.5V4.875A1.875 1.875 0 0 1 10.875 3h2.25A1.875 1.875 0 0 1 15 4.875V7.5m-6 3v5.25m6-5.25v5.25" /></svg>
+              <% end %>
+            </div>
+            <span class="whitespace-nowrap text-lg font-bold text-brand-blue-900">€ <%= format("%.2f", product.price_cents / 100.0) %></span>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-neutral-600">No participant tickets in your basket.</p>
+  <% end %>
+</section>
+
+<section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
+  <div class="flex justify-between items-center gap-3 mb-4">
+    <h2 class="text-xl font-semibold text-brand-blue-900">Hostel bookings</h2>
+    <%= render "orders/add_product", order: @order, admin: admin, populated: hostel_products.any?, type: "hostel" %>
+  </div>
+  <% if hostel_products.any? %>
+    <ul class="divide-y divide-gray-200">
+      <% hostel_products.each do |product| %>
+        <% booking = product.productable %>
+        <li class="py-4 flex flex-wrap items-center justify-between gap-4">
+          <div class="min-w-0">
+            <%= link_to "Hostel booking · #{eu_date_range(booking.arrival_date, booking.departure_date)}", basket_booking_path(@order, booking, admin: admin), class: "font-semibold text-brand-blue-800 hover:underline" %>
+            <p class="text-sm text-neutral-600"><%= booking.nights %> nights · <%= hostel_booking_options(booking) %></p>
+          </div>
+          <div class="ml-auto flex shrink-0 items-center gap-4">
+            <div class="flex items-center gap-1">
+              <%= link_to basket_edit_booking_path(@order, booking, admin: admin), class: "rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50", aria: { label: "Edit hostel booking" }, title: "Edit hostel booking" do %>
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 2.651 2.651M7.5 20.25l4.707-.942L20.25 11.265a2.121 2.121 0 0 0-3-3L9.207 16.308 8.25 21l-.75-.75Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5v5.25A2.25 2.25 0 0 1 17.25 21h-10.5A2.25 2.25 0 0 1 4.5 18.75V6.75A2.25 2.25 0 0 1 6.75 4.5H12" /></svg>
+              <% end %>
+               <%= button_to (admin ? basket_remove_product_path(@order, product, admin: true) : basket_booking_path(@order, booking)), method: :delete, class: "rounded p-2 text-red-700 hover:bg-red-50", aria: { label: "Remove hostel booking" }, title: "Remove hostel booking", form: { data: { turbo_confirm: "Remove this provisional hostel booking from your shopping basket?" } } do %>
+                <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 7.5h15m-13.5 0 .75 12h10.5l.75-12M9 7.5V4.875A1.875 1.875 0 0 1 10.875 3h2.25A1.875 1.875 0 0 1 15 4.875V7.5m-6 3v5.25m6-5.25v5.25" /></svg>
+              <% end %>
+            </div>
+            <span class="whitespace-nowrap text-lg font-bold text-brand-blue-900">€ <%= format("%.2f", product.price_cents / 100.0) %></span>
+          </div>
+        </li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-neutral-600">No hostel bookings in your basket.</p>
+  <% end %>
+</section>

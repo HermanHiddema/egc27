@@ -35,7 +35,16 @@ class ParticipantTicket < ApplicationRecord
   after_create :add_to_draft_order!
 
   def valid_admission?
-    invalidated_at.nil? && order.present? && !order.cancelled? && order.payments.completed.exists?
+    return false if invalidated_at.present?
+
+    ticket_order = association(:product).loaded? ? product&.order : order
+    return false if ticket_order.nil? || ticket_order.cancelled?
+
+    if ticket_order.association(:payments).loaded?
+      ticket_order.payments.any? { |payment| payment.status == "paid" }
+    else
+      ticket_order.payments.completed.exists?
+    end
   end
 
   def invalidate_admission!

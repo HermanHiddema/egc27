@@ -1,10 +1,13 @@
 class OrdersController < ApplicationController
-  before_action :set_draft_order, only: [:show, :new_participant, :add_participant, :edit_product, :update_product, :remove_product, :empty, :submit, :cancel]
+  include ParticipantTicketEditing
+
+  before_action :set_basket_order, only: [:show, :new_participant]
+  before_action :set_draft_order, only: [:edit_product, :update_product, :remove_product, :empty, :submit, :cancel]
   before_action :set_submitted_order, only: [:show_submitted, :pay_submitted]
 
   def show
     @requires_confirmation = ticket_products? && !current_user.confirmed?
-    OrderRepricingService.call(order: @order, date: Date.current) if @order.draft? && !@requires_confirmation
+    OrderRepricingService.call(order: @order, date: Date.current) if @order.persisted? && !@requires_confirmation
     @products = @order.products.includes(:productable)
     @show_simulation_controls = mollie_simulation_enabled? && !@order.closed? && !@requires_confirmation
   end
@@ -57,10 +60,11 @@ class OrdersController < ApplicationController
       return redirect_to submitted_order_path(participant.retryable_ticket.order),
         notice: "Please pay Order #{participant.retryable_ticket.order.id} to complete payment for this participant."
     end
-    @order.with_lock do
-      participant.add_ticket_to_draft_order!
-      redirect_to order_path, notice: "Ticket added to your shopping basket."
+    Order.transaction do
+      @order = current_user.draft_order!
+      @order.add_participant_ticket!(participant)
     end
+    redirect_to order_path, notice: "Ticket added to your shopping basket."
   rescue ActiveRecord::RecordNotSaved, ActiveRecord::RecordInvalid => e
     redirect_to order_path, alert: e.message
   end
@@ -80,20 +84,7 @@ class OrdersController < ApplicationController
     participant = product.productable.participant
     return head :not_found unless participant.user_id == current_user.id
 
-    attrs = if participant.valid_admission?
-      params.require(:participant).permit(:gender, :country, :club, :image_use_consent)
-    else
-      params.require(:participant).permit(:first_name, :last_name, :gender, :age_group, :country, :club,
-        :image_use_consent, :attendance_option, :rank, :egd_pin, :phone)
-    end
-
-    updated = @order.with_lock do
-      return redirect_to submitted_order_path(@order), alert: "Only tickets in your shopping basket can be edited." unless @order.editable?
-
-      participant.update(attrs).tap do |saved|
-        OrderRepricingService.call(order: @order, date: Date.current) if saved
-      end
-    end
+    updated = update_participant_ticket(product)
 
     if updated
       redirect_to order_path, notice: "Ticket details updated."
@@ -102,28 +93,19 @@ class OrdersController < ApplicationController
       @participant = participant
       render :edit_product, status: :unprocessable_entity
     end
+  rescue ActiveRecord::RecordNotSaved => e
+    redirect_to order_path, alert: e.message
   end
 
   def remove_product
-    @order.with_lock do
-      product = @order.products.includes(:productable).find(params[:product_id])
-      productable = product.productable
-      product.destroy!
-      productable.destroy! if productable.is_a?(ParticipantTicket) || productable.is_a?(HostelBooking)
-    end
+    @order.remove_basket_product!(params[:product_id])
     redirect_to order_path, notice: "Item removed from your shopping basket."
   rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotSaved => e
     redirect_to order_path, alert: e.message
   end
 
   def empty
-    @order.with_lock do
-      @order.products.includes(:productable).each do |product|
-        productable = product.productable
-        product.destroy!
-        productable.destroy! if productable.is_a?(ParticipantTicket) || productable.is_a?(HostelBooking)
-      end
-    end
+    @order.empty_basket!
     redirect_to order_path, notice: "Your shopping basket is empty."
   rescue ActiveRecord::RecordNotDestroyed, ActiveRecord::RecordNotSaved => e
     redirect_to order_path, alert: e.message
@@ -262,8 +244,12 @@ class OrdersController < ApplicationController
     @checkout_payment.destroy!
   end
 
+  def set_basket_order
+    @order = current_user.orders.drafts.first || current_user.orders.build(status: "draft")
+  end
+
   def set_draft_order
-    @order = current_user.draft_order!
+    @order = current_user.orders.drafts.first!
   end
 
   def set_submitted_order

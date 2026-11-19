@@ -1,0 +1,14 @@
+<section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
+  <h2 class="text-xl font-semibold mb-4">Order history</h2>
+  <% if @order_history.any? %>
+    <ul class="space-y-2 text-sm">
+      <% @order_history.each do |version| %>
+        <% actor_id = Integer(version.whodunnit, exception: false) %>
+        <% actor = @version_actors[actor_id] %>
+        <li><%= eu_compact_datetime(version.created_at) %> · <%= admin_order_history_event(version) %> · <%= actor&.display_name || (version.whodunnit.present? ? "User ##{version.whodunnit}" : "Unknown user / automated action") %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="text-neutral-700">No history is available for this Order.</p>
+  <% end %>
+</section>

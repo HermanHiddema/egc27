@@ -1,4 +1,5 @@
 class EventsController < ApplicationController
+  include EuropeanDateParameters
   skip_before_action :authenticate_user!, only: [:index, :show]
   before_action :require_creator!, only: [:new, :create]
   before_action :require_editor!, only: [:edit, :update]
@@ -26,6 +27,7 @@ class EventsController < ApplicationController
     if @event.save
       redirect_to @event, notice: "Event was successfully created."
     else
+      add_european_date_errors(@event)
       render :new, status: :unprocessable_entity
     end
   end
@@ -37,6 +39,7 @@ class EventsController < ApplicationController
     if @event.update(event_params)
       redirect_to @event, notice: "Event was successfully updated."
     else
+      add_european_date_errors(@event)
       render :edit, status: :unprocessable_entity
     end
   end
@@ -53,7 +56,7 @@ class EventsController < ApplicationController
   end
 
   def event_params
-    params.require(:event).permit(:title, :description, :starts_at, :ends_at, :location)
+    normalize_european_dates(params.require(:event).permit(:title, :description, :starts_at, :ends_at, :location), datetimes: [:starts_at, :ends_at])
   end
 
   def registrable_participants_for(event)

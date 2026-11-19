@@ -1,0 +1,10 @@
+<div class="container-wide py-12"><div class="max-w-3xl mx-auto">
+  <h1 class="text-3xl font-bold mb-4">Choose an Order</h1>
+  <p class="mb-6">This participant has tickets in more than one unpaid Order. Select the complete Order to review.</p>
+  <ul class="space-y-4"><% @payment_orders.each do |order| %><li class="rounded border bg-white p-5">
+    <%= link_to "Order ##{order.id}", admin_order_path(order), class: "font-semibold text-brand-blue-700 underline" %>
+    <p class="my-2">Total: <%= Settlement.format_cents(order.total_cents) %></p>
+    <ul class="mb-3 list-disc pl-5"><% order.products_for_display.each do |product| %><li><%= admin_order_product_label(product) %> · <%= Settlement.format_cents(product.price_cents) %></li><% end %></ul>
+    <% if order.draft? %><%= link_to "Review draft", edit_admin_order_path(order), class: "btn-secondary" %><% else %><%= link_to "Add payment", new_admin_order_payment_path(order), class: "btn-primary" %><% end %>
+  </li><% end %></ul>
+</div></div>

@@ -1,0 +1,43 @@
+<% admin = local_assigns.fetch(:admin, false) %>
+<% basket_title = admin && @order.persisted? ? "Shopping Basket for Order #{@order.id}" : "Shopping basket" %>
+<% content_for :title, "#{basket_title} – EGC 2027" %>
+<div class="container-wide py-8 lg:py-12" <%= 'data-admin-basket' if admin %>>
+  <div class="flex flex-wrap justify-between items-end gap-4 mb-8">
+    <div>
+      <h1 class="text-4xl font-bold"><%= basket_title %></h1>
+      <p class="mt-2 text-neutral-700">Review your participants and hostel bookings before checkout.</p>
+    </div>
+    <% if admin %><%= render "admin/orders/owner_selector" %><% else %><%= link_to "Past Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %><% end %>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-8 items-start" data-basket-content>
+    <div class="space-y-8">
+      <%= render "orders/basket_products", admin: admin %>
+      <% if @products.empty? %>
+        <div class="rounded-lg border border-brand-yellow-300 bg-brand-yellow-50 p-5 text-brand-yellow-950">
+          <p class="font-semibold">Your shopping basket is empty.</p>
+          <p class="mt-1">Add a participant ticket or book hostel accommodation to get started.</p>
+        </div>
+      <% end %>
+    </div>
+
+    <aside class="bg-white border border-gray-200 rounded-lg p-5 md:p-6 shadow-sm lg:sticky lg:top-24">
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Order summary</h2>
+      <div class="flex justify-between border-t border-gray-200 pt-4 text-lg font-bold text-brand-blue-900">
+        <span>Total: € <%= format("%.2f", @order.total_cents / 100.0) %></span>
+      </div>
+      <% if admin %>
+        <%= render "admin/orders/checkout" %>
+      <% else %>
+        <%= render "orders/basket_checkout" %>
+      <% end %>
+    </aside>
+  </div>
+
+  <% if @products.any? || (admin && @order.persisted?) %>
+    <div class="mt-8 flex flex-wrap justify-end gap-3" data-basket-content>
+      <% if @products.any? %><%= button_to "Empty shopping basket", (admin ? empty_admin_order_path(@order) : empty_order_path), method: :delete, class: "btn-accent", form: { data: { turbo_confirm: "Empty your shopping basket? Participant registrations will be kept; provisional tickets and hostel bookings will be removed." } } %><% end %>
+      <%= render "admin/orders/delete_draft", order: @order if admin && @order.persisted? %>
+    </div>
+  <% end %>
+</div>

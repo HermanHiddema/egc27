@@ -1,0 +1,29 @@
+<% datetime = local_assigns.fetch(:datetime, false) %>
+<% format_id = "#{form.field_id(field)}_format" %>
+<% hint = datetime ? "dd/mm/yyyy hh:mm" : "dd/mm/yyyy" %>
+<% picker_label = { payment_date: "payment", starts_at: "start", ends_at: "end" }.fetch(field, field.to_s.humanize.downcase) %>
+<div data-controller="european-date" data-european-date-datetime-value="<%= datetime %>">
+  <div class="relative">
+    <%= form.text_field field, value: european_date_field_value(form, field, datetime: datetime),
+        placeholder: hint, inputmode: "text",
+        pattern: (datetime ? '\d{2}/\d{2}/\d{4} \d{2}:\d{2}' : '\d{2}/\d{2}/\d{4}'),
+        title: "Enter #{hint}", aria: { describedby: format_id },
+        class: "w-full border border-gray-300 rounded-lg px-4 py-2 #{datetime ? 'pr-24' : 'pr-12'} focus:ring-brand-blue-600 focus:border-brand-blue-600",
+        data: { european_date_target: "input", action: "change->european-date#syncPicker" } %>
+    <button type="button" hidden data-european-date-target="button" data-action="european-date#open"
+            aria-label="Choose <%= picker_label %> date" class="absolute <%= datetime ? 'right-12' : 'right-2' %> top-1/2 -translate-y-1/2 rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50 focus:outline-none focus:ring-2 focus:ring-brand-blue-500">
+      <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M7 3v3m10-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1Z"/></svg>
+    </button>
+    <input type="date" tabindex="-1" aria-hidden="true" class="absolute right-3 top-full h-px w-px opacity-0 pointer-events-none"
+           data-european-date-target="picker" data-action="change->european-date#pick">
+    <% if datetime %>
+      <button type="button" hidden data-european-date-target="timeButton" data-action="european-date#openTime"
+              aria-label="Choose <%= picker_label %> time" class="absolute right-2 top-1/2 -translate-y-1/2 rounded p-2 text-brand-blue-700 hover:bg-brand-blue-50 focus:outline-none focus:ring-2 focus:ring-brand-blue-500">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 7v5l3 2"/></svg>
+      </button>
+      <input type="time" tabindex="-1" aria-hidden="true" class="absolute right-3 top-full h-px w-px opacity-0 pointer-events-none"
+             data-european-date-target="timePicker" data-action="change->european-date#pickTime">
+    <% end %>
+  </div>
+  <span id="<%= format_id %>" class="mt-1 block text-xs text-neutral-600">Format: <%= hint %></span>
+</div>

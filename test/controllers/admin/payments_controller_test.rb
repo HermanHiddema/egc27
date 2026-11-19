@@ -12,97 +12,84 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     participant.reload
   end
 
+  def record_order_payment(order = orders(:three), attributes = {})
+    get new_admin_order_payment_path(order)
+    post admin_order_payments_path(order), params: {
+      confirmed_total_cents: order.reload.total_cents,
+      payment: { description: "Cash at the venue", payment_method: "cash", payment_date: "2026-10-15" }.merge(attributes)
+    }
+  end
+
   test "unauthenticated user is redirected to sign in" do
-    get new_admin_participant_payment_path(participants(:one))
+    get new_admin_order_payment_path(orders(:three))
     assert_redirected_to new_user_session_path
   end
 
   test "editor cannot record a payment" do
     sign_in users(:editor)
-
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "190.00", description: "Cash at the venue", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
-      }
+      post admin_order_payments_path(orders(:three)), params: { payment: { description: "Cash", payment_method: "cash", payment_date: Date.current } }
     end
-
     assert_redirected_to root_path
   end
 
-  test "admin can open the record payment form" do
+  test "admin can open the Order payment form with a fixed total" do
     sign_in users(:admin)
-    get new_admin_participant_payment_path(participants(:three))
-
+    get new_admin_order_payment_path(orders(:three))
     assert_response :success
-    assert_select "form[action='#{admin_participant_payments_path(participants(:three))}']"
-    assert_select "select[name='payment[payment_method]'] option[value='cash']"
-    assert_select "select[name='payment[payment_method]'] option[value='bank_transfer']"
-    assert_select "select[name='payment[payment_method]'] option[value='pointofsale']"
-    assert_select "select[name='payment[payment_method]'] option[value='paypal']"
-    # New payments are always recorded as paid, so the status is not offered.
+    assert_select "form[action='#{admin_order_payments_path(orders(:three))}']"
+    %w[cash bank_transfer pointofsale paypal].each do |method|
+      assert_select "select[name='payment[payment_method]'] option[value='#{method}']"
+    end
+    assert_select "input[name='payment[amount_eur]']", count: 0
     assert_select "select[name='payment[status]']", count: 0
-    # The provider is always manual here, so it is not offered as a method.
     assert_select "select[name='payment[payment_method]'] option[value='mollie']", count: 0
   end
 
-  test "opening the form for a participant without a ticket stays read-only" do
+  test "opening the basket for a participant without a ticket stays read-only" do
     sign_in users(:admin)
-    participant = create_ticketless_participant
-    counts = [Order.count, Product.count, ParticipantTicket.count]
-
-    get new_admin_participant_payment_path(participant)
-
+    create_ticketless_participant
+    assert_no_difference ["Order.count", "Product.count", "ParticipantTicket.count"] do
+      get new_admin_order_path
+    end
     assert_response :success
-    assert_equal counts, [Order.count, Product.count, ParticipantTicket.count]
-    assert_select "form[action='#{add_ticket_admin_participant_payments_path(participant)}']"
+    assert_select "h1", text: "Shopping basket"
   end
 
   test "admin can explicitly add a ticket before recording payment" do
     sign_in users(:admin)
     participant = create_ticketless_participant
-
     assert_difference ["Order.count", "Product.count", "ParticipantTicket.count"], 1 do
-      post add_ticket_admin_participant_payments_path(participant)
+      post add_payment_admin_participant_path(participant)
     end
-
-    assert_redirected_to new_admin_participant_payment_path(participant)
-    assert participant.reload.current_order.draft?
+    assert_redirected_to edit_admin_order_path(participant.reload.current_order)
+    assert participant.current_order.draft?
+    assert_empty participant.current_order.payments
   end
 
-  test "record payment redirects to the ticket-add step when there is no order" do
+  test "the participant shortcut requires draft review before payment" do
     sign_in users(:admin)
     participant = create_ticketless_participant
-
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
-      }
+      post add_payment_admin_participant_path(participant)
     end
-
-    assert_redirected_to new_admin_participant_payment_path(participant)
-    assert_nil participant.reload.current_order
+    order = participant.reload.current_order
+    assert_redirected_to edit_admin_order_path(order)
+    get new_admin_order_payment_path(order)
+    assert_response :success
+    assert_select "a[href='#{edit_admin_order_path(order)}']", text: "Review Order"
+    assert_select "form[action='#{admin_order_payments_path(order)}']", count: 0
   end
 
-  test "admin can record a manual payment" do
+  test "admin can record a manual payment for the full Order" do
     sign_in users(:admin)
-    participant = participants(:three)
-
-    assert_difference "participant.payments.count", 1 do
-      post admin_participant_payments_path(participant), params: {
-        payment: {
-          amount_eur: "190.00",
-          description: "EGC 2027 Congress Pass – paid in cash",
-          payment_method: "cash",
-          payment_date: "2026-10-15",
-          status: "paid",
-          reference: "Receipt 42"
-        }
-      }
+    order = orders(:three)
+    assert_difference "order.payments.count", 1 do
+      record_order_payment(order, description: "Congress pass paid in cash", reference: "Receipt 42")
     end
-
-    assert_redirected_to admin_participants_path
-    payment = participant.payments.order(:created_at).last
-    assert_equal 19_000, payment.amount_cents
+    assert_redirected_to admin_order_path(order)
+    payment = order.payments.order(:created_at).last
+    assert_equal order.total_cents, payment.amount_cents
     assert_equal "manual", payment.provider
     assert_equal "cash", payment.payment_method
     assert_equal "Receipt 42", payment.reference
@@ -113,150 +100,89 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "recording a paid payment sends the payment confirmation email" do
     sign_in users(:admin)
-
     assert_emails 1 do
-      post admin_participant_payments_path(participants(:three)), params: {
-        payment: {
-          amount_eur: "190.00",
-          description: "Bank transfer",
-          payment_method: "bank_transfer",
-          payment_date: "2026-10-15",
-          status: "paid"
-        }
-      }
+      record_order_payment(orders(:three), description: "Bank transfer", payment_method: "bank_transfer")
     end
   end
 
   test "recorded payments are always assigned the manual provider" do
     sign_in users(:admin)
-    participant = participants(:three)
-
-    post admin_participant_payments_path(participant), params: {
-      payment: {
-        amount_eur: "190.00",
-        description: "Cash",
-        payment_method: "cash",
-        payment_date: "2026-10-15",
-        status: "paid",
-        provider: "mollie",
-        mollie_payment_id: "tr_spoofed"
-      }
-    }
-
-    payment = participant.payments.order(:created_at).last
+    record_order_payment(orders(:three), provider: "mollie", mollie_payment_id: "tr_spoofed")
+    payment = orders(:three).payments.order(:created_at).last
     assert_equal "manual", payment.provider
     assert_nil payment.mollie_payment_id
   end
 
   test "recorded payments are always paid" do
     sign_in users(:admin)
-    participant = participants(:three)
-
-    post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "open" }
-    }
-
-    assert participant.payments.order(:created_at).last.paid?
+    record_order_payment(orders(:three), status: "open")
+    assert orders(:three).payments.order(:created_at).last.paid?
   end
 
   test "admin cannot record a payment with an unsupported method" do
     sign_in users(:admin)
-
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "190.00", description: "Fake Mollie", payment_method: "ideal", status: "paid" }
-      }
+      record_order_payment(orders(:three), payment_method: "ideal")
     end
-
     assert_response :unprocessable_entity
   end
 
   test "invalid payment re-renders the form" do
     sign_in users(:admin)
-
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "0", description: "", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
-      }
+      record_order_payment(orders(:three), description: "")
     end
-
     assert_response :unprocessable_entity
+    assert_select "li", text: "Description can't be blank"
   end
 
   test "recorded payment makes the participant show as paid" do
     sign_in users(:admin)
-    participant = participants(:two)
-
-    post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
-    }
-
-    assert_equal "Paid", participant.reload.registration_status
+    record_order_payment(orders(:three))
+    assert_equal "Paid", participants(:three).reload.registration_status
   end
 
-  test "admin cannot record a payment for a visitor participant" do
+  test "admin cannot create a ticket Order for a visitor" do
     sign_in users(:admin)
     visitor = participants(:visitor_one)
+    assert_no_difference ["Payment.count", "Order.count", "ParticipantTicket.count"] do
+      post add_payment_admin_participant_path(visitor)
+    end
+    assert_redirected_to edit_admin_participant_path(visitor)
+  end
 
+  test "visitor edit page does not offer the payment shortcut" do
+    sign_in users(:admin)
+    visitor = participants(:visitor_one)
+    get edit_admin_participant_path(visitor)
+    assert_response :success
+    assert_select "form[action='#{add_payment_admin_participant_path(visitor)}']", count: 0
+  end
+
+  test "admin is blocked when the Order has an open Mollie payment" do
+    sign_in users(:admin)
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(visitor), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
-      }
+      record_order_payment(orders(:one))
     end
-
-    assert_redirected_to admin_participants_path
-  end
-
-  test "admin cannot open the payment form for a visitor participant" do
-    sign_in users(:admin)
-
-    get new_admin_participant_payment_path(participants(:visitor_one))
-
-    assert_redirected_to admin_participants_path
-  end
-
-  test "admin is blocked when participant has open mollie payment" do
-    sign_in users(:admin)
-    # participants(:one) already has an open_payment fixture (Mollie, status: open)
-    participant = participants(:one)
-
-    assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
-      }
-    end
-
-    assert_redirected_to new_admin_participant_payment_path(participant)
-  end
-
-  test "admin can record a manual payment when the existing mollie payment expired" do
-    sign_in users(:admin)
-    participant = participants(:one)
-    payments(:open_payment).update!(status: "expired")
-    amount = format("%.2f", participant.order.total_cents / 100.0)
-
-    assert_difference "participant.payments.count", 1 do
-      post admin_participant_payments_path(participant), params: {
-        payment: { amount_eur: amount, description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
-      }
-    end
-
-    assert_redirected_to admin_participants_path
-    assert participant.reload.paid?
-  end
-
-  test "non-numeric amount_eur re-renders the form with a validation error" do
-    sign_in users(:admin)
-
-    assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:two)), params: {
-        payment: { amount_eur: "abc", description: "Cash", payment_method: "cash", payment_date: "2026-10-15" }
-      }
-    end
-
     assert_response :unprocessable_entity
-    assert_select "input[name='payment[amount_eur]'][value='abc']"
-    assert_select "li", text: "Amount (EUR) is not a number"
+    assert_select "li", text: /An active Payment already exists/
+  end
+
+  test "admin can record a manual payment when the existing Mollie payment expired" do
+    sign_in users(:admin)
+    payments(:open_payment).update!(status: "expired")
+    assert_difference "Payment.count", 1 do
+      record_order_payment(orders(:one))
+    end
+    assert_redirected_to admin_order_path(orders(:one))
+    assert participants(:one).reload.paid?
+  end
+
+  test "a submitted amount cannot override the full Order total" do
+    sign_in users(:admin)
+    record_order_payment(orders(:three), amount_eur: "abc")
+    assert_redirected_to admin_order_path(orders(:three))
+    assert_equal orders(:three).total_cents, orders(:three).payments.order(:created_at).last.amount_cents
   end
 
   # edit / update
@@ -299,22 +225,64 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
 
     travel_to Time.zone.local(2026, 10, 20, 12) do
-      get new_admin_participant_payment_path(participants(:three))
+      get new_admin_order_payment_path(orders(:three))
     end
 
     assert_response :success
-    assert_select "input[type='date'][name='payment[payment_date]'][value='2026-10-20']"
+    assert_select "input[type='text'][name='payment[payment_date]'][value='20/10/2026'][placeholder='dd/mm/yyyy']"
+    assert_select "button[aria-label='Choose payment date'][type='button']"
+  end
+
+  test "manual payments accept unambiguous European dates" do
+    sign_in users(:admin)
+    travel_to Time.zone.local(2026, 10, 20, 12) do
+      assert_difference "Payment.count", 1 do
+        record_order_payment(orders(:three), payment_date: "03/04/2026")
+      end
+    end
+
+    assert_redirected_to admin_order_path(orders(:three))
+    assert_equal Date.new(2026, 4, 3), orders(:three).payments.order(:id).last.payment_date
+  end
+
+  test "invalid and future European payment dates show errors and preserve the input" do
+    sign_in users(:admin)
+    travel_to Time.zone.local(2026, 10, 20, 12) do
+      { "29/02/2027" => /must be a valid date in dd\/mm\/yyyy format/,
+        "01/01/0000" => /must be a valid date in dd\/mm\/yyyy format/,
+        "21/10/2026" => /cannot be in the future/ }.each do |date, error|
+        assert_no_difference "Payment.count" do
+          record_order_payment(orders(:three), payment_date: date)
+        end
+        assert_response :unprocessable_entity
+        assert_select "li", text: error
+        assert_select "li", text: "Payment date can't be blank", count: 0
+        assert_select "input[name='payment[payment_date]'][value=?]", date
+      end
+    end
+  end
+
+  test "editing a manual payment accepts European dates and rejects impossible dates" do
+    sign_in users(:admin)
+    payment = payments(:manual_payment)
+    attributes = { amount_eur: format("%.2f", payment.amount_cents / 100.0), description: payment.description,
+      payment_method: "cash", payment_date: "03/04/2026" }
+    patch admin_participant_payment_path(payment.participant, payment), params: { payment: attributes }
+    assert_redirected_to admin_participants_path
+    assert_equal Date.new(2026, 4, 3), payment.reload.payment_date
+
+    patch admin_participant_payment_path(payment.participant, payment), params: { payment: attributes.merge(payment_date: "31/02/2026") }
+    assert_response :unprocessable_entity
+    assert_select "li", text: /must be a valid date in dd\/mm\/yyyy format/
+    assert_select "input[name='payment[payment_date]'][value='31/02/2026']"
+    assert_equal Date.new(2026, 4, 3), payment.reload.payment_date
   end
 
   test "admin cannot record a manual payment without a payment date" do
     sign_in users(:admin)
-
     assert_no_difference "Payment.count" do
-      post admin_participant_payments_path(participants(:three)), params: {
-        payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "" }
-      }
+      record_order_payment(orders(:three), payment_date: "")
     end
-
     assert_response :unprocessable_entity
   end
 
@@ -324,7 +292,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
     get edit_admin_participant_payment_path(payment.participant, payment)
 
-    assert_redirected_to new_admin_participant_payment_path(payment.participant)
+    assert_redirected_to admin_order_path(payment.order)
   end
 
   test "admin cannot update a mollie payment" do
@@ -335,7 +303,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
       payment: { amount_eur: "1.00", description: "Hacked", payment_method: "cash", payment_date: "2026-10-15", status: "paid" }
     }
 
-    assert_redirected_to new_admin_participant_payment_path(payment.participant)
+    assert_redirected_to admin_order_path(payment.order)
     assert_equal 5_000, payment.reload.amount_cents
   end
 
@@ -384,18 +352,14 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "existing payments are listed with an edit link for manual payments only" do
+  test "participant pages offer editing for manual payments only" do
     sign_in users(:admin)
     manual = payments(:manual_payment)
-
-    get new_admin_participant_payment_path(manual.participant)
-
+    get edit_admin_participant_path(manual.participant)
     assert_response :success
-    assert_select "a[href='#{edit_admin_participant_payment_path(manual.participant, manual)}']", text: "Edit"
-
+    assert_select "a[href='#{edit_admin_participant_payment_path(manual.participant, manual)}']", text: "Edit payment"
     mollie = payments(:paid_payment)
-    get new_admin_participant_payment_path(mollie.participant)
-
+    get edit_admin_participant_path(mollie.participant)
     assert_response :success
     assert_select "a[href='#{edit_admin_participant_payment_path(mollie.participant, mollie)}']", count: 0
   end
@@ -590,7 +554,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
 
   test "record payment form defaults to processed in bookkeeping" do
     sign_in users(:admin)
-    get new_admin_participant_payment_path(participants(:three))
+    get new_admin_order_payment_path(orders(:three))
 
     assert_response :success
     assert_select "input[type=checkbox][name='payment[processed_in_bookkeeping]'][checked=checked]"
@@ -600,9 +564,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     participant = participants(:three)
 
-    post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "0" }
-    }
+    record_order_payment(participant.order, processed_in_bookkeeping: "0")
 
     assert_not participant.payments.order(:created_at).last.processed_in_bookkeeping?
   end
@@ -611,9 +573,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     sign_in users(:admin)
     participant = participants(:three)
 
-    post admin_participant_payments_path(participant), params: {
-      payment: { amount_eur: "190.00", description: "Cash", payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
-    }
+    record_order_payment(participant.order, processed_in_bookkeeping: "1")
 
     assert participant.payments.order(:created_at).last.processed_in_bookkeeping?
   end

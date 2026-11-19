@@ -1,0 +1,11 @@
+<% label = "#{populated ? 'Add another' : 'Add'} #{type == 'participant' ? ParticipantTicket.display_name : HostelBooking.display_name}" %>
+<% if admin && order.new_record? %>
+  <%= button_to label, admin_orders_path, params: { order: { user_id: order.user_id }, next_step: type }, class: "btn-secondary text-sm" %>
+<% else %>
+  <% destination = if type == "participant"
+    admin ? new_participant_admin_order_path(order) : new_participant_order_path
+  else
+    admin ? new_admin_order_hostel_booking_path(order) : new_hostel_booking_path
+  end %>
+  <%= link_to label, destination, class: "btn-secondary text-sm" %>
+<% end %>

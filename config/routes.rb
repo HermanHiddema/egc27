@@ -218,13 +218,10 @@ Rails.application.routes.draw do
     resources :users, only: [:show]
     resources :articles, only: [:index]
     resources :participants, only: [:index, :edit, :update, :destroy] do
+      post :add_payment, on: :member
+      resources :payments, only: [:edit, :update]
       collection do
         post :sync_egd
-      end
-      resources :payments, only: [:new, :create, :edit, :update] do
-        collection do
-          post :add_ticket
-        end
       end
     end
     resources :payments, only: [:index, :show] do
@@ -233,10 +230,23 @@ Rails.application.routes.draw do
         patch :unmark_processed
       end
     end
-    resources :orders, only: [:index, :show] do
+    resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
+      get :owners, on: :collection
       member do
+        get :history
         patch :cancel
+        patch :submit
+        delete :remove_product
+        delete :discard
+        get :participants
+        post :add_participant
+        get :new_participant
+        delete :empty
       end
+      resources :participants, only: [:new, :create], controller: "order_participants"
+      resources :products, only: [:edit, :update], controller: "order_products"
+      resources :payments, only: [:new, :create], controller: "order_payments"
+      resources :hostel_bookings, only: [:new, :create, :edit, :update], controller: "order_hostel_bookings"
     end
     resources :hostel_bookings, only: [:index]
     resources :settlements, only: [:index, :show] do

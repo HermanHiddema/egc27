@@ -4,13 +4,14 @@
 <% departure_dates = ((HostelPricing::FIRST_ARRIVAL_DATE + 1)..HostelPricing::LAST_DEPARTURE_DATE).to_a %>
 
 <div class="container-wide py-12">
+  <% if @admin_order %><p class="mb-4"><%= link_to "Back to shopping basket", edit_admin_order_path(@admin_order), class: "text-brand-blue-700 underline" %></p><% end %>
   <h1 class="text-4xl font-bold mb-2"><%= @hostel_booking.persisted? ? "Edit hostel booking" : "Book hostel beds" %></h1>
   <p class="text-neutral-600 mb-8">
     Choose your arrival and departure dates and book any combination of rooms and beds, with an optional breakfast buffet.
     Prices are per room or bed per night.
   </p>
 
-  <%= form_with model: @hostel_booking, data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
+  <%= form_with model: @hostel_booking, url: (@admin_order ? (@hostel_booking.persisted? ? admin_order_hostel_booking_path(@admin_order, @hostel_booking) : admin_order_hostel_bookings_path(@admin_order)) : nil), data: { turbo: false, controller: "hostel-booking", action: "input->hostel-booking#calculate change->hostel-booking#calculate", hostel_booking_prices_value: @pricing.room_prices_cents.to_json, hostel_booking_beds_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:beds] }.to_json, hostel_booking_breakfast_cents_value: HostelPricing::BREAKFAST_CENTS, hostel_booking_labels_value: HostelPricing::ROOM_TYPES.transform_values { |room| room[:short_label] }.merge("breakfasts" => HostelPricing::BREAKFAST_LABEL).to_json } do |form| %>
     <% if @hostel_booking.errors.any? %>
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <h2 class="text-red-800 font-semibold mb-2">There were errors with your booking:</h2>
@@ -29,11 +30,11 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <%= form.label :arrival_date, "Arrival *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-              <%= form.select :arrival_date, arrival_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.arrival_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "arrival" } %>
+              <%= form.select :arrival_date, arrival_dates.map { |date| [date.strftime("%a, %d/%m/%Y"), date.iso8601] }, { selected: @hostel_booking.arrival_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "arrival" } %>
             </div>
             <div>
               <%= form.label :departure_date, "Departure *", class: "block text-sm font-medium text-gray-700 mb-2" %>
-              <%= form.select :departure_date, departure_dates.map { |date| [eu_date(date, month: :short, weekday: :short), date.iso8601] }, { selected: @hostel_booking.departure_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "departure" } %>
+              <%= form.select :departure_date, departure_dates.map { |date| [date.strftime("%a, %d/%m/%Y"), date.iso8601] }, { selected: @hostel_booking.departure_date&.iso8601 }, class: input_class, data: { hostel_booking_target: "departure" } %>
             </div>
           </div>
         </div>
@@ -47,7 +48,7 @@
                   <span class="font-medium"><%= room[:label] %></span>
                   <span class="block text-neutral-600">€ <%= @pricing.room_price_cents(room_type) / 100 %> per night</span>
                 <% end %>
-                <%= render "quantity_field", form: form, attribute: room_type, label: room[:label], target: "quantity", room_type: room_type %>
+                <%= render "hostel_bookings/quantity_field", form: form, attribute: room_type, label: room[:label], target: "quantity", room_type: room_type %>
               </div>
             <% end %>
           </div>
@@ -61,7 +62,7 @@
               <span class="block text-neutral-600">Breakfast for all mornings (€ <%= format("%.2f", HostelPricing::BREAKFAST_CENTS / 100.0) %> per person per night).</span>
               <span class="block text-neutral-600 text-xs">Enter the number of people who want breakfast every morning of their stay</span>
             <% end %>
-            <%= render "quantity_field", form: form, attribute: :breakfasts, label: "breakfasts", target: "breakfasts", room_type: nil %>
+            <%= render "hostel_bookings/quantity_field", form: form, attribute: :breakfasts, label: "breakfasts", target: "breakfasts", room_type: nil %>
           </div>
           <p class="text-sm text-brand-yellow-900 bg-brand-yellow-50 border border-brand-yellow-400 rounded-lg p-3 mb-4">
             On site breakfast will cost € 10,85 per day, but there is limited extra availability. 

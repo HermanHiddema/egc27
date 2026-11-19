@@ -51,7 +51,7 @@ class Payment < ApplicationRecord
   # How long the token in the return URL after a checkout stays valid.
   RETURN_TOKEN_EXPIRY = 1.week
 
-  has_paper_trail
+  has_paper_trail meta: { order_id: :order_id }
 
   belongs_to :order
   has_many :products, through: :order
@@ -75,6 +75,7 @@ class Payment < ApplicationRecord
   validates :mollie_payment_id, absence: true, if: :manual?
   validates :mollie_payment_id, uniqueness: true, allow_nil: true
   validates :payment_date, presence: true, if: :manual?
+  validates :payment_date, comparison: { less_than_or_equal_to: -> { Date.current }, message: "cannot be in the future" }, allow_nil: true, if: :manual?
   validate :paid_status_is_final, on: :update
 
   scope :completed, -> { where(status: "paid") }

@@ -1,0 +1,4 @@
+<% if order.editable? %>
+  <% button_class = local_assigns[:compact] ? "inline-flex rounded-lg bg-brand-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-brand-red-700" : "btn-accent" %>
+  <%= button_to "Delete draft Order", discard_admin_order_path(order), method: :delete, params: { return_order_id: local_assigns[:return_order]&.id }.compact, class: button_class, form: { data: { turbo_confirm: "Delete draft Order ##{order.id} and its provisional tickets and hostel bookings? Participant registrations will be kept. A new draft Order can then be created for this user." } } %>
+<% end %>

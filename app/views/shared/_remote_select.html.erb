@@ -1,0 +1,18 @@
+<% field_id = "remote_#{name.gsub(/[^a-zA-Z0-9]/, '_')}" %>
+<% auto_submit = local_assigns.fetch(:auto_submit, false) %>
+<%= form_with url: submit_url, method: local_assigns.fetch(:method, :post), data: { controller: "remote-select", remote_select_url_value: url, remote_select_auto_submit_value: auto_submit, action: "turbo:submit-end->remote-select#submitted" }, class: "space-y-3" do %>
+  <label id="<%= field_id %>_label" for="<%= field_id %>" class="block text-sm font-medium"><%= label %> *</label>
+  <div class="relative" data-action="focusout->remote-select#blur">
+    <button id="<%= field_id %>" type="button" class="flex w-full items-center justify-between gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-left" aria-haspopup="listbox" aria-expanded="false" aria-controls="<%= field_id %>_options" data-remote-select-target="trigger" data-action="click->remote-select#toggle keydown->remote-select#openWithKeyboard">
+      <span class="min-w-0 truncate" data-remote-select-target="selection"><%= local_assigns[:selected_label].presence || "Select #{label.downcase}" %></span>
+      <svg class="h-4 w-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="m5 7 5 5 5-5H5Z"/></svg>
+    </button>
+    <input type="hidden" name="<%= name %>" value="<%= local_assigns[:selected_id] %>" data-remote-select-target="value">
+    <div class="hidden absolute z-30 mt-1 w-full rounded-lg border border-gray-200 bg-white p-2 shadow-lg" data-remote-select-target="panel">
+      <input type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-labelledby="<%= field_id %>_label" aria-controls="<%= field_id %>_options" class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 mb-2" placeholder="Type to filter names" data-remote-select-target="query" data-action="input->remote-select#search keydown->remote-select#keydown">
+      <div id="<%= field_id %>_options" role="listbox" class="max-h-64 overflow-auto" data-remote-select-target="results"></div>
+    </div>
+  </div>
+  <p class="text-sm text-neutral-600" role="status" data-remote-select-target="status"></p>
+  <% unless auto_submit %><%= submit_tag submit_label, class: "btn-secondary text-sm", data: { remote_select_target: "submit" } %><% end %>
+<% end %>

@@ -1,0 +1,3 @@
+<div class="w-full sm:w-80 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+  <%= render "shared/remote_select", url: owners_admin_orders_path, submit_url: (@order.persisted? ? admin_order_path(@order) : admin_orders_path), name: "order[user_id]", label: "Order owner", submit_label: "Change owner", method: (@order.persisted? ? :patch : :post), selected_label: "#{@order.user.display_name} (#{@order.user.email})", selected_id: @order.user_id, auto_submit: true %>
+</div>

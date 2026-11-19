@@ -1,0 +1,4 @@
+<% if @order.errors.any? %>
+  <div class="container-wide mt-6"><div class="rounded border border-red-200 bg-red-50 p-4 text-red-800"><%= @order.errors.full_messages.to_sentence %></div></div>
+<% end %>
+<%= render "orders/basket", admin: true %>

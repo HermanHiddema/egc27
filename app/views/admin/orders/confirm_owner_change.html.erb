@@ -1,0 +1,24 @@
+<div class="container-wide py-8 lg:py-12 max-w-3xl">
+  <h1 class="text-3xl font-bold mb-6">Change Order owner</h1>
+  <section class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+    <% if @selected_participant %>
+      <p class="mb-4">A ticket for <strong><%= @selected_participant.first_name %> <%= @selected_participant.last_name %></strong> must be in an Order owned by <strong><%= @new_owner.display_name %> (<%= @new_owner.email %>)</strong>. Change this Order’s owner and add the ticket?</p>
+    <% else %>
+      <p class="mb-4">Change the owner from <strong><%= @order.user.display_name %></strong> to <strong><%= @new_owner.display_name %> (<%= @new_owner.email %>)</strong>?</p>
+    <% end %>
+    <% if @order.products.exists? %>
+      <p class="mb-3 font-semibold text-red-800">This will empty the basket. All provisional participant tickets and hostel bookings below will be removed. Participant registrations will be kept.</p>
+      <ul class="divide-y divide-gray-200 mb-4"><% @order.products_for_display.each do |product| %><li class="py-2 flex justify-between gap-4"><span><%= admin_order_product_label(product) %></span><span><%= Settlement.format_cents(product.price_cents) %></span></li><% end %></ul>
+      <p class="mb-4 font-bold">Current total: <%= Settlement.format_cents(@order.total_cents) %></p>
+    <% end %>
+    <div class="flex flex-wrap items-center gap-4">
+      <%= form_with url: admin_order_path(@order), method: :patch do %>
+        <%= hidden_field_tag "order[user_id]", @new_owner.id %>
+        <%= hidden_field_tag :owner_change_token, @order.owner_change_token(@new_owner) %>
+        <%= hidden_field_tag :participant_id, @selected_participant.id if @selected_participant %>
+        <%= submit_tag(!@selected_participant && @order.products.exists? ? "Change owner and empty basket" : "Change owner", class: "btn-primary") %>
+      <% end %>
+      <%= link_to "Cancel", (@selected_participant ? new_participant_admin_order_path(@order) : edit_admin_order_path(@order)), class: "text-brand-blue-700 underline" %>
+    </div>
+  </section>
+</div>

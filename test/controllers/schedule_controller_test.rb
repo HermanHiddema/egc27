@@ -7,6 +7,7 @@ class ScheduleControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "h2#schedule-day-heading", text: "Choose a day"
     assert_select "select[name='date'] option[selected]", value: "2027-07-24"
+    assert_select "select[name='date'] option[value='2027-07-24']", text: "Saturday, 24/07/2027"
     assert_select "input[type='submit'][value='Show day']", count: 0
     assert_select "h3", text: "Saturday, 24 July 2027"
   end

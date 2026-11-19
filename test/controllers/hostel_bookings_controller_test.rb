@@ -87,8 +87,8 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select "form[data-controller='hostel-booking']"
     assert_select "select[name='hostel_booking[arrival_date]'] option", count: 15
-    assert_select "select[name='hostel_booking[arrival_date]'] option[value='2027-07-24']", text: "Sat, 24 Jul 2027"
-    assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-08']", text: "Sun, 08 Aug 2027"
+    assert_select "select[name='hostel_booking[arrival_date]'] option[value='2027-07-24']", text: "Sat, 24/07/2027"
+    assert_select "select[name='hostel_booking[departure_date]'] option[value='2027-08-08']", text: "Sun, 08/08/2027"
     assert_select "input[name='hostel_booking[female_dorm_beds]']"
     assert_select "input[name='hostel_booking[breakfasts]']"
     assert_select "button[aria-label='Increase 1-person room'][type='button']"

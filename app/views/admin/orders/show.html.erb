@@ -1,7 +1,13 @@
 <div class="container-wide py-12">
   <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
     <div>
-      <p class="text-sm"><%= link_to "Orders", admin_orders_path, class: "text-brand-blue-700 underline" %></p>
+      <p class="text-sm">
+        <% if @return_order %>
+          <%= link_to "Back to adding participants to Order ##{@return_order.id}", new_participant_admin_order_path(@return_order), class: "text-brand-blue-700 underline" %>
+        <% else %>
+          <%= link_to "Orders", admin_orders_path(**admin_orders_overview_params), class: "text-brand-blue-700 underline" %>
+        <% end %>
+      </p>
       <h1 class="text-4xl font-bold mt-2">Order #<%= @order.id %></h1>
     </div>
     <span class="inline-flex rounded px-3 py-1 font-semibold <%= order_payment_status_class(@order) %>"><%= order_payment_status(@order) %></span>
@@ -16,22 +22,17 @@
       <div><dt class="font-semibold text-neutral-700">Cancelled at</dt><dd class="text-neutral-900"><%= @order.cancelled_at ? l(@order.cancelled_at, format: :long) : "—" %></dd></div>
     </dl>
     <% if @order.cancellable? %>
-      <%= button_to "Cancel order", cancel_admin_order_path(@order), method: :patch, class: "btn-secondary mt-5", data: { turbo_confirm: "Cancel Order #{@order.id}? This will release its participant tickets for a new purchase." } %>
+      <%= button_to "Cancel order", cancel_admin_order_path(@order), method: :patch, params: { return_order_id: @return_order&.id }.compact, class: "btn-secondary mt-5", form: { data: { controller: "order-cancellation", action: "submit->order-cancellation#confirm", order_cancellation_message_value: admin_order_cancellation_message(@order) } } %>
+    <% end %>
+    <% if @order.draft? %>
+      <%= link_to "Review / edit draft", edit_admin_order_path(@order), class: "btn-secondary mt-5 inline-block" %>
+      <div class="mt-3"><%= render "admin/orders/delete_draft", order: @order, return_order: @return_order %></div>
+    <% elsif @order.payment_action.in?([:pay, :retry]) %>
+      <%= link_to "Add payment", new_admin_order_payment_path(@order), class: "btn-primary mt-5 inline-block" %>
     <% end %>
   </section>
 
-  <% if @cancellation_versions.any? %>
-    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
-      <h2 class="text-xl font-semibold mb-4">Cancellation audit</h2>
-      <ul class="space-y-2 text-sm">
-        <% @cancellation_versions.each do |version| %>
-          <% actor_id = Integer(version.whodunnit, exception: false) %>
-          <% actor = @version_actors[actor_id] %>
-          <li><%= l(version.created_at, format: :long) %> · <%= actor&.display_name || (version.whodunnit.present? ? "User ##{version.whodunnit}" : "Unknown user") %></li>
-        <% end %>
-      </ul>
-    </section>
-  <% end %>
+  <%= render "history" %>
 
   <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
     <h2 class="text-xl font-semibold mb-4">Products</h2>
@@ -79,3 +80,4 @@
     <% end %>
   </section>
 </div>
+<%= render "admin/orders/cancellation_dialog" %>

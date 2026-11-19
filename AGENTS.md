@@ -97,7 +97,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Group admin overview links into themed cards for site content, financial matters, site structure, people, and communication; place hostel bookings under people.
 - Preserve the originating article overview or article page for Back and Cancel links when viewing or editing news articles.
 
-- Use `Order.has_many :products` with the one-product constraint; do not add a duplicate singular product association.
+- Use `Order.has_many :products` for multiple Products per Order; do not add a duplicate singular product association.
 - Visitors do not require participant tickets, products, or orders; preserve existing payment history when participant type changes.
 - Store attendance periods on participants, including visitors; participant tickets belong to players and have a price.
 - Keep the congress ticket price current until a payment attempt starts; replacement attempts use the current price tier.
@@ -115,3 +115,17 @@ When the user expresses a new coding/UI/process preference in chat:
 - Keep the basket checkout button label centered and allow it to wrap within the button on narrow screens.
 - Keep the mobile basket count badge clear of the top edge of the menu bar.
 - After a new participant confirms their email and sets or skips a password, take them to their shopping basket when it contains a participant ticket.
+- In the Admin Add payment form, display the full Order amount without an editable field, keep the form on an opaque background, and omit the payment receipt explanation.
+- Hide Add payment for Orders with an active payment; in the Admin Orders overview, use matching compact buttons for Add payment and Cancel order.
+- In the Admin Add payment Order summary, place a divider below the products and above the total; reject future manual payment dates with a clear error.
+- Reuse shared Shopping Basket partials and participant forms for Admin Orders; place a searchable owner selector at the top right, and confirm owner changes before clearing products. New Admin-registered participants belong to the selected Order owner (superseding the earlier Admin-owned default).
+- Use autocomplete dropdowns for Admin participant selection. All participant tickets must belong to participants owned by the Order's User, including Admin-created Orders (superseding the temporary Admin-owned exception). When selecting another user's participant, offer Change owner (add the ticket and return to the basket) or Cancel (return to participant selection); do not offer Keep owner.
+- Make Admin owner selection a typable dropdown with a blank filter on opening and immediate saving on selection; title existing baskets "Shopping Basket for Order <id>". For existing unpaid tickets, advise paying or canceling the linked Orders while keeping the current basket open.
+- Explain draft conflicts as "<user name> already has a draft order. This order needs to be completed before a new order in their name can be processed." and link that Order in the same message. Offer Admin draft deletion from the basket, Order details and draft overview, including empty drafts.
+- Do not persist empty User draft Orders when viewing or prefetching the basket or participant selection; create drafts when adding Products, and do not automatically replace submitted Orders.
+- When Admins follow an unpaid-ticket Order link from a draft basket, return to that draft's participant selection after canceling the unpaid Order or deleting its draft.
+- Exclude participants already in the current Admin draft from participant autocomplete; repeated additions should explain they are already in this basket without a conflicting unpaid-Order warning.
+- For Admin Order cancellation, show the Order ID and nonzero counts of participant tickets and hostel bookings, explain that participant registrations are kept, and label the choices “OK” and “Do not cancel”.
+- Display all date selectors in dd/mm/yyyy format, including date-time forms and date dropdowns; keep calendar selection available and submit unambiguous dates.
+- In Admin Orders, label the draft section “Orders still in draft”, group filters within “Submitted Orders”, and preserve sorting and status filters when returning from Order details.
+- Use matching heading sizes for the draft and submitted sections of the Admin Orders overview, consistent with other Admin pages.
