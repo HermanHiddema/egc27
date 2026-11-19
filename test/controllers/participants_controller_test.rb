@@ -19,24 +19,24 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "select[name='country'] option[value='BE']", count: 0
   end
 
-  test "participants index hides participants whose payment was charged back" do
+  test "participants index shows paid participants whose payment was charged back" do
     participants(:two).payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
 
     get participants_path
 
     assert_response :success
     assert_match "Alice Smith", response.body
-    assert_no_match "Bob Jones", response.body
+    assert_match "Bob Jones", response.body
   end
 
-  test "participants index hides participants whose payment was refunded" do
+  test "participants index shows paid participants whose payment was refunded" do
     participants(:two).payments.update_all(status: "paid", amount_refunded_cents: 5_000)
 
     get participants_path
 
     assert_response :success
     assert_match "Alice Smith", response.body
-    assert_no_match "Bob Jones", response.body
+    assert_match "Bob Jones", response.body
   end
 
   test "mine requires authentication" do
@@ -69,7 +69,7 @@ class ParticipantsControllerTest < ActionDispatch::IntegrationTest
     participant.update!(admin_status: "needs_refund")
     sign_in users(:one)
     get mine_participants_path
-    assert_select "tr.participant-row", text: /Alice Smith.*Needs refund/m
+    assert_select "tr.participant-row", text: /Alice Smith.*Awaiting refund/m
     get participant_path(participant)
     assert_select "dt", text: "Status" do
       assert_select "+ dd", text: "Needs refund"

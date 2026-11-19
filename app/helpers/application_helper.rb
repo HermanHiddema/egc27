@@ -11,6 +11,27 @@ module ApplicationHelper
     "Shopping basket, #{product_count} #{'product'.pluralize(product_count)}"
   end
 
+  PARTICIPANT_PAYMENT_STATUSES = [
+    "Visitor", "No ticket", "Awaiting payment", "Payment open", "Payment pending",
+    "Payment failed", "Payment canceled", "Payment expired", "Order canceled", "Paid",
+    "Paid — refunded", "Paid — partially refunded", "Paid — chargeback"
+  ].freeze
+
+  def participant_payment_status(participant)
+    return ["Visitor", "border border-green-200 bg-green-50 text-green-800"] if participant.visitor?
+
+    order = participant.current_ticket&.product&.order
+    return ["No ticket", "border border-gray-200 bg-gray-100 text-gray-700"] unless order
+
+    [order_payment_status(order), order_payment_status_class(order)]
+  end
+
+  def participant_my_status_label(status)
+    { "unconfirmed" => "Unconfirmed", "user_confirmed" => "No paid ticket", "paid" => "Paid ticket",
+      "needs_refund" => "Awaiting refund", "ticket_refunded" => "Refunded ticket",
+      "participation_canceled" => "Canceled" }.fetch(status)
+  end
+
   def order_payment_status(order)
     return "Order canceled" if order.cancelled?
 

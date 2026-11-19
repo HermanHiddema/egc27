@@ -5,6 +5,7 @@ class Admin::ParticipantsController < ApplicationController
 
   before_action :require_admin!
   before_action :set_participant, only: [:edit, :update, :destroy, :add_payment]
+  before_action :set_overview_params, only: [:index, :edit, :update, :destroy]
 
   def add_payment
     return redirect_to edit_admin_participant_path(@participant), alert: "Only players can purchase a ticket." unless @participant.player?
@@ -36,11 +37,12 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def index
-    participants = Participant.includes(:payments, :user, participant_tickets: { product: { order: :payments } })
+    participants = Participant.includes(:user, participant_tickets: { product: { order: :payments } })
 
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
-    @status_filter = STATUS_FILTERS.include?(params[:status]) ? params[:status] : nil
+    @status_filters = @overview_params[:status] || []
+    @payment_status_filters = @overview_params[:payment_status] || []
     @type_filter = PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil
     @name_filter = params[:name].to_s.strip
     @sort = permitted_sort
@@ -57,7 +59,10 @@ class Admin::ParticipantsController < ApplicationController
     end
 
     @participants = sorted_participants(participants).to_a
-    @participants.select! { |participant| participant.status == @status_filter } if @status_filter.present?
+    @participants.select! { |participant| @status_filters.include?(participant.status) } if @status_filters.any?
+    if @payment_status_filters.any?
+      @participants.select! { |participant| @payment_status_filters.include?(helpers.participant_payment_status(participant).first) }
+    end
     if @sort == "status"
       @participants.sort_by! do |participant|
         index = Participant::STATUSES.index(participant.status)
@@ -79,7 +84,7 @@ class Admin::ParticipantsController < ApplicationController
 
   def update
     if @participant.update(participant_params)
-      redirect_to admin_participants_path, notice: "Participant was successfully updated."
+      redirect_to admin_participants_path(**@overview_params), notice: "Participant was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -100,7 +105,7 @@ class Admin::ParticipantsController < ApplicationController
       else
         "Participants with an open or pending payment cannot be deleted."
       end
-      redirect_to admin_participants_path, alert: alert
+      redirect_to admin_participants_path(**@overview_params), alert: alert
       return
     end
 
@@ -122,10 +127,24 @@ class Admin::ParticipantsController < ApplicationController
     else
       "Participant was successfully deleted."
     end
-    redirect_to admin_participants_path, notice: notice
+    redirect_to admin_participants_path(**@overview_params), notice: notice
   end
 
   private
+
+  def set_overview_params
+    statuses = Array(params[:status]).select { |value| value.is_a?(String) && STATUS_FILTERS.include?(value) }.uniq
+    payment_statuses = Array(params[:payment_status]).select { |value| value.is_a?(String) && ApplicationHelper::PARTICIPANT_PAYMENT_STATUSES.include?(value) }.uniq
+    @overview_params = {
+      country: params[:country].to_s.upcase.presence,
+      type: PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil,
+      name: params[:name].to_s.strip.presence,
+      status: statuses.presence,
+      payment_status: payment_statuses.presence,
+      sort: SORT_COLUMNS.include?(params[:sort]) ? params[:sort] : nil,
+      direction: %w[asc desc].include?(params[:direction]) ? params[:direction] : nil
+    }.compact
+  end
 
   def set_participant
     @participant = Participant.find_by!(uuid: params[:id])

@@ -136,6 +136,8 @@ class Participant < ApplicationRecord
   end
 
   def current_ticket
+    return current_ticket_from_preloaded_records if ticket_orders_preloaded?
+
     draft_ticket || participant_tickets.detect(&:valid_admission?) || active_ticket || retryable_ticket
   end
 
@@ -343,6 +345,41 @@ class Participant < ApplicationRecord
   end
 
   private
+
+  # Use the same ticket precedence as current_ticket without per-participant
+  # queries when the overview has preloaded tickets, orders, and payments.
+  def ticket_orders_preloaded?
+    association(:participant_tickets).loaded? && participant_tickets.all? do |ticket|
+      ticket.persisted? && ticket.association(:product).loaded? &&
+        (!ticket.product || (ticket.product.association(:order).loaded? &&
+          ticket.product.order.association(:payments).loaded?))
+    end
+  end
+
+  def current_ticket_from_preloaded_records
+    tickets = participant_tickets.to_a
+    draft = tickets.select { |ticket| ticket.product&.order&.draft? }.max_by(&:created_at)
+    return draft if draft
+
+    paid = tickets.detect(&:valid_admission?)
+    return paid if paid
+
+    eligible = tickets.select { |ticket| ticket.invalidated_at.nil? && ticket.product && !ticket.product.order.cancelled? }
+    payment = eligible.flat_map { |ticket| ticket.product.order.payments.to_a }
+      .select { |record| record.status.in?(%w[open pending authorized]) }
+      .max_by { |record| [record.created_at, record.id] }
+    if payment
+      active = eligible.select { |ticket| ticket.product.order_id == payment.order_id }.min_by(&:id)
+      return active if active && !active.product.order.payments.any?(&:paid?)
+    end
+
+    tickets.select { |ticket| ticket.product&.order&.submitted? }
+      .sort_by(&:created_at).reverse_each do |ticket|
+        order = ticket.product.order
+        return ticket if !order.cancelled? && order.payments.all?(&:unsuccessful?)
+      end
+    nil
+  end
 
   def registration_paid?
     ticket_payments.merge(Payment.completed.unreversed).exists?

@@ -131,3 +131,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - Use matching heading sizes for the draft and submitted sections of the Admin Orders overview, consistent with other Admin pages.
 
 - Derive Participant status from User confirmation and valid paid tickets; keep refund and cancellation statuses as Admin-controlled overrides independent of financial records.
+- Label participant status columns “Participant status”; in the Admin participants overview show a separate ticket payment status, shorten “Participation canceled” to “Canceled”, and stack participant actions vertically and outline the Add payment button.
+- Show the effective participant status with the shared colored badge on the Admin participant edit form.
+- In Admin participants, use collapsible checkbox filters for participant and payment status, preserve all overview filters and sorting when returning from participant or payment editing, use compact rectangular badges, and right-align the stacked actions.
+- Public participant lists include only effective statuses user_confirmed and paid; My registrations displays participant statuses as Unconfirmed, No paid ticket, Paid ticket, Awaiting refund, Refunded ticket, and Canceled.
+- In My registrations, place Participant status before Payment status.
