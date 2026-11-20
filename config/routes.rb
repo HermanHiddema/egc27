@@ -224,12 +224,7 @@ Rails.application.routes.draw do
         post :sync_egd
       end
     end
-    resources :payments, only: [:index, :show] do
-      member do
-        patch :mark_processed
-        patch :unmark_processed
-      end
-    end
+    resources :payments, only: [:index, :show]
     resources :orders, only: [:index, :show, :new, :create, :edit, :update] do
       get :owners, on: :collection
       member do

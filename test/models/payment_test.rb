@@ -13,7 +13,6 @@ require "ostruct"
 #  description               :string           not null
 #  payment_date              :date
 #  payment_method            :string
-#  processed_in_bookkeeping  :boolean          default(FALSE), not null
 #  provider                  :string           default("mollie"), not null
 #  reference                 :string
 #  status                    :string           default("open"), not null
@@ -25,12 +24,11 @@ require "ostruct"
 #
 # Indexes
 #
-#  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
-#  index_payments_on_order_id                  (order_id)
-#  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
-#  index_payments_on_provider                  (provider)
-#  index_payments_on_settlement_id             (settlement_id)
-#  index_payments_on_status                    (status)
+#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
+#  index_payments_on_order_id           (order_id)
+#  index_payments_on_provider           (provider)
+#  index_payments_on_settlement_id      (settlement_id)
+#  index_payments_on_status             (status)
 #
 # Foreign Keys
 #
@@ -153,30 +151,6 @@ class PaymentTest < ActiveSupport::TestCase
     assert_not_includes Payment.unsuccessful, payments(:paid_payment)
     assert_includes Payment.blocking, payments(:paid_payment)
     assert_not_includes Payment.blocking, expired
-  end
-
-  test "processed and unprocessed scopes filter on the bookkeeping flag" do
-    processed = payments(:manual_payment)
-    processed.update!(processed_in_bookkeeping: true)
-
-    assert_includes Payment.processed, processed
-    assert_not_includes Payment.processed, payments(:paid_payment)
-    assert_includes Payment.unprocessed, payments(:paid_payment)
-    assert_not_includes Payment.unprocessed, processed
-  end
-
-  test "payments are not processed in bookkeeping by default" do
-    payment = Payment.create!(
-      participant: participants(:one),
-      status: "open",
-      amount_cents: 19_000,
-      description: "Bank transfer pending",
-      provider: "manual",
-      payment_date: Date.current,
-      payment_method: "bank_transfer"
-    )
-
-    assert_not payment.processed_in_bookkeeping?
   end
 
   test "a terminal unsuccessful Mollie attempt reprices an open order" do
@@ -500,7 +474,6 @@ class PaymentTest < ActiveSupport::TestCase
 
   test "sync_from_mollie! records a charged-back Mollie payment as charged back" do
     payment = payments(:paid_payment)
-    payment.update!(processed_in_bookkeeping: true)
 
     payment.sync_from_mollie!(
       OpenStruct.new(
@@ -513,8 +486,6 @@ class PaymentTest < ActiveSupport::TestCase
     payment.reload
     assert_equal "paid", payment.status
     assert_equal 5_000, payment.amount_charged_back_cents
-    # The bookkeeping must be corrected, so the payment is flagged again.
-    assert_not payment.processed_in_bookkeeping?
   end
 
   test "sync_from_mollie! reads the charged-back amount from a Mollie payment" do
@@ -550,7 +521,6 @@ class PaymentTest < ActiveSupport::TestCase
 
   test "sync_from_mollie! keeps a payment paid when nothing was charged back" do
     payment = payments(:paid_payment)
-    payment.update!(processed_in_bookkeeping: true)
 
     payment.sync_from_mollie!(
       OpenStruct.new(status: "paid", amount_charged_back: OpenStruct.new(value: BigDecimal("0.00"), currency: "EUR"))
@@ -558,7 +528,6 @@ class PaymentTest < ActiveSupport::TestCase
 
     payment.reload
     assert_equal "paid", payment.status
-    assert payment.processed_in_bookkeeping?
   end
 
   test "refresh_from_mollie! does nothing without a Mollie payment id" do

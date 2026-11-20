@@ -10,7 +10,6 @@
 #  description               :string           not null
 #  payment_date              :date
 #  payment_method            :string
-#  processed_in_bookkeeping  :boolean          default(FALSE), not null
 #  provider                  :string           default("mollie"), not null
 #  reference                 :string
 #  status                    :string           default("open"), not null
@@ -22,12 +21,11 @@
 #
 # Indexes
 #
-#  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
-#  index_payments_on_order_id                  (order_id)
-#  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
-#  index_payments_on_provider                  (provider)
-#  index_payments_on_settlement_id             (settlement_id)
-#  index_payments_on_status                    (status)
+#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
+#  index_payments_on_order_id           (order_id)
+#  index_payments_on_provider           (provider)
+#  index_payments_on_settlement_id      (settlement_id)
+#  index_payments_on_status             (status)
 #
 # Foreign Keys
 #

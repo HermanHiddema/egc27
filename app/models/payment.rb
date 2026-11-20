@@ -10,7 +10,6 @@
 #  description               :string           not null
 #  payment_date              :date
 #  payment_method            :string
-#  processed_in_bookkeeping  :boolean          default(FALSE), not null
 #  provider                  :string           default("mollie"), not null
 #  reference                 :string
 #  status                    :string           default("open"), not null
@@ -22,12 +21,11 @@
 #
 # Indexes
 #
-#  index_payments_on_mollie_payment_id         (mollie_payment_id) UNIQUE
-#  index_payments_on_order_id                  (order_id)
-#  index_payments_on_processed_in_bookkeeping  (processed_in_bookkeeping)
-#  index_payments_on_provider                  (provider)
-#  index_payments_on_settlement_id             (settlement_id)
-#  index_payments_on_status                    (status)
+#  index_payments_on_mollie_payment_id  (mollie_payment_id) UNIQUE
+#  index_payments_on_order_id           (order_id)
+#  index_payments_on_provider           (provider)
+#  index_payments_on_settlement_id      (settlement_id)
+#  index_payments_on_status             (status)
 #
 # Foreign Keys
 #
@@ -84,13 +82,10 @@ class Payment < ApplicationRecord
   scope :charged_back, -> { where("amount_charged_back_cents IS NULL OR amount_charged_back_cents > 0") }
   scope :reversed, -> { refunded.or(charged_back) }
   scope :unreversed, -> { where(amount_refunded_cents: 0, amount_charged_back_cents: 0) }
-  scope :for_bookkeeping, -> { completed }
   scope :pending_or_open, -> { where(status: %w[open pending authorized]) }
   scope :manual, -> { where(provider: "manual") }
   scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
   scope :blocking, -> { where.not(status: UNSUCCESSFUL_STATUSES) }
-  scope :processed, -> { where(processed_in_bookkeeping: true) }
-  scope :unprocessed, -> { where(processed_in_bookkeeping: false) }
 
   # Mollie payments get their payment date once they become paid.
   before_save :set_mollie_payment_date, if: :needs_mollie_payment_date?
@@ -258,10 +253,6 @@ class Payment < ApplicationRecord
 
   # Mollie reports the method the payer actually used (ideal, creditcard, …)
   # once it is known, which is recorded alongside the status.
-  #
-  # A payment that becomes charged back is flagged as not processed in the
-  # bookkeeping again, so admins notice it in the payments overview and can
-  # correct the bookkeeping.
   def sync_from_mollie!(mollie_payment)
     order.with_lock do
       reload
@@ -269,7 +260,6 @@ class Payment < ApplicationRecord
       update_mollie_amount(:amount_refunded_cents, mollie_payment.try(:amount_refunded))
       update_mollie_amount(:amount_charged_back_cents, mollie_payment.try(:amount_charged_back))
       self.payment_method = mollie_reported_payment_method(mollie_payment) || payment_method
-      self.processed_in_bookkeeping = false if will_save_change_to_amount_charged_back_cents? && charged_back?
       save!
     end
   end

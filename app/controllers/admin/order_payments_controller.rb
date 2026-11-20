@@ -11,7 +11,7 @@ class Admin::OrderPaymentsController < ApplicationController
       amount_cents: @order.total_cents,
       description: "EGC 2027 Order ##{@order.id} (#{@order.products.count} items)",
       provider: "manual", payment_method: "bank_transfer", payment_date: Date.current,
-      status: "paid", processed_in_bookkeeping: true
+      status: "paid"
     )
     render "admin/payments/order_new"
   end
@@ -59,6 +59,6 @@ class Admin::OrderPaymentsController < ApplicationController
   end
 
   def payment_params
-    normalize_european_dates(params.require(:payment).permit(:description, :payment_method, :payment_date, :reference, :processed_in_bookkeeping), dates: [:payment_date])
+    normalize_european_dates(params.require(:payment).permit(:description, :payment_method, :payment_date, :reference), dates: [:payment_date])
   end
 end
