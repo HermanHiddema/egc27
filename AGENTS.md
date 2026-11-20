@@ -136,3 +136,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - In Admin participants, use collapsible checkbox filters for participant and payment status, preserve all overview filters and sorting when returning from participant or payment editing, use compact rectangular badges, and right-align the stacked actions.
 - Public participant lists include only effective statuses user_confirmed and paid; My registrations displays participant statuses as Unconfirmed, No paid ticket, Paid ticket, Awaiting refund, Refunded ticket, and Canceled.
 - In My registrations, place Participant status before Payment status.
+
+- When displaying a player's payment status without a current ticket, show the latest canceled ticket Order if one exists; keep this fallback separate from admission and purchase eligibility.

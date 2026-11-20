@@ -285,7 +285,8 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to admin_participants_path
       assert_equal status, participant.reload.status
       get admin_participants_path(status: status)
-      assert_select "tbody tr", text: /Bob Jones.*#{Participant.status_label(status)}/m
+      expected_label = status == "participation_canceled" ? "Canceled" : Participant.status_label(status)
+      assert_select "tbody tr", text: /Bob Jones.*#{Regexp.escape(expected_label)}/m
       get edit_admin_participant_path(participant)
       assert_select "select[name='participant[admin_status]'] option[selected]", text: Participant.status_label(status)
       assert_match "Admin override", response.body

@@ -157,6 +157,19 @@ class Participant < ApplicationRecord
     current_ticket&.product&.order
   end
 
+  # Display history only; canceled tickets never grant admission.
+  def latest_canceled_ticket_order
+    if ticket_orders_preloaded?
+      return participant_tickets.filter_map { |ticket| ticket.product&.order }
+        .select(&:cancelled?).max_by { |order| [order.created_at, order.id] }
+    end
+
+    Order.joins(:products)
+      .where(products: { productable_type: ParticipantTicket.polymorphic_name, productable_id: participant_tickets.select(:id) })
+      .where.not(cancelled_at: nil)
+      .order(created_at: :desc, id: :desc).first
+  end
+
   def can_purchase_ticket?
     return false unless player?
     return false if valid_admission?

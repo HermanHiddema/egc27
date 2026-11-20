@@ -20,7 +20,7 @@ module ApplicationHelper
   def participant_payment_status(participant)
     return ["Visitor", "border border-green-200 bg-green-50 text-green-800"] if participant.visitor?
 
-    order = participant.current_ticket&.product&.order
+    order = participant.current_ticket&.product&.order || participant.latest_canceled_ticket_order
     return ["No ticket", "border border-gray-200 bg-gray-100 text-gray-700"] unless order
 
     [order_payment_status(order), order_payment_status_class(order)]
