@@ -10,15 +10,14 @@ class ParticipantsController < ApplicationController
   before_action :refuse_registration_for_existing_account, only: [:create]
 
   def index
-    participants = Participant.confirmed.not_refunded.includes(:participant_tickets)
-    @countries = participants.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
+    participants = Participant.includes(:user, participant_tickets: { product: { order: :payments } })
     @country_filter = params[:country].to_s.upcase.presence
     @sort = permitted_sort
     @direction = permitted_direction
 
-    participants = participants.where(country: @country_filter) if @country_filter.present?
-
-    @participants = sorted_participants(participants)
+    visible_participants = sorted_participants(participants).select { |participant| participant.status.in?(%w[user_confirmed paid]) }
+    @countries = visible_participants.filter_map { |participant| participant.country.presence }.uniq.sort
+    @participants = @country_filter.present? ? visible_participants.select { |participant| participant.country == @country_filter } : visible_participants
   end
 
   def new

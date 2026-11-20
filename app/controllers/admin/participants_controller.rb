@@ -1,10 +1,11 @@
 class Admin::ParticipantsController < ApplicationController
   SORT_COLUMNS = %w[number name email country rank status].freeze
-  STATUS_FILTERS = %w[pending confirmed paid charged_back refunded].freeze
+  STATUS_FILTERS = Participant::STATUSES
   PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
   before_action :set_participant, only: [:edit, :update, :destroy, :add_payment]
+  before_action :set_overview_params, only: [:index, :edit, :update, :destroy]
 
   def add_payment
     return redirect_to edit_admin_participant_path(@participant), alert: "Only players can purchase a ticket." unless @participant.player?
@@ -36,18 +37,18 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def index
-    participants = Participant.includes(:payments, :user, participant_tickets: { product: { order: :payments } })
+    participants = Participant.includes(:user, participant_tickets: { product: { order: :payments } })
 
     @countries = Participant.where.not(country: [nil, ""]).distinct.order(:country).pluck(:country)
     @country_filter = params[:country].to_s.upcase.presence
-    @status_filter = STATUS_FILTERS.include?(params[:status]) ? params[:status] : nil
+    @status_filters = @overview_params[:status] || []
+    @payment_status_filters = @overview_params[:payment_status] || []
     @type_filter = PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil
     @name_filter = params[:name].to_s.strip
     @sort = permitted_sort
     @direction = permitted_direction
 
     participants = participants.where(country: @country_filter) if @country_filter.present?
-    participants = filtered_by_status(participants, @status_filter) if @status_filter.present?
     participants = participants.where(participant_type: @type_filter) if @type_filter.present?
     if @name_filter.present?
       name = "%#{ActiveRecord::Base.sanitize_sql_like(@name_filter)}%"
@@ -58,6 +59,16 @@ class Admin::ParticipantsController < ApplicationController
     end
 
     @participants = sorted_participants(participants).to_a
+    @participants.select! { |participant| @status_filters.include?(participant.status) } if @status_filters.any?
+    if @payment_status_filters.any?
+      @participants.select! { |participant| @payment_status_filters.include?(helpers.participant_payment_status(participant).first) }
+    end
+    if @sort == "status"
+      @participants.sort_by! do |participant|
+        index = Participant::STATUSES.index(participant.status)
+        [@direction == :desc ? -index : index, participant.last_name, participant.first_name, participant.id]
+      end
+    end
     @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
   end
 
@@ -73,7 +84,7 @@ class Admin::ParticipantsController < ApplicationController
 
   def update
     if @participant.update(participant_params)
-      redirect_to admin_participants_path, notice: "Participant was successfully updated."
+      redirect_to admin_participants_path(**@overview_params), notice: "Participant was successfully updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -94,7 +105,7 @@ class Admin::ParticipantsController < ApplicationController
       else
         "Participants with an open or pending payment cannot be deleted."
       end
-      redirect_to admin_participants_path, alert: alert
+      redirect_to admin_participants_path(**@overview_params), alert: alert
       return
     end
 
@@ -116,10 +127,24 @@ class Admin::ParticipantsController < ApplicationController
     else
       "Participant was successfully deleted."
     end
-    redirect_to admin_participants_path, notice: notice
+    redirect_to admin_participants_path(**@overview_params), notice: notice
   end
 
   private
+
+  def set_overview_params
+    statuses = Array(params[:status]).select { |value| value.is_a?(String) && STATUS_FILTERS.include?(value) }.uniq
+    payment_statuses = Array(params[:payment_status]).select { |value| value.is_a?(String) && ApplicationHelper::PARTICIPANT_PAYMENT_STATUSES.include?(value) }.uniq
+    @overview_params = {
+      country: params[:country].to_s.upcase.presence,
+      type: PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil,
+      name: params[:name].to_s.strip.presence,
+      status: statuses.presence,
+      payment_status: payment_statuses.presence,
+      sort: SORT_COLUMNS.include?(params[:sort]) ? params[:sort] : nil,
+      direction: %w[asc desc].include?(params[:direction]) ? params[:direction] : nil
+    }.compact
+  end
 
   def set_participant
     @participant = Participant.find_by!(uuid: params[:id])
@@ -134,32 +159,6 @@ class Admin::ParticipantsController < ApplicationController
 
     # Default ordering (no explicit sort) is ascending; column clicks default to ascending too.
     :asc
-  end
-
-  # Restricts the list to participants whose derived registration_status matches
-  # the requested filter, mirroring the Participant#registration_status logic:
-  # Paid takes precedence over Chargeback, which takes precedence over Refund,
-  # which takes precedence over Confirmed, which takes precedence over Pending.
-  def filtered_by_status(participants, status)
-    paid_ids = participant_ids_for(Payment.completed.unreversed)
-    charged_back_ids = participant_ids_for(Payment.charged_back).where.not(participant_id: paid_ids)
-    refunded_ids = participant_ids_for(Payment.refunded).where.not(participant_id: paid_ids)
-    reversed_ids = participant_ids_for(Payment.reversed).where.not(participant_id: paid_ids)
-
-    case status
-    when "paid"
-      participants.where(id: paid_ids)
-    when "charged_back"
-      participants.where(id: charged_back_ids)
-    when "refunded"
-      participants.where(id: refunded_ids).where.not(id: charged_back_ids)
-    when "confirmed"
-      participants.confirmed.where.not(id: paid_ids).where.not(id: reversed_ids)
-    when "pending"
-      participants.joins(:user).where(users: { confirmed_at: nil }).where.not(id: paid_ids).where.not(id: reversed_ids)
-    else
-      participants
-    end
   end
 
   def sorted_participants(participants)
@@ -181,36 +180,11 @@ class Admin::ParticipantsController < ApplicationController
         [ordered(table[:rank]), ordered(table[:rating])]
       when "rating"
         [ordered(table[:rating])]
-      when "status"
-        return status_sorted_participants(participants)
       else
         [ordered(table[:last_name]), ordered(table[:first_name])]
       end
 
     participants.order(*clauses, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
-  end
-
-  # Registration status is derived from DB columns, expressed as a SQL CASE so
-  # sorting stays at the database level. Pending < Confirmed < Paid < Refund <
-  # Chargeback.
-  def status_sorted_participants(participants)
-    table = Participant.arel_table
-    paid_subquery = participant_ids_for(Payment.completed.unreversed).to_sql
-    charged_back_subquery = participant_ids_for(Payment.charged_back).to_sql
-    refunded_subquery = participant_ids_for(Payment.refunded).to_sql
-    dir = @direction == :desc ? "DESC" : "ASC"
-    status_order = Arel.sql(
-      "CASE WHEN participants.id IN (#{paid_subquery}) THEN 2 " \
-      "WHEN participants.id IN (#{charged_back_subquery}) THEN 4 " \
-      "WHEN participants.id IN (#{refunded_subquery}) THEN 3 " \
-      "WHEN participants.user_id IN (SELECT id FROM users WHERE confirmed_at IS NOT NULL) THEN 1 " \
-      "ELSE 0 END #{dir}"
-    )
-    participants.order(status_order, table[:last_name].asc, table[:first_name].asc, table[:id].asc)
-  end
-
-  def participant_ids_for(payments)
-    ParticipantTicket.eligible_for_registration_status.joins(product: { order: :payments }).merge(payments).select(:participant_id)
   end
 
   def ordered(column)
@@ -223,7 +197,7 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def participant_params
-    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option)
+    params.require(:participant).permit(:first_name, :last_name, :participant_type, :age_group, :country, :club, :rank, :egd_pin, :gender, :phone, :image_use_consent, :attendance_option, :admin_status)
   end
 
   def latest_payments_by_participant_id(participants)

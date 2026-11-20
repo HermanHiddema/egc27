@@ -297,7 +297,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment.reload
     assert_equal "paid", payment.status
     assert payment.participant.reload.paid?
-    assert_equal "Refund", payment.participant.registration_status
+    assert_equal "paid", payment.participant.status
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end
@@ -320,7 +320,7 @@ class PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment.reload
     assert_equal "paid", payment.status
     assert payment.participant.reload.paid?
-    assert_equal "Chargeback", payment.participant.registration_status
+    assert_equal "paid", payment.participant.status
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
   end

@@ -8,6 +8,7 @@ require "ostruct"
 #  id                            :bigint           not null, primary key
 #  accepted_privacy_policy       :boolean          default(FALSE), not null
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
+#  admin_status                  :string
 #  age_group                     :string           not null
 #  club                          :string           not null
 #  country                       :string           not null
@@ -561,52 +562,64 @@ class ParticipantTest < ActiveSupport::TestCase
     assert_equal participant.uuid, participant.to_param
   end
 
-  test "registration_status is Pending when not confirmed" do
-    assert_equal "Pending", participants(:unconfirmed).registration_status
+  test "automatic status follows confirmation and valid paid admission" do
+    participant = participants(:unconfirmed)
+    assert_equal "unconfirmed", participant.status
+    participant.user.update_column(:confirmed_at, Time.current)
+    assert_equal "user_confirmed", participant.reload.status
+    participant.user.update_column(:confirmed_at, nil)
+    payment = payments(:paid_payment)
+    payment.update_column(:order_id, participant.order.id)
+    assert_equal "paid", participant.reload.status
+    participant.participant_tickets.sole.update_column(:invalidated_at, Time.current)
+    assert_equal "unconfirmed", participant.reload.status
+    assert_equal "user_confirmed", participants(:visitor_one).status
   end
 
-  test "registration_status is Confirmed when confirmed without a completed payment" do
-    assert_equal "Confirmed", participants(:one).registration_status
+  test "unpaid and unsuccessful payments do not confer paid status" do
+    participant = participants(:one)
+    payment = payments(:open_payment)
+    %w[open pending failed canceled expired].each do |state|
+      payment.update_column(:status, state)
+      assert_equal "user_confirmed", participant.reload.status
+    end
+    payment.update_column(:status, "paid")
+    assert_equal "paid", participant.reload.status
   end
 
-  test "registration_status is Paid when a payment has completed" do
-    assert participants(:two).paid?
-    assert_equal "Paid", participants(:two).registration_status
-  end
-
-  test "registration_status is Refund when the payment was refunded" do
+  test "overrides remain independent of financial changes and can be cleared" do
     participant = participants(:two)
-    participant.payments.update_all(status: "paid", amount_refunded_cents: 5_000)
-
-    participant.reload
-    assert participant.refunded?
-    assert participant.paid?
-    assert_equal "Refund", participant.registration_status
+    payment = payments(:paid_payment)
+    ticket = participant.participant_tickets.sole
+    before = [ticket.attributes, ticket.order.attributes, payment.attributes, participant.can_purchase_ticket?]
+    Participant::ADMIN_STATUSES.each do |status|
+      participant.update!(admin_status: status)
+      assert_equal status, participant.reload.status
+    end
+    assert_equal before, [ticket.reload.attributes, ticket.order.reload.attributes, payment.reload.attributes, participant.can_purchase_ticket?]
+    payment.update_columns(amount_refunded_cents: 5000, amount_charged_back_cents: 5000)
+    participant.user.update_column(:confirmed_at, nil)
+    assert_equal "participation_canceled", participant.reload.status
+    participant.update!(admin_status: nil)
+    assert_equal "paid", participant.reload.status
+    assert_not participant.update(admin_status: "paid")
   end
 
-  test "registration_status is Chargeback when the payment was charged back" do
-    participant = participants(:two)
-    participant.payments.update_all(status: "paid", amount_charged_back_cents: 5_000)
-
-    participant.reload
-    assert participant.charged_back?
-    assert participant.paid?
-    assert_equal "Chargeback", participant.registration_status
+  test "changing an override on a player without a ticket does not create one" do
+    participant = participants(:visitor_one)
+    participant.update_column(:participant_type, "player")
+    assert_empty participant.participant_tickets
+    assert_no_difference ["ParticipantTicket.count", "Order.count", "Product.count", "Payment.count"] do
+      participant.update!(admin_status: "ticket_refunded")
+      participant.update!(admin_status: nil)
+    end
   end
 
-  test "preloaded registration statuses use eligible ticket payments without queries" do
-    payments(:open_payment).update_columns(status: "paid", amount_refunded_cents: 1_000)
-    participants(:two).participant_tickets.sole.update_columns(invalidated_at: Time.current)
-    orders(:four).update_columns(cancelled_at: Time.current)
-
-    expected = Participant.includes(:user).index_by(&:id).transform_values(&:registration_status)
+  test "preloaded status matches normal status without additional queries" do
+    expected = Participant.includes(:user).index_by(&:id).transform_values(&:status)
     loaded = Participant.includes(:user, participant_tickets: { product: { order: :payments } }).to_a
-
-    assert_equal "Refund", expected.fetch(participants(:one).id)
-    assert_equal "Confirmed", expected.fetch(participants(:two).id)
-    assert_equal "Confirmed", expected.fetch(participants(:four).id)
     assert_no_queries do
-      loaded.each { |participant| assert_equal expected.fetch(participant.id), participant.registration_status }
+      loaded.each { |participant| assert_equal expected.fetch(participant.id), participant.status }
     end
   end
 

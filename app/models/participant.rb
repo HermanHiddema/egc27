@@ -5,6 +5,7 @@
 #  id                            :bigint           not null, primary key
 #  accepted_privacy_policy       :boolean          default(FALSE), not null
 #  accepted_terms_and_conditions :boolean          default(FALSE), not null
+#  admin_status                  :string
 #  age_group                     :string           not null
 #  club                          :string           not null
 #  country                       :string           not null
@@ -43,6 +44,9 @@
 #  fk_rails_...  (user_id => users.id)
 #
 class Participant < ApplicationRecord
+  ADMIN_STATUSES = %w[needs_refund ticket_refunded participation_canceled].freeze
+  STATUSES = (%w[unconfirmed user_confirmed paid] + ADMIN_STATUSES).freeze
+
   PARTICIPANT_TYPES = %w[player visitor].freeze
   GENDERS = %w[male female non_binary prefer_not_to_say].freeze
   AGE_GROUPS = %w[0-11 12-17 18-49 50+].freeze
@@ -86,6 +90,9 @@ class Participant < ApplicationRecord
     where.not(id: reversed_ids).or(where(id: paid_ids))
   }
 
+  validates :admin_status, inclusion: { in: ADMIN_STATUSES }, allow_nil: true
+  normalizes :admin_status, with: ->(value) { value.presence }
+
   validates :first_name, :last_name, :email, :country, presence: true
   validates :user, presence: true, if: -> { email.present? }
   validates :age_group, inclusion: { in: AGE_GROUPS, message: "must be selected" }
@@ -113,7 +120,7 @@ class Participant < ApplicationRecord
 
   before_validation :normalize_text_fields
   before_validation :normalize_participant_type
-  before_validation :ensure_participant_ticket
+  before_validation :ensure_participant_ticket, unless: :only_admin_status_changed?
   before_validation :normalize_gender
   before_validation :normalize_rank
   before_validation :normalize_rating
@@ -129,6 +136,8 @@ class Participant < ApplicationRecord
   end
 
   def current_ticket
+    return current_ticket_from_preloaded_records if ticket_orders_preloaded?
+
     draft_ticket || participant_tickets.detect(&:valid_admission?) || active_ticket || retryable_ticket
   end
 
@@ -146,6 +155,19 @@ class Participant < ApplicationRecord
 
   def current_order
     current_ticket&.product&.order
+  end
+
+  # Display history only; canceled tickets never grant admission.
+  def latest_canceled_ticket_order
+    if ticket_orders_preloaded?
+      return participant_tickets.filter_map { |ticket| ticket.product&.order }
+        .select(&:cancelled?).max_by { |order| [order.created_at, order.id] }
+    end
+
+    Order.joins(:products)
+      .where(products: { productable_type: ParticipantTicket.polymorphic_name, productable_id: participant_tickets.select(:id) })
+      .where.not(cancelled_at: nil)
+      .order(created_at: :desc, id: :desc).first
   end
 
   def can_purchase_ticket?
@@ -295,15 +317,25 @@ class Participant < ApplicationRecord
     user.participants.where.not(id: id).none?
   end
 
-  # High-level registration status used in the admin participant list.
-  def registration_status
-    eligible_payments = preloaded_registration_payments || ticket_payments.to_a
-    return "Paid" if eligible_payments.any? { |payment| payment.paid? && !payment.refunded? && !payment.charged_back? }
-    return "Chargeback" if eligible_payments.any?(&:charged_back?)
-    return "Refund" if eligible_payments.any?(&:refunded?)
-    return "Confirmed" if confirmed?
+  def automatic_status
+    return "paid" if valid_admission?
+    return "user_confirmed" if confirmed?
 
-    "Pending"
+    "unconfirmed"
+  end
+
+  def status
+    admin_status.presence || automatic_status
+  end
+
+  def status_label
+    self.class.status_label(status)
+  end
+
+  def self.status_label(status)
+    { "unconfirmed" => "Unconfirmed", "user_confirmed" => "User confirmed", "paid" => "Paid",
+      "needs_refund" => "Needs refund", "ticket_refunded" => "Ticket refunded",
+      "participation_canceled" => "Participation canceled" }.fetch(status) { status.to_s.humanize }
   end
 
   def visitor?
@@ -327,27 +359,39 @@ class Participant < ApplicationRecord
 
   private
 
-  # Use the nested preload only when every association needed to filter the
-  # ticket and Order is loaded; the generic payments association includes history.
-  def preloaded_registration_payments
-    return unless association(:participant_tickets).loaded?
-
-    eligible_payments = []
-    participant_tickets.each do |ticket|
-      next if ticket.invalidated_at.present?
-      return unless ticket.association(:product).loaded?
-
-      product = ticket.product
-      next unless product
-      return unless product.association(:order).loaded?
-
-      order = product.order
-      next if order.cancelled?
-      return unless order.association(:payments).loaded?
-
-      eligible_payments.concat(order.payments)
+  # Use the same ticket precedence as current_ticket without per-participant
+  # queries when the overview has preloaded tickets, orders, and payments.
+  def ticket_orders_preloaded?
+    association(:participant_tickets).loaded? && participant_tickets.all? do |ticket|
+      ticket.persisted? && ticket.association(:product).loaded? &&
+        (!ticket.product || (ticket.product.association(:order).loaded? &&
+          ticket.product.order.association(:payments).loaded?))
     end
-    eligible_payments
+  end
+
+  def current_ticket_from_preloaded_records
+    tickets = participant_tickets.to_a
+    draft = tickets.select { |ticket| ticket.product&.order&.draft? }.max_by(&:created_at)
+    return draft if draft
+
+    paid = tickets.detect(&:valid_admission?)
+    return paid if paid
+
+    eligible = tickets.select { |ticket| ticket.invalidated_at.nil? && ticket.product && !ticket.product.order.cancelled? }
+    payment = eligible.flat_map { |ticket| ticket.product.order.payments.to_a }
+      .select { |record| record.status.in?(%w[open pending authorized]) }
+      .max_by { |record| [record.created_at, record.id] }
+    if payment
+      active = eligible.select { |ticket| ticket.product.order_id == payment.order_id }.min_by(&:id)
+      return active if active && !active.product.order.payments.any?(&:paid?)
+    end
+
+    tickets.select { |ticket| ticket.product&.order&.submitted? }
+      .sort_by(&:created_at).reverse_each do |ticket|
+        order = ticket.product.order
+        return ticket if !order.cancelled? && order.payments.all?(&:unsuccessful?)
+      end
+    nil
   end
 
   def registration_paid?
@@ -372,6 +416,10 @@ class Participant < ApplicationRecord
   def pricing_inputs_changed?
     saved_change_to_participant_type? || saved_change_to_age_group? || saved_change_to_first_week? ||
       saved_change_to_weekend? || saved_change_to_second_week?
+  end
+
+  def only_admin_status_changed?
+    persisted? && (changes_to_save.keys - ["admin_status"]).empty?
   end
 
   def ensure_participant_ticket

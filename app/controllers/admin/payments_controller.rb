@@ -7,6 +7,7 @@ class Admin::PaymentsController < ApplicationController
   before_action :set_participant, only: [:edit, :update]
   before_action :set_payment, only: [:edit, :update]
   before_action :require_manual_payment, only: [:edit, :update]
+  before_action :set_participant_overview_params, only: [:edit, :update]
 
   # List every payment attempt; bookkeeping filters remain limited to completed
   # payments so failed or pending attempts cannot be marked as processed.
@@ -71,7 +72,7 @@ class Admin::PaymentsController < ApplicationController
     @payment.status = "paid"
 
     if @payment.save
-      redirect_to admin_participants_path, notice: "Payment was successfully updated."
+      redirect_to admin_participants_path(**@participant_overview_params), notice: "Payment was successfully updated."
     else
       add_european_date_errors(@payment)
       render :edit, status: :unprocessable_entity
@@ -103,6 +104,10 @@ class Admin::PaymentsController < ApplicationController
 
   def permitted_direction
     params[:direction] == "asc" ? :asc : :desc
+  end
+
+  def set_participant_overview_params
+    @participant_overview_params = params.permit(:country, :type, :name, :sort, :direction, status: [], payment_status: []).to_h
   end
 
   def set_participant

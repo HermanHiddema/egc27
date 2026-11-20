@@ -139,7 +139,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
   test "recorded payment makes the participant show as paid" do
     sign_in users(:admin)
     record_order_payment(orders(:three))
-    assert_equal "Paid", participants(:three).reload.registration_status
+    assert_equal "paid", participants(:three).reload.status
   end
 
   test "admin cannot create a ticket Order for a visitor" do
