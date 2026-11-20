@@ -419,7 +419,7 @@ class Participant < ApplicationRecord
   end
 
   def only_admin_status_changed?
-    persisted? && changes_to_save.keys == ["admin_status"]
+    persisted? && (changes_to_save.keys - ["admin_status"]).empty?
   end
 
   def ensure_participant_ticket
