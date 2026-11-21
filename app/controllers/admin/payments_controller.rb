@@ -1,6 +1,5 @@
 class Admin::PaymentsController < ApplicationController
   include EuropeanDateParameters
-  PROCESSED_FILTERS = %w[processed unprocessed].freeze
   SORT_COLUMNS = %w[id date order_id amount payer].freeze
 
   before_action :require_admin!
@@ -9,21 +8,13 @@ class Admin::PaymentsController < ApplicationController
   before_action :require_manual_payment, only: [:edit, :update]
   before_action :set_participant_overview_params, only: [:edit, :update]
 
-  # List every payment attempt; bookkeeping filters remain limited to completed
-  # payments so failed or pending attempts cannot be marked as processed.
   def index
-    @processed_filter = permitted_processed_filter
     @payment_methods = Payment.where.not(payment_method: [nil, ""]).distinct.order(:payment_method).pluck(:payment_method)
     @method_filter = permitted_method_filter
     @sort = permitted_sort
     @direction = permitted_direction
 
     payments = Payment.includes(:settlement, order: :user, products: :productable)
-    if @processed_filter == "processed"
-      payments = payments.for_bookkeeping.processed
-    elsif @processed_filter == "unprocessed"
-      payments = payments.for_bookkeeping.unprocessed
-    end
     payments = payments.where(payment_method: [nil, ""]) if @method_filter == "blank"
     payments = payments.where(payment_method: @method_filter) if @method_filter.present? && @method_filter != "blank"
 
@@ -43,7 +34,6 @@ class Admin::PaymentsController < ApplicationController
     tie_breakers << Payment.arel_table[:id].desc
     @payments = payments.joins(order: :user)
       .order(ordering.nulls_last, *tie_breakers)
-    @unprocessed_count = Payment.for_bookkeeping.unprocessed.count
   end
 
   def show
@@ -52,16 +42,6 @@ class Admin::PaymentsController < ApplicationController
     @products = @order.products_for_display
     @refunds = @payment.refunds.includes(:settlement).order(created_at: :desc, id: :desc)
     @chargebacks = @payment.chargebacks.includes(:settlement).order(created_at: :desc, id: :desc)
-  end
-
-  def mark_processed
-    update_processed_in_bookkeeping(true, "Payment was marked as processed in the bookkeeping.")
-  end
-
-  # Marking a payment is a single click, so it must be reversible when an admin
-  # marks the wrong payment.
-  def unmark_processed
-    update_processed_in_bookkeeping(false, "Payment was marked as not processed in the bookkeeping.")
   end
 
   def edit
@@ -80,17 +60,6 @@ class Admin::PaymentsController < ApplicationController
   end
 
   private
-
-  def update_processed_in_bookkeeping(processed, notice)
-    payment = Payment.for_bookkeeping.find(params[:id])
-    payment.update!(processed_in_bookkeeping: processed)
-
-    redirect_to admin_payments_path(processed: permitted_processed_filter), notice: notice
-  end
-
-  def permitted_processed_filter
-    PROCESSED_FILTERS.include?(params[:processed]) ? params[:processed] : nil
-  end
 
   def permitted_method_filter
     return "blank" if params[:method] == "blank"
@@ -128,7 +97,7 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def payment_params
-    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :payment_date, :reference, :processed_in_bookkeeping)
+    permitted = params.require(:payment).permit(:amount_eur, :description, :payment_method, :payment_date, :reference)
     amount_eur_input = permitted.delete(:amount_eur).to_s
     @amount_eur_input = amount_eur_input
     amount_eur_str = amount_eur_input.tr(",", ".")

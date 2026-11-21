@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_19_120000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
   enable_extension "pgcrypto"
@@ -285,7 +285,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_120000) do
     t.bigint "order_id", null: false
     t.date "payment_date"
     t.string "payment_method"
-    t.boolean "processed_in_bookkeeping", default: false, null: false
     t.string "provider", default: "mollie", null: false
     t.string "reference"
     t.bigint "settlement_id"
@@ -293,7 +292,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_120000) do
     t.datetime "updated_at", null: false
     t.index ["mollie_payment_id"], name: "index_payments_on_mollie_payment_id", unique: true
     t.index ["order_id"], name: "index_payments_on_order_id"
-    t.index ["processed_in_bookkeeping"], name: "index_payments_on_processed_in_bookkeeping"
     t.index ["provider"], name: "index_payments_on_provider"
     t.index ["settlement_id"], name: "index_payments_on_settlement_id"
     t.index ["status"], name: "index_payments_on_status"

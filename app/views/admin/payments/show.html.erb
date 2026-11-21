@@ -24,7 +24,6 @@
         <div><dt class="font-semibold text-neutral-700">Refunded amount</dt><dd class="text-neutral-900"><%= @payment.amount_refunded_cents.nil? ? "Unknown" : Settlement.format_cents(@payment.amount_refunded_cents) %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Chargeback amount</dt><dd class="text-neutral-900"><%= @payment.amount_charged_back_cents.nil? ? "Unknown" : Settlement.format_cents(@payment.amount_charged_back_cents) %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Confirmation email</dt><dd class="text-neutral-900"><%= @payment.confirmation_sent? ? "Sent" : "Not sent" %></dd></div>
-        <div><dt class="font-semibold text-neutral-700">Bookkeeping</dt><dd class="text-neutral-900"><%= @payment.processed_in_bookkeeping? ? "Processed" : "Not processed" %></dd></div>
         <div>
           <dt class="font-semibold text-neutral-700">Settlement</dt>
           <dd class="text-neutral-900">

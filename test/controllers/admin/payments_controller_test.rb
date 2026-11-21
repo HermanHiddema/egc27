@@ -364,7 +364,7 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "a[href='#{edit_admin_participant_payment_path(mollie.participant, mollie)}']", count: 0
   end
 
-  # index / mark_processed
+  # index
   test "unauthenticated user is redirected to sign in from the payments overview" do
     get admin_payments_path
     assert_redirected_to new_user_session_path
@@ -377,15 +377,14 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path
   end
 
-  test "admin sees completed payments in the overview" do
+  test "admin sees paid and open payments in the overview" do
     sign_in users(:admin)
     get admin_payments_path
 
     assert_response :success
     assert_select "td", text: payments(:paid_payment).description
-    assert_select "form[action='#{mark_processed_admin_payment_path(payments(:paid_payment))}']"
-    # Only completed payments are listed.
-    assert_select "form[action='#{mark_processed_admin_payment_path(payments(:open_payment))}']", count: 0
+    assert_select "td", text: payments(:open_payment).description
+    assert_select "th", text: "Bookkeeping", count: 0
   end
 
   test "admin sees hostel booking payments in the overview" do
@@ -456,137 +455,10 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     payment = payments(:paid_payment)
     payment.update!(amount_charged_back_cents: 5_000)
 
-    get admin_payments_path(processed: "unprocessed")
+    get admin_payments_path
 
     assert_response :success
     assert_select "td", text: payment.description
     assert_select "span", text: "Charged back"
-    assert_select "form[action='#{mark_processed_admin_payment_path(payment, processed: "unprocessed")}']"
-
-    patch mark_processed_admin_payment_path(payment)
-    assert payment.reload.processed_in_bookkeeping?
-  end
-
-  test "payments overview can be filtered on the bookkeeping status" do
-    sign_in users(:admin)
-    payments(:manual_payment).update!(processed_in_bookkeeping: true)
-
-    get admin_payments_path(processed: "unprocessed")
-    assert_response :success
-    assert_select "td", text: payments(:paid_payment).description
-    assert_select "td", text: payments(:manual_payment).description, count: 0
-
-    get admin_payments_path(processed: "processed")
-    assert_response :success
-    assert_select "td", text: payments(:manual_payment).description
-    assert_select "td", text: payments(:paid_payment).description, count: 0
-  end
-
-  test "admin can mark a payment as processed in the bookkeeping" do
-    sign_in users(:admin)
-    payment = payments(:paid_payment)
-
-    patch mark_processed_admin_payment_path(payment)
-
-    assert_redirected_to admin_payments_path
-    assert payment.reload.processed_in_bookkeeping?
-  end
-
-  test "marking a payment as processed keeps the selected filter" do
-    sign_in users(:admin)
-
-    patch mark_processed_admin_payment_path(payments(:paid_payment), processed: "unprocessed")
-
-    assert_redirected_to admin_payments_path(processed: "unprocessed")
-  end
-
-  test "admin can mark a processed payment as not processed again" do
-    sign_in users(:admin)
-    payment = payments(:paid_payment)
-    payment.update!(processed_in_bookkeeping: true)
-
-    patch unmark_processed_admin_payment_path(payment)
-
-    assert_redirected_to admin_payments_path
-    assert_not payment.reload.processed_in_bookkeeping?
-  end
-
-  test "unmarking a payment as processed keeps the selected filter" do
-    sign_in users(:admin)
-    payment = payments(:paid_payment)
-    payment.update!(processed_in_bookkeeping: true)
-
-    patch unmark_processed_admin_payment_path(payment, processed: "processed")
-
-    assert_redirected_to admin_payments_path(processed: "processed")
-  end
-
-  test "editor cannot unmark a payment as processed" do
-    sign_in users(:editor)
-    payment = payments(:paid_payment)
-    payment.update!(processed_in_bookkeeping: true)
-
-    patch unmark_processed_admin_payment_path(payment)
-
-    assert_redirected_to root_path
-    assert payment.reload.processed_in_bookkeeping?
-  end
-
-  test "editor cannot mark a payment as processed" do
-    sign_in users(:editor)
-    payment = payments(:paid_payment)
-
-    patch mark_processed_admin_payment_path(payment)
-
-    assert_redirected_to root_path
-    assert_not payment.reload.processed_in_bookkeeping?
-  end
-
-  test "payments that are not completed cannot be marked as processed" do
-    sign_in users(:admin)
-    payment = payments(:open_payment)
-
-    patch mark_processed_admin_payment_path(payment)
-
-    assert_response :not_found
-    assert_not payment.reload.processed_in_bookkeeping?
-  end
-
-  test "record payment form defaults to processed in bookkeeping" do
-    sign_in users(:admin)
-    get new_admin_order_payment_path(orders(:three))
-
-    assert_response :success
-    assert_select "input[type=checkbox][name='payment[processed_in_bookkeeping]'][checked=checked]"
-  end
-
-  test "admin can record a payment that is not processed in bookkeeping yet" do
-    sign_in users(:admin)
-    participant = participants(:three)
-
-    record_order_payment(participant.order, processed_in_bookkeeping: "0")
-
-    assert_not participant.payments.order(:created_at).last.processed_in_bookkeeping?
-  end
-
-  test "recorded payments keep the processed in bookkeeping flag" do
-    sign_in users(:admin)
-    participant = participants(:three)
-
-    record_order_payment(participant.order, processed_in_bookkeeping: "1")
-
-    assert participant.payments.order(:created_at).last.processed_in_bookkeeping?
-  end
-
-  test "admin can update the processed in bookkeeping flag of a manual payment" do
-    sign_in users(:admin)
-    payment = payments(:manual_payment)
-
-    patch admin_participant_payment_path(payment.participant, payment), params: {
-      payment: { amount_eur: "190.00", description: payment.description, payment_method: "cash", payment_date: "2026-10-15", processed_in_bookkeeping: "1" }
-    }
-
-    assert_redirected_to admin_participants_path
-    assert payment.reload.processed_in_bookkeeping?
   end
 end
