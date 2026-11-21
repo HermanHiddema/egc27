@@ -22,7 +22,8 @@
 				}
 			}
 		}
-	}
+	},
+	"postCreateCommand": "MISE_RUBY_COMPILE=true mise install ruby@4.0.10"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -33,7 +34,6 @@
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "bundle install && rake db:setup",
-
 	// Configure tool-specific properties.
 	// "customizations": {},
 
