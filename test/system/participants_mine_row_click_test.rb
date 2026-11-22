@@ -12,7 +12,7 @@ class ParticipantsMineRowClickTest < ApplicationSystemTestCase
 
     participant = participants(:one)
     participant_name = "#{participant.first_name} #{participant.last_name}"
-    find("tr.participant-row", text: participant_name).find("td:nth-child(2)").click
+    find_clickable_row(participant_name).find("td:nth-child(2)").click
     assert_current_path participant_path(participant)
 
     visit mine_participants_path
@@ -20,7 +20,18 @@ class ParticipantsMineRowClickTest < ApplicationSystemTestCase
 
     participant = participants(:three)
     participant_name = "#{participant.first_name} #{participant.last_name}"
-    find("tr.participant-row", text: participant_name).find("td:nth-child(3)").click
+    find_clickable_row(participant_name).find("td:nth-child(3)").click
     assert_current_path participant_path(participant)
+  end
+
+  private
+
+  def find_clickable_row(participant_name)
+    find("tr.participant-row", text: participant_name) do |row|
+      page.evaluate_script(
+        "window.Stimulus.getControllerForElementAndIdentifier(arguments[0], 'clickable-row') !== null",
+        row.native
+      )
+    end
   end
 end
