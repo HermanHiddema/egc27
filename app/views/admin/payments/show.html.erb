@@ -1,10 +1,10 @@
 <div class="container-wide py-12">
   <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
     <div>
-      <p class="text-sm"><%= link_to "Payments", admin_payments_path, class: "text-brand-blue-700 underline" %></p>
+      <p class="text-sm"><%= link_to "Back to payments", admin_payments_path(**params.permit(:sort, :direction, :method, :status).to_h), class: "text-brand-blue-700 underline" %></p>
       <h1 class="text-4xl font-bold mt-2">Payment #<%= @payment.id %></h1>
     </div>
-    <span class="inline-flex rounded px-3 py-1 font-semibold <%= @payment.paid? ? "bg-green-100 text-green-800" : (@payment.unsuccessful? ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-700") %>"><%= @payment.status.humanize %></span>
+    <span class="inline-flex rounded px-3 py-1 font-semibold <%= payment_status_badge_class(@payment) %>"><%= @payment.status.humanize %></span>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

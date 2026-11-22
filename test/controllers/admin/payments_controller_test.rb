@@ -387,6 +387,78 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "th", text: "Bookkeeping", count: 0
   end
 
+  test "payment overview rows link to payment details and retain related links" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    get admin_payments_path
+
+    assert_select "tr[data-controller='clickable-row'][data-action='click->clickable-row#navigate'][data-clickable-row-url-value='#{admin_payment_path(payment)}']" do
+      assert_select "a[href='#{admin_payment_path(payment)}']"
+      assert_select "a[href='#{admin_order_path(payment.order)}']"
+      assert_select "a[href='#{admin_user_path(payment.order.user)}']"
+    end
+  end
+
+  test "payment detail returns to the filtered and sorted overview" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    overview = { sort: "amount", direction: "asc", method: "ideal" }
+    get admin_payments_path, params: overview
+
+    detail_path = admin_payment_path(payment, **overview)
+    assert_select "tr[data-clickable-row-url-value=?]", detail_path do
+      assert_select "a[href=?]", detail_path
+    end
+    assert_select "input[name='sort'][value='amount']"
+    assert_select "input[name='direction'][value='asc']"
+
+    get detail_path
+    assert_select "a[href=?]", admin_payments_path(**overview), text: "Back to payments"
+
+    get admin_payment_path(payment)
+    assert_select "a[href=?]", admin_payments_path, text: "Back to payments"
+  end
+
+  test "payment status badges and filters cover every status" do
+    sign_in users(:admin)
+    payment = payments(:open_payment)
+    paid = payments(:paid_payment)
+
+    Payment::STATUSES.each do |status|
+      payment.update_columns(status: status)
+      get admin_payments_path, params: { status: status }
+      assert_response :success
+      assert_select "tr[data-clickable-row-url-value]" do |rows|
+        assert rows.any? { |row| row.text.include?(payment.description) }
+      end
+      color = status == "paid" ? "bg-green-50" : (Payment::UNSUCCESSFUL_STATUSES.include?(status) ? "bg-red-50" : "bg-gray-100")
+      assert_select "span.#{color}", text: status.humanize
+
+      get admin_payments_path, params: { status: "not_paid" }
+      assert_select "a[href*='#{admin_payment_path(paid)}']", count: 0
+      assert_select "td", text: payment.description, count: status == "paid" ? 0 : 1
+    end
+  end
+
+  test "status filter combines with method and survives sorting and payment detail navigation" do
+    sign_in users(:admin)
+    payment = payments(:paid_payment)
+    overview = { sort: "amount", direction: "asc", method: "ideal", status: "paid" }
+    get admin_payments_path, params: overview
+    assert_select "select[name='status'] option[selected][value='paid']"
+    assert_select "select[name='method'] option[selected][value='ideal']"
+    assert_select "a[href=?]", admin_payments_path(method: "ideal", status: "paid", sort: "id", direction: "asc")
+    assert_select "a[href=?]", admin_payment_path(payment, **overview)
+
+    get admin_payment_path(payment, **overview)
+    assert_select "a[href=?]", admin_payments_path(**overview), text: "Back to payments"
+
+    get admin_payments_path, params: { status: "not_paid", method: "ideal" }
+    assert_select "a[href*='#{admin_payment_path(payment)}']", count: 0
+    get admin_payments_path, params: { status: "invalid" }
+    assert_select "td", text: payment.description
+  end
+
   test "admin sees hostel booking payments in the overview" do
     sign_in users(:admin)
     booking = users(:one).hostel_bookings.create!(
@@ -523,5 +595,4 @@ test "payment detail requires an admin" do
   get admin_payment_path(payment)
   assert_redirected_to root_path
 end
-
 end

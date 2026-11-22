@@ -69,6 +69,13 @@ module ApplicationHelper
     "border border-blue-200 bg-blue-50 text-blue-800"
   end
 
+  def payment_status_badge_class(payment)
+    return "border border-green-200 bg-green-50 text-green-800" if payment.paid?
+    return "border border-red-200 bg-red-50 text-red-800" if payment.unsuccessful?
+
+    "border border-gray-200 bg-gray-100 text-gray-700"
+  end
+
   def order_payment_action_label(action, first_payment: "Pay now")
     { pay: first_payment, retry: "Retry payment", resume: "Continue payment" }[action]
   end

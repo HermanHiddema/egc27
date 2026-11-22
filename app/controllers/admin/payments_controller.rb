@@ -11,12 +11,16 @@ class Admin::PaymentsController < ApplicationController
   def index
     @payment_methods = Payment.where.not(payment_method: [nil, ""]).distinct.order(:payment_method).pluck(:payment_method)
     @method_filter = permitted_method_filter
+    @status_filter = permitted_status_filter
     @sort = permitted_sort
     @direction = permitted_direction
 
     payments = Payment.includes(:settlement, order: :user, products: :productable)
     payments = payments.where(payment_method: [nil, ""]) if @method_filter == "blank"
     payments = payments.where(payment_method: @method_filter) if @method_filter.present? && @method_filter != "blank"
+
+    payments = payments.where.not(status: "paid") if @status_filter == "not_paid"
+    payments = payments.where(status: @status_filter) if Payment::STATUSES.include?(@status_filter)
 
     order_expression = case @sort
     when "id" then Payment.arel_table[:id]
@@ -64,6 +68,10 @@ class Admin::PaymentsController < ApplicationController
     return "blank" if params[:method] == "blank"
 
     @payment_methods.include?(params[:method]) ? params[:method] : nil
+  end
+
+  def permitted_status_filter
+    (Payment::STATUSES + ["not_paid"]).include?(params[:status]) ? params[:status] : nil
   end
 
   def permitted_sort
