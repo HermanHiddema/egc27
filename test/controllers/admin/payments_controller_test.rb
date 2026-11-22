@@ -461,4 +461,67 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
     assert_select "td", text: payment.description
     assert_select "span", text: "Charged back"
   end
+
+test "admin can inspect Mollie and manual payments and navigate to related records" do
+  sign_in users(:admin)
+
+  [payments(:paid_payment), payments(:manual_payment)].each do |payment|
+    get admin_payment_path(payment)
+    assert_response :success
+    assert_select "h1", text: "Payment ##{payment.id}"
+    assert_select "dd", text: payment.amount_formatted
+    assert_select "dd", text: payment.provider_label
+    assert_select "dd", text: payment.payment_method_label
+    assert_select "dd", text: payment.reference if payment.reference.present?
+    assert_select "dd", text: payment.mollie_payment_id if payment.mollie_payment_id.present?
+    assert_select "a[href='#{admin_order_path(payment.order)}']"
+    assert_select "a[href='#{admin_user_path(payment.order.user)}']", text: payment.order.user.display_name
+    assert_select "a[href='#{admin_payments_path}']"
+    assert_select "h2", text: "Order products", count: 0
+    assert_select "form", count: 0
+  end
+end
+
+test "payment detail shows every recorded status and handles missing metadata" do
+  sign_in users(:admin)
+  payment = payments(:open_payment)
+  Payment::STATUSES.each do |status|
+    payment.update_columns(status: status, mollie_payment_id: nil, payment_method: nil, reference: nil, payment_date: nil)
+    get admin_payment_path(payment)
+    assert_response :success
+    assert_select "dd", text: status.humanize
+    assert_select "dd", text: "—", minimum: 3
+  end
+end
+
+test "payment detail shows recorded refund and chargeback amounts including zero and unknown" do
+  sign_in users(:admin)
+  payment = payments(:paid_payment)
+  [[0, 0, "€ 0.00", "€ 0.00"], [1250, 500, "€ 12.50", "€ 5.00"], [nil, nil, "Unknown", "Unknown"]].each do |refunded, charged_back, refund_label, chargeback_label|
+    payment.update_columns(amount_refunded_cents: refunded, amount_charged_back_cents: charged_back)
+    get admin_payment_path(payment)
+    assert_response :success
+    assert_select "div", text: /Refunded amount\s*#{Regexp.escape(refund_label)}/
+    assert_select "div", text: /Chargeback amount\s*#{Regexp.escape(chargeback_label)}/
+  end
+end
+
+test "payment links are available from the overview and order" do
+  sign_in users(:admin)
+  payment = payments(:paid_payment)
+  get admin_payments_path
+  assert_select "a[href='#{admin_payment_path(payment)}']"
+  get admin_order_path(payment.order)
+  assert_select "a[href='#{admin_payment_path(payment)}']"
+end
+
+test "payment detail requires an admin" do
+  payment = payments(:paid_payment)
+  get admin_payment_path(payment)
+  assert_redirected_to new_user_session_path
+  sign_in users(:editor)
+  get admin_payment_path(payment)
+  assert_redirected_to root_path
+end
+
 end

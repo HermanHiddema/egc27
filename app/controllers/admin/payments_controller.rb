@@ -37,9 +37,8 @@ class Admin::PaymentsController < ApplicationController
   end
 
   def show
-    @payment = Payment.includes(:settlement, :refunds, :chargebacks, order: [:user, :products]).find(params[:id])
+    @payment = Payment.includes(:settlement, order: :user).find(params[:id])
     @order = @payment.order
-    @products = @order.products_for_display
     @refunds = @payment.refunds.includes(:settlement).order(created_at: :desc, id: :desc)
     @chargebacks = @payment.chargebacks.includes(:settlement).order(created_at: :desc, id: :desc)
   end

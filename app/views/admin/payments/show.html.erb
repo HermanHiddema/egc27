@@ -15,7 +15,7 @@
         <div><dt class="font-semibold text-neutral-700">Status</dt><dd class="text-neutral-900"><%= @payment.status.humanize %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Provider</dt><dd class="text-neutral-900"><%= @payment.provider_label %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Method</dt><dd class="text-neutral-900"><%= @payment.payment_method_label || "—" %></dd></div>
-        <div><dt class="font-semibold text-neutral-700">Description</dt><dd class="text-neutral-900"><%= @payment.description %></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Description</dt><dd class="text-neutral-900"><%= @payment.description.presence || "—" %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Payment date</dt><dd class="text-neutral-900"><%= @payment.payment_date ? l(@payment.payment_date, format: :long) : "—" %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Created</dt><dd class="text-neutral-900"><%= l(@payment.created_at, format: :long) %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Last updated</dt><dd class="text-neutral-900"><%= l(@payment.updated_at, format: :long) %></dd></div>
@@ -42,31 +42,10 @@
       <dl class="space-y-4 text-sm">
         <div><dt class="font-semibold text-neutral-700">Order</dt><dd><%= link_to "Order ##{@order.id}", admin_order_path(@order), class: "text-brand-blue-700 underline" %></dd></div>
         <div><dt class="font-semibold text-neutral-700">Order total</dt><dd class="text-neutral-900"><%= Settlement.format_cents(@order.total_cents) %></dd></div>
-        <div><dt class="font-semibold text-neutral-700">Payer</dt><dd class="text-neutral-900"><%= @order.user.display_name %><br><span class="text-neutral-500"><%= @order.user.email %></span></dd></div>
+        <div><dt class="font-semibold text-neutral-700">Payer</dt><dd class="text-neutral-900"><%= link_to @order.user.display_name, admin_user_path(@order.user), class: "text-brand-blue-700 underline" %><br><span class="text-neutral-500"><%= @order.user.email %></span></dd></div>
       </dl>
     </section>
   </div>
-
-  <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mt-6">
-    <h2 class="text-xl font-semibold mb-4">Order products</h2>
-    <ul class="divide-y divide-gray-200">
-      <% @products.each do |product| %>
-        <li class="py-3 flex flex-wrap justify-between gap-3">
-          <div>
-            <% if product.productable.is_a?(ParticipantTicket) %>
-              <% participant = product.productable.participant %>
-              <%= link_to "#{participant.first_name} #{participant.last_name}", edit_admin_participant_path(participant), class: "font-semibold text-brand-blue-700 underline" %>
-              <p class="text-sm text-neutral-600">Participant ticket</p>
-            <% else %>
-              <%= product.productable.description %>
-              <p class="text-sm text-neutral-600"><%= hostel_booking_options(product.productable) %></p>
-            <% end %>
-          </div>
-          <span class="whitespace-nowrap font-medium"><%= Settlement.format_cents(product.price_cents) %></span>
-        </li>
-      <% end %>
-    </ul>
-  </section>
 
   <% if @refunds.any? %>
     <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mt-6">
