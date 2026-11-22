@@ -73,7 +73,8 @@ class Admin::ParticipantsController < ApplicationController
   end
 
   def show
-    @tickets = @participant.participant_tickets.includes(product: { order: :payments }).order(created_at: :desc, id: :desc)
+    @participant = Participant.includes(:user, participant_tickets: { product: { order: :payments } }).find(@participant.id)
+    @tickets = @participant.participant_tickets.sort_by { |ticket| [ticket.created_at, ticket.id] }.reverse
     @valid_ticket = @tickets.find(&:valid_admission?)
   end
 
