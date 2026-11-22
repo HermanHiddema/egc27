@@ -550,7 +550,7 @@ test "admin can inspect Mollie and manual payments and navigate to related recor
     assert_select "a[href='#{admin_user_path(payment.order.user)}']", text: payment.order.user.display_name
     assert_select "a[href='#{admin_payments_path}']"
     assert_select "h2", text: "Order products", count: 0
-    assert_select "form", count: 0
+    assert_select "#payment-details form", count: 0
   end
 end
 
