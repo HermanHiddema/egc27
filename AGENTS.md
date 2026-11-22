@@ -138,3 +138,6 @@ When the user expresses a new coding/UI/process preference in chat:
 - In My registrations, place Participant status before Payment status.
 
 - When displaying a player's payment status without a current ticket, show the latest canceled ticket Order if one exists; keep this fallback separate from admission and purchase eligibility.
+- Make each Admin Payments overview row clickable to open its Payment detail, while preserving links to related records.
+- On Admin Payment details, label the return link “Back to payments” and preserve overview sorting and filtering when arriving from the overview.
+- In Admin Payments, show payment status using shared status colors and offer a Not paid filter covering every non-paid status.
