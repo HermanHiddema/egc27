@@ -66,9 +66,9 @@
           </thead>
           <tbody class="divide-y divide-gray-100 bg-white">
             <% @participants.each do |participant| %>
-              <tr>
+              <tr class="cursor-pointer hover:bg-neutral-50" data-controller="clickable-row" data-clickable-row-url-value="<%= admin_participant_path(participant, **@overview_params) %>" data-action="click->clickable-row#navigate">
                 <td class="px-4 py-3 text-sm font-medium text-neutral-900"><%= participant.participant_number %></td>
-                <td class="px-4 py-3 text-sm text-neutral-900"><%= [participant.first_name, participant.last_name].join(" ") %></td>
+                <td class="px-4 py-3 text-sm text-neutral-900"><%= link_to [participant.first_name, participant.last_name].join(" "), admin_participant_path(participant, **@overview_params), class: "text-brand-blue-700 underline" %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.email %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700" data-country-names-target="code" data-country-code="<%= participant.country %>"><%= country_with_flag(participant.country) %></td>
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.rank_grade.presence || "—" %></td>

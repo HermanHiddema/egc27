@@ -4,8 +4,8 @@ class Admin::ParticipantsController < ApplicationController
   PARTICIPANT_TYPES = %w[player visitor].freeze
 
   before_action :require_admin!
-  before_action :set_participant, only: [:edit, :update, :destroy, :add_payment]
-  before_action :set_overview_params, only: [:index, :edit, :update, :destroy]
+  before_action :set_participant, only: [:show, :edit, :update, :destroy, :add_payment]
+  before_action :set_overview_params, only: [:index, :show, :edit, :update, :destroy]
 
   def add_payment
     return redirect_to edit_admin_participant_path(@participant), alert: "Only players can purchase a ticket." unless @participant.player?
@@ -70,6 +70,11 @@ class Admin::ParticipantsController < ApplicationController
       end
     end
     @latest_payments_by_participant_id = latest_payments_by_participant_id(@participants)
+  end
+
+  def show
+    @tickets = @participant.participant_tickets.includes(product: { order: :payments }).order(created_at: :desc, id: :desc)
+    @valid_ticket = @tickets.find(&:valid_admission?)
   end
 
   def edit
