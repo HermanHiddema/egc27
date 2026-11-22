@@ -428,8 +428,8 @@ class Admin::PaymentsControllerTest < ActionDispatch::IntegrationTest
       payment.update_columns(status: status)
       get admin_payments_path, params: { status: status }
       assert_response :success
-      assert_select "tr[data-clickable-row-url-value]" do |rows|
-        assert rows.any? { |row| row.text.include?(payment.description) }
+      assert_select "tr[data-clickable-row-url-value] td:first-child a" do |links|
+        assert_equal Payment.where(status: status).ids.sort, links.map { |link| link.text.delete_prefix("#").to_i }.sort
       end
       color = status == "paid" ? "bg-green-50" : (Payment::UNSUCCESSFUL_STATUSES.include?(status) ? "bg-red-50" : "bg-gray-100")
       assert_select "span.#{color}", text: status.humanize
