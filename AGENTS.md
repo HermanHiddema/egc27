@@ -144,3 +144,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - Make Admin participant overview rows clickable; show the registering User on participant details and identify each Order’s ticket in parentheses.
 - On Admin Order details, link each participant ticket and participant name to their respective detail pages.
 - On Admin Order details, show participant age group beside ticket attendance using the shopping basket format.
+
+- Show hostel booking payment and Order cancellation statuses separately, with linked details and preserved overview filters.
+- Close filter dropdowns when clicking outside; use a direct single-select filter for hostel Order status.
+- On hostel booking details, avoid repeating accommodation line items already shown in the price calculation.
+- Link hostel booking product names to their detail pages on Order details, showing the booking ID prefixed with #.

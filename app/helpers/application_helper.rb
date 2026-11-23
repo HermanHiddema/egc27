@@ -80,6 +80,24 @@ module ApplicationHelper
     { pay: first_payment, retry: "Retry payment", resume: "Continue payment" }[action]
   end
 
+  def hostel_booking_payment_status(booking)
+    payment = booking.current_payment
+    return ["Awaiting payment", "border border-blue-200 bg-blue-50 text-blue-800"] unless payment
+
+    if payment.paid?
+      label = if payment.charged_back?
+        "Paid — chargeback"
+      elsif payment.refunded?
+        payment.amount_refunded_cents.nil? || payment.amount_refunded_cents >= payment.amount_cents ? "Paid — refunded" : "Paid — partially refunded"
+      else
+        "Paid"
+      end
+      return [label, payment_status_badge_class(payment)]
+    end
+
+    ["Payment #{payment.status}", payment_status_badge_class(payment)]
+  end
+
   def hostel_booking_options(booking)
     options = HostelPricing::ROOM_TYPES.filter_map do |room_type, room|
       quantity = booking.public_send(room_type)

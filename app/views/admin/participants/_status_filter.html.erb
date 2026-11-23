@@ -1,4 +1,4 @@
-<details class="relative inline-block">
+<details class="relative inline-block" data-controller="filter-dropdown" data-action="click@window->filter-dropdown#closeOutside keydown@window->filter-dropdown#closeOnEscape">
   <summary class="flex cursor-pointer list-none items-center gap-3 rounded-md border border-neutral-300 bg-white px-4 py-2 text-sm font-semibold text-neutral-800 hover:bg-neutral-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
     <%= title %>
     <span class="text-xs font-normal text-neutral-600"><%= selected.any? ? "#{selected.size} selected" : "All statuses" %></span>

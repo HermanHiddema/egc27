@@ -97,6 +97,17 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.lg\\:hidden [data-controller='search-toggle'] > a[aria-label='Shopping basket, 1 product'] span", text: "1"
   end
 
+  test "submitted order links the hostel booking name and number to its details" do
+    booking = create_booking_for(users(:one))
+    booking.order.submit!
+    sign_in users(:one)
+
+    get submitted_order_path(booking.order)
+
+    assert_response :success
+    assert_select "a[href=?]", hostel_booking_path(booking), text: /Hostel booking ##{booking.id}/
+  end
+
   test "the basket shows participant tickets and hostel bookings in separate sections" do
     sign_in users(:one)
     create_booking_for(users(:one))

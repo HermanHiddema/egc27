@@ -46,7 +46,7 @@
               <p class="text-sm text-neutral-600"><%= CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label %> · age <%= participant.age_group %></p>
               <% if product.productable.invalidated_at %><p class="text-sm text-neutral-600">Ticket invalidated <%= l(product.productable.invalidated_at, format: :long) %></p><% end %>
             <% else %>
-              <%= product.productable.description %>
+              <%= link_to "Hostel booking ##{product.productable.id}", admin_hostel_booking_path(product.productable), class: "font-semibold text-brand-blue-700 underline" %>
               <p class="text-sm text-neutral-600"><%= eu_date_range(product.productable.arrival_date, product.productable.departure_date) %> · <%= hostel_booking_options(product.productable) %></p>
             <% end %>
           </div>

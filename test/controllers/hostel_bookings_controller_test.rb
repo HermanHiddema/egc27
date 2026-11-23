@@ -210,7 +210,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :not_found
   end
 
-  test "show summarizes booked items without prices and lists the price calculation" do
+  test "show lists the price calculation without a redundant booking summary" do
     booking = nil
     travel_to Time.zone.local(2026, 12, 1) do
       booking = create_booking(single_rooms: 1, double_rooms: 0, mixed_dorm_beds: 2, breakfasts: 2)
@@ -220,10 +220,7 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     get hostel_booking_path(booking)
 
     assert_response :success
-    assert_select "#booked-items li", text: "1 × 1-person room"
-    assert_select "#booked-items li", text: "2 × 1 bed in a 6-person dorm (mixed)"
-    assert_select "#booked-items li", text: "Breakfast buffet for 2 people"
-    assert_select "#booked-items", text: /€/, count: 0
+    assert_select "#booked-items", count: 0
     assert_select "td", text: "1 × 1-person room × 2 nights × € 69.00"
     assert_select "td", text: "€ 138.00"
     assert_select "td", text: "2 × mixed dorm bed × 2 nights × € 29.00"
@@ -344,5 +341,26 @@ class HostelBookingsControllerTest < ActionDispatch::IntegrationTest
     assert_response :service_unavailable
   ensure
     Mollie::Payment.define_singleton_method(:get, &original)
+  end
+end
+
+class HostelBookingsControllerTest
+  test "overview and detail link booking and order with separate cancellation status" do
+    booking = create_booking
+    booking.order.submit!
+    booking.order.cancel!
+    sign_in users(:one)
+
+    get hostel_bookings_path
+    assert_response :success
+    assert_select "tr[data-controller='clickable-row'] a[href=?]", hostel_booking_path(booking)
+    assert_select "a[href=?]", submitted_order_path(booking.order)
+    assert_match "Order canceled", response.body
+    assert_match "Awaiting payment", response.body
+    get hostel_booking_path(booking)
+    assert_response :success
+    assert_match "Hostel booking ##{booking.id}", response.body
+    assert_match "Order canceled", response.body
+    assert_select "a[href=?]", hostel_bookings_path
   end
 end

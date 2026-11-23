@@ -1,8 +1,8 @@
 <% content_for :title, "Hostel booking – EGC 2027" %>
 <div class="container-wide py-12">
   <div class="flex justify-between items-center mb-8 gap-4">
-    <h1 class="text-4xl font-bold">Hostel booking</h1>
-    <%= link_to "My hostel bookings", hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
+    <h1 class="text-4xl font-bold">Hostel booking #<%= @hostel_booking.id %></h1>
+    <%= link_to "← Back to hostel bookings", hostel_bookings_path, class: "text-brand-blue-600 hover:text-brand-red-600 transition" %>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -26,20 +26,6 @@
           <dd class="text-neutral-900"><%= @hostel_booking.status.humanize %></dd>
         </div>
       </dl>
-      <div class="mt-6 border-t border-gray-200 pt-4">
-        <h4 class="font-semibold text-neutral-900 mb-2">Booked</h4>
-        <ul id="booked-items" class="space-y-1 text-sm text-neutral-700">
-          <% HostelPricing::ROOM_TYPES.each do |room_type, room| %>
-            <% quantity = @hostel_booking.public_send(room_type) %>
-            <% if quantity.positive? %>
-              <li><%= quantity %> × <%= room[:label] %></li>
-            <% end %>
-          <% end %>
-          <% if @hostel_booking.breakfasts.positive? %>
-            <li>Breakfast buffet for <%= pluralize(@hostel_booking.breakfasts, "person") %></li>
-          <% end %>
-        </ul>
-      </div>
     </div>
 
     <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
@@ -47,7 +33,9 @@
 
       <%= render "price_calculation", hostel_booking: @hostel_booking %>
 
-      <% if @payment&.paid? %>
+      <% if @hostel_booking.order&.cancelled? %>
+        <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg p-4">Order canceled.</div>
+      <% elsif @payment&.paid? %>
         <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg p-4">
           Your hostel booking has been paid. Thank you!
         </div>
@@ -71,5 +59,6 @@
         </p>
       <% end %>
     </div>
+    <%= render "hostel_bookings/order_details", booking: @hostel_booking, related_tickets: @related_tickets, admin: false %>
   </div>
 </div>

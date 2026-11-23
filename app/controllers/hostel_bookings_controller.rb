@@ -2,7 +2,7 @@ class HostelBookingsController < ApplicationController
   before_action :set_hostel_booking, only: [:show, :edit, :update, :destroy, :pay]
 
   def index
-    @hostel_bookings = current_user.hostel_bookings.includes(:payments).order(created_at: :desc)
+    @hostel_bookings = current_user.hostel_bookings.includes(order: :payments).order(created_at: :desc, id: :desc)
   end
 
   def new
@@ -64,6 +64,8 @@ class HostelBookingsController < ApplicationController
   end
 
   def show
+    @hostel_booking = current_user.hostel_bookings.includes(order: :payments).find(params[:id])
+    @related_tickets = ParticipantTicket.joins(:product).where(products: { order_id: @hostel_booking.order&.id }).includes(:participant)
     @payment = @hostel_booking.current_payment
     @payment&.refresh_from_mollie
   end
