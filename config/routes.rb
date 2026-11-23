@@ -217,7 +217,8 @@ Rails.application.routes.draw do
   namespace :admin do
     resources :users, only: [:show]
     resources :articles, only: [:index]
-    resources :participants, only: [:index, :edit, :update, :destroy] do
+    resources :participant_tickets, only: [:show]
+    resources :participants, only: [:index, :show, :edit, :update, :destroy] do
       post :add_payment, on: :member
       resources :payments, only: [:edit, :update]
       collection do

@@ -141,3 +141,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Make each Admin Payments overview row clickable to open its Payment detail, while preserving links to related records.
 - On Admin Payment details, label the return link “Back to payments” and preserve overview sorting and filtering when arriving from the overview.
 - In Admin Payments, show payment status using shared status colors and offer a Not paid filter covering every non-paid status.
+- Make Admin participant overview rows clickable; show the registering User on participant details and identify each Order’s ticket in parentheses.

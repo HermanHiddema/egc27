@@ -1,0 +1,15 @@
+<div class="container-wide py-12">
+  <div class="max-w-3xl mx-auto">
+    <%= link_to "Back to participant", admin_participant_path(@ticket.participant), class: "text-brand-blue-700 underline" %>
+    <h1 class="text-4xl font-bold mt-2 mb-8">Participant ticket #<%= @ticket.id %></h1>
+    <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-3">
+      <p><strong>Participant:</strong> <%= link_to [@ticket.participant.first_name, @ticket.participant.last_name].join(" "), admin_participant_path(@ticket.participant), class: "text-brand-blue-700 underline" %></p>
+      <p><strong>Admission:</strong> <%= @ticket.valid_admission? ? "Valid" : "Not valid" %></p>
+      <% if @ticket.invalidated_at %><p><strong>Invalidated:</strong> <%= l(@ticket.invalidated_at, format: :long) %></p><% end %>
+      <% if @ticket.product&.order %>
+        <p><strong>Order:</strong> <%= link_to "##{@ticket.product.order.id}", admin_order_path(@ticket.product.order), class: "text-brand-blue-700 underline" %></p>
+        <p><strong>Price:</strong> <%= Settlement.format_cents(@ticket.product.price_cents) %></p>
+      <% end %>
+    </div>
+  </div>
+</div>

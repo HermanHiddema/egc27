@@ -1,0 +1,61 @@
+<div class="container-wide py-12">
+  <div class="max-w-4xl mx-auto">
+    <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
+      <div>
+        <%= link_to "Back to participants", admin_participants_path(**@overview_params), class: "text-brand-blue-700 underline" %>
+        <h1 class="text-4xl font-bold mt-2">Participant details</h1>
+      </div>
+      <%= link_to "Edit", edit_admin_participant_path(@participant, **@overview_params), class: "btn-primary" %>
+    </div>
+
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
+      <h2 class="text-xl font-semibold mb-4">Personal details</h2>
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+        <div><dt class="font-semibold">Participant status</dt><dd><span class="inline-flex rounded px-2 py-1 font-semibold <%= participant_status_badge_class(@participant.status) %>"><%= @participant.status == "participation_canceled" ? "Canceled" : @participant.status_label %></span></dd></div>
+        <div><dt class="font-semibold">Payment status</dt><dd><%= render "participants/payment_status", participant: @participant %></dd></div>
+        <div><dt class="font-semibold">Participant number</dt><dd><%= @participant.participant_number %></dd></div>
+        <div><dt class="font-semibold">Name</dt><dd><%= [@participant.first_name, @participant.last_name].join(" ") %></dd></div>
+        <div><dt class="font-semibold">Email</dt><dd><%= @participant.email %></dd></div>
+        <div><dt class="font-semibold">Registered by User</dt><dd><%= link_to @participant.user.display_name, admin_user_path(@participant.user), class: "text-brand-blue-700 underline" %></dd></div>
+        <div><dt class="font-semibold">Country</dt><dd><%= country_with_flag(@participant.country) %></dd></div>
+        <div><dt class="font-semibold">Type</dt><dd><%= @participant.participant_type.humanize %></dd></div>
+        <div><dt class="font-semibold">Gender</dt><dd><%= @participant.gender&.humanize.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Age group</dt><dd><%= @participant.age_group.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Club</dt><dd><%= @participant.club.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Phone</dt><dd><%= @participant.phone.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">EGD PIN</dt><dd><%= @participant.egd_pin.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Rank</dt><dd><%= @participant.rank_grade.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Rating</dt><dd><%= @participant.rating.presence || "—" %></dd></div>
+        <div><dt class="font-semibold">Attendance</dt><dd><%= @participant.attendance_option.present? ? CongressPassPricing.new(attendance_option: @participant.attendance_option).attendance_label : "—" %></dd></div>
+        <div><dt class="font-semibold">Photo consent</dt><dd><%= @participant.image_use_consent.nil? ? "—" : (@participant.image_use_consent? ? "Yes" : "No") %></dd></div>
+      </dl>
+    </section>
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
+      <h2 class="text-xl font-semibold mb-4">Valid participant ticket</h2>
+      <% if @valid_ticket %>
+        <%= link_to "Ticket ##{@valid_ticket.id}", admin_participant_ticket_path(@valid_ticket), class: "text-brand-blue-700 underline" %>
+      <% else %>
+        <p class="text-neutral-700">No valid participant ticket.</p>
+      <% end %>
+    </section>
+    <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+      <h2 class="text-xl font-semibold mb-4">Ticket orders</h2>
+      <% if @tickets.any? { |ticket| ticket.product&.order } %>
+        <ul class="space-y-3">
+          <% @tickets.each do |ticket| %>
+            <% if (order = ticket.product&.order) %>
+              <li class="flex flex-wrap items-center gap-3">
+                <%= link_to "Order ##{order.id}", admin_order_path(order), class: "text-brand-blue-700 underline" %>
+                <span>(<%= link_to "Ticket ##{ticket.id}", admin_participant_ticket_path(ticket), class: "text-brand-blue-700 underline" %>)</span>
+                <span class="inline-flex rounded px-2 py-1 text-sm font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></span>
+                <% if ticket.invalidated_at %><span class="text-sm text-neutral-600">Ticket invalidated</span><% end %>
+              </li>
+            <% end %>
+          <% end %>
+        </ul>
+      <% else %>
+        <p class="text-neutral-700">No ticket orders.</p>
+      <% end %>
+    </section>
+  </div>
+</div>

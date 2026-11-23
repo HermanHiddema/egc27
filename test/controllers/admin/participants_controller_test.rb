@@ -1,6 +1,63 @@
 require "test_helper"
 
 class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
+  test "participant details preserve overview filters and link ticket orders" do
+    sign_in users(:admin)
+    participant = participants(:four)
+    ticket = participant.participant_tickets.find(&:valid_admission?)
+    filters = { country: "NL", status: ["paid"], payment_status: ["Paid"], sort: "name", direction: "desc" }
+
+    get admin_participant_path(participant, **filters)
+    assert_response :success
+    assert_select "a[href=?]", admin_participants_path(**filters), text: "Back to participants"
+    assert_select "a[href=?]", edit_admin_participant_path(participant, **filters), text: "Edit"
+    assert_select "a[href=?]", admin_participant_ticket_path(ticket), text: "Ticket ##{ticket.id}"
+    assert_select "a[href=?]", admin_order_path(ticket.order), text: "Order ##{ticket.order.id}"
+    assert_select "dt", text: "Registered by User"
+    assert_select "a[href=?]", admin_user_path(participant.user), text: participant.user.display_name
+    assert_match(/\(\s*<a[^>]*>Ticket ##{ticket.id}<\/a>\s*\)/, response.body)
+    assert_select "span", text: "Paid"
+    get admin_participant_ticket_path(ticket)
+    assert_response :success
+  end
+
+  test "participant details retain invalidated ticket history without treating it as valid" do
+    sign_in users(:admin)
+    participant = participants(:four)
+    ticket = participant.participant_tickets.sole
+    ticket.update!(invalidated_at: Time.current)
+
+    get admin_participant_path(participant)
+    assert_response :success
+    assert_match "No valid participant ticket", response.body
+    assert_match "Ticket invalidated", response.body
+    assert_select "a[href=?]", admin_order_path(ticket.order), text: "Order ##{ticket.order.id}"
+  end
+
+  test "overview links to participant details with filters" do
+    sign_in users(:admin)
+    filters = { name: "Alice", sort: "name", direction: "desc" }
+    get admin_participants_path(**filters)
+    assert_select "tr[data-controller=clickable-row][data-action=?][data-clickable-row-url-value=?]", "click->clickable-row#navigate", admin_participant_path(participants(:one), **filters)
+    assert_select "a[href=?]", admin_participant_path(participants(:one), **filters)
+  end
+
+  test "participant details handle visitors without tickets" do
+    sign_in users(:admin)
+    get admin_participant_path(participants(:visitor_one))
+    assert_response :success
+    assert_match "No valid participant ticket", response.body
+    assert_match "No ticket orders", response.body
+  end
+
+  test "participant details require admin access" do
+    sign_in users(:one)
+    get admin_participant_path(participants(:one))
+    assert_redirected_to root_path
+    get admin_participant_ticket_path(participants(:one).participant_tickets.first)
+    assert_redirected_to root_path
+  end
+
   test "regular user cannot access admin participants index" do
     sign_in users(:one)
     get admin_participants_path
