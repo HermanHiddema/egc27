@@ -150,3 +150,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - On hostel booking details, avoid repeating accommodation line items already shown in the price calculation.
 - Link hostel booking product names to their detail pages on Order details, showing the booking ID prefixed with #.
 - In hostel booking details, show Order status only when canceled, with bold red text; omit participants in the Order and payment section.
+- Show canceled Order status badges in red on user and admin Order detail pages, matching canceled payments.

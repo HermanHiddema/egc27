@@ -17,7 +17,8 @@ class MoveParticipantConfirmationToUsersTest < ActiveSupport::TestCase
 
   def after_teardown
     super
-    ActiveRecord::Base.connection.clear_cache!
+    ActiveRecord::Base.connection.schema_cache.clear!
+    Participant.reset_column_information
   end
 
   test "preserves confirmed users when their participants are unconfirmed" do
@@ -57,6 +58,8 @@ class MoveParticipantConfirmationToUsersTest < ActiveSupport::TestCase
     confirmed_at = user.confirmed_at
     set_participant_confirmation(participants(:two), confirmed_at - 1.day)
     users(:no_password).update_columns(confirmed_at: nil)
+    Participant.reset_column_information
+    assert_includes Participant.column_names, "confirmed_at"
 
     migrate_confirmation
 
@@ -65,13 +68,15 @@ class MoveParticipantConfirmationToUsersTest < ActiveSupport::TestCase
     assert_nil users(:no_password).reload.confirmed_at
     assert_not ActiveRecord::Base.connection.column_exists?(:participants, :confirmed_at)
     assert_not ActiveRecord::Base.connection.column_exists?(:participants, :confirmation_token)
+    assert_not Participant.column_names.include?("confirmed_at")
+    assert_not Participant.column_names.include?("confirmation_token")
   end
 
   private
 
   def migrate_confirmation
     @migration.migrate(:up)
-    ActiveRecord::Base.connection.clear_cache!
+    Participant.reset_column_information
   end
 
   def set_participant_confirmation(participant, confirmed_at)

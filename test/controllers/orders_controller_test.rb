@@ -97,6 +97,18 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "div.lg\\:hidden [data-controller='search-toggle'] > a[aria-label='Shopping basket, 1 product'] span", text: "1"
   end
 
+  test "canceled order detail shows a red status badge" do
+    booking = create_booking_for(users(:one))
+    booking.order.submit!
+    booking.order.cancel!
+    sign_in users(:one)
+
+    get submitted_order_path(booking.order)
+
+    assert_response :success
+    assert_select "span.border-red-200.bg-red-50.text-red-800", text: "Order canceled"
+  end
+
   test "submitted order links the hostel booking name and number to its details" do
     booking = create_booking_for(users(:one))
     booking.order.submit!

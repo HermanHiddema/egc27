@@ -36,6 +36,8 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_orders_path
     assert order.reload.cancelled?
+    get admin_order_path(order)
+    assert_select "span.border-red-200.bg-red-50.text-red-800", text: "Order canceled"
     assert ticket.reload.invalidated_at
     assert_equal payment, order.payments.reload.sole
     assert_equal users(:admin).id.to_s, order.versions.reload.last.whodunnit

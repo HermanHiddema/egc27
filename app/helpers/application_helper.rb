@@ -69,6 +69,12 @@ module ApplicationHelper
     "border border-blue-200 bg-blue-50 text-blue-800"
   end
 
+  def order_detail_status_class(order)
+    return "border border-red-200 bg-red-50 text-red-800" if order.cancelled?
+
+    order_payment_status_class(order)
+  end
+
   def payment_status_badge_class(payment)
     return "border border-green-200 bg-green-50 text-green-800" if payment.paid?
     return "border border-red-200 bg-red-50 text-red-800" if payment.unsuccessful?
