@@ -142,3 +142,5 @@ When the user expresses a new coding/UI/process preference in chat:
 - On Admin Payment details, label the return link “Back to payments” and preserve overview sorting and filtering when arriving from the overview.
 - In Admin Payments, show payment status using shared status colors and offer a Not paid filter covering every non-paid status.
 - Make Admin participant overview rows clickable; show the registering User on participant details and identify each Order’s ticket in parentheses.
+- On Admin Order details, link each participant ticket and participant name to their respective detail pages.
+- On Admin Order details, show participant age group beside ticket attendance using the shopping basket format.

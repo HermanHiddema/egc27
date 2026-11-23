@@ -1,6 +1,21 @@
 require "test_helper"
 
 class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
+  test "order products link to participant ticket and participant details" do
+    sign_in users(:admin)
+    ticket = participant_tickets(:three)
+    participant = ticket.participant
+
+    get admin_order_path(ticket.order)
+
+    assert_response :success
+    assert_select "a[href=?]", admin_participant_ticket_path(ticket), text: "Participant ticket ##{ticket.id}"
+    assert_select "a[href=?]", admin_participant_path(participant), text: "#{participant.first_name} #{participant.last_name}"
+    assert_select "p", text: "#{CongressPassPricing.new(attendance_option: participant.attendance_option).attendance_label} · age #{participant.age_group}"
+    assert_select "a[href=?]", edit_admin_participant_path(participant), count: 0
+    assert_match(/Participant ticket ##{ticket.id}<\/a>\s+for\s+<a/, response.body)
+  end
+
   test "an admin can cancel an unpaid order while preserving history and recording the actor" do
     sign_in users(:admin)
     order = orders(:three)
