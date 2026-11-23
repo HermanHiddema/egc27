@@ -149,3 +149,4 @@ When the user expresses a new coding/UI/process preference in chat:
 - Close filter dropdowns when clicking outside; use a direct single-select filter for hostel Order status.
 - On hostel booking details, avoid repeating accommodation line items already shown in the price calculation.
 - Link hostel booking product names to their detail pages on Order details, showing the booking ID prefixed with #.
+- In hostel booking details, show Order status only when canceled, with bold red text; omit participants in the Order and payment section.

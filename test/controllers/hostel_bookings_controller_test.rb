@@ -364,3 +364,27 @@ class HostelBookingsControllerTest
     assert_select "a[href=?]", hostel_bookings_path
   end
 end
+
+class HostelBookingsControllerTest
+  test "order details show canceled status only and omit participants" do
+    booking = create_booking
+    participant = participants(:one).dup
+    participant.egd_pin = nil
+    participant.uuid = SecureRandom.uuid
+    participant.save!
+    booking.order.add_participant_ticket!(participant)
+    sign_in users(:one)
+
+    get hostel_booking_path(booking)
+    assert_response :success
+    assert_select "dt", text: "Order status", count: 0
+    assert_select "h3", text: "Participants in this order", count: 0
+
+    booking.order.submit!
+    booking.order.cancel!
+    get hostel_booking_path(booking)
+    assert_response :success
+    assert_select "dd.font-bold.text-red-700", text: "Order canceled"
+    assert_select "h3", text: "Participants in this order", count: 0
+  end
+end

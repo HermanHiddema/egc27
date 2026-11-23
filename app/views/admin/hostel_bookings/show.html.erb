@@ -7,6 +7,6 @@
       <p><%= eu_date_range(@hostel_booking.arrival_date, @hostel_booking.departure_date) %> · <%= pluralize(@hostel_booking.nights, "night") %> · <%= pluralize(@hostel_booking.beds, "bed") %></p>
       <div class="mt-6"><%= render "hostel_bookings/price_calculation", hostel_booking: @hostel_booking %></div>
     </div>
-    <%= render "hostel_bookings/order_details", booking: @hostel_booking, related_tickets: @related_tickets, admin: true %>
+    <%= render "hostel_bookings/order_details", booking: @hostel_booking, admin: true %>
   </div>
 </div>

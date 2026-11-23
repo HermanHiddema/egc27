@@ -26,7 +26,6 @@ class Admin::HostelBookingsController < ApplicationController
 
   def show
     @hostel_booking = HostelBooking.includes(:user, order: :payments).find(params[:id])
-    @related_tickets = ParticipantTicket.joins(:product).where(products: { order_id: @hostel_booking.order&.id }).includes(:participant)
   end
 
   private

@@ -65,7 +65,6 @@ class HostelBookingsController < ApplicationController
 
   def show
     @hostel_booking = current_user.hostel_bookings.includes(order: :payments).find(params[:id])
-    @related_tickets = ParticipantTicket.joins(:product).where(products: { order_id: @hostel_booking.order&.id }).includes(:participant)
     @payment = @hostel_booking.current_payment
     @payment&.refresh_from_mollie
   end

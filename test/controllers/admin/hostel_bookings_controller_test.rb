@@ -64,3 +64,27 @@ class Admin::HostelBookingsControllerTest
     assert_redirected_to root_path
   end
 end
+
+class Admin::HostelBookingsControllerTest
+  test "detail only shows order status for canceled orders and omits participants" do
+    booking = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), single_rooms: 1)
+    participant = participants(:one).dup
+    participant.egd_pin = nil
+    participant.uuid = SecureRandom.uuid
+    participant.save!
+    booking.order.add_participant_ticket!(participant)
+    sign_in users(:admin)
+
+    get admin_hostel_booking_path(booking)
+    assert_response :success
+    assert_select "dt", text: "Order status", count: 0
+    assert_select "h3", text: "Participants in this order", count: 0
+
+    booking.order.submit!
+    booking.order.cancel!
+    get admin_hostel_booking_path(booking)
+    assert_response :success
+    assert_select "dd.font-bold.text-red-700", text: "Order canceled"
+    assert_select "h3", text: "Participants in this order", count: 0
+  end
+end
