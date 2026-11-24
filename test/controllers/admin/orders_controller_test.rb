@@ -120,7 +120,10 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     get admin_orders_path
 
     assert_response :success
-    assert_select "section h2", text: "Orders still in draft"
+    assert_select "details:not([open])" do
+      assert_select "summary.text-xl.font-semibold", text: "Orders still in draft"
+      assert_select "a", text: /Order #/
+    end
     assert_select "section[aria-labelledby='submitted-orders-heading']" do
       assert_select "h2#submitted-orders-heading", text: "Submitted Orders"
       assert_select "form[action='#{admin_orders_path}'] input[name='status[]']"

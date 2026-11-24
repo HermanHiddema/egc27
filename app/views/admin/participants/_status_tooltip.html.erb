@@ -1,0 +1,6 @@
+<span class="relative inline-block normal-case tracking-normal" data-controller="dropdown">
+  <button type="button" class="inline-flex h-5 w-5 items-center justify-center rounded-full border border-neutral-500 text-xs" aria-label="About <%= title %>" aria-expanded="false" aria-controls="<%= id %>" aria-describedby="<%= id %>" data-dropdown-target="toggle">i</button>
+  <span id="<%= id %>" role="tooltip" data-dropdown-target="menu" class="absolute right-0 top-full z-30 mt-2 hidden w-80 max-w-[80vw] rounded-md border border-neutral-200 bg-white p-4 text-left text-sm font-normal text-neutral-800 shadow-lg">
+    <% paragraphs.each do |paragraph| %><span class="mb-2 block last:mb-0"><%= paragraph %></span><% end %>
+  </span>
+</span>

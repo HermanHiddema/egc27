@@ -1,6 +1,70 @@
 require "test_helper"
 
 class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
+test "admin status summaries, filters, tooltips and clear link agree" do
+  sign_in users(:admin)
+  get admin_participants_path
+  assert_select "a[href=?]", admin_participants_path, text: "Clear filters"
+  assert_select "#participant-status-help", text: /set manually by Admins/
+  assert_select "#payment-status-help", text: /refund, chargeback or cancellation/
+  ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.each_value { |label| assert_select "label", text: label }
+  %w[Visitor Unpaid Paid Reversed].each do |category|
+    get admin_participants_path(payment_status: [category])
+    assert_response :success
+    css_select("tbody tr td:nth-child(8) span").each { |badge| assert_equal category, badge.text.strip }
+  end
+  get admin_participants_path(payment_status: ["Visitor"], name: "no match")
+  assert_select "#participant-count", text: "0 participants"
+  get admin_participants_path
+  assert_select "#participant-count", text: "#{Participant.count} participants"
+end
+
+test "reversals override paid summaries and retain financial links" do
+  sign_in users(:admin)
+  participant = participants(:four)
+  payment = payments(:manual_payment)
+  [[:amount_refunded_cents, 1], [:amount_refunded_cents, payment.amount_cents], [:amount_charged_back_cents, 1]].each do |field, amount|
+    payment.update_columns({ amount_refunded_cents: 0, amount_charged_back_cents: 0 }.merge(field => amount))
+    get admin_participants_path(payment_status: ["Reversed"])
+    assert_select "tbody tr", text: /#{Regexp.escape(participant.first_name)}.*Reversed/m
+    get admin_participant_path(participant)
+    assert_select "dd span", text: "Reversed"
+    assert_select "a[href=?]", admin_payment_path(payment), count: 0
+    assert_select "a[href=?]", admin_order_path(payment.order), text: "Order ##{payment.order.id}"
+  end
+  payment.update_columns(amount_refunded_cents: 0, amount_charged_back_cents: 0)
+  payment.order.update_columns(cancelled_at: Time.current)
+  get admin_participants_path(payment_status: ["Reversed"])
+  assert_select "tbody tr", text: /#{Regexp.escape(participant.first_name)}.*Reversed/m
+end
+
+test "payment summary uses the current ticket ahead of canceled history and all payment attempts" do
+  sign_in users(:admin)
+  participant = participants(:one)
+  historical_ticket = participant_tickets(:two)
+  historical_ticket.update_columns(participant_id: participant.id)
+  orders(:two).update_columns(cancelled_at: Time.current)
+  get admin_participants_path(payment_status: ["Unpaid"])
+  assert_select "tbody tr", text: /Alice Smith.*Unpaid/m
+
+  paid_ticket = participant_tickets(:four)
+  paid_ticket.update_columns(participant_id: participant.id)
+  payments(:open_payment).update_columns(order_id: orders(:four).id, status: "failed")
+  get admin_participants_path(payment_status: ["Paid"])
+  assert_select "tbody tr", text: /Alice Smith.*Paid/m
+  get admin_participants_path(payment_status: ["Reversed"])
+  assert_select "tbody tr", text: /Alice Smith/, count: 0
+end
+
+test "visitors and players without tickets have distinct payment summaries" do
+  sign_in users(:admin)
+  participant_tickets(:three).update_columns(participant_id: participants(:one).id)
+  get admin_participants_path(payment_status: ["Unpaid"])
+  assert_select "tbody tr", text: /#{Regexp.escape(participants(:three).first_name)}.*Unpaid/m
+  get admin_participants_path(payment_status: ["Visitor"])
+  assert_select "tbody tr", text: /#{Regexp.escape(participants(:visitor_one).first_name)}.*Visitor/m
+end
+
   test "participant details preserve overview filters and link ticket orders" do
     sign_in users(:admin)
     participant = participants(:four)
@@ -86,8 +150,8 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_match "dave@example.org", response.body
     # Status badges for the three states (now the 7th column after strength was added)
     assert_select "tbody tr td:nth-child(7) span", text: "Unconfirmed"
-    assert_select "tbody tr td:nth-child(7) span", text: "User confirmed"
-    assert_select "tbody tr td:nth-child(7) span", text: "Paid"
+    assert_select "tbody tr td:nth-child(7) span", text: "Email confirmed"
+    assert_select "tbody tr td:nth-child(7) span", text: "Valid ticket"
     # Participant number (database id offset by 1000) in the first column
     assert_select "tbody tr td:nth-child(1)", text: (participants(:one).id + 1000).to_s
     # Edit link
@@ -313,11 +377,11 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path(status: "user_confirmed", sort: "status")
     assert_match "Bob Jones", response.body
     assert_match participants(:four).email, response.body
-    assert_select "tbody tr", text: /Bob Jones.*User confirmed/m
+    assert_select "tbody tr", text: /Bob Jones.*Email confirmed/m
 
     get admin_participants_path(sort: "status", direction: "asc")
     statuses = css_select("tbody tr td:nth-child(7)").map { |cell| cell.text.strip }
-    status_order = Participant::STATUSES.each_with_index.to_h { |status, i| [Participant.status_label(status), i] }
+    status_order = Participant::STATUSES.each_with_index.to_h { |status, i| [ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.fetch(status), i] }
     assert_equal statuses.sort_by { |status| status_order.fetch(status) }, statuses
   end
 
@@ -342,10 +406,10 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
       assert_redirected_to admin_participants_path
       assert_equal status, participant.reload.status
       get admin_participants_path(status: status)
-      expected_label = status == "participation_canceled" ? "Canceled" : Participant.status_label(status)
+      expected_label = ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.fetch(status)
       assert_select "tbody tr", text: /Bob Jones.*#{Regexp.escape(expected_label)}/m
       get edit_admin_participant_path(participant)
-      assert_select "select[name='participant[admin_status]'] option[selected]", text: Participant.status_label(status)
+      assert_select "select[name='participant[admin_status]'] option[selected]", text: ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.fetch(status)
       assert_match "Admin override", response.body
     end
     patch admin_participant_path(participant), params: { participant: { admin_status: "" } }
@@ -382,7 +446,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     get admin_participants_path(sort: "status", direction: "asc")
     assert_response :success
     statuses = css_select("tbody tr td:nth-child(7)").map { |td| td.text.strip }
-    order = Participant::STATUSES.each_with_index.to_h { |status, i| [Participant.status_label(status), i] }
+    order = Participant::STATUSES.each_with_index.to_h { |status, i| [ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.fetch(status), i] }
     assert_equal statuses.sort_by { |status| order.fetch(status) }, statuses
   end
 

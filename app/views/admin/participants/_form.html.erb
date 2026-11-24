@@ -11,10 +11,10 @@
   <% end %>
 
   <div class="mb-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
-    <p class="font-semibold">Participant status: <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= participant_status_badge_class(participant.status) %>"><%= participant.status_label %></span></p>
-    <p class="text-sm text-neutral-700"><%= participant.admin_status.present? ? "Admin override" : "Automatic status" %> · Automatic: <%= Participant.status_label(participant.automatic_status) %></p>
+    <p class="font-semibold">Participant status: <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium <%= participant_status_badge_class(participant.status) %>"><%= admin_participant_status_label(participant.status) %></span></p>
+    <p class="text-sm text-neutral-700"><%= participant.admin_status.present? ? "Admin override" : "Automatic status" %> · Automatic: <%= admin_participant_status_label(participant.automatic_status) %></p>
     <%= form.label :admin_status, "Admin status override", class: "block text-sm font-medium text-gray-700 mt-4 mb-2" %>
-    <%= form.select :admin_status, options_for_select([["Clear Admin override / Use automatic status", ""]] + Participant::ADMIN_STATUSES.map { |status| [Participant.status_label(status), status] }, participant.admin_status), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-white" %>
+    <%= form.select :admin_status, options_for_select([["Clear Admin override / Use automatic status", ""]] + Participant::ADMIN_STATUSES.map { |status| [admin_participant_status_label(status), status] }, participant.admin_status), {}, class: "w-full border border-gray-300 rounded-lg px-4 py-2 bg-white" %>
   </div>
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-6">

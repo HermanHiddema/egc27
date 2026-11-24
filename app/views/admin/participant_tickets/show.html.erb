@@ -4,7 +4,13 @@
     <h1 class="text-4xl font-bold mt-2 mb-8">Participant ticket #<%= @ticket.id %></h1>
     <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm space-y-3">
       <p><strong>Participant:</strong> <%= link_to [@ticket.participant.first_name, @ticket.participant.last_name].join(" "), admin_participant_path(@ticket.participant), class: "text-brand-blue-700 underline" %></p>
-      <p><strong>Admission:</strong> <%= @ticket.valid_admission? ? "Valid" : "Not valid" %></p>
+      <p><strong>Attendance:</strong> <%= @pricing.attendance_label.presence || "—" %></p>
+      <p><strong>Age group:</strong> <%= @ticket.participant.age_group.presence || "—" %></p>
+      <p><strong>Age discount:</strong> <%= number_to_percentage(@pricing.discount_fraction * 100, precision: 0) %></p>
+      <p><strong>Payment date:</strong> <%= @payment&.payment_date&.strftime("%d/%m/%Y") || "—" %></p>
+      <p><strong>Pricing period based on payment date:</strong> <%= @payment&.payment_date ? { special: "Special", early: "Early Bird", regular: "Regular", late: "Late Bird" }.fetch(@pricing.tier_name) : "—" %></p>
+      <p class="text-sm text-neutral-600">Attendance and age group reflect current participant details. Check the Order for the details at the time of ordering this Ticket</p>
+      <p><strong>Admission:</strong> <% if @ticket.valid_admission? %>Valid<% else %><strong class="text-red-700">Not valid</strong><% end %></p>
       <% if @ticket.invalidated_at %><p><strong>Invalidated:</strong> <%= l(@ticket.invalidated_at, format: :long) %></p><% end %>
       <% if @ticket.product&.order %>
         <p><strong>Order:</strong> <%= link_to "##{@ticket.product.order.id}", admin_order_path(@ticket.product.order), class: "text-brand-blue-700 underline" %></p>

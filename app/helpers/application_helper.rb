@@ -11,11 +11,34 @@ module ApplicationHelper
     "Shopping basket, #{product_count} #{'product'.pluralize(product_count)}"
   end
 
-  PARTICIPANT_PAYMENT_STATUSES = [
-    "Visitor", "No ticket", "Awaiting payment", "Payment open", "Payment pending",
-    "Payment failed", "Payment canceled", "Payment expired", "Order canceled", "Paid",
-    "Paid — refunded", "Paid — partially refunded", "Paid — chargeback"
-  ].freeze
+  ADMIN_PARTICIPANT_PAYMENT_STATUSES = %w[Visitor Unpaid Paid Reversed].freeze
+  ADMIN_PARTICIPANT_STATUS_LABELS = {
+    "unconfirmed" => "Unconfirmed", "user_confirmed" => "Email confirmed", "paid" => "Valid ticket",
+    "needs_refund" => "Refund pending", "ticket_refunded" => "Ticket refunded", "participation_canceled" => "Participation canceled"
+  }.freeze
+
+  def admin_participant_status_label(status)
+    ADMIN_PARTICIPANT_STATUS_LABELS.fetch(status)
+  end
+
+  def admin_participant_payment_status(participant)
+    label = if participant.visitor?
+      "Visitor"
+    elsif (order = participant.current_ticket&.product&.order || participant.latest_canceled_ticket_order)
+      payments = order.payments.to_a
+      if order.cancelled? || payments.any? { |payment| payment.paid? && (payment.refunded? || payment.charged_back?) }
+        "Reversed"
+      elsif payments.any?(&:paid?)
+        "Paid"
+      else
+        "Unpaid"
+      end
+    else
+      "Unpaid"
+    end
+    badge = label.in?(%w[Visitor Paid]) ? "border border-green-200 bg-green-50 text-green-800" : "border border-red-200 bg-red-50 text-red-800"
+    [label, badge]
+  end
 
   def participant_payment_status(participant)
     return ["Visitor", "border border-green-200 bg-green-50 text-green-800"] if participant.visitor?
