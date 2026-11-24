@@ -97,6 +97,11 @@ class HostelBooking < ApplicationRecord
   end
 
   def current_payment
+    if association(:order).loaded? && order&.association(:payments)&.loaded?
+      attempts = order.payments.sort_by { |payment| [payment.created_at, payment.id] }.reverse
+      return attempts.find(&:paid?) || attempts.first
+    end
+
     return payments.detect(&:paid?) ||
       payments.first if payments.loaded?
 

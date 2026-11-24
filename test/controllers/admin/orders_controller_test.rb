@@ -16,6 +16,16 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_match(/Participant ticket ##{ticket.id}<\/a>\s+for\s+<a/, response.body)
   end
 
+  test "order products link to hostel booking details" do
+    booking = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), single_rooms: 1)
+    sign_in users(:admin)
+
+    get admin_order_path(booking.order)
+
+    assert_response :success
+    assert_select "a[href=?]", admin_hostel_booking_path(booking), text: "Hostel booking ##{booking.id}"
+  end
+
   test "an admin can cancel an unpaid order while preserving history and recording the actor" do
     sign_in users(:admin)
     order = orders(:three)
@@ -26,6 +36,8 @@ class Admin::OrdersControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to admin_orders_path
     assert order.reload.cancelled?
+    get admin_order_path(order)
+    assert_select "span.border-red-200.bg-red-50.text-red-800", text: "Order canceled"
     assert ticket.reload.invalidated_at
     assert_equal payment, order.payments.reload.sole
     assert_equal users(:admin).id.to_s, order.versions.reload.last.whodunnit

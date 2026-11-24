@@ -1,0 +1,11 @@
+<% order = booking.order %>
+<div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+  <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Order and payment</h2>
+  <dl class="space-y-3 text-sm">
+    <div class="flex justify-between gap-4"><dt>Payment status</dt><dd><%= render "hostel_bookings/status", booking: booking %></dd></div>
+    <% if order %>
+      <div class="flex justify-between gap-4"><dt>Order</dt><dd><%= link_to "Order ##{order.id}", (admin ? admin_order_path(order) : (order.draft? ? order_path : submitted_order_path(order))), class: "text-brand-blue-700 underline" %></dd></div>
+      <% if order.cancelled? %><div class="flex justify-between gap-4"><dt>Order status</dt><dd class="font-bold text-red-700">Order canceled</dd></div><% end %>
+    <% end %>
+  </dl>
+</div>

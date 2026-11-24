@@ -244,7 +244,7 @@ Rails.application.routes.draw do
       resources :payments, only: [:new, :create], controller: "order_payments"
       resources :hostel_bookings, only: [:new, :create, :edit, :update], controller: "order_hostel_bookings"
     end
-    resources :hostel_bookings, only: [:index]
+    resources :hostel_bookings, only: [:index, :show]
     resources :settlements, only: [:index, :show] do
       collection do
         post :sync

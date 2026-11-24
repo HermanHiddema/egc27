@@ -69,6 +69,12 @@ module ApplicationHelper
     "border border-blue-200 bg-blue-50 text-blue-800"
   end
 
+  def order_detail_status_class(order)
+    return "border border-red-200 bg-red-50 text-red-800" if order.cancelled?
+
+    order_payment_status_class(order)
+  end
+
   def payment_status_badge_class(payment)
     return "border border-green-200 bg-green-50 text-green-800" if payment.paid?
     return "border border-red-200 bg-red-50 text-red-800" if payment.unsuccessful?
@@ -78,6 +84,24 @@ module ApplicationHelper
 
   def order_payment_action_label(action, first_payment: "Pay now")
     { pay: first_payment, retry: "Retry payment", resume: "Continue payment" }[action]
+  end
+
+  def hostel_booking_payment_status(booking)
+    payment = booking.current_payment
+    return ["Awaiting payment", "border border-blue-200 bg-blue-50 text-blue-800"] unless payment
+
+    if payment.paid?
+      label = if payment.charged_back?
+        "Paid — chargeback"
+      elsif payment.refunded?
+        payment.amount_refunded_cents.nil? || payment.amount_refunded_cents >= payment.amount_cents ? "Paid — refunded" : "Paid — partially refunded"
+      else
+        "Paid"
+      end
+      return [label, payment_status_badge_class(payment)]
+    end
+
+    ["Payment #{payment.status}", payment_status_badge_class(payment)]
   end
 
   def hostel_booking_options(booking)

@@ -1,0 +1,12 @@
+<div class="container-wide py-12">
+  <div class="flex justify-between items-center mb-8 gap-4"><h1 class="text-4xl font-bold">Hostel booking #<%= @hostel_booking.id %></h1><%= link_to "← Back to hostel bookings", admin_hostel_bookings_path(**@overview_params), class: "text-brand-blue-600 hover:text-brand-red-600" %></div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div class="bg-white border border-gray-200 rounded-lg p-8 shadow-sm">
+      <h2 class="text-xl font-semibold mb-6 text-brand-blue-900">Booking details</h2>
+      <p class="mb-3"><strong>User:</strong> <%= @hostel_booking.user.display_name %> (<%= @hostel_booking.user.email %>)</p>
+      <p><%= eu_date_range(@hostel_booking.arrival_date, @hostel_booking.departure_date) %> · <%= pluralize(@hostel_booking.nights, "night") %> · <%= pluralize(@hostel_booking.beds, "bed") %></p>
+      <div class="mt-6"><%= render "hostel_bookings/price_calculation", hostel_booking: @hostel_booking %></div>
+    </div>
+    <%= render "hostel_bookings/order_details", booking: @hostel_booking, admin: true %>
+  </div>
+</div>

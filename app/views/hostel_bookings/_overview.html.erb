@@ -1,0 +1,30 @@
+<% if bookings.any? %>
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-neutral-50"><tr>
+        <% columns = admin ? [["ID", "id"], ["Booked", "booked"], ["User", "user"], ["Summary", "arrival"], ["Amount", "amount"], ["Payment status", nil], ["Order", nil]] : [["ID", nil], ["Summary", nil], ["Amount", nil], ["Payment status", nil], ["Order", nil]] %>
+        <% columns.each do |label, sort| %>
+          <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
+            <% if sort %><%= link_to "#{label} #{sort_indicator(sort, @sort, @direction.to_sym)}", admin_hostel_bookings_path(**@overview_params.merge(sort: sort, direction: next_sort_direction(sort, @sort, @direction.to_sym))) %><% else %><%= label %><% end %>
+          </th>
+        <% end %>
+      </tr></thead>
+      <tbody class="divide-y divide-gray-100 bg-white">
+        <% bookings.each do |booking| %>
+          <% detail = admin ? admin_hostel_booking_path(booking, **@overview_params) : hostel_booking_path(booking) %>
+          <% order = booking.order %>
+          <tr class="cursor-pointer hover:bg-neutral-50" data-controller="clickable-row" data-clickable-row-url-value="<%= detail %>" data-action="click->clickable-row#navigate">
+            <td class="px-4 py-3 text-sm"><%= link_to "##{booking.id}", detail, class: "text-brand-blue-700 underline" %></td>
+            <% if admin %><td class="px-4 py-3 text-sm whitespace-nowrap"><%= eu_compact_datetime(booking.created_at) %></td><td class="px-4 py-3 text-sm"><%= booking.user.display_name %><br><span class="text-neutral-500"><%= booking.user.email %></span></td><% end %>
+            <td class="px-4 py-3 text-sm"><div class="max-w-xs"><div class="whitespace-nowrap"><%= eu_date_range(booking.arrival_date, booking.departure_date) %></div><p class="truncate text-neutral-600" title="<%= hostel_booking_options(booking) %>"><%= booking.nights %> nights · <%= hostel_booking_options(booking) %></p></div></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap"><%= booking.amount_formatted %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap"><%= render "hostel_bookings/status", booking: booking %></td>
+            <td class="px-4 py-3 text-sm whitespace-nowrap"><% if order %><%= link_to "Order ##{order.id}", (admin ? admin_order_path(order) : (order.draft? ? order_path : submitted_order_path(order))), class: "text-brand-blue-700 underline" %><% if order.cancelled? %><br><span class="text-red-700 font-semibold">Order canceled</span><% end %><% end %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div></div>
+<% else %>
+  <div class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm text-neutral-700">No hostel bookings found.</div>
+<% end %>
