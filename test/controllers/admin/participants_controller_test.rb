@@ -5,8 +5,8 @@ test "admin status summaries, filters, tooltips and clear link agree" do
   sign_in users(:admin)
   get admin_participants_path
   assert_select "a[href=?]", admin_participants_path, text: "Clear filters"
-  assert_select "#participant-status-help", text: /set manually by Admins/
-  assert_select "#payment-status-help", text: /refund, chargeback or cancellation/
+  assert_select "#participant-status-help[popover=auto]", text: /set manually by Admins/
+  assert_select "#payment-status-help[popover=auto]", text: /refund, chargeback or cancellation/
   ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.each_value { |label| assert_select "label", text: label }
   %w[Visitor Unpaid Paid Reversed].each do |category|
     get admin_participants_path(payment_status: [category])

@@ -17,7 +17,7 @@ class Admin::ParticipantTicketsControllerTest < ActionDispatch::IntegrationTest
       assert_select "p", text: /Age discount: 80%/
       assert_select "p", text: /Payment date: #{date.strftime('%d\/%m\/%Y')}/
       assert_select "p", text: /Pricing period based on payment date: #{label}/
-      assert_select "p", text: /Check the Order for the details at the time of ordering this Ticket/
+      assert_select "p", text: /Attendance, age group and age discount reflect current participant details and may differ from those used to set the stored ticket price/
     end
   end
 
