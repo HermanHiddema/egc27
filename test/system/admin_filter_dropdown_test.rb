@@ -6,6 +6,7 @@ class AdminFilterDropdownTest < ApplicationSystemTestCase
     fill_in "user_email", with: users(:admin).email
     fill_in "user_password", with: "password123"
     click_button "Sign in"
+    assert_selector "button[aria-controls='user-menu']"
 
     visit admin_hostel_bookings_path
     menu = find("details", text: "Payment status")

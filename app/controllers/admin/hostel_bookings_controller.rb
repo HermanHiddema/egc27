@@ -19,9 +19,9 @@ class Admin::HostelBookingsController < ApplicationController
     end
     @sort = @overview_params[:sort] || "booked"
     @direction = @overview_params[:direction] || "desc"
-    column = { "id" => "hostel_bookings.id", "booked" => "hostel_bookings.created_at", "user" => "users.email", "arrival" => "hostel_bookings.arrival_date", "amount" => "hostel_bookings.amount_cents" }.fetch(@sort)
+    column = { "id" => HostelBooking.arel_table[:id], "booked" => HostelBooking.arel_table[:created_at], "user" => User.arel_table[:email], "arrival" => HostelBooking.arel_table[:arrival_date], "amount" => HostelBooking.arel_table[:amount_cents] }.fetch(@sort)
     bookings = bookings.joins(:user) if @sort == "user"
-    @hostel_bookings = bookings.order(Arel.sql("#{column} #{@direction.upcase}, hostel_bookings.id DESC"))
+    @hostel_bookings = bookings.order(@direction == "asc" ? column.asc : column.desc, HostelBooking.arel_table[:id].desc)
   end
 
   def show

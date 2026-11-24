@@ -33,6 +33,36 @@ class Admin::HostelBookingsControllerTest < ActionDispatch::IntegrationTest
 end
 
 class Admin::HostelBookingsControllerTest
+  test "sorts bookings in both directions and rejects invalid sort input" do
+    first = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), single_rooms: 1)
+    second = users(:two).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 25), departure_date: Date.new(2027, 7, 27), double_rooms: 1)
+    first.update_columns(created_at: Time.utc(2027, 1, 1))
+    second.update_columns(created_at: Time.utc(2027, 1, 2))
+    sign_in users(:admin)
+
+    %w[id booked user arrival amount].each do |sort|
+      %w[asc desc].each do |direction|
+        get admin_hostel_bookings_path, params: { sort: sort, direction: direction }
+        assert_response :success
+        expected = [first, second].sort_by do |booking|
+          { "id" => booking.id, "booked" => booking.created_at, "user" => booking.user.email,
+            "arrival" => booking.arrival_date, "amount" => booking.amount_cents }.fetch(sort)
+        end
+        expected.reverse! if direction == "desc"
+        assert_equal expected.map { |booking| "##{booking.id}" }, css_select("tbody tr td:first-child a").map(&:text)
+      end
+    end
+
+    get admin_hostel_bookings_path, params: { sort: "id; DROP TABLE users", direction: "asc; DROP TABLE users" }
+    assert_response :success
+    assert_equal ["##{second.id}", "##{first.id}"], css_select("tbody tr td:first-child a").map(&:text)
+
+    second.update_column(:arrival_date, first.arrival_date)
+    get admin_hostel_bookings_path, params: { sort: "arrival", direction: "asc" }
+    assert_response :success
+    assert_equal ["##{second.id}", "##{first.id}"], css_select("tbody tr td:first-child a").map(&:text)
+  end
+
   test "combined filters use effective payment status and order cancellation independently" do
     paid = users(:one).hostel_bookings.create!(arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26), single_rooms: 1)
     paid.order.submit!
