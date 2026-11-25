@@ -1,69 +1,71 @@
 require "test_helper"
 
 class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
-test "admin status summaries, filters, tooltips and clear link agree" do
-  sign_in users(:admin)
-  get admin_participants_path
-  assert_select "a[href=?]", admin_participants_path, text: "Clear filters"
-  assert_select "#participant-status-help[popover=auto]", text: /set manually by Admins/
-  assert_select "#payment-status-help[popover=auto]", text: /refund, chargeback or cancellation/
-  ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.each_value { |label| assert_select "label", text: label }
-  %w[Visitor Unpaid Paid Reversed].each do |category|
-    get admin_participants_path(payment_status: [category])
-    assert_response :success
-    css_select("tbody tr td:nth-child(8) span").each { |badge| assert_equal category, badge.text.strip }
+  test "admin status summaries, filters, tooltips and clear link agree" do
+    sign_in users(:admin)
+    get admin_participants_path
+    assert_select "a[href=?]", admin_participants_path, text: "Clear filters"
+    assert_select "button[popovertarget='participant-status-help'][data-action='click->status-tooltip#toggle']"
+    assert_select "button[popovertarget='payment-status-help'][data-action='click->status-tooltip#toggle']"
+    assert_select "#participant-status-help[popover=auto]", text: /set manually by Admins/
+    assert_select "#payment-status-help[popover=auto]", text: /refund, chargeback or cancellation/
+    ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.each_value { |label| assert_select "label", text: label }
+    %w[Visitor Unpaid Paid Reversed].each do |category|
+      get admin_participants_path(payment_status: [category])
+      assert_response :success
+      css_select("tbody tr td:nth-child(8) span").each { |badge| assert_equal category, badge.text.strip }
+    end
+    get admin_participants_path(payment_status: ["Visitor"], name: "no match")
+    assert_select "#participant-count", text: "0 participants"
+    get admin_participants_path
+    assert_select "#participant-count", text: "#{Participant.count} participants"
   end
-  get admin_participants_path(payment_status: ["Visitor"], name: "no match")
-  assert_select "#participant-count", text: "0 participants"
-  get admin_participants_path
-  assert_select "#participant-count", text: "#{Participant.count} participants"
-end
 
-test "reversals override paid summaries and retain financial links" do
-  sign_in users(:admin)
-  participant = participants(:four)
-  payment = payments(:manual_payment)
-  [[:amount_refunded_cents, 1], [:amount_refunded_cents, payment.amount_cents], [:amount_charged_back_cents, 1]].each do |field, amount|
-    payment.update_columns({ amount_refunded_cents: 0, amount_charged_back_cents: 0 }.merge(field => amount))
+  test "reversals override paid summaries and retain financial links" do
+    sign_in users(:admin)
+    participant = participants(:four)
+    payment = payments(:manual_payment)
+    [[:amount_refunded_cents, 1], [:amount_refunded_cents, payment.amount_cents], [:amount_charged_back_cents, 1]].each do |field, amount|
+      payment.update_columns({ amount_refunded_cents: 0, amount_charged_back_cents: 0 }.merge(field => amount))
+      get admin_participants_path(payment_status: ["Reversed"])
+      assert_select "tbody tr", text: /#{Regexp.escape(participant.first_name)}.*Reversed/m
+      get admin_participant_path(participant)
+      assert_select "dd span", text: "Reversed"
+      assert_select "a[href=?]", admin_payment_path(payment), count: 0
+      assert_select "a[href=?]", admin_order_path(payment.order), text: "Order ##{payment.order.id}"
+    end
+    payment.update_columns(amount_refunded_cents: 0, amount_charged_back_cents: 0)
+    payment.order.update_columns(cancelled_at: Time.current)
     get admin_participants_path(payment_status: ["Reversed"])
     assert_select "tbody tr", text: /#{Regexp.escape(participant.first_name)}.*Reversed/m
-    get admin_participant_path(participant)
-    assert_select "dd span", text: "Reversed"
-    assert_select "a[href=?]", admin_payment_path(payment), count: 0
-    assert_select "a[href=?]", admin_order_path(payment.order), text: "Order ##{payment.order.id}"
   end
-  payment.update_columns(amount_refunded_cents: 0, amount_charged_back_cents: 0)
-  payment.order.update_columns(cancelled_at: Time.current)
-  get admin_participants_path(payment_status: ["Reversed"])
-  assert_select "tbody tr", text: /#{Regexp.escape(participant.first_name)}.*Reversed/m
-end
 
-test "payment summary uses the current ticket ahead of canceled history and all payment attempts" do
-  sign_in users(:admin)
-  participant = participants(:one)
-  historical_ticket = participant_tickets(:two)
-  historical_ticket.update_columns(participant_id: participant.id)
-  orders(:two).update_columns(cancelled_at: Time.current)
-  get admin_participants_path(payment_status: ["Unpaid"])
-  assert_select "tbody tr", text: /Alice Smith.*Unpaid/m
+  test "payment summary uses the current ticket ahead of canceled history and all payment attempts" do
+    sign_in users(:admin)
+    participant = participants(:one)
+    historical_ticket = participant_tickets(:two)
+    historical_ticket.update_columns(participant_id: participant.id)
+    orders(:two).update_columns(cancelled_at: Time.current)
+    get admin_participants_path(payment_status: ["Unpaid"])
+    assert_select "tbody tr", text: /Alice Smith.*Unpaid/m
 
-  paid_ticket = participant_tickets(:four)
-  paid_ticket.update_columns(participant_id: participant.id)
-  payments(:open_payment).update_columns(order_id: orders(:four).id, status: "failed")
-  get admin_participants_path(payment_status: ["Paid"])
-  assert_select "tbody tr", text: /Alice Smith.*Paid/m
-  get admin_participants_path(payment_status: ["Reversed"])
-  assert_select "tbody tr", text: /Alice Smith/, count: 0
-end
+    paid_ticket = participant_tickets(:four)
+    paid_ticket.update_columns(participant_id: participant.id)
+    payments(:open_payment).update_columns(order_id: orders(:four).id, status: "failed")
+    get admin_participants_path(payment_status: ["Paid"])
+    assert_select "tbody tr", text: /Alice Smith.*Paid/m
+    get admin_participants_path(payment_status: ["Reversed"])
+    assert_select "tbody tr", text: /Alice Smith/, count: 0
+  end
 
-test "visitors and players without tickets have distinct payment summaries" do
-  sign_in users(:admin)
-  participant_tickets(:three).update_columns(participant_id: participants(:one).id)
-  get admin_participants_path(payment_status: ["Unpaid"])
-  assert_select "tbody tr", text: /#{Regexp.escape(participants(:three).first_name)}.*Unpaid/m
-  get admin_participants_path(payment_status: ["Visitor"])
-  assert_select "tbody tr", text: /#{Regexp.escape(participants(:visitor_one).first_name)}.*Visitor/m
-end
+  test "visitors and players without tickets have distinct payment summaries" do
+    sign_in users(:admin)
+    participant_tickets(:three).update_columns(participant_id: participants(:one).id)
+    get admin_participants_path(payment_status: ["Unpaid"])
+    assert_select "tbody tr", text: /#{Regexp.escape(participants(:three).first_name)}.*Unpaid/m
+    get admin_participants_path(payment_status: ["Visitor"])
+    assert_select "tbody tr", text: /#{Regexp.escape(participants(:visitor_one).first_name)}.*Visitor/m
+  end
 
   test "participant details preserve overview filters and link ticket orders" do
     sign_in users(:admin)

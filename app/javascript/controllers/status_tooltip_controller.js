@@ -16,7 +16,8 @@ export default class extends Controller {
     }
   }
 
-  toggle() {
+  toggle(event) {
+    event.preventDefault()
     this.cancelClose()
     if (this.popupTarget.matches(":popover-open")) {
       if (this.openedByHover) {
