@@ -8,7 +8,7 @@ class Admin::ParticipantsControllerTest < ActionDispatch::IntegrationTest
     assert_select "button[popovertarget='participant-status-help'][data-action='click->status-tooltip#toggle']"
     assert_select "button[popovertarget='payment-status-help'][data-action='click->status-tooltip#toggle']"
     assert_select "#participant-status-help[popover=auto]", text: /set manually by Admins/
-    assert_select "#payment-status-help[popover=auto]", text: /refund, chargeback or cancellation/
+    assert_select "#payment-status-help[popover=auto]", text: /Reversed: admission was cancelled or refunded\./
     ApplicationHelper::ADMIN_PARTICIPANT_STATUS_LABELS.each_value { |label| assert_select "label", text: label }
     %w[Visitor Unpaid Paid Reversed].each do |category|
       get admin_participants_path(payment_status: [category])
