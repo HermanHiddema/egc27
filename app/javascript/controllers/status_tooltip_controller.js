@@ -42,6 +42,7 @@ export default class extends Controller {
   }
 
   scheduleClose() {
+    this.cancelClose()
     if (this.openedByHover) this.closeTimer = setTimeout(() => this.popupTarget.hidePopover(), 300)
   }
 
