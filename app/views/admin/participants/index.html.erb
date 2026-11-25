@@ -17,12 +17,13 @@
         <label for="type" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Type</label>
         <%= select_tag :type, options_for_select([["All types", ""], ["Player", "player"], ["Visitor", "visitor"]], @type_filter), class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { action: "change->auto-submit#submit" } %>
       </div>
-      <%= render "status_filter", name: "status", title: "Participant status", options: Participant::STATUSES.map { |status| [Participant.status_label(status), status] }, selected: @status_filters %>
-      <%= render "status_filter", name: "payment_status", title: "Payment status", options: ApplicationHelper::PARTICIPANT_PAYMENT_STATUSES.map { |status| [status, status] }, selected: @payment_status_filters %>
+      <%= render "status_filter", name: "status", title: "Participant status", options: Participant::STATUSES.map { |status| [admin_participant_status_label(status), status] }, selected: @status_filters %>
+      <%= render "status_filter", name: "payment_status", title: "Payment status", options: ApplicationHelper::ADMIN_PARTICIPANT_PAYMENT_STATUSES.map { |status| [status, status] }, selected: @payment_status_filters %>
       <div>
         <label for="name" class="block text-xs font-semibold uppercase tracking-wide text-neutral-700 mb-1">Name</label>
         <%= search_field_tag :name, @name_filter, placeholder: "Filter by name", class: "w-full rounded-md border border-neutral-300 bg-white px-3 py-2 text-sm text-neutral-900", data: { auto_submit_target: "name", action: "input->auto-submit#submitAfterDelay" } %>
       </div>
+      <%= link_to "Clear filters", admin_participants_path, class: "text-brand-blue-700 underline self-center" %>
       <%= hidden_field_tag :sort, @sort %>
       <%= hidden_field_tag :direction, @direction %>
       <noscript><%= submit_tag "Filter", class: "btn-primary" %></noscript>
@@ -59,8 +60,11 @@
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Type</th>
               <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">
                 <%= link_to "Participant status #{sort_indicator("status", @sort, @direction)}".strip, admin_participants_path(**filters, sort: "status", direction: next_sort_direction("status", @sort, @direction)), class: "hover:text-brand-red-700 transition" %>
+                <%= render "status_tooltip", id: "participant-status-help", title: "Participant status", paragraphs: ["Indicates registration status", "Unconfirmed: The registering User has not confirmed their email.", "Email confirmed: The registering User has confirmed their email, but this Participant does not yet have a valid paid Ticket.", "Valid ticket: Admission for this Participant has been paid.", "Refund and cancellation-related Participant statuses are set manually by Admins."] %>
               </th>
-              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment status</th>
+              <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-neutral-700">Payment status
+                <%= render "status_tooltip", id: "payment-status-help", title: "Payment status", paragraphs: ["Shows a simplified financial status for this Participant's admission.", "Visitor: No admission payment is required.", "Unpaid: Admission is not currently recorded as paid.", "Paid: Admission has been paid.", "Reversed: admission was cancelled or refunded."] %>
+              </th>
               <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-neutral-700">Actions</th>
             </tr>
           </thead>
@@ -75,9 +79,9 @@
                 <td class="px-4 py-3 text-sm text-neutral-700"><%= participant.participant_type&.capitalize %></td>
                 <td class="px-4 py-3 text-sm">
                   <% status = participant.status %>
-                  <span class="inline-flex items-center rounded px-2 py-1 font-semibold <%= participant_status_badge_class(status) %>"><%= status == "participation_canceled" ? "Canceled" : participant.status_label %></span>
+                  <span class="inline-flex items-center rounded px-2 py-1 font-semibold <%= participant_status_badge_class(status) %>"><%= admin_participant_status_label(status) %></span>
                 </td>
-                <td class="px-4 py-3 text-sm whitespace-nowrap"><%= render "participants/payment_status", participant: participant %></td>
+                <td class="px-4 py-3 text-sm whitespace-nowrap"><%= render "admin/participants/payment_status", participant: participant %></td>
                 <td class="px-4 py-3 text-sm text-right">
                   <div class="flex flex-col items-end gap-1">
                     <%= link_to "Edit", edit_admin_participant_path(participant, **@overview_params), class: "text-brand-red-600 hover:text-brand-red-700 transition" %>

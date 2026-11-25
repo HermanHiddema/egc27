@@ -6,9 +6,10 @@
   </div>
 
   <% if @draft_orders.any? %>
-    <section class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6"><h2 class="text-xl font-semibold mb-4">Orders still in draft</h2>
-      <ul class="space-y-3"><% @draft_orders.each do |draft| %><li class="flex flex-wrap items-center justify-between gap-3"><span><%= link_to "Order ##{draft.id} · #{draft.user.display_name}", edit_admin_order_path(draft), class: "text-brand-blue-700 underline" %> · <%= Settlement.format_cents(draft.display_total_cents) %></span><%= render "admin/orders/delete_draft", order: draft, compact: true %></li><% end %></ul>
-    </section>
+    <details class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+      <summary class="cursor-pointer text-xl font-semibold">Orders still in draft</summary>
+      <ul class="mt-4 space-y-3"><% @draft_orders.each do |draft| %><li class="flex flex-wrap items-center justify-between gap-3"><span><%= link_to "Order ##{draft.id} · #{draft.user.display_name}", edit_admin_order_path(draft), class: "text-brand-blue-700 underline" %> · <%= Settlement.format_cents(draft.display_total_cents) %></span><%= render "admin/orders/delete_draft", order: draft, compact: true %></li><% end %></ul>
+    </details>
   <% end %>
 
   <% if @deleted_draft_versions.any? %>

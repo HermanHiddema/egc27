@@ -128,7 +128,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - For Admin Order cancellation, show the Order ID and nonzero counts of participant tickets and hostel bookings, explain that participant registrations are kept, and label the choices “OK” and “Do not cancel”.
 - Display all date selectors in dd/mm/yyyy format, including date-time forms and date dropdowns; keep calendar selection available and submit unambiguous dates.
 - In Admin Orders, label the draft section “Orders still in draft”, group filters within “Submitted Orders”, and preserve sorting and status filters when returning from Order details.
-- Use matching heading sizes for the draft and submitted sections of the Admin Orders overview, consistent with other Admin pages.
+- On the Admin Orders overview, show Orders still in draft as a collapsed disclosure with the same heading size as Deleted draft Orders.
 
 - Derive Participant status from User confirmation and valid paid tickets; keep refund and cancellation statuses as Admin-controlled overrides independent of financial records.
 - Label participant status columns “Participant status”; in the Admin participants overview show a separate ticket payment status, shorten “Participation canceled” to “Canceled”, and stack participant actions vertically and outline the Add payment button.
@@ -151,3 +151,8 @@ When the user expresses a new coding/UI/process preference in chat:
 - Link hostel booking product names to their detail pages on Order details, showing the booking ID prefixed with #.
 - In hostel booking details, show Order status only when canceled, with bold red text; omit participants in the Order and payment section.
 - Show canceled Order status badges in red on user and admin Order detail pages, matching canceled payments.
+
+- In Admin participant views, use the simplified participant and payment status labels and filters; keep user-facing status labels independent.
+- On Admin participant details, show Order and Ticket links; access Payments through the Order.
+- On Admin ticket details, show attendance, age group, discount, payment date and the pricing period inferred from that date; distinguish current participant details from historical pricing.
+- On Admin ParticipantTicket details, display invalid admission in bold red.

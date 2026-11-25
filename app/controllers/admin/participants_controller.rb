@@ -61,7 +61,7 @@ class Admin::ParticipantsController < ApplicationController
     @participants = sorted_participants(participants).to_a
     @participants.select! { |participant| @status_filters.include?(participant.status) } if @status_filters.any?
     if @payment_status_filters.any?
-      @participants.select! { |participant| @payment_status_filters.include?(helpers.participant_payment_status(participant).first) }
+      @participants.select! { |participant| @payment_status_filters.include?(helpers.admin_participant_payment_status(participant).first) }
     end
     if @sort == "status"
       @participants.sort_by! do |participant|
@@ -140,7 +140,7 @@ class Admin::ParticipantsController < ApplicationController
 
   def set_overview_params
     statuses = Array(params[:status]).select { |value| value.is_a?(String) && STATUS_FILTERS.include?(value) }.uniq
-    payment_statuses = Array(params[:payment_status]).select { |value| value.is_a?(String) && ApplicationHelper::PARTICIPANT_PAYMENT_STATUSES.include?(value) }.uniq
+    payment_statuses = Array(params[:payment_status]).select { |value| value.is_a?(String) && ApplicationHelper::ADMIN_PARTICIPANT_PAYMENT_STATUSES.include?(value) }.uniq
     @overview_params = {
       country: params[:country].to_s.upcase.presence,
       type: PARTICIPANT_TYPES.include?(params[:type]) ? params[:type] : nil,

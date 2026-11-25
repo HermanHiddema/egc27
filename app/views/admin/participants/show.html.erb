@@ -11,8 +11,8 @@
     <section class="bg-white border border-gray-200 rounded-lg p-6 shadow-sm mb-6">
       <h2 class="text-xl font-semibold mb-4">Personal details</h2>
       <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-        <div><dt class="font-semibold">Participant status</dt><dd><span class="inline-flex rounded px-2 py-1 font-semibold <%= participant_status_badge_class(@participant.status) %>"><%= @participant.status == "participation_canceled" ? "Canceled" : @participant.status_label %></span></dd></div>
-        <div><dt class="font-semibold">Payment status</dt><dd><%= render "participants/payment_status", participant: @participant %></dd></div>
+        <div><dt class="font-semibold">Participant status</dt><dd><span class="inline-flex rounded px-2 py-1 font-semibold <%= participant_status_badge_class(@participant.status) %>"><%= admin_participant_status_label(@participant.status) %></span></dd></div>
+        <div><dt class="font-semibold">Payment status</dt><dd><%= render "admin/participants/payment_status", participant: @participant %></dd></div>
         <div><dt class="font-semibold">Participant number</dt><dd><%= @participant.participant_number %></dd></div>
         <div><dt class="font-semibold">Name</dt><dd><%= [@participant.first_name, @participant.last_name].join(" ") %></dd></div>
         <div><dt class="font-semibold">Email</dt><dd><%= @participant.email %></dd></div>
@@ -47,7 +47,6 @@
               <li class="flex flex-wrap items-center gap-3">
                 <%= link_to "Order ##{order.id}", admin_order_path(order), class: "text-brand-blue-700 underline" %>
                 <span>(<%= link_to "Ticket ##{ticket.id}", admin_participant_ticket_path(ticket), class: "text-brand-blue-700 underline" %>)</span>
-                <span class="inline-flex rounded px-2 py-1 text-sm font-semibold <%= order_payment_status_class(order) %>"><%= order_payment_status(order) %></span>
                 <% if ticket.invalidated_at %><span class="text-sm text-neutral-600">Ticket invalidated</span><% end %>
               </li>
             <% end %>
