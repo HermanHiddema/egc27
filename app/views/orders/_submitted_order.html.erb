@@ -2,7 +2,7 @@
 <div class="container-wide py-8 lg:py-12">
   <div class="flex flex-wrap justify-between items-center gap-4 mb-8">
     <div>
-      <p class="text-sm"><%= link_to "Past Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %></p>
+      <p class="text-sm"><%= link_to "My Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %></p>
       <h1 class="text-4xl font-bold mt-2">Order <%= @order.id %></h1>
       <p class="mt-2 text-neutral-600">Created <%= l(@order.created_at.to_date, format: :long) %></p>
       <% if @order.cancelled_at %><p class="mt-1 text-neutral-600">Cancelled <%= l(@order.cancelled_at, format: :long) %></p><% end %>
@@ -38,29 +38,16 @@
     </section>
 
     <section class="bg-white border border-gray-200 rounded-lg p-5 md:p-7 shadow-sm">
-      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Payment history</h2>
-      <% if @payments.any? %>
-        <ul class="space-y-4">
-          <% @payments.each do |payment| %>
-            <li class="border-b border-gray-100 pb-3">
-              <div class="flex justify-between gap-3 font-medium"><span><%= l(payment.created_at.to_date, format: :long) %></span><span>€ <%= format("%.2f", payment.amount_cents / 100.0) %></span></div>
-              <p class="text-sm text-neutral-600"><%= payment.payment_method_label || payment.provider_label %> · <%= payment.status.humanize %></p>
-              <% if payment.refunded? %><p class="text-sm text-neutral-600">Refunded: <%= payment.amount_refunded_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_refunded_cents / 100.0)}" %></p><% end %>
-              <% if payment.charged_back? %><p class="text-sm text-neutral-600">Chargeback: <%= payment.amount_charged_back_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_charged_back_cents / 100.0)}" %></p><% end %>
-            </li>
-          <% end %>
-        </ul>
-      <% else %>
-        <p class="text-neutral-600">No payment attempts have been made.</p>
-      <% end %>
+      <h2 class="text-xl font-semibold text-brand-blue-900 mb-4">Payment</h2>
+      <%= render "orders/payment_summary", order: @order, large_primary: true, show_history: true %>
       <% payment_action = @order.payment_action %>
       <% if payment_action.in?([:pay, :retry, :resume]) %>
-        <%= button_to order_payment_action_label(payment_action, first_payment: "Proceed to payment"), pay_submitted_order_path(@order), method: :post, params: { confirmed_total_cents: @order.total_cents }, class: "w-full btn-primary mt-5", data: { turbo: false } %>
+        <%= button_to order_payment_action_label(payment_action), pay_submitted_order_path(@order), method: :post, params: { confirmed_total_cents: @order.total_cents }, class: "w-full btn-primary mt-5", data: { turbo: false } %>
         <% if @show_simulation_controls %>
           <%= render "simulation_controls", url: pay_submitted_order_path(@order), request_params: { confirmed_total_cents: @order.total_cents } %>
         <% end %>
       <% elsif payment_action == :pending %>
-        <p class="mt-5 rounded bg-amber-50 p-3 text-sm text-amber-900">A payment is in progress. You can check back here for its status.</p>
+        <p class="mt-5 rounded bg-amber-50 p-3 text-sm text-amber-900">Payment processing. You can check back here for its status.</p>
       <% end %>
     </section>
   </div>

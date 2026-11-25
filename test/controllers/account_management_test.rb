@@ -6,11 +6,11 @@ class AccountManagementTest < ActionDispatch::IntegrationTest
 
     get root_path
     assert_response :success
-    assert_select "button[aria-controls='user-menu'][aria-expanded='false'][aria-haspopup='true']", text: users(:one).display_name
+    assert_select "button[aria-controls='user-menu'][aria-expanded='false'][aria-haspopup='true'] span.header-user-name[title=?]", users(:one).display_name, text: users(:one).display_name
     assert_select "a", text: "Account"
     assert_select "a", text: "Admin", count: 0
     assert_select "a", text: "Users", count: 0
-    assert_select "button", text: "Sign out"
+    assert_select "button.cursor-pointer", text: "Sign out"
   end
 
   test "admin sees admin link in username dropdown" do

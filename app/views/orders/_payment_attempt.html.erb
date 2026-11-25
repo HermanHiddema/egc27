@@ -1,0 +1,4 @@
+<div class="font-medium"><%= payment.status.humanize %> · € <%= format("%.2f", payment.amount_cents / 100.0) %></div>
+<p class="text-neutral-600"><%= [payment.provider_label, payment.payment_method_label].compact.join(" · ") %> · <%= l(payment.payment_date || payment.created_at.to_date, format: :long) %></p>
+<% if payment.refunded? %><p>Refunded: <%= payment.amount_refunded_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_refunded_cents / 100.0)}" %></p><% end %>
+<% if payment.charged_back? %><p>Chargeback: <%= payment.amount_charged_back_cents.nil? ? "amount unknown" : "€ #{format('%.2f', payment.amount_charged_back_cents / 100.0)}" %></p><% end %>

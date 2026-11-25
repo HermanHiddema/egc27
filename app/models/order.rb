@@ -209,6 +209,10 @@ class Order < ApplicationRecord
     cancelled? || payments.completed.exists?
   end
 
+  def outstanding_payment?
+    submitted? && payment_action != :closed
+  end
+
   # Open Mollie checkouts can be resumed; other active payments must finish first.
   def payment_action
     if association(:payments).loaded?

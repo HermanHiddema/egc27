@@ -1,0 +1,16 @@
+<% payments = order.payments.to_a.sort_by { |payment| [payment.created_at, payment.id] }.reverse %>
+<% primary = payments.find(&:paid?) || payments.first %>
+<div class="mt-4 text-sm">
+  <% if primary %>
+    <div class="<%= local_assigns[:large_primary] ? "text-base" : "" %>"><%= render "orders/payment_attempt", payment: primary %></div>
+    <% previous = payments - [primary] %>
+    <% if local_assigns[:show_history] && previous.any? %>
+      <details class="mt-3 border-t border-gray-200 pt-3 text-neutral-600">
+        <summary class="cursor-pointer font-medium">Previous payment attempts</summary>
+        <div class="mt-2 space-y-3"><% previous.each do |payment| %><div class="border-l-2 border-gray-200 pl-3"><%= render "orders/payment_attempt", payment: payment %></div><% end %></div>
+      </details>
+    <% end %>
+  <% else %>
+    <p class="text-neutral-600 <%= local_assigns[:large_primary] ? "text-base" : "" %>">Awaiting payment. No payment attempts have been made.</p>
+  <% end %>
+</div>

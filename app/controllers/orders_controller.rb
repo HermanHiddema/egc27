@@ -14,6 +14,7 @@ class OrdersController < ApplicationController
 
   def index
     @orders = current_user.orders.submitted.includes(:payments, products: :productable).order(created_at: :desc, id: :desc).to_a
+    @orders.select!(&:outstanding_payment?) if params[:outstanding] == "1"
     preload_order_display_associations(@orders)
     @display_totals = @orders.to_h do |order|
       total = if order.payment_action.in?([:pay, :retry])
@@ -30,6 +31,11 @@ class OrdersController < ApplicationController
       order.id if last_payment && last_payment.amount_cents != @display_totals[order.id]
     end
     @show_simulation_controls = mollie_simulation_enabled?
+  end
+
+  def dismiss_outstanding_notification
+    cookies.permanent.signed["outstanding_orders_#{current_user.id}"] = outstanding_orders.map(&:id)
+    redirect_back fallback_location: submitted_orders_path(outstanding: 1), status: :see_other
   end
 
   def new_participant

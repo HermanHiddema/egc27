@@ -42,7 +42,7 @@ function scheduleWithAnimationFrame(callback) {
 }
 
 export default class extends Controller {
-  static targets = ["nav", "logo", "title"]
+  static targets = ["nav", "logo", "title", "brand", "actions", "registerNow", "userName"]
   static values = {
     threshold: { type: Number, default: 24 },
     hysteresis: { type: Number, default: 16 },
@@ -62,6 +62,14 @@ export default class extends Controller {
     window.addEventListener("scroll", this.scheduledOnScroll, { passive: true })
     window.addEventListener("resize", this.onResize, { passive: true })
     this.onScroll({ force: true })
+    this.updateRegisterLabel = this.updateRegisterLabel.bind(this)
+    this.scheduleRegisterLabel = scheduleWithAnimationFrame(this.updateRegisterLabel)
+    this.headerObserver = new ResizeObserver(this.scheduleRegisterLabel)
+    this.headerObserver.observe(this.navTarget)
+    this.headerObserver.observe(this.brandTarget)
+    this.element.addEventListener("transitionend", this.scheduleRegisterLabel)
+    document.fonts?.ready.then(this.scheduleRegisterLabel)
+    this.updateRegisterLabel()
   }
 
   disconnect() {
@@ -69,6 +77,9 @@ export default class extends Controller {
     window.removeEventListener("resize", this.onResize)
     clearTimeout(this.resizeTimer)
     this.scheduledOnScroll.cancel()
+    this.headerObserver.disconnect()
+    this.element.removeEventListener("transitionend", this.scheduleRegisterLabel)
+    this.scheduleRegisterLabel.cancel()
   }
 
   onResize() {
@@ -77,7 +88,19 @@ export default class extends Controller {
       const wasMobile = this.isMobile
       this.isMobile = window.innerWidth < LG_BREAKPOINT
       this.onScroll({ force: wasMobile !== this.isMobile })
+      this.updateRegisterLabel()
     }, RESIZE_DEBOUNCE_MS)
+  }
+
+  updateRegisterLabel() {
+    if (!this.hasRegisterNowTarget) return
+
+    // Measure the full label first, so it can return when space becomes available.
+    this.actionsTarget.classList.remove("header-register-short")
+    const nameIsTruncated = this.hasUserNameTarget && this.userNameTarget.scrollWidth > this.userNameTarget.clientWidth
+    const actionsOverflow = this.actionsTarget.scrollWidth > this.actionsTarget.clientWidth
+    const brandOverlaps = this.brandTarget.getBoundingClientRect().right > this.actionsTarget.getBoundingClientRect().left
+    this.actionsTarget.classList.toggle("header-register-short", nameIsTruncated || actionsOverflow || brandOverlaps)
   }
 
   onScroll({ force = false } = {}) {

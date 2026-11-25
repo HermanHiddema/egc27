@@ -9,6 +9,12 @@ class ApplicationController < ActionController::Base
   before_action :set_navigation_menus
   before_action :set_paper_trail_whodunnit
 
+  helper_method :outstanding_orders
+
+  def outstanding_orders
+    @outstanding_orders ||= current_user.orders.submitted.where(cancelled_at: nil).includes(:payments).to_a.select(&:outstanding_payment?)
+  end
+
   protected
 
   # After signing in, send users to their own registrations by default, which is the most
