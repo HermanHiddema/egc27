@@ -488,6 +488,9 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     )
   end
   test "outstanding notification can be dismissed without hiding badges and returns for new orders" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
     sign_in users(:one)
     get submitted_orders_path(outstanding: 1)
     assert_response :success
@@ -503,6 +506,9 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference ["Order.count", "Payment.count"] do
       post dismiss_outstanding_notification_path
     end
+    assert_equal [orders(:one).id, orders(:three).id].sort,
+      Rails.cache.read("users/#{users(:one).id}/dismissed_outstanding_order_ids").sort
+    assert_no_match(/outstanding_orders_#{users(:one).id}/, response.headers["Set-Cookie"].to_s)
     get submitted_orders_path
     assert_select "a", text: "Review outstanding Orders", count: 0
     assert_select '#user-menu [aria-label*="outstanding Order"]'
@@ -511,6 +517,8 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     Payment.where(order_id: orders(:two).id).update_all(status: "failed")
     get submitted_orders_path
     assert_select "a", text: "Review outstanding Orders"
+  ensure
+    Rails.cache = original_cache
   end
 
   test "paid orders have no notification and payment summary retains reversals" do

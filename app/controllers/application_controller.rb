@@ -9,13 +9,25 @@ class ApplicationController < ActionController::Base
   before_action :set_navigation_menus
   before_action :set_paper_trail_whodunnit
 
-  helper_method :outstanding_orders
+  helper_method :outstanding_orders, :dismissed_outstanding_order_ids
 
   def outstanding_orders
     @outstanding_orders ||= current_user.orders.submitted.where(cancelled_at: nil).where.not(id: Payment.completed.select(:order_id)).to_a
   end
 
+  def dismissed_outstanding_order_ids
+    Rails.cache.read(dismissed_outstanding_orders_cache_key) || []
+  end
+
+  def dismiss_outstanding_orders!
+    Rails.cache.write(dismissed_outstanding_orders_cache_key, outstanding_orders.map(&:id), expires_in: 1.year)
+  end
+
   protected
+
+  def dismissed_outstanding_orders_cache_key
+    "users/#{current_user.id}/dismissed_outstanding_order_ids"
+  end
 
   # After signing in, send users to their own registrations by default, which is the most
   # useful landing spot. Still honors a stored return-to location when present (e.g. when

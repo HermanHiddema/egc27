@@ -135,7 +135,7 @@ DraGo's Summer Festival
         </div>
       <% end %>
 
-      <% if outstanding.any? && (outstanding.map(&:id) - Array(cookies.signed["outstanding_orders_#{current_user.id}"])).any? %>
+      <% if outstanding.any? && (outstanding.map(&:id) - dismissed_outstanding_order_ids).any? %>
         <div class="container-wide mt-4">
           <div role="status" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
             <div class="flex items-start gap-2">

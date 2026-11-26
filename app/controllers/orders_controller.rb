@@ -34,7 +34,7 @@ class OrdersController < ApplicationController
   end
 
   def dismiss_outstanding_notification
-    cookies.permanent.signed["outstanding_orders_#{current_user.id}"] = outstanding_orders.map(&:id)
+    dismiss_outstanding_orders!
     redirect_back fallback_location: submitted_orders_path(outstanding: 1), status: :see_other
   end
 
