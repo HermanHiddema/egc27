@@ -12,7 +12,7 @@ class ApplicationController < ActionController::Base
   helper_method :outstanding_orders
 
   def outstanding_orders
-    @outstanding_orders ||= current_user.orders.submitted.where(cancelled_at: nil).includes(:payments).to_a.select(&:outstanding_payment?)
+    @outstanding_orders ||= current_user.orders.submitted.where(cancelled_at: nil).where.not(id: Payment.completed.select(:order_id)).to_a
   end
 
   protected
