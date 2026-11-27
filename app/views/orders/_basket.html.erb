@@ -7,7 +7,7 @@
       <h1 class="text-4xl font-bold"><%= basket_title %></h1>
       <p class="mt-2 text-neutral-700">Review your participants and hostel bookings before checkout.</p>
     </div>
-    <% if admin %><%= render "admin/orders/owner_selector" %><% else %><%= link_to "Past Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %><% end %>
+    <% if admin %><%= render "admin/orders/owner_selector" %><% else %><%= link_to "My Orders", submitted_orders_path, class: "text-brand-blue-700 underline" %><% end %>
   </div>
 
   <div class="grid grid-cols-1 lg:grid-cols-[1fr_20rem] gap-8 items-start" data-basket-content>

@@ -67,7 +67,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - Taiwan display name: `Chinese Taipei (Taiwan)`.
 - Prefer standard Rails resource/controller naming; avoid custom controller names like `*ManagementController`.
 - In the top bar, keep Newsletter and Register now CTAs green while reusing btn-primary for size and shape.
-- In the top bar stacked-button layout (< lg), shorten `Register now` to `Register`.
+- Keep the User menu button on one line by truncating long names, and remove “now” from Register now before truncating the User name when the header is crowded.
 - Mark mandatory form fields with a trailing asterisk in the label (e.g. `Email *`) consistently across all forms.
 - On mobile, keep search as a top-level item in the menu bar, place the hamburger icon on the left, and make only the left half of the bar toggle the navigation panel.
 - Cloudflare Turnstile is required on all publicly available submission forms, including Devise auth forms (login, forgot password, resend confirmation). Every public form must ALSO have Rack::Attack backend throttling (by IP, and by email where applicable). The two protections are complementary, not alternatives.
@@ -156,3 +156,7 @@ When the user expresses a new coding/UI/process preference in chat:
 - On Admin participant details, show Order and Ticket links; access Payments through the Order.
 - On Admin ticket details, show attendance, age group, discount, payment date and the pricing period inferred from that date; distinguish current participant details from historical pricing.
 - On Admin ParticipantTicket details, display invalid admission in bold red.
+- Label the user-facing submitted Order list “My Orders”; keep outstanding Order badges visible independently of dismissible notifications, and emphasize the relevant Payment and show previous attempts collapsed only on Order details.
+- Use a light-blue outstanding Order banner with an alert icon and a red-on-light-red badge; right-align the “<count> unpaid” badge in the User menu, and place the blue My Orders filter button on the right.
+- Make each My Orders overview card clickable to open its Order, while preserving links and payment controls inside it.
+- Give link-like button actions, including Dismiss and Sign out, a pointer cursor.

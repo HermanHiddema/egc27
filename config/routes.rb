@@ -186,6 +186,7 @@ Rails.application.routes.draw do
     post :submit
     delete :cancel
   end
+  post "orders/dismiss_outstanding_notification", to: "orders#dismiss_outstanding_notification", as: :dismiss_outstanding_notification
   get "orders", to: "orders#index", as: :submitted_orders
   get "orders/:id", to: "orders#show_submitted", as: :submitted_order
   post "orders/:id/pay", to: "orders#pay_submitted", as: :pay_submitted_order

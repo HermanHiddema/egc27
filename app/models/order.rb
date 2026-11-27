@@ -209,12 +209,22 @@ class Order < ApplicationRecord
     cancelled? || payments.completed.exists?
   end
 
+  def outstanding_payment?
+    submitted? && payment_action != :closed
+  end
+
+  def primary_payment
+    ordered = payments.to_a.sort_by { |payment| [payment.created_at, payment.id] }.reverse
+    ordered.find(&:paid?) || ordered.find { |payment| payment_processing?(payment) } ||
+      ordered.find { |payment| payment.status == "open" && payment.provider == "mollie" } || ordered.first
+  end
+
   # Open Mollie checkouts can be resumed; other active payments must finish first.
   def payment_action
     if association(:payments).loaded?
       payment_records = payments.to_a
       return :closed if cancelled? || payment_records.any?(&:paid?)
-      return :pending if payment_records.any? { |payment| payment.status.in?(%w[pending authorized]) || (payment.status == "open" && payment.provider != "mollie") }
+      return :pending if payment_records.any? { |payment| payment_processing?(payment) }
       return :resume if payment_records.any? { |payment| payment.status == "open" && payment.provider == "mollie" }
 
       return payment_records.any? ? :retry : :pay
@@ -228,6 +238,10 @@ class Order < ApplicationRecord
   end
 
   private
+
+  def payment_processing?(payment)
+    payment.status.in?(%w[pending authorized]) || (payment.status == "open" && payment.provider != "mollie")
+  end
 
   def owner_change_purpose(new_owner)
     contents = products.order(:id).pluck(:id, :price_cents, :updated_at)

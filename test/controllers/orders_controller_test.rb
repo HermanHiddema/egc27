@@ -256,15 +256,19 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     get submitted_orders_path
 
     assert_response :success
-    assert_select "h1", "Past Orders"
+    assert_select "h1", "My Orders"
     assert_select "p", text: /Created/
-    assert_select "a", text: "Order #{orders(:one).id}"
+    assert_select "article[data-controller='clickable-row'][data-action='click->clickable-row#navigate'][data-clickable-row-url-value=?]", submitted_order_path(orders(:one)) do
+      assert_select "a[href=?]", submitted_order_path(orders(:one)), text: "Order #{orders(:one).id}"
+      assert_select "a[href=?]", submitted_order_path(orders(:one)), text: "View order"
+      assert_select "form[action=?] button", pay_submitted_order_path(orders(:one)), text: "Continue payment"
+    end
 
     get submitted_order_path(orders(:one))
 
     assert_response :success
     assert_select "h1", "Order #{orders(:one).id}"
-    assert_select "h2", "Payment history"
+    assert_select "h2", "Payment"
     assert_select "button", text: "Continue payment"
   end
 
@@ -482,5 +486,97 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
       arrival_date: Date.new(2027, 7, 24), departure_date: Date.new(2027, 7, 26),
       double_rooms: 1
     )
+  end
+  test "outstanding notification can be dismissed without hiding badges and returns for new orders" do
+    original_cache = Rails.cache
+    Rails.cache = ActiveSupport::Cache::MemoryStore.new
+
+    sign_in users(:one)
+    get submitted_orders_path(outstanding: 1)
+    assert_response :success
+    assert_select "a", text: "Review outstanding Orders"
+    assert_select '#user-menu [aria-label*="outstanding Order"].bg-red-100', text: /\d+ unpaid/
+    assert_select "[role=status].bg-blue-50.text-blue-800", text: /You have 2 unpaid orders/
+    assert_select "[role=status] svg[aria-hidden=true]"
+    assert_select 'button.cursor-pointer[aria-label="Dismiss outstanding Orders notification"]'
+    assert_select ".flex.justify-end a.btn-primary", text: "Show all Orders"
+    assert_select "a", text: "Order #{orders(:one).id}"
+    assert_select "a", text: "Order #{orders(:two).id}", count: 0
+
+    assert_no_difference ["Order.count", "Payment.count"] do
+      post dismiss_outstanding_notification_path
+    end
+    assert_equal [orders(:one).id, orders(:three).id].sort,
+      Rails.cache.read("users/#{users(:one).id}/dismissed_outstanding_order_ids").sort
+    assert_no_match(/outstanding_orders_#{users(:one).id}/, response.headers["Set-Cookie"].to_s)
+    get submitted_orders_path
+    assert_select "a", text: "Review outstanding Orders", count: 0
+    assert_select '#user-menu [aria-label*="outstanding Order"]'
+
+    Order.where(id: orders(:two).id).update_all(user_id: users(:one).id)
+    Payment.where(order_id: orders(:two).id).update_all(status: "failed")
+    get submitted_orders_path
+    assert_select "a", text: "Review outstanding Orders"
+  ensure
+    Rails.cache = original_cache
+  end
+
+  test "paid orders have no notification and payment summary retains reversals" do
+    sign_in users(:two)
+    Payment.where(id: payments(:paid_payment).id).update_all(amount_refunded_cents: 1000, amount_charged_back_cents: 500)
+    get submitted_orders_path(outstanding: 1)
+    assert_select "a", text: "Review outstanding Orders", count: 0
+    assert_select '#user-menu [aria-label*="outstanding Order"]', count: 0
+    assert_select "a", text: "Order #{orders(:two).id}", count: 0
+    get submitted_order_path(orders(:two))
+    assert_select "p", text: /Refunded: € 10.00/
+    assert_select "p", text: /Chargeback: € 5.00/
+  end
+
+  test "payment summary prioritizes active attempts over newer unsuccessful attempts" do
+    sign_in users(:one)
+    order = orders(:one)
+    active = payments(:open_payment)
+    unsuccessful = Payment.create!(order: order, amount_cents: order.total_cents, description: "Later attempt", status: "expired", created_at: active.created_at + 1.minute)
+
+    %w[open pending authorized].each do |status|
+      Payment.where(id: active.id).update_all(status: status)
+      get submitted_orders_path
+      assert_select "article[data-clickable-row-url-value=?]", submitted_order_path(order) do
+        assert_select "div.font-medium", text: /#{status.capitalize}/
+        assert_select "div.font-medium", text: /Expired/, count: 0
+      end
+      get submitted_order_path(order)
+      assert_select ".text-base .font-medium", text: /#{status.capitalize}/
+      assert_select "details", text: /Expired/
+    end
+
+    # A processing payment takes precedence over a newer resumable checkout.
+    Payment.where(id: active.id).update_all(status: "pending")
+    Payment.where(id: unsuccessful.id).update_all(status: "open")
+    get submitted_order_path(order)
+    assert_select ".text-base .font-medium", text: /Pending/
+    assert_select "details", text: /Open/
+
+    Payment.where(id: active.id).update_all(status: "paid")
+    get submitted_order_path(order)
+    assert_select ".text-base .font-medium", text: /Paid/
+    assert_select "details", text: /Open/
+  end
+
+  test "payment summary highlights latest attempt and collapses older attempts" do
+    sign_in users(:one)
+    order = orders(:one)
+    Payment.where(id: payments(:open_payment).id).update_all(status: "failed")
+    Payment.create!(order: order, amount_cents: order.total_cents, description: "Second attempt", status: "expired")
+    get submitted_orders_path
+    assert_select "article", text: /Expired/
+    assert_select "summary", text: "Previous payment attempts", count: 0
+
+    get submitted_order_path(order)
+    assert_select ".text-base", text: /Expired/
+    assert_select "details:not([open]) summary", "Previous payment attempts"
+    assert_select "details", text: /Failed/
+    assert_select "button", text: "Retry payment"
   end
 end

@@ -36,10 +36,11 @@
 
   <body class="min-h-screen flex flex-col overflow-x-clip bg-cover bg-center bg-fixed bg-no-repeat" style="background-image: url('<%= asset_path("StJansKathedraal.webp") %>');">
     <% basket_product_count = shopping_basket_product_count %>
+    <% outstanding = user_signed_in? ? outstanding_orders : [] %>
     <!-- Header -->
     <header class="bg-brand-red-600 border-b border-brand-yellow-800 lg:sticky lg:top-0 z-50 shadow-sm" data-controller="header-shrink" data-header-shrink-threshold-value="24" data-header-shrink-hysteresis-value="16">
       <nav class="container-wide flex items-center justify-between h-48 lg:h-48 transition-all duration-300" data-header-shrink-target="nav">
-        <div class="header-brand flex min-w-0 flex-col items-start justify-center gap-1 lg:flex-row lg:items-center lg:gap-2">
+        <div data-header-shrink-target="brand" class="header-brand flex min-w-0 flex-col items-start justify-center gap-1 lg:flex-row lg:items-center lg:gap-2">
           <%= link_to image_tag("EGC-logo.svg", alt: "DraGo's Summer Festival logo", class: "h-32 lg:h-48 w-auto transition-all duration-300", data: { header_shrink_target: "logo" }), root_path %>
           <p class="header-mobile-event-info lg:hidden text-[0.7rem] leading-tight text-brand-yellow-300">
             <span class="header-mobile-event-title">European Go Congress 2027</span>
@@ -55,23 +56,24 @@ DraGo's Summer Festival
           </div>
         </div>
 
-        <div class="header-actions flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
+        <div data-header-shrink-target="actions" class="header-actions flex flex-col items-end gap-1 lg:flex-row lg:items-center lg:gap-4">
           <%= link_to "Newsletter", newsletter_signup_path, class: "header-action-link btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" %>
           <%= link_to new_participant_path, class: "header-action-link btn-primary bg-green-600 hover:bg-green-700 focus:ring-green-500" do %>
-            <span class="lg:hidden">Register</span><span class="hidden lg:inline">Register now</span>
+            Register<span class="header-register-now" data-header-shrink-target="registerNow"> now</span>
           <% end %>
           <% if defined?(current_user) && (current_user.present? || !devise_controller?) %>
             <% if current_user.present? %>
               <%= render "layouts/basket_icon", count: basket_product_count, css_class: "hidden lg:inline-flex text-brand-yellow-300 hover:bg-brand-red-700" %>
-              <div class="relative" data-controller="dropdown">
+              <div class="header-user-menu relative" data-controller="dropdown">
                 <button class="header-action-user btn-primary flex items-center gap-1"
                         type="button"
                         data-dropdown-target="toggle"
                         aria-controls="user-menu"
                         aria-expanded="false"
                         aria-haspopup="true">
-                  <span><%= current_user.display_name %></span>
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <span data-header-shrink-target="userName" class="header-user-name" title="<%= current_user.display_name %>"><%= current_user.display_name %></span>
+                  <%= render "layouts/outstanding_count", count: outstanding.size %>
+                  <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                   </svg>
                 </button>
@@ -79,7 +81,9 @@ DraGo's Summer Festival
                 <div id="user-menu" data-dropdown-target="menu" class="absolute right-0 mt-0 w-48 bg-brand-red-600 border border-brand-yellow-800 rounded-md shadow-lg hidden z-50">
                   <%= link_to "Account", edit_user_registration_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <%= link_to "My basket", order_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
-                  <%= link_to "Past Orders", submitted_orders_path, class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
+                  <%= link_to submitted_orders_path, class: "flex items-center justify-between gap-2 px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" do %>
+                    My Orders <%= render "layouts/outstanding_count", count: outstanding.size, show_label: true %>
+                  <% end %>
                   <% if (registration_link = user_registration_menu_link(current_user)) %>
                     <%= link_to registration_link[:label], registration_link[:path], class: "block px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors" %>
                   <% end %>
@@ -94,7 +98,7 @@ DraGo's Summer Festival
                                 destroy_user_session_path,
                                 method: :delete,
                                 form_class: "w-full",
-                                class: "w-full text-left px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors bg-transparent border-0" %>
+                                class: "w-full cursor-pointer text-left px-4 py-2 text-sm text-brand-yellow-300 hover:text-brand-yellow-400 transition-colors bg-transparent border-0" %>
                 </div>
               </div>
             <% else %>
@@ -127,6 +131,20 @@ DraGo's Summer Festival
                 <% end %>
               <% end %>
             <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <% if outstanding.any? && (outstanding.map(&:id) - dismissed_outstanding_order_ids).any? %>
+        <div class="container-wide mt-4">
+          <div role="status" class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+            <div class="flex items-start gap-2">
+              <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.3 3.9 2.9 17a2 2 0 0 0 1.7 3h14.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+              </svg>
+              <p>You have <%= pluralize(outstanding.size, "unpaid order") %>. <%= link_to "Review outstanding Orders", submitted_orders_path(outstanding: 1), class: "font-semibold underline" %></p>
+            </div>
+            <%= button_to "Dismiss", dismiss_outstanding_notification_path, method: :post, class: "cursor-pointer underline", aria: { label: "Dismiss outstanding Orders notification" } %>
           </div>
         </div>
       <% end %>

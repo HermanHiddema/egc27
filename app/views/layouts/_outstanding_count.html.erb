@@ -1,0 +1,3 @@
+<% if count.positive? %>
+  <span class="inline-flex min-w-5 items-center justify-center rounded-full bg-red-100 px-1.5 text-xs font-bold text-red-800" aria-label="<%= pluralize(count, 'outstanding Order') %>"><%= count %><%= " unpaid" if local_assigns[:show_label] %></span>
+<% end %>

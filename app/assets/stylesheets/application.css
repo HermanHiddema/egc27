@@ -237,6 +237,42 @@
   clear: both;
 }
 
+.header-actions {
+  min-width: 0;
+  max-width: 60%;
+}
+
+.header-user-menu {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.header-action-user {
+  max-width: 100%;
+  white-space: nowrap;
+}
+
+.header-user-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.header-action-user [aria-label] {
+  flex-shrink: 0;
+}
+
+.header-actions.header-register-short .header-register-now {
+  display: none;
+}
+
+@media (max-width: 1279px) {
+  .header-register-now {
+    display: none;
+  }
+}
+
 @media (max-width: 1023px) and (orientation: portrait) {
   header nav[data-header-shrink-target="nav"] {
     height: 9rem !important;
