@@ -1,5 +1,5 @@
 <% payments = order.payments.to_a.sort_by { |payment| [payment.created_at, payment.id] }.reverse %>
-<% primary = payments.find(&:paid?) || payments.first %>
+<% primary = order.primary_payment %>
 <div class="mt-4 text-sm">
   <% if primary %>
     <div class="<%= local_assigns[:large_primary] ? "text-base" : "" %>"><%= render "orders/payment_attempt", payment: primary %></div>

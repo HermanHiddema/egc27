@@ -533,6 +533,37 @@ class OrdersControllerTest < ActionDispatch::IntegrationTest
     assert_select "p", text: /Chargeback: € 5.00/
   end
 
+  test "payment summary prioritizes active attempts over newer unsuccessful attempts" do
+    sign_in users(:one)
+    order = orders(:one)
+    active = payments(:open_payment)
+    unsuccessful = Payment.create!(order: order, amount_cents: order.total_cents, description: "Later attempt", status: "expired", created_at: active.created_at + 1.minute)
+
+    %w[open pending authorized].each do |status|
+      Payment.where(id: active.id).update_all(status: status)
+      get submitted_orders_path
+      assert_select "article[data-clickable-row-url-value=?]", submitted_order_path(order) do
+        assert_select "div.font-medium", text: /#{status.capitalize}/
+        assert_select "div.font-medium", text: /Expired/, count: 0
+      end
+      get submitted_order_path(order)
+      assert_select ".text-base .font-medium", text: /#{status.capitalize}/
+      assert_select "details", text: /Expired/
+    end
+
+    # A processing payment takes precedence over a newer resumable checkout.
+    Payment.where(id: active.id).update_all(status: "pending")
+    Payment.where(id: unsuccessful.id).update_all(status: "open")
+    get submitted_order_path(order)
+    assert_select ".text-base .font-medium", text: /Pending/
+    assert_select "details", text: /Open/
+
+    Payment.where(id: active.id).update_all(status: "paid")
+    get submitted_order_path(order)
+    assert_select ".text-base .font-medium", text: /Paid/
+    assert_select "details", text: /Open/
+  end
+
   test "payment summary highlights latest attempt and collapses older attempts" do
     sign_in users(:one)
     order = orders(:one)
